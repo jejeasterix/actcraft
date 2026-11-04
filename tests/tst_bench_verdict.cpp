@@ -16,6 +16,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -125,6 +127,7 @@ std::vector<std::pair<std::uint64_t, std::int64_t>> receivedInOrder(std::uint64_
 // Vraie interface (ActCraft.Ui/Main), hors écran, en rendu logiciel (tests/CMakeLists.txt).
 struct App
 {
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
     ui::PageView* view = nullptr;
@@ -134,6 +137,7 @@ bool start(App& app)
 {
     StartupOptions options;
     options.generatedPage = true; // le banc mesure la page de 300 objets
+    options.profileRoot = app.profiles.path();
     app.window = loadMainWindow(app.engine, options);
     if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
         return false;
@@ -151,10 +155,12 @@ bool start(App& app)
 BenchResult runBench(BenchOptions options)
 {
     options.scenarioSet = ScenarioSet::Court;
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     Runner runner(options);
     QQmlApplicationEngine engine;
     StartupOptions startup;
     startup.generatedPage = true;
+    startup.profileRoot = profiles.path();
     QQuickWindow* window = loadMainWindow(engine, startup);
     if (!window) {
         BenchResult none;
@@ -180,8 +186,17 @@ QString describeChecks(const BenchResult& r)
 class TstBenchVerdict : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_settingsDir;
 
 private slots:
+    void initTestCase()
+    {
+        // Main.qml porte Preferences et ProfileController : réglages INI d'essai, jamais ceux du poste.
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+    }
+
     void goodRunIsWithinBudget()
     {
         BenchResult r = good();

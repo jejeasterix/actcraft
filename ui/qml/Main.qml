@@ -46,6 +46,8 @@ Window {
     // Fixées avant le chargement par l'application, le banc ou les tests (app/startup.cpp).
     property bool cacheEnabled: true
     property bool generatedPage: false
+    // Dossier des profils de l'utilisateur ; vide : <AppConfigLocation>/profiles (StartupOptions::profileRoot).
+    property string profileRoot: ""
     // État de l'interface, lu par les tests et par actcraft-captures. Le plein écran est l'état réel de la
     // fenêtre : il suit aussi une sortie par le système, et la coche de « Plein écran » le suit.
     readonly property bool fullScreen: root.visibility === Window.FullScreen
@@ -56,6 +58,19 @@ Window {
     Commands {
         id: appCommands
         objectName: "commands"
+    }
+
+    // Lot 6 (L6-T5) : réglages du poste et profil courant, relu au démarrage (à défaut, « preparation »).
+    Preferences {
+        id: appPreferences
+        objectName: "appPreferences"
+    }
+    ProfileController {
+        id: appProfile
+        objectName: "appProfile"
+        commands: appCommands
+        preferences: appPreferences
+        userRoot: root.profileRoot
     }
 
     DocumentController {
@@ -281,6 +296,7 @@ Window {
             commands: appCommands
             tools: appTools
             view: pageArea.view
+            profile: appProfile
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -336,6 +352,8 @@ Window {
             documentController: appDocument
             tools: appTools
             view: pageArea.view
+            profile: appProfile
+            preferences: appPreferences
 
             ToolPalette {
                 id: toolPalette
@@ -344,6 +362,7 @@ Window {
                 view: pageArea.view
                 tools: appTools
                 documentController: appDocument
+                profile: appProfile
             }
         }
     }
@@ -520,6 +539,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     ColorLoupe {
         id: colorLoupe
@@ -527,6 +548,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     LabelTip {
         id: labelTip
@@ -534,6 +557,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     Dashboard {
         id: dashboard
@@ -541,6 +566,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     ProfileChooser {
         id: profileChooser
@@ -548,6 +575,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     ProfileEditor {
         id: profileEditor
@@ -555,6 +584,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     ClassroomLockDialog {
         id: classroomLockDialog
@@ -562,6 +593,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     SpellingDialog {
         id: spellingDialog
@@ -569,6 +602,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     HelpViewer {
         id: helpViewer
@@ -576,6 +611,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     SaveSummaryDialog {
         id: saveSummaryDialog
@@ -583,6 +620,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     SettingsPage {
         id: settingsPage
@@ -590,6 +629,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
     LaunchersPage {
         id: launchersPage
@@ -597,6 +638,8 @@ Window {
         documentController: appDocument
         tools: appTools
         view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
 
     // Lot 7 : surcouches plein cadre et panneaux flottants (rideau, spot, message défilant, dés, horloge…).

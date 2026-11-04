@@ -23,6 +23,7 @@
 #include <QQuickWindow>
 #include <QScreen>
 #include <QSemaphore>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QStringList>
 #include <QTabletEvent>
@@ -45,6 +46,7 @@ namespace {
 
 struct Shell
 {
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
     ui::PageView* view = nullptr;
@@ -58,7 +60,9 @@ bool ready(Shell& s)
 
 bool start(Shell& s)
 {
-    s.window = loadMainWindow(s.engine, StartupOptions{});
+    StartupOptions options;
+    options.profileRoot = s.profiles.path();
+    s.window = loadMainWindow(s.engine, options);
     if (!s.window || !QTest::qWaitForWindowExposed(s.window)) {
         return false;
     }
@@ -201,8 +205,17 @@ bool isNullAction(const QVariant& value)
 class TstUiFileMenu : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_settingsDir;
 
 private slots:
+    void initTestCase()
+    {
+        // Main.qml porte Preferences et ProfileController : réglages INI d'essai, jamais ceux du poste.
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+    }
+
     void fileMenuListsTheLotTwoCommands()
     {
         Shell s;

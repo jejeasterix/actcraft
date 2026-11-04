@@ -13,6 +13,7 @@
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -39,6 +40,7 @@ core::Stroke redStroke()
 // scénarios.
 struct Shell
 {
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
     ui::FileExchange* exchange = nullptr;
@@ -47,7 +49,9 @@ struct Shell
 
     bool start()
     {
-        window = loadMainWindow(engine, StartupOptions{});
+        StartupOptions options;
+        options.profileRoot = profiles.path();
+        window = loadMainWindow(engine, options);
         if (!window || !QTest::qWaitForWindowExposed(window)) {
             return false;
         }
@@ -101,7 +105,17 @@ public slots:
 class TestUiFileExchange : public QObject
 {
     Q_OBJECT
+    // Réglages du poste (Preferences de Main.qml) : INI dans un dossier jetable, jamais ceux du poste (N1).
+    QTemporaryDir m_settings;
+
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_settings.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settings.path());
+    }
+
     void exportPdfCommandWritesFile()
     {
         Shell s;

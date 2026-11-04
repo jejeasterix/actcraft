@@ -65,6 +65,9 @@ public:
 
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument = QVariant());
     Q_INVOKABLE void setHandler(const QString& id, const QJSValue& handler);
+    // Gestionnaire C++ (L6-T5 : `profile.activate`, posé par ProfileController), gardé à travers reload() et
+    // prioritaire sur un gestionnaire JavaScript ; un gestionnaire vide le retire.
+    void setNativeHandler(const QString& id, actions::CommandRegistry::Handler handler);
     Q_INVOKABLE QString label(const QString& id) const;
     // « qrc:/qt/qml/ActCraft/Ui/icons/<icône>.svg », ou vide.
     Q_INVOKABLE QString iconUrl(const QString& id) const;
@@ -78,6 +81,10 @@ public:
     Q_INVOKABLE void setEnabled(const QString& id, bool enabled);
     Q_INVOKABLE bool isChecked(const QString& id) const;
     Q_INVOKABLE void setChecked(const QString& id, bool checked);
+    // Verrou de classe du registre (D6-7) : désactive les commandes verrouillables sans toucher leur état
+    // propre ; gardé à travers reload().
+    void setLocked(bool locked);
+    bool isLocked() const noexcept;
 
 signals:
     void layoutChanged();
@@ -97,6 +104,10 @@ private:
     QStringList m_errors;
     QSet<QString> m_hidden;
     QHash<QString, QJSValue> m_handlers;
+    QHash<QString, actions::CommandRegistry::Handler> m_nativeHandlers;
+    // Gestionnaire en cours : le registre qui le porte n'est ni remplacé ni modifié avant son retour.
+    int m_triggerDepth = 0;
+    bool m_reloadPending = false;
     int m_revision = 0;
 };
 

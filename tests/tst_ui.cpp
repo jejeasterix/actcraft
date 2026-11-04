@@ -4,6 +4,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -14,10 +16,25 @@ class TstUi : public QObject
 {
     Q_OBJECT
 
+private:
+    // Réglages du poste (Preferences) et profils de Main.qml : dossier jetable, jamais ceux du poste (N1).
+    QTemporaryDir m_dir;
+
+    QString profileRoot() const { return m_dir.filePath(QStringLiteral("profiles")); }
+
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_dir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                           m_dir.filePath(QStringLiteral("poste")));
+    }
+
     void mainWindowLoadsWithSoftwareRenderer()
     {
         QQmlApplicationEngine engine;
+        engine.setInitialProperties({{QStringLiteral("profileRoot"), profileRoot()}});
         engine.loadFromModule("ActCraft.Ui", "Main");
         QCOMPARE(engine.rootObjects().size(), 1);
 
@@ -42,7 +59,8 @@ private slots:
     void generatedPageOptionLoadsThe300Objects()
     {
         QQmlApplicationEngine engine;
-        engine.setInitialProperties({{QStringLiteral("generatedPage"), true}});
+        engine.setInitialProperties(
+            {{QStringLiteral("generatedPage"), true}, {QStringLiteral("profileRoot"), profileRoot()}});
         engine.loadFromModule("ActCraft.Ui", "Main");
         QCOMPARE(engine.rootObjects().size(), 1);
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
