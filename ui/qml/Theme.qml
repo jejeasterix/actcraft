@@ -34,7 +34,8 @@ QtObject {
     readonly property int hauteurBarre: 44
     readonly property int largeurPalette: 112
     readonly property int tailleBouton: 44      // cible tactile
-    readonly property int tailleIcone: 24
+    // Modifiable : PaletteFrame.qml le lie au profil (F-034, 16 à 32).
+    property int tailleIcone: 24
     readonly property int taillePastille: 20    // pastilles, préréglages d'épaisseur, poignée de la réglette
 
     // Typographie : police sans empattement du système (N2-3)

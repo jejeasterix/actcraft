@@ -141,8 +141,9 @@ actcraft_add_test(tst_ui_profiles
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 # L6-T7
 actcraft_add_test(tst_ui_palette
-    SOURCES tst_ui_palette.cpp
+    SOURCES tst_ui_palette.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_palette PRIVATE ${PROJECT_SOURCE_DIR}/app)
 # L6-T8
 actcraft_add_test(tst_ui_colors
     SOURCES tst_ui_colors.cpp
