@@ -232,9 +232,7 @@ Hypothèses du lot 6 décidées sur le Mac : **H6-11** (orchestrateur, 2026-11-0
 Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H6-6b « MPL 1.1 » le 2026-10-21).
 Reprise après la relève (2026-11-04, ouvrière du pilote du Mac, handoff `1c566e9c`) : chantier réenregistré ; L6-C3 en rejeu ; L6-T14 essai 3 relancé (`concepteur-critique`) ; L6-T7 relancée depuis c8146ed ; L6-T11 en revue immédiate, rejeu après L6-C3.
 Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstruites) : 207/207, 0 avertissement — orchestrateur, 2026-11-04.
-Tâche : L6-T19 — fragment de ressource — depuis 2026-11-04
 Tâche : L6-T22 — mode conception (F-560) — depuis 2026-11-04
-Tâche : L6-T24 — documents récents et résumé — depuis 2026-11-04
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -268,9 +266,9 @@ Tâche : L6-T24 — documents récents et résumé — depuis 2026-11-04
 | L6-P2 | terminée | 1/3 | merge 6414a9be | entrées `browser.properties` et `resources.add` au menu d'objet ; rejeu 207/207, 0 avertissement, `LU objectEditMenu.visibleCommandCount=16 OK` ; `edition.json` 14 → 16 sur décision de l'orchestrateur (la contrainte 4b protégeait `proprietes.json` et `etiquettes.json`, en vol) |
 | L6-C9 | terminée | 1/3 | merge e98c9fbc | mineurs n1, n3, n4 de la revue de L6-T12 (PropertyModel) ; rejeu 207/207, 0 avertissement ; mutations n1, n3, n4 rouges ; n2 laissé à la porte de fin |
 | L6-T18 | terminée | 1/3 | merge 4f9449ea | point d'étape 6a : étape `restart` (joueur, `bench/captures/main.cpp` recrée le moteur QML sur les mêmes dossiers d'essai) ; `BrowserPanel.qml` lit et réécrit `profile.browsersCurrent` (périmètre élargi par l'orchestrateur, mutation rouge) ; rejeu : 207/207, 0 avertissement, `tst_captures_reglages_gardes` `SCENARIO OK` avec `paletteDock=left`, `extraCount=1`, `current=objets` après `RELANCE OK` ; talons L6-T2 à T17 absents ; graphe 285d8f3b. Pour 3.8 : `browsersVisible` lu par aucun QML ; `.graphifyignore` sans `build-mac/` (graphify à court de mémoire). Au PC : release, `TESTS OK` ×2, `NOMS OK`, `captures.ps1` |
-| L6-T24 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T24`, depuis 4f9449ea | V9 |
+| L6-T24 | à lancer | 1/3 | `.worktrees/livraison-complete--L6-T24`, depuis 4f9449ea | V9, après L6-T22 (une place de tests : B tourne) |
 | L6-T22 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T22`, depuis 4f9449ea | V9 |
-| L6-T19 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T19`, depuis 4f9449ea | V9 |
+| L6-T19 | à lancer | 1/3 | `.worktrees/livraison-complete--L6-T19`, depuis 4f9449ea | V9, après L6-T22 (une place de tests : B tourne) |
 
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
