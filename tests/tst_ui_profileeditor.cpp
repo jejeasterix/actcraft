@@ -76,7 +76,7 @@ bool run(Shell& s, const QString& id, const QVariant& argument = QVariant())
 
 QVariantMap entry(Shell& s, const QString& id)
 {
-    const QVariantList list = s.profile->property("profiles").toVariantList();
+    const QVariantList list = s.profile->property("profiles").toList();
     for (const QVariant& v : list) {
         if (v.toMap().value(QStringLiteral("id")).toString() == id) {
             return v.toMap();
@@ -151,7 +151,7 @@ private slots:
         QTRY_VERIFY(button->isVisible());
         QVERIFY(!button->isEnabled());
         const QString before = s.profile->property("currentId").toString();
-        const int count = s.profile->property("profiles").toList().size();
+        const qsizetype count = s.profile->property("profiles").toList().size();
         run(s, QStringLiteral("profile.delete"));
         QCOMPARE(s.profile->property("currentId").toString(), before);
         QCOMPARE(s.profile->property("profiles").toList().size(), count);
