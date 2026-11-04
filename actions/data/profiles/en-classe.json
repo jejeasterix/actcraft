@@ -1,6 +1,29 @@
 {
   "format": "actcraft-profile/1",
   "id": "en-classe",
-  "label": "en-classe",
-  "description": "Talon L6 : rempli par L6-T6."
+  "label": "Faire la classe",
+  "icon-pixels": 24,
+  "palette": {
+    "dock": "right",
+    "collapsed": false,
+    "shortcuts-hidden": false,
+    "pinned": true,
+    "swatches": 16
+  },
+  "browsers": {
+    "visible": false,
+    "side": "left",
+    "pinned": true,
+    "current": "pages",
+    "width": 240
+  },
+  "fit-page": true,
+  "trash-visible": true,
+  "pinned": [
+    "browser.resources",
+    "present.curtain",
+    "present.spotlight-circle",
+    "view.page-zoom",
+    "tool.clock"
+  ]
 }

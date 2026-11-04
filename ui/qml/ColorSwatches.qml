@@ -12,8 +12,16 @@ Grid {
     columns: 4
     spacing: Theme.espace1
 
+    // F-135, F-900 : pastilles de base puis couleurs ajoutées (8, 16 ou 24 selon le profil).
+    ColorPalette {
+        id: appColors
+        objectName: "appColors"
+        profile: grid.profile
+        baseColors: grid.commands.colors
+    }
+
     Repeater {
-        model: grid.commands.colors
+        model: appColors.swatches
         delegate: Rectangle {
             id: swatch
             required property string modelData
@@ -42,6 +50,14 @@ Grid {
                 color: "transparent"
                 border.width: 1
                 border.color: Theme.palette
+            }
+            // Clic droit (F-135) : grille étendue, copieur et boîte de couleur, ouverts à côté de la pastille.
+            TapHandler {
+                acceptedButtons: Qt.RightButton
+                onTapped: {
+                    const spot = swatch.mapToItem(null, 0, swatch.height)
+                    grid.commands.trigger("color.more", {"x": spot.x, "y": spot.y})
+                }
             }
             TapHandler {
                 id: tap
