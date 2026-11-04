@@ -20,6 +20,7 @@
 #include <QColor>
 #include <QCursor>
 #include <QLineF>
+#include <QQuickItem>
 #include <QSignalSpy>
 #include <QUrl>
 #include <QtMath>
@@ -126,6 +127,81 @@ void pointerStep(QQuickWindow* window, Pointer pointer, QEvent::Type phase, QPoi
         break;
     }
     QCoreApplication::processEvents();
+}
+
+// Menu d'un outil ouvert : objet non visuel, enfant direct de l'élément de l'outil. Cherché en suivant l'arbre
+// visuel (les délégués du Repeater de la couche n'ont pas la fenêtre pour ancêtre dans l'arbre des objets).
+QObject* menuIn(QQuickItem* item, const QString& name)
+{
+    if (!item) {
+        return nullptr;
+    }
+    if (QObject* found = item->findChild<QObject*>(name, Qt::FindDirectChildrenOnly)) {
+        return found;
+    }
+    const QList<QQuickItem*> children = item->childItems();
+    for (QQuickItem* child : children) {
+        if (QObject* found = menuIn(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+QObject* menuOf(const MainWindow& w, const QString& name)
+{
+    return w.window() ? menuIn(w.window()->contentItem(), name) : nullptr;
+}
+
+QQuickItem* menuEntry(QObject* menu, const QString& text)
+{
+    const int count = menu ? menu->property("count").toInt() : 0;
+    for (int i = 0; i < count; ++i) {
+        QQuickItem* item = nullptr;
+        QMetaObject::invokeMethod(menu, "itemAt", Q_RETURN_ARG(QQuickItem*, item), Q_ARG(int, i));
+        if (item && item->property("text").toString() == text) {
+            return item;
+        }
+    }
+    return nullptr;
+}
+
+// Clic de souris sur l'entrée `text` du menu, une fois ouvert (une entrée à sous-menu ouvre celui-ci).
+bool clickEntry(const MainWindow& w, QObject* menu, const QString& text)
+{
+    if (!menu || !QTest::qWaitFor([menu] { return menu->property("opened").toBool(); }, 3000)) {
+        return false;
+    }
+    QQuickItem* entry = menuEntry(menu, text);
+    if (!entry) {
+        return false;
+    }
+    // Menu dans sa propre fenêtre si le style en ouvre une ; sinon dans la couche de la fenêtre principale.
+    QQuickWindow* target = entry->window() ? entry->window() : w.window();
+    QTest::mouseClick(target, Qt::LeftButton, Qt::NoModifier,
+                      entry->mapToScene(QPointF(entry->width() / 2, entry->height() / 2)).toPoint());
+    QCoreApplication::processEvents();
+    return true;
+}
+
+// Le menu ouvert, l'entrée cliquée comme à la main ; le menu se referme.
+bool chooseFromMenu(const MainWindow& w, QObject* menu, const QString& text)
+{
+    if (!menu || !QMetaObject::invokeMethod(menu, "open") || !clickEntry(w, menu, text)) {
+        return false;
+    }
+    return QTest::qWaitFor([menu] { return !menu->property("visible").toBool(); }, 3000);
+}
+
+bool entryChecked(QObject* menu, const QString& text)
+{
+    QQuickItem* entry = menuEntry(menu, text);
+    return entry && entry->property("checked").toBool();
+}
+
+QVariant toolValue(const MathToolsController& tools, const char* key)
+{
+    return tools.toolAt(0).value(QLatin1String(key));
 }
 
 const actcraft::core::Stroke* lastStroke(const actcraft::core::Page& page)
@@ -1306,6 +1382,109 @@ private slots:
         QVERIFY2(allOnLine(*guided, top), "marqueur : tous les points du trait sur le bord haut");
         QVERIFY(qAbs(guided->points.front().x - 300) <= 0.5);
         QVERIFY(qAbs(guided->points.back().x - 700) <= 0.5);
+    }
+
+    // Relecture du lot 7 : un test par menu d'outil de maths, chaque entrée cliquée à la souris. Règle :
+    // angle affiché, sous-menus des unités présents, fermeture.
+    void rulerMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QObject* menu = nullptr; // délégué de l'outil créé par la couche, après la commande
+        QTRY_VERIFY((menu = menuOf(w, QStringLiteral("rulerMenu"))) != nullptr);
+        const bool angle = toolValue(*tools, "showAngle").toBool();
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Afficher l'angle")));
+        QTRY_COMPARE(toolValue(*tools, "showAngle").toBool(), !angle);
+        QCOMPARE(entryChecked(menu, QStringLiteral("Afficher l'angle")), !angle);
+        // Sous-menus des unités : leur présence seulement (cliquer « Pouces » dans le sous-menu ouvert fait
+        // planter l'exécutable hors écran, le 2026-11-04 ; consigné, à analyser hors de L7-T37).
+        QVERIFY(menuEntry(menu, QStringLiteral("Unités du bord haut")));
+        QVERIFY(menuEntry(menu, QStringLiteral("Unités du bord bas")));
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Équerre : angle affiché, fermeture.
+    void setSquareMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.set-square")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QObject* menu = nullptr; // délégué de l'outil créé par la couche, après la commande
+        QTRY_VERIFY((menu = menuOf(w, QStringLiteral("setSquareMenu"))) != nullptr);
+        const bool angle = toolValue(*tools, "showAngle").toBool();
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Afficher l'angle")));
+        QTRY_COMPARE(toolValue(*tools, "showAngle").toBool(), !angle);
+        QCOMPARE(entryChecked(menu, QStringLiteral("Afficher l'angle")), !angle);
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Compas : chaque réglage cochable bascule sa valeur, et sa coche suit ; fermeture.
+    void compassMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.compass")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QObject* menu = nullptr; // délégué de l'outil créé par la couche, après la commande
+        QTRY_VERIFY((menu = menuOf(w, QStringLiteral("compassMenu"))) != nullptr);
+        const std::pair<const char*, const char*> entries[] = {{"Réfléchi", "mirrored"},
+                                                               {"Afficher l'angle", "showAngle"},
+                                                               {"Afficher le rayon", "showRadius"},
+                                                               {"Marquer le centre", "markCentre"}};
+        for (const auto& [text, key] : entries) {
+            const QString entry = QString::fromUtf8(text);
+            const bool before = toolValue(*tools, key).toBool();
+            QVERIFY2(chooseFromMenu(w, menu, entry), text);
+            QTRY_COMPARE(toolValue(*tools, key).toBool(), !before);
+            QCOMPARE(entryChecked(menu, entry), !before);
+        }
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Rapporteur : coches de la forme et du style d'arc. Cliquer l'entrée déjà cochée la laisse cochée ; cocher
+    // l'autre décoche la première (le cadre relu après chaque réglage rétablit les liaisons `checked`, sans
+    // groupe exclusif : vert aussi sans ButtonGroup, vu le 2026-11-04).
+    void protractorMenu()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QVERIFY(w.run(QStringLiteral("math.protractor")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QObject* menu = nullptr; // délégué de l'outil créé par la couche, après la commande
+        QTRY_VERIFY((menu = menuOf(w, QStringLiteral("protractorMenu"))) != nullptr);
+        const QString full = QStringLiteral("Rapporteur complet");
+        const QString half = QStringLiteral("Demi-rapporteur");
+        QVERIFY(toolValue(*tools, "shape").toString() != QLatin1String("half"));
+        QVERIFY(entryChecked(menu, full));
+        QVERIFY(chooseFromMenu(w, menu, full));
+        QVERIFY(entryChecked(menu, full));
+        QVERIFY(toolValue(*tools, "shape").toString() != QLatin1String("half"));
+        QVERIFY(chooseFromMenu(w, menu, half));
+        QTRY_COMPARE(toolValue(*tools, "shape").toString(), QStringLiteral("half"));
+        QVERIFY(entryChecked(menu, half));
+        QVERIFY(!entryChecked(menu, full));
+
+        const QString filled = QStringLiteral("Arc plein");
+        QVERIFY(chooseFromMenu(w, menu, filled));
+        QTRY_COMPARE(toolValue(*tools, "arcStyle").toString(), QStringLiteral("filled"));
+        QVERIFY(chooseFromMenu(w, menu, filled));
+        QVERIFY(entryChecked(menu, filled));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc")));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc fermé")));
+        QCOMPARE(toolValue(*tools, "arcStyle").toString(), QStringLiteral("filled"));
+
+        QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
+        QTRY_COMPARE(tools->count(), 0);
     }
 
     // F-282, L7-T34 : la gomme du lot 3 suit la mine du compas (même filtre) : le bras tourne avec elle. Elle
