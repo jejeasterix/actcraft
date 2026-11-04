@@ -553,7 +553,8 @@ void SelectTool::beginDrag(bool force)
             m_copySources = core::closureForCopy(page, m_copied); // soulevés, ils quittent la page
         }
     }
-    m_frame = layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
+    m_frame =
+        layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
     liftForGesture(std::move(ids), State::Dragging);
 }
 
@@ -568,12 +569,13 @@ void SelectTool::beginTransform(State kind)
         }
         const core::PageObject& object = page.objects[index];
         const bool allowed = kind == State::Resizing ? resizable(object, m_context.lockIgnored)
-                                                    : rotatable(object, m_context.lockIgnored); // P28
+                                                     : rotatable(object, m_context.lockIgnored); // P28
         if (allowed) {
             ids.push_back(id);
         }
     }
-    m_frame = layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
+    m_frame =
+        layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
     if (ids.empty() || m_frame.corners.size() != 4 ||
         (kind == State::Resizing && m_frame.handles.size() != 8)) {
         return;
@@ -826,8 +828,8 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
 
 void SelectTool::showBand(core::PointF point)
 {
-    SelectionView view =
-        layoutSelection(m_context.document.page(), m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
+    SelectionView view = layoutSelection(m_context.document.page(), m_context.user.selection(),
+                                         m_context.view.zoom(), {}, m_context.lockIgnored);
     view.rubberBand = core::normalizedRect(m_start, point);
     publish(view);
 }
@@ -885,8 +887,9 @@ void SelectTool::release(const input::Sample& sample)
 
 void SelectTool::showFrame()
 {
-    SelectionView view = layoutSelection(m_context.document.page(), m_context.user.selection(),
-                                         m_context.view.zoom(), m_context.view.objectBarCommands(), m_context.lockIgnored);
+    SelectionView view =
+        layoutSelection(m_context.document.page(), m_context.user.selection(), m_context.view.zoom(),
+                        m_context.view.objectBarCommands(), m_context.lockIgnored);
     view.shapePoints = shownShapePoints(m_context.user.selection());
     if (!view.shapePoints.empty()) { // les carrés remplacent poignées et points intelligents (F-527)
         view.handlesVisible = false;

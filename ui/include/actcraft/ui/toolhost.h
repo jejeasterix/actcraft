@@ -191,8 +191,8 @@ private:
     QString m_settingsFile;
     std::unique_ptr<tools::UserState> m_user;
     mutable std::unique_ptr<ToolAdapters> m_adapters;
-    bool m_lockIgnored = false;  // mode conception, recopié dans le contexte des adaptateurs
-    bool m_snapDisabled = false; // idem
+    bool m_lockIgnored = false;                // mode conception, recopié dans le contexte des adaptateurs
+    bool m_snapDisabled = false;               // idem
     QString m_lastInk = QStringLiteral("pen"); // dernier outil d'encre (L3-T0)
     QVariantMap m_selectionFrame;
     bool m_handlesVisible = false;

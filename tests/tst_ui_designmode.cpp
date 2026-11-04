@@ -16,6 +16,7 @@
 
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -30,10 +31,9 @@ using namespace actcraft;
 
 namespace {
 
-constexpr const char* kSettingNames[] = {"editLocked",      "showHidden",  "highlightActions",
-                                         "disableActions",  "disableRestrictions",
-                                         "disableBlockers", "disableSnap", "disableDesktop",
-                                         "showTips"};
+constexpr const char* kSettingNames[] = {"editLocked",     "showHidden",          "highlightActions",
+                                         "disableActions", "disableRestrictions", "disableBlockers",
+                                         "disableSnap",    "disableDesktop",      "showTips"};
 constexpr const char* kLot8Effects[] = {"actionsHighlighted", "actionsDisabled", "restrictionsDisabled",
                                         "blockersDisabled"};
 
@@ -156,6 +156,9 @@ private slots:
     void initTestCase()
     {
         QVERIFY(m_dir.isValid());
+        // Réglages du poste (Preferences, QSettings()) dans le dossier jetable, jamais ceux de l'utilisateur.
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_dir.path());
         m_app = std::make_unique<App>();
         QVERIFY(start(*m_app));
     }
@@ -190,18 +193,20 @@ private slots:
         }
         App& app = *m_app;
         app.design->setShowTips(false);
-        QCOMPARE(app.profile->setting(QStringLiteral("design-mode"), QStringLiteral("showTips"), true).toBool(),
-                 false);
+        QCOMPARE(
+            app.profile->setting(QStringLiteral("design-mode"), QStringLiteral("showTips"), true).toBool(),
+            false);
         ui::DesignMode reread;
         reread.setProfile(app.profile);
         QVERIFY(!reread.showTips());
         QVERIFY(reread.editLocked());
         app.design->setShowTips(true);
-        QVERIFY(app.profile->setting(QStringLiteral("design-mode"), QStringLiteral("showTips"), false).toBool());
+        QVERIFY(
+            app.profile->setting(QStringLiteral("design-mode"), QStringLiteral("showTips"), false).toBool());
     }
 
-    // Verrouillé : le glisser de l'outil de sélection est sans effet ; mode actif, il le déplace en une étape et
-    // le drapeau `locked` du document reste posé.
+    // Verrouillé : le glisser de l'outil de sélection est sans effet ; mode actif, il le déplace en une étape
+    // et le drapeau `locked` du document reste posé.
     void lockedObjectMovesWhileDesigning()
     {
         App& app = *m_app;
@@ -276,7 +281,8 @@ private slots:
         QCOMPARE(app.view->cacheRefreshCount(), refreshes + 2);
     }
 
-    // A18 (amendement 5) : propriété publiée pour le lot 7, vraie quand le mode est actif, sans effet branché.
+    // A18 (amendement 5) : propriété publiée pour le lot 7, vraie quand le mode est actif, sans effet
+    // branché.
     void transitionsSuspended()
     {
         ui::DesignMode mode;
@@ -340,8 +346,8 @@ private slots:
     }
 
     // Discriminant du patron écarté (amendements 1 et 5) : le mode ne bascule pas `visible` dans le document
-    // et ne pose aucune option globale du peintre. Mode actif, la miniature (L4-T17) d'une page à objet masqué
-    // n'est pas teintée au centre de l'objet, et l'empreinte du document ne bouge pas à la bascule.
+    // et ne pose aucune option globale du peintre. Mode actif, la miniature (L4-T17) d'une page à objet
+    // masqué n'est pas teintée au centre de l'objet, et l'empreinte du document ne bouge pas à la bascule.
     void thumbnailsNeverShowHidden()
     {
         QVERIFY(!render::PaintOptions{}.showHiddenTranslucent);

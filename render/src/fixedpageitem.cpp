@@ -448,8 +448,8 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     // Logiciel : racine de transformation (identité). Sous une racine QSGNode nue déjà rendue, le moteur
     // logiciel de Qt 6.12 peint les nœuds ajoutés sans la transformation de l'élément (voir InkItem).
     QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
-    const NodeContexts contexts =
-        nodeContexts(window(), software, &m_images, m_rasterScale, m_forceRasterized, m_showHiddenTranslucent);
+    const NodeContexts contexts = nodeContexts(window(), software, &m_images, m_rasterScale,
+                                               m_forceRasterized, m_showHiddenTranslucent);
     const RenderContext& painted = contexts.painted;
     const bool rasterized = !painted.software;
     const core::Page& shown = page();

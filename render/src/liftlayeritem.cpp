@@ -110,7 +110,8 @@ QSGNode* LiftLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             const bool hiddenShown = page != nullptr && page->showHiddenTranslucent(); // mode conception
             const ImageStore* store = page ? &page->images() : nullptr;
             const NodeContexts byKey = nodeContexts(window(), software, store, scale, forced, hiddenShown);
-            const NodeContexts unkeyed = nodeContexts(window(), software, nullptr, scale, forced, hiddenShown);
+            const NodeContexts unkeyed =
+                nodeContexts(window(), software, nullptr, scale, forced, hiddenShown);
             for (std::size_t i = 0; i < m_objects.size(); ++i) {
                 const NodeContexts& contexts = imagesByKey(m_objects[i]) ? byKey : unkeyed;
                 const ObjectNode made = createObjectNode(m_objects[i], i, m_registry, m_painted, contexts);
