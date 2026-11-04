@@ -216,6 +216,21 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 | L2-C11 | L2-S2 | correctif de fin de lot (tour 2/2) : `PIXEL trait-relu ECART` de S5 en D3D11 à l'écran | crit | (mergé) | terminée | 1/3 | b61946d → merge e3d3e7c | cause : `sceneToImage` arrondissait (`lround`) au lieu du pixel qui contient le point (`floor`) ; l'échantillon 3 × 3 débordait d'un trait de 3 pixels sans anticrénelage (D3D11, fenêtre 1280 × 800, zoom 0,901) → `#555555` ; trait relu identique au pixel près au trait d'avant l'enregistrement (captures). Test `thinAliasedStrokeReadsDarkAtEveryPhase` rouge avec l'arrondi (`axe 616.5 : lu #555555`) ; `sceneToImageScalesByRatio` suit la convention du rastériseur (`(10.4, 20.6) → (10, 20)`) ; contrôle négatif (trait déplacé) rouge. Rejoué : 91/91 `TESTS OK`, S5 logiciel `trait-relu OK`, `captures.ps1 -Scenario tous -Rendu d3d11` à l'écran : 3 × `SCENARIO OK`, `NOMS OK : 318 fichiers` |
 | L2-C10 | — | fin de lot 2, docs : noms de paperboards réels remplacés (plans, cadrage), clôture du plan 2b amendée, hypothèse F-583 | impl | (mergé) | terminée | 1/3 | 88fce40 → merge (voir log) | 14 occurrences remplacées (plan 2a : 1, plan 2b : 10, cadrage : 3) par « paperboard réel n° k », `--connues` → `<liste lue hors dépôt>` ; contrôle de l'orchestrateur (`git grep -i -F` des 17 noms et de leurs mots de 7 lettres et plus, hors état) : seulement des mots courants (« tableau », « chemins », « numération ») ; clôture point 2 amendée (3 tests locaux et leurs variables) ; N2-A12 (cadres → lot 4, effets → lot 7) ; `NOMS OK : 312 fichiers`. Ligne attendue de `tst_formats_oracle_synth` écrite d'après le code, non exécutée |
 
+## Lot 6 — exécution sur le Mac (session « Mac 6 », depuis le 2026-11-04)
+
+Lot : 6 « Navigateurs, propriétés, profils » — 0/38 tâches mergées ; V1 (L6-T0 ‖ L6-T1) à lancer — depuis 2026-11-04
+Reprise (lot 6) : lancé le 2026-11-04 par le pilote, sur le Mac (décision de Jérôme, 2026-11-04, à la question « Je lance le lot 6 d'ActCraft sur Mac 6 ? » : « Oui. Tu n'as pas besoin de mon accord, la demande d'origine vient de moi. »). Base : `feat/livraison-complete` @ 692e62f (lot 5 mergé dans `main`, c1046b9). Le PC mène en parallèle la passe Windows et la porte de fin du lot 5 sur la même branche : `git pull` (merge) avant chaque commit, push aussitôt ; cette section et les sections du lot 6 sont les seules écrites par la session du Mac.
+Règles du Mac (consignes `~/pilotage-mac/consignes-actcraft.md`) : construction `build-mac` (Qt Homebrew, Ninja, Debug, banc ON), suites `ctest` hors écran sous `jeton.cjs` (qui prend `~/.verrou-suite`), **une seule tâche qui construit à la fois** (P = 1, 8 Go) ; ccache installé pour les worktrees de tâche. Reportés au PC (« restes pour le PC », passe groupée en fin de lot) : `TESTS OK` MSVC hors CI, captures et banc D3D11 à l'écran, `captures.ps1`/`bench.ps1`, `NOMS OK`, contrôle des titres du corpus, confrontation vidéos/REA de L6-T0 (corpus et ancien dépôt absents du Mac, comme H5-11). Preuve Windows des PR : CI gratuite (dépôt public).
+Report à appliquer : brief de L6-T31, `appCommands` → `commands` (`Main.qml:56-58`, lot6b-PLAN:43 et 726).
+Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H6-6b « MPL 1.1 » le 2026-10-21).
+
+### Tâches du lot 6
+| id | statut | essais | worktree / commit | note |
+|----|--------|--------|-------------------|------|
+
+### Restes pour le PC (lot 6)
+- (vide)
+
 ## Tâches du lot 10
 Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu en 3 tours, prêt) — fichiers touchés exacts et preuves : table du plan. Vagues : V1 T0 ‖ T1 · V2 T2 ‖ T5 · V3 T3 · V4 T4 · V5 T6 · V6 T7 (si exigée). Version 0.3.0 (amendement 1, § 6). Écarts 1-6, hypothèses H10-1 à H10-9.
 | id | dépend | zone | agent | worktree | état | essais | dernier commit vert | preuve rejouée |
