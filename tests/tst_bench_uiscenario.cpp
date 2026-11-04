@@ -20,6 +20,7 @@
 #include <qpa/qwindowsysteminterface.h>
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
@@ -998,6 +999,33 @@ private slots:
         QVERIFY2(all.contains(QStringLiteral("PINCEMENT ×2 OK")), qPrintable(all));
         QCOMPARE(all.count(QLatin1String("POINTEUR 2 OK")), 2);
         QCOMPARE(all.count(QLatin1String("DOUBLECLIC OK")), 2);
+    }
+
+    // L7-T41 : « pointer » sur un nom d'objet clique au centre de l'élément trouvé (la vue de page, au centre de
+    // la fenêtre) ; introuvable, caché, sans taille ou centre hors de la fenêtre, l'étape échoue avec sa raison.
+    void pointerStepOnANamedItemPlays()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("nomme", "[{\"waitReady\":true},{\"pointer\":\"pageView\"}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(report.join(QLatin1Char('\n')).contains(QLatin1String("POINTEUR sur pageView OK")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        const std::pair<const char*, const char*> failures[] = {{"absent", "introuvable"},
+                                                                {"cache", "invisible"},
+                                                                {"survol", "sans taille"},
+                                                                {"dehors", "hors de la fenêtre"}};
+        for (const auto& [name, why] : failures) {
+            report.clear();
+            const QByteArray steps = QByteArrayLiteral("[{\"pointer\":\"") + name + QByteArrayLiteral("\"}]");
+            QVERIFY2(!f.player->play(scenario("nomme", steps.constData()), f.out.path(), report), name);
+            const QString all = report.join(QLatin1Char('\n'));
+            const QString expected = QStringLiteral("POINTEUR sur %1 ECHEC (élément %2")
+                                         .arg(QString::fromLatin1(name), QString::fromUtf8(why));
+            QVERIFY2(all.contains(expected), qPrintable(expected + QStringLiteral(" attendu : ") + all));
+        }
     }
 
     // L4-C14 : à la fin d'une étape « pointer », le survol (HoverHandler) est celui du dernier point. Qt
