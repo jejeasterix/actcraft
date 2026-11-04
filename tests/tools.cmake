@@ -23,3 +23,21 @@ actcraft_add_test(tst_tools_shape
 actcraft_add_test(tst_tools_text
     SOURCES tst_tools_text.cpp
     LIBS ActCraft::tools)
+
+# Lot 5 (L5-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# L5-T12
+actcraft_add_test(tst_tools_fill
+    SOURCES tst_tools_fill.cpp
+    LIBS ActCraft::tools ActCraft::render)
+# L5-T12
+actcraft_add_test(tst_tools_penshape
+    SOURCES tst_tools_penshape.cpp
+    LIBS ActCraft::tools)
+# L5-T13
+actcraft_add_test(tst_tools_connector
+    SOURCES tst_tools_connector.cpp
+    LIBS ActCraft::tools)
+# L5-T16
+actcraft_add_test(tst_tools_selectcopy
+    SOURCES tst_tools_selectcopy.cpp
+    LIBS ActCraft::tools)

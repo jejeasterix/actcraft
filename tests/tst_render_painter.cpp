@@ -884,6 +884,86 @@ private slots:
         QVERIFY(near(image.pixelColor(300, 315), Qt::white, 2));
     }
 
+    // Extrémités de connecteur (F-245) : trait de 4 px (cap plat), extrémité de max(3 × 4, 8) = 12 px.
+    static core::Connector capConnector(core::ConnectorCap a, core::ConnectorCap b)
+    {
+        core::Connector connector;
+        connector.firstEnd = {10, 50};
+        connector.secondEnd = {200, 50};
+        connector.pen.width = 4;
+        connector.pen.cap = core::PenCap::Flat;
+        connector.pen.color = 0xFFFF0000u;
+        connector.capA = a;
+        connector.capB = b;
+        return connector;
+    }
+
+    static QImage renderConnector(const core::Connector& connector)
+    {
+        core::Page page;
+        page.objects.push_back(connector);
+        return render::renderPage(page, kNoImages, 1.0);
+    }
+
+    void connectorRoundCapIsDrawn()
+    {
+        const QImage image =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::Round));
+        QVERIFY(near(image.pixelColor(200, 50), Qt::red, 10));
+        QVERIFY(near(image.pixelColor(200, 54), Qt::red, 10)); // disque de rayon 6, bien au-delà du trait
+        QVERIFY(near(image.pixelColor(204, 50), Qt::red, 10));
+        QVERIFY(near(image.pixelColor(210, 50), Qt::white, 2)); // pas au-delà du disque
+    }
+
+    void connectorArrowCapIsDrawn()
+    {
+        const QImage image =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::Arrow));
+        QVERIFY(near(image.pixelColor(195, 50), Qt::red, 10));
+        QVERIFY(near(image.pixelColor(189, 54), Qt::red, 10)); // base large de la flèche, hors du trait
+        QVERIFY(near(image.pixelColor(189, 46), Qt::red, 10));
+        QVERIFY(near(image.pixelColor(199, 54), Qt::white, 2)); // pointe étroite
+        QVERIFY(near(image.pixelColor(203, 50), Qt::white, 2)); // ne déborde pas du bout
+        // Orientée le long de la ligne : même flèche sur un connecteur vertical.
+        core::Connector vertical = capConnector(core::ConnectorCap::None, core::ConnectorCap::Arrow);
+        vertical.firstEnd = {100, 10};
+        vertical.secondEnd = {100, 200};
+        const QImage v = renderConnector(vertical);
+        QVERIFY(near(v.pixelColor(104, 189), Qt::red, 10));
+        QVERIFY(near(v.pixelColor(96, 189), Qt::red, 10));
+        QVERIFY(near(v.pixelColor(100, 203), Qt::white, 2));
+    }
+
+    void connectorWithoutCapIsAPlainLine()
+    {
+        const QImage image =
+            renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::None));
+        QVERIFY(near(image.pixelColor(100, 50), Qt::red, 10));
+        QVERIFY(near(image.pixelColor(198, 50), Qt::red, 10));
+        QVERIFY(near(image.pixelColor(204, 50), Qt::white, 2));
+        QVERIFY(near(image.pixelColor(200, 54), Qt::white, 2));
+        QVERIFY(near(image.pixelColor(189, 54), Qt::white, 2));
+        QVERIFY(near(image.pixelColor(10, 54), Qt::white, 2));
+        QVERIFY(near(image.pixelColor(6, 50), Qt::white, 2));
+    }
+
+    void connectorCapsAreOnTheirOwnSide()
+    {
+        const QImage a = renderConnector(capConnector(core::ConnectorCap::Round, core::ConnectorCap::None));
+        QVERIFY(near(a.pixelColor(10, 54), Qt::red, 10));
+        QVERIFY(near(a.pixelColor(6, 50), Qt::red, 10));
+        QVERIFY(near(a.pixelColor(200, 54), Qt::white, 2));
+        const QImage b = renderConnector(capConnector(core::ConnectorCap::None, core::ConnectorCap::Round));
+        QVERIFY(near(b.pixelColor(200, 54), Qt::red, 10));
+        QVERIFY(near(b.pixelColor(10, 54), Qt::white, 2));
+        // Flèche en A : pointe vers A, base du côté de B.
+        const QImage arrowA =
+            renderConnector(capConnector(core::ConnectorCap::Arrow, core::ConnectorCap::None));
+        QVERIFY(near(arrowA.pixelColor(21, 54), Qt::red, 10));
+        QVERIFY(near(arrowA.pixelColor(7, 50), Qt::white, 2));
+        QVERIFY(near(arrowA.pixelColor(189, 54), Qt::white, 2));
+    }
+
     void gridDotsAndDashesAreBroken()
     {
         for (const core::GridLine kind : {core::GridLine::Dotted, core::GridLine::Dashed}) {

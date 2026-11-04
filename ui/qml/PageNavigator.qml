@@ -282,8 +282,14 @@ Item {
                     return
                 if (!area.dragging && Math.abs(mouse.y - area.pressedY) > root.dragThreshold)
                     area.dragging = true
-                if (area.dragging)
+                if (area.dragging) {
                     area.locate(mouse.y)
+                    // F-011 : le pointeur survole peut-être un onglet (DropArea de la barre).
+                    const at = area.mapToItem(root, mouse.x, mouse.y)
+                    dropProxy.x = at.x
+                    dropProxy.y = at.y
+                    dropProxy.Drag.active = true
+                }
             }
             onReleased: mouse => {
                 if (area.pressedIndex >= 0 && mouse.button === Qt.LeftButton) {
@@ -291,7 +297,10 @@ Item {
                         if (!area.scrolled)
                             root.pages.click(area.pressedIndex, 0)
                     } else if (area.dragging) {
-                        root.pages.moveSelection(area.before)
+                        // Déposées sur un onglet, les pages y sont copiées ; ailleurs, la sélection est déplacée.
+                        const copied = dropProxy.Drag.active && dropProxy.Drag.drop() === Qt.CopyAction
+                        if (!copied)
+                            root.pages.moveSelection(area.before)
                     } else if (area.deferred) {
                         root.pages.click(area.pressedIndex, 0)
                     }
@@ -302,6 +311,7 @@ Item {
                 root.flushShow()
             }
             onCanceled: {
+                dropProxy.Drag.cancel()
                 area.dragging = false
                 area.deferred = false
                 area.pressedIndex = -1
@@ -403,6 +413,20 @@ Item {
                 }
             }
         }
+    }
+
+    // F-011 : sonde du glisser vers les onglets. Invisible, d'un pixel, elle suit le pointeur pendant le glisser de
+    // pages ; les DropArea de la barre d'onglets lisent la sélection dans `dragPages` (source du glisser).
+    Item {
+        id: dropProxy
+        objectName: "tabDropProxy"
+        width: 1
+        height: 1
+        Drag.dragType: Drag.Internal
+        Drag.keys: ["actcraft-pages"]
+        Drag.supportedActions: Qt.CopyAction
+        Drag.proposedAction: Qt.CopyAction
+        property var dragPages: root.pages.selection.length > 0 ? root.pages.selection : [area.pressedIndex]
     }
 
     // Fantôme d'insertion : trait entre deux miniatures pendant le glisser (au-dessus de la liste, sans entrée).

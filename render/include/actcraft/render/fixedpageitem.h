@@ -166,6 +166,7 @@ private:
     // synthétiques par indice) : il ne couvre la page que si elle les a encore aux mêmes indices.
     std::string m_decodingInputs;
     std::size_t m_builtCount = 0;
+    bool m_restartedThisTurn = false; // reconstruction demandée dans ce tour de boucle (L5-C4)
     double m_rasterScale = 1;
     std::atomic<int> m_rebuildCount{0};
     bool m_forceRasterized = false;

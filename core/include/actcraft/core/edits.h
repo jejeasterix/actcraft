@@ -23,6 +23,13 @@ bool hasExtent(const PageObject& object) noexcept;
 // Rectangle englobant en coordonnées de page, épaisseur comprise (transformation appliquée) ; 0 × 0 à
 // l'origine pour un objet sans emprise (hasExtent faux), ce qui n'est pas une position.
 RectF boundsOnPage(const PageObject& object) noexcept;
+// Variantes qui lisent la page : un groupe ne porte que des identifiants de membres, son emprise est l'union
+// des emprises sur la page de ses membres (groupes imbriqués compris, cycle protégé ; la transformation du
+// groupe lui-même n'est pas appliquée : les membres portent leur propre transformation). Un groupe vide, ou
+// dont aucun membre n'est sur la page ou n'a d'emprise, n'en a pas. Pour tout autre objet : comme les
+// variantes sans page.
+bool hasExtent(const Page& page, const PageObject& object) noexcept;
+RectF boundsOnPage(const Page& page, const PageObject& object) noexcept;
 
 // Ajoute un objet au sommet de sa couche sur la page `page`. L'identifiant est alloué au premier redo() si
 // l'objet n'en a pas, puis gardé. Si l'espace d'identifiants est épuisé (allocateId() rend 0), la commande ne

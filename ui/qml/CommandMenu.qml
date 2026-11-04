@@ -15,16 +15,33 @@ Menu {
     property var spec: ({ id: "", label: "", items: [] })
     readonly property bool isCommandMenu: true
     title: spec.label
+    // Largeur : la plus large des entrées (libellé + raccourci). Le style de base se règle sur un fond de 200 px et
+    // ne suit pas la largeur des contenus : libellés tronqués, raccourcis sur les libellés.
+    implicitWidth: {
+        let widest = 0
+        let pad = 0
+        for (let i = 0; i < menu.count; ++i) {
+            const it = menu.itemAt(i)
+            if (!it || !it.contentItem)
+                continue
+            widest = Math.max(widest, it.contentItem.implicitWidth)
+            pad = Math.max(pad, it.leftPadding + it.rightPadding)
+        }
+        return Math.max(implicitBackgroundWidth + leftInset + rightInset, widest + pad + leftPadding + rightPadding)
+    }
 
     ListModel {
         id: entries
     }
     function syncEntries() {
-        entries.clear()
         const items = menu.spec.items || []
-        for (let i = 0; i < items.length; ++i) {
-            entries.append({ kind: items[i].submenu === true ? "submenu" : "item", payload: JSON.stringify(items[i]) })
-        }
+        const rows = items.map(it => ({ kind: it.submenu === true ? "submenu" : "item", payload: JSON.stringify(it) }))
+        // Même contenu (layoutChanged émis pour une autre commande) : rien à recréer.
+        if (rows.length === entries.count && rows.every((row, i) => entries.get(i).payload === row.payload))
+            return
+        entries.clear()
+        for (const row of rows)
+            entries.append(row)
     }
     onSpecChanged: syncEntries()
     Component.onCompleted: syncEntries()

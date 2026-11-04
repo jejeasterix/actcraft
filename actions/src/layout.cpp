@@ -173,6 +173,35 @@ bool parseLayout(const QByteArray& json, Layout& out, QString& error)
         }
     }
 
+    {
+        const ItemsStatus status = readMenuItems(root.value(QStringLiteral("objectMenu")), layout.objectMenu,
+                                                 &layout.objectSubmenus);
+        if (status == ItemsStatus::InvalidSubmenu) {
+            error = QStringLiteral("objectMenu : sous-menu invalide");
+            return false;
+        }
+        if (status != ItemsStatus::Ok) {
+            error = QStringLiteral("objectMenu : tableau attendu");
+            return false;
+        }
+        // Un sous-menu déclaré en ligne n'a qu'une déclaration ; un jeton « >id » sans déclaration est
+        // refusé.
+        QStringList declared;
+        for (const MenuSpec& submenu : layout.objectSubmenus) {
+            if (declared.contains(submenu.id)) {
+                error = QStringLiteral("objectMenu : sous-menu %1 déclaré deux fois").arg(submenu.id);
+                return false;
+            }
+            declared << submenu.id;
+        }
+        for (const QString& token : std::as_const(layout.objectMenu)) {
+            if (token.startsWith(QLatin1Char('>')) && !declared.contains(token.mid(1))) {
+                error = QStringLiteral("objectMenu : sous-menu %1 inconnu").arg(token.mid(1));
+                return false;
+            }
+        }
+    }
+
     out = std::move(layout);
     return true;
 }
@@ -229,6 +258,16 @@ QStringList unknownCommands(const Layout& layout, const CommandRegistry& registr
         }
     }
     for (const MenuSpec& submenu : layout.contextSubmenus) {
+        for (const QString& id : submenu.items) {
+            check(id);
+        }
+    }
+    for (const QString& id : layout.objectMenu) {
+        if (!id.startsWith(QLatin1Char('>'))) {
+            check(id);
+        }
+    }
+    for (const MenuSpec& submenu : layout.objectSubmenus) {
         for (const QString& id : submenu.items) {
             check(id);
         }

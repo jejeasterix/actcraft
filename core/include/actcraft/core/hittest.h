@@ -16,6 +16,9 @@ bool isAnnotation(const PageObject& object) noexcept;
 // sélectionne mais ne se déplace pas (F-210). Seul filtre du clic, du rectangle élastique et de Ctrl+A (M4,
 // L3-C9).
 bool isSelectable(const PageObject& object) noexcept;
+// Idem en lisant la page : un groupe dont les membres ont une emprise est sélectionnable (L5-C5). Le clic et
+// le rectangle élastique, eux, désignent les membres (objectAt, objectsTouching n'y changent rien).
+bool isSelectable(const Page& page, const PageObject& object) noexcept;
 // Objet sélectionnable le plus haut (le dernier de page.objects, ordonnée par couche) touché par `point` : un
 // trait à moins de sa demi-épaisseur + `tolerance` de sa ligne centrale (transformation appliquée) ; un autre
 // objet, point dans son emprise (boundsOnPage) agrandie de `tolerance`.
@@ -24,6 +27,8 @@ std::optional<ObjectId> objectAt(const Page& page, PointF point, double toleranc
 std::vector<ObjectId> objectsTouching(const Page& page, const RectF& rect);
 RectF normalizedRect(PointF a, PointF b) noexcept;
 RectF unitedRect(const RectF& a, const RectF& b) noexcept; // un rectangle 0 × 0 est neutre
+// Plus petit rectangle contenant a et b, sans élément neutre (contrairement à unitedRect).
+RectF enclosingRect(const RectF& a, const RectF& b) noexcept;
 bool rectsTouch(const RectF& a, const RectF& b) noexcept;
 
 } // namespace actcraft::core

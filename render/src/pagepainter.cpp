@@ -1,5 +1,6 @@
 #include "equationlayout.h"
 
+#include <actcraft/core/connectors.h>
 #include <actcraft/render/imagecolor.h>
 #include <actcraft/render/imagesynth.h>
 #include <actcraft/render/objectrenderer.h>
@@ -746,6 +747,47 @@ DecodedImages decodeImages(const core::Document& document, int maxSide)
     return out;
 }
 
+// Extrémités de connecteur (F-245, D11) : taille proportionnelle à l'épaisseur du trait, max(3 × épaisseur,
+// 8 px) ; disque de ce diamètre pour `Round`, flèche pleine de cette longueur et de cette largeur pour
+// `Arrow`. La ligne s'arrête à la base de la flèche. Le rang `style` du panneau n'est pas dessiné ici.
+void paintConnector(QPainter& p, const core::Connector& c)
+{
+    const QPen pen = penOf(c.pen);
+    QPointF a(c.firstEnd.x, c.firstEnd.y);
+    QPointF b(c.secondEnd.x, c.secondEnd.y);
+    const QPointF tipA = a;
+    const QPointF tipB = b;
+    const double size = core::connectorCapSize(c.pen.width);
+    const QLineF line(a, b);
+    const double length = line.length();
+    const QPointF dir = length > 0 ? QPointF((b.x() - a.x()) / length, (b.y() - a.y()) / length) : QPointF();
+    if (length > 0) {
+        if (c.capA == core::ConnectorCap::Arrow) {
+            a += dir * std::min(size, length);
+        }
+        if (c.capB == core::ConnectorCap::Arrow) {
+            b -= dir * std::min(size, length);
+        }
+    }
+    p.setPen(pen);
+    p.drawLine(a, b);
+    p.setPen(Qt::NoPen);
+    p.setBrush(color(c.pen.color));
+    const auto drawCap = [&](core::ConnectorCap cap, const QPointF& tip, const QPointF& outward) {
+        if (cap == core::ConnectorCap::Round) {
+            p.drawEllipse(tip, size / 2, size / 2);
+        } else if (cap == core::ConnectorCap::Arrow && length > 0) {
+            const QPointF base = tip - outward * std::min(size, length);
+            const QPointF side(-outward.y() * size / 2, outward.x() * size / 2);
+            p.drawPolygon(QPolygonF({tip, base + side, base - side}));
+        }
+    };
+    if (c.pen.style != core::PenStyle::None && c.pen.width > 0) {
+        drawCap(c.capA, tipA, -dir);
+        drawCap(c.capB, tipB, dir);
+    }
+}
+
 void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLookup& images)
 {
     p.save();
@@ -766,8 +808,7 @@ void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLo
     } else if (const auto* m = std::get_if<core::Media>(&object)) {
         paintMedia(p, *m, images);
     } else if (const auto* c = std::get_if<core::Connector>(&object)) {
-        p.setPen(penOf(c->pen));
-        p.drawLine(QPointF(c->firstEnd.x, c->firstEnd.y), QPointF(c->secondEnd.x, c->secondEnd.y));
+        paintConnector(p, *c);
     } else if (const auto* e = std::get_if<core::Equation>(&object)) {
         paintEquation(p, *e);
     } else if (const auto* u = std::get_if<core::UnknownObject>(&object)) {

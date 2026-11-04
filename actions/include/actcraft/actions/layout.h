@@ -41,6 +41,8 @@ struct Layout
     QStringList contextMenu; // menu contextuel de la page (F-202), dans l'ordre ; "-" séparateur ; « >id » :
                              // sous-menu
     std::vector<MenuSpec> contextSubmenus; // sous-menus du menu contextuel (jeton « >id »)
+    QStringList objectMenu; // menu d'édition d'un objet (F-770), dans l'ordre ; mêmes jetons que contextMenu
+    std::vector<MenuSpec> objectSubmenus; // sous-menus d'objectMenu, déclarés en ligne comme contextSubmenus
 };
 
 // Tout ou rien : `out` n'est modifiée qu'en cas de succès.

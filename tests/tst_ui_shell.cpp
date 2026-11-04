@@ -5,6 +5,8 @@
 #include <actcraft/render/inkitem.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documenttabs.h>
+#include <actcraft/ui/objectediting.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
@@ -1017,6 +1019,284 @@ private slots:
         }
         post(QEvent::TabletRelease, b, Qt::NoButton);
         QTRY_COMPARE_WITH_TIMEOUT(fixed->objectCount(), 1, 3000);
+    }
+
+    // L5-T2 : les 53 commandes du lot 5 (liste de L5-T1, tests/tst_actions_layout.cpp) ont un gestionnaire.
+    void everyLot5CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QVERIFY(commands);
+        const QStringList lot5{"edit.cut",
+                               "edit.copy",
+                               "edit.paste",
+                               "edit.paste-onto",
+                               "edit.duplicate",
+                               "object.menu",
+                               "object.group",
+                               "object.lock",
+                               "object.hide",
+                               "object.drag-copy",
+                               "object.shape-points",
+                               "arrange.front",
+                               "arrange.back",
+                               "arrange.forward",
+                               "arrange.backward",
+                               "arrange.layer-top",
+                               "arrange.layer-middle",
+                               "arrange.layer-bottom",
+                               "align.left",
+                               "align.center-x",
+                               "align.right",
+                               "align.top",
+                               "align.center-y",
+                               "align.bottom",
+                               "align.width",
+                               "align.height",
+                               "align.angle",
+                               "align.all",
+                               "transform.original-size",
+                               "transform.fit-width",
+                               "transform.fit-height",
+                               "transform.fit-page",
+                               "transform.mirror-x",
+                               "transform.mirror-y",
+                               "transform.flip-x",
+                               "transform.flip-y",
+                               "transform.origin-flip-x",
+                               "transform.origin-flip-y",
+                               "tool.fill",
+                               "tool.connector",
+                               "connector.style",
+                               "connector.caps", // L5-C18 : extrémités du connecteur
+                               "view.pen-modifiers",
+                               "pen.shape",
+                               "insert.image",
+                               "insert.media",
+                               "tab.next",
+                               "tab.previous",
+                               "view.tabs",
+                               "export.page-image",
+                               "export.pdf",
+                               "file.import-pdf",
+                               "file.import-powerpoint-images",
+                               "file.print"};
+        QCOMPARE(lot5.size(), 54);
+        for (const QString& id : lot5) {
+            QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+    }
+
+    // L5-T2 : objets du lot 5 et emplacements de la coquille, tous nommés.
+    void lot5SlotsExist()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name : {"appEditing", "appInsertion", "appTabs", "appExchange", "appPrint",
+                                 "objectEditMenu", "penModifierBar", "connectorPanel", "documentTabBar",
+                                 "fileExchangeActions", "printSetupDialog"}) {
+            const QString objectName = QString::fromLatin1(name);
+            QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
+                         findItem(s.window->contentItem(), objectName),
+                     name);
+        }
+        // L5-C19 : l'aperçu de la feuille n'est plus gardé à la racine ; il vit dans la boîte d'impression.
+        QObject* printDialog = s.window->findChild<QObject*>(QStringLiteral("printSetupDialog"));
+        QVERIFY(printDialog);
+        const auto parts = printDialog->findChildren<QObject*>();
+        QVERIFY(std::any_of(parts.begin(), parts.end(), [](QObject* part) {
+            return QByteArray(part->metaObject()->className()).startsWith("SheetPreview");
+        }));
+        QVERIFY(s.window->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing")));
+        QVERIFY(s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs")));
+    }
+
+    // L5-T21 : la barre d'onglets n'existe qu'à partir de deux documents et suit appTabs.position (D14) ; les
+    // barres de texte restent sous elle, jamais recouvertes.
+    void tabBarFollowsPosition()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+        QVERIFY(tabs);
+        QQuickItem* bar = item(s, "documentTabBar");
+        QQuickItem* top = item(s, "topBar");
+        QQuickItem* textBar = item(s, "textFormatBar");
+        QQuickItem* verticalBar = item(s, "verticalTextBar");
+        QVERIFY(bar && top && textBar && verticalBar);
+        const auto topOf = [](QQuickItem* i) { return i->mapToScene(QPointF(0, 0)).y(); };
+        const auto bottomOf = [](QQuickItem* i) { return i->mapToScene(QPointF(0, i->height())).y(); };
+        const qreal windowHeight = s.window->height();
+
+        QVERIFY(!bar->isVisible()); // un seul document : pas de barre, pas de hauteur
+        QCOMPARE(bar->height(), 0.0);
+
+        tabs->newTab();
+        QTRY_VERIFY(bar->isVisible());
+        QVERIFY(bar->height() > 0);
+        QCOMPARE(tabs->position(), QStringLiteral("top"));
+        QVERIFY(qAbs(topOf(bar) - bottomOf(top)) <= 1); // sous la ligne supérieure
+        QVERIFY(topOf(s.view) >= bottomOf(bar) - 1);    // la page sous la barre
+        QVERIFY(topOf(textBar) >= bottomOf(bar) - 1);   // les barres de texte aussi
+        QVERIFY(topOf(verticalBar) >= bottomOf(bar) - 1);
+
+        tabs->setPosition(QStringLiteral("bottom"));
+        QTRY_VERIFY(qAbs(bottomOf(bar) - windowHeight) <= 1); // en bas de la fenêtre
+        QVERIFY(bar->isVisible());
+        QVERIFY(bottomOf(s.view) <= topOf(bar) + 1);        // la page au-dessus
+        QVERIFY(qAbs(topOf(textBar) - bottomOf(top)) <= 1); // barres de texte sous la ligne supérieure
+
+        tabs->setPosition(QStringLiteral("hidden"));
+        QTRY_VERIFY(!bar->isVisible());
+        QCOMPARE(bar->height(), 0.0);
+        QVERIFY(bottomOf(s.view) >= windowHeight - 1);
+
+        tabs->setPosition(QStringLiteral("top"));
+        QTRY_VERIFY(bar->isVisible());
+        tabs->closeWithoutSaving(1); // retour à un seul document
+        QTRY_VERIFY(!bar->isVisible());
+        QCOMPARE(bar->height(), 0.0);
+    }
+
+    // L5-T21 (M9) : trois onglets de plus, toujours une seule PageView, celle de la fenêtre.
+    void oneViewForAllTabs()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+        QVERIFY(tabs);
+        for (int i = 0; i < 3; ++i) {
+            tabs->newTab();
+        }
+        QCOMPARE(tabs->rowCount(), 4);
+        QCOMPARE(s.window->findChildren<ui::PageView*>().size(), 1);
+        QCOMPARE(tabs->view(), s.view);
+        QVERIFY(ready(s));
+    }
+
+    // L5-T21 : « titre* » composé depuis ModifiedRole, gras pour l'onglet affiché ; la croix ferme sans
+    // demande un onglet propre, ouvre la boîte d'enregistrement pour un onglet modifié.
+    void tabLabelsAndCloseButtons()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tabs = s.window->findChild<ui::DocumentTabs*>(QStringLiteral("appTabs"));
+        QVERIFY(tabs);
+        tabs->newTab();
+        QQuickItem* first = nullptr;
+        QQuickItem* second = nullptr;
+        QTRY_VERIFY((first = item(s, "documentTabLabel0")) && (second = item(s, "documentTabLabel1")));
+        QVERIFY(!first->property("font").value<QFont>().bold());
+        QVERIFY(second->property("font").value<QFont>().bold()); // l'onglet affiché est en gras
+        QVERIFY(second->property("text").toString().startsWith(QStringLiteral("Sans titre")));
+        QVERIFY(!second->property("text").toString().endsWith(QLatin1Char('*')));
+        QVERIFY(run(s, QStringLiteral("page.insert-after"))); // le document affiché est modifié
+        QTRY_VERIFY(second->property("text").toString().endsWith(QLatin1Char('*')));
+        QVERIFY(!first->property("text").toString().endsWith(QLatin1Char('*')));
+
+        const auto click = [&](const char* name) {
+            QQuickItem* target = item(s, name);
+            QVERIFY2(target, name);
+            QTest::mouseClick(
+                s.window, Qt::LeftButton, Qt::NoModifier,
+                target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint());
+        };
+        click("documentTabClose1"); // modifié : la boîte s'ouvre, l'onglet reste
+        QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("tabSaveChangesDialog"));
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        QCOMPARE(tabs->rowCount(), 2);
+        QVERIFY(QMetaObject::invokeMethod(dialog, "cancel"));
+        QTRY_VERIFY(!dialog->property("opened").toBool());
+        QCOMPARE(tabs->rowCount(), 2);
+
+        click("documentTabClose0"); // propre : fermé sans demande
+        QTRY_COMPARE(tabs->rowCount(), 1);
+        QVERIFY(!dialog->property("opened").toBool());
+    }
+
+    // L5-T18 : identifiants (« - » pour un séparateur) d'une liste d'entrées de menu.
+    static QStringList menuIds(const QVariantList& entries)
+    {
+        QStringList out;
+        for (const QVariant& entry : entries) {
+            const QVariantMap map = entry.toMap();
+            out.append(map.value(QStringLiteral("separator")).toBool()
+                           ? QStringLiteral("-")
+                           : map.value(QStringLiteral("id")).toString());
+        }
+        return out;
+    }
+
+    // L5-T18 : les entrées du menu d'objet sont celles de commands.objectMenu, filtrées par plateforme et par
+    // la sélection, sans séparateur de tête, de queue ni doublé.
+    void objectMenuMatchesLayout()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QObject* menu = s.window->findChild<QObject*>(QStringLiteral("objectEditMenu"));
+        QVERIFY(commands && menu);
+        for (const actions::Platform platform :
+             {actions::Platform::Windows, actions::Platform::MacOS, actions::Platform::Android}) {
+            commands->setPlatform(platform);
+            QStringList expected = menuIds(commands->objectMenu());
+            expected.removeIf([](const QString& id) { return id.startsWith(QLatin1String("recognition.")); });
+            QStringList cleaned;
+            for (const QString& id : expected) {
+                if (id == QLatin1String("-") && (cleaned.isEmpty() || cleaned.last() == QLatin1String("-"))) {
+                    continue;
+                }
+                cleaned.append(id);
+            }
+            while (!cleaned.isEmpty() && cleaned.last() == QLatin1String("-")) {
+                cleaned.removeLast();
+            }
+            QCOMPARE(menuIds(menu->property("entries").toList()), cleaned);
+        }
+        commands->setPlatform(actions::Platform::Windows);
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 13);
+        QVERIFY(menuIds(menu->property("entries").toList()).contains(QStringLiteral("transform")));
+    }
+
+    // L5-T18 : « Convertir en forme » ne s'offre que pour une annotation ; « Convertir en texte » aussi sous
+    // Windows seulement.
+    void convertEntriesOnlyForAnnotations()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        auto* editing = s.window->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing"));
+        QObject* menu = s.window->findChild<QObject*>(QStringLiteral("objectEditMenu"));
+        QVERIFY(commands && editing && menu);
+        const auto ids = [menu] { return menuIds(menu->property("entries").toList()); };
+        const QString toShape = QStringLiteral("recognition.convert-to-shape");
+        const QString toText = QStringLiteral("recognition.convert-to-text");
+        commands->setPlatform(actions::Platform::Windows);
+        QVERIFY(!ids().contains(toShape));
+        QVERIFY(!ids().contains(toText));
+        QVERIFY(run(s, QStringLiteral("pen.width"), 8));
+        const QPoint a = s.view->pageToScene(QPointF(300, 400)).toPoint();
+        const QPoint b = s.view->pageToScene(QPointF(700, 400)).toPoint();
+        QTest::mousePress(s.window, Qt::LeftButton, Qt::NoModifier, a);
+        for (int i = 1; i <= 20; ++i) {
+            QTest::mouseMove(s.window, a + (b - a) * i / 20);
+        }
+        QTest::mouseRelease(s.window, Qt::LeftButton, Qt::NoModifier, b);
+        QTRY_COMPARE_WITH_TIMEOUT(s.fixed->objectCount(), 1, 3000);
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        QVERIFY(run(s, QStringLiteral("edit.select-all")));
+        QTRY_VERIFY(editing->selectionIsAnnotation());
+        QVERIFY(ids().contains(toShape));
+        QVERIFY(ids().contains(toText));
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 15);
+        commands->setPlatform(actions::Platform::MacOS);
+        QVERIFY(ids().contains(toShape));
+        QVERIFY(!ids().contains(toText));
+        QVERIFY(run(s, QStringLiteral("edit.delete")));
+        QTRY_VERIFY(!editing->selectionIsAnnotation());
+        QVERIFY(!ids().contains(toShape));
     }
 
     // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement

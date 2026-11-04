@@ -67,3 +67,41 @@ actcraft_add_test(tst_core_textedits
 actcraft_add_test(tst_core_zones
     SOURCES tst_core_zones.cpp
     LIBS ActCraft::core)
+
+# Lot 5 (L5-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# L5-T4
+actcraft_add_test(tst_core_clipboardedits
+    SOURCES tst_core_clipboardedits.cpp
+    LIBS ActCraft::core)
+# L5-T5
+actcraft_add_test(tst_core_arrange
+    SOURCES tst_core_arrange.cpp
+    LIBS ActCraft::core)
+# L5-T6
+actcraft_add_test(tst_core_alignment
+    SOURCES tst_core_alignment.cpp
+    LIBS ActCraft::core)
+# L5-T7
+actcraft_add_test(tst_core_objectflags
+    SOURCES tst_core_objectflags.cpp
+    LIBS ActCraft::core)
+# L5-T8
+actcraft_add_test(tst_core_fill
+    SOURCES tst_core_fill.cpp
+    LIBS ActCraft::core ActCraft::render)
+# L5-T9
+actcraft_add_test(tst_core_shapepoints
+    SOURCES tst_core_shapepoints.cpp
+    LIBS ActCraft::core)
+# L5-T10
+actcraft_add_test(tst_core_connectors
+    SOURCES tst_core_connectors.cpp
+    LIBS ActCraft::core)
+# L5-T11
+actcraft_add_test(tst_core_penmodifiers
+    SOURCES tst_core_penmodifiers.cpp
+    LIBS ActCraft::core)
+# L5-T26
+actcraft_add_test(tst_core_printlayout
+    SOURCES tst_core_printlayout.cpp
+    LIBS ActCraft::core)

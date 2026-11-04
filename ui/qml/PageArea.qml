@@ -25,6 +25,24 @@ Item {
     property alias gridOverlay: gridOverlayItem
     // Nombre de demandes de menu contextuel reçues de la vue (espion des tests).
     property int contextMenuRequestCount: 0
+    // Lot 5 : menu d'édition d'objet (ObjectEditMenu) ; le clic droit sur la sélection l'ouvre à la place du menu de page.
+    property var objectMenu: null
+    // Le point (coordonnées de la vue) tombe-t-il dans l'emprise du cadre de sélection ?
+    function insideSelection(p) {
+        const frame = area.tools ? area.tools.selectionFrame : null
+        if (!frame || frame.visible !== true || !frame.corners || frame.corners.length < 4)
+            return false
+        let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity
+        for (let i = 0; i < 4; ++i) {
+            const scene = view.pageToScene(Qt.point(frame.corners[i].x, frame.corners[i].y))
+            const local = view.mapFromItem(null, scene.x, scene.y)
+            left = Math.min(left, local.x)
+            right = Math.max(right, local.x)
+            top = Math.min(top, local.y)
+            bottom = Math.max(bottom, local.y)
+        }
+        return p.x >= left && p.x <= right && p.y >= top && p.y <= bottom
+    }
     // Le menu contextuel recouvre la vue : relayé à la fenêtre (Main.openPopups).
     signal popupOpened()
     signal popupClosed()
@@ -53,6 +71,10 @@ Item {
         // Clic droit non couvert : la vue le signale (aucun TapHandler de clic droit ici).
         onContextMenuRequested: viewPos => {
             area.contextMenuRequestCount += 1
+            if (area.objectMenu && area.insideSelection(viewPos)) {
+                area.objectMenu.popupAtItem(view, viewPos.x, viewPos.y)
+                return
+            }
             if (area.pages && area.documentController)
                 area.pages.goTo(area.documentController.currentIndex)
             pageContextMenu.popupAt(viewPos.x, viewPos.y)

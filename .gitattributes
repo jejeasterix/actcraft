@@ -14,6 +14,7 @@
 *.otf binary
 *.zip binary
 *.flipchart binary
+*.pdf binary
 
 # Graphe graphify : réécrit en entier à chaque mise à jour.
 # graph.json est fusionné par le pilote graphify (union des nœuds et des arêtes), à configurer une fois :

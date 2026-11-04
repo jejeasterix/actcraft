@@ -26,6 +26,18 @@ Item {
     // n cadres : n − 1 séparations ; lu par le scénario page-allongee-zones.
     readonly property int separatorCount: Math.max(0, across - 1) + Math.max(0, down - 1)
     visible: separatorCount > 0
+    // Vrai quand aucune séparation n'attend encore son motif (l'image du pointillé se charge hors du fil de rendu,
+    // même pour une URL « data: ») : avant cela, le pointillé n'est pas dessiné. Lu par le scénario
+    // page-allongee-zones (L5-C8) avant de compter les pixels de la séparation.
+    property int statusTick: 0
+    readonly property bool ready: {
+        overlay.statusTick
+        for (let i = 0; i < overlay.children.length; ++i) {
+            if (overlay.children[i].status === Image.Loading)
+                return false
+        }
+        return true
+    }
 
     function zonePart(i) {
         const parts = overlay.zones.split("x")
@@ -112,6 +124,7 @@ Item {
         fillMode: Image.Tile
         smooth: false // chaque point garde sa couleur, même à une position fractionnaire
         mipmap: false
+        onStatusChanged: overlay.statusTick++
     }
 
     // Le modèle ne dépend que du nombre de cadres, jamais du zoom ni du défilement.

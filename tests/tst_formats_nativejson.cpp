@@ -333,8 +333,11 @@ private slots:
         const Document d = richdoc::richDocument();
         const Page& p1 = d.page(0);
         {
-            const auto& [id, name, layer, visible, locked, translucency, restrictions, transform, label,
-                         actions] = p1.objects[0].common;
+            // dragCopy (lot 5) : champ facultatif laissé à son défaut dans le document riche (référence
+            // figée) ; son aller-retour : lot5FieldsRoundTrip.
+            const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform,
+                         label, actions] = p1.objects[0].common;
+            QVERIFY(!dragCopy);
             QVERIFY(id != 0 && !name.empty() && layer != Layer::Middle && !visible && locked &&
                     translucency != 0);
             const auto& [movable, resizable, rotatable] = restrictions;
@@ -408,7 +411,11 @@ private slots:
             QVERIFY(!members.empty());
         }
         {
-            const auto& [firstEnd, secondEnd, objectA, objectB, pen] = std::get<Connector>(p1.objects[8]);
+            // style et légendes d'extrémité (lot 5) : défauts dans le document riche ; aller-retour :
+            // lot5FieldsRoundTrip.
+            const auto& [firstEnd, secondEnd, objectA, objectB, pen, style, capA, capB] =
+                std::get<Connector>(p1.objects[8]);
+            QVERIFY(style == 0 && capA == ConnectorCap::None && capB == ConnectorCap::None);
             QVERIFY(firstEnd.x != 0 && secondEnd.x != 0 && objectA != 0 && objectB != 0 &&
                     pen.color != 0xFF000000u);
         }
@@ -575,6 +582,42 @@ private slots:
         QVERIFY(!read->hasKeyColor);
         QCOMPARE(read->keyColor, core::Argb{0xFF123456u});
         QCOMPARE(core::fingerprint(back), core::fingerprint(source));
+    }
+
+    // Champs du lot 5 : glisser une copie, style et extrémités d'un connecteur (L5-T1).
+    void lot5FieldsRoundTrip()
+    {
+        core::Page page;
+        core::Shape rectangle;
+        rectangle.bounds = {100, 100, 200, 100};
+        core::PageObject shape = rectangle;
+        shape.common.id = 1;
+        shape.common.dragCopy = true;
+        core::Connector link;
+        link.firstEnd = {0, 0};
+        link.secondEnd = {50, 50};
+        link.style = 3;
+        link.capA = core::ConnectorCap::Arrow;
+        link.capB = core::ConnectorCap::Round;
+        core::PageObject connector = link;
+        connector.common.id = 2;
+        page.objects.push_back(shape);
+        page.objects.push_back(connector);
+        const core::Document source(std::vector<core::Page>{page});
+        core::Document back;
+        const QByteArray text = QJsonDocument(formats::documentToJson(source)).toJson(QJsonDocument::Compact);
+        const auto r =
+            formats::documentFromJson(QJsonDocument::fromJson(text).object(), loaderFrom(source), back);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n')));
+        QVERIFY(back.page(0).objects[0].common.dragCopy);
+        const auto* c = std::get_if<core::Connector>(&back.page(0).objects[1]);
+        QVERIFY(c);
+        QCOMPARE(int(c->style), 3);
+        QCOMPARE(c->capA, core::ConnectorCap::Arrow);
+        QCOMPARE(c->capB, core::ConnectorCap::Round);
+        QCOMPARE(core::fingerprint(back), core::fingerprint(source));
+        QVERIFY(!back.page(0).objects[1].common.dragCopy); // défaut non écrit, relu
     }
 
     void hugeOrNonFiniteNumbersAreRefused()
