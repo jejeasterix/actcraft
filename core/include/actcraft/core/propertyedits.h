@@ -73,6 +73,7 @@ private:
     std::vector<ObjectId> m_objects;
     ObjectProperty m_property;
     PropertyValue m_value;
+    bool m_partlyRefused = false; // le dernier redo a refusé la valeur pour au moins un objet
     // Par objet auquel la propriété s'applique, sa valeur d'avant, ou sa transformation pour position,
     // taille, angle et miroir (comme TransformObjectsCommand) ; rempli à chaque redo. Annuler ne rétablit
     // qu'elle, jamais l'objet entier : un verrou posé hors pile depuis (SetObjectFlagCommand) resterait.
