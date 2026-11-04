@@ -120,6 +120,10 @@ struct ScenarioPlan
     bool spinsInBackground = false;
     // L5-T31 : le document chargé avant la mesure est tabsFixtureDocument(0) (20 pages de 50 traits).
     bool fixtureDocument = false;
+    // L7-T38 (S23) : le message défilant tourne pendant la mesure : le runner règle boucle et vitesse 10 sur
+    // l'objet « ticker », le démarre avant la mesure (sans ouvrir la fenêtre d'édition) et l'arrête après.
+    // Lu par ce booléen, jamais par le nom.
+    bool tickerRuns = false;
     std::vector<PlannedInput> inputs;
 };
 
@@ -223,11 +227,22 @@ ScenarioPlan exportBackgroundReferenceScenario(ScenarioSet set);
 // referme le mode, features::RecognitionSession::kDefaultDelayMs + 300 ms après le relâché : la conversion
 // du trait en forme (et son redessin du cache) tombe dans la mesure. Même durée en court et en complet.
 ScenarioPlan recognitionScenario(ScenarioSet set);
+// L7-T38 (M1, S22). « effets-page » : chaque effet de transitionCatalogue() (hors « none » et « random »)
+// joué par page.next / page.previous en alternance sur deux pages générées : view.page-effect <id>, puis le
+// changement de page kEffectPageDelayNs plus tard, un effet par période (durée de l'effet + kEffectMarginNs).
+// Durée de l'effet : 0,5 s en court, 1,5 s (défaut) en complet, posée avant (setupCommands) et rétablie après
+// (teardownCommands) ; la dernière entrée remet « none ». Mêmes plans de page que « page » : jugé comme lui.
+inline constexpr std::int64_t kEffectPageDelayNs = 50'000'000;
+inline constexpr std::int64_t kEffectMarginNs = 400'000'000;
+inline constexpr int kEffectDefaultTenths = 15;
+ScenarioPlan effectsScenario(ScenarioSet set);
+// L7-T38 (M1, S23). « message-defilant » : les traits de « stroke » pendant que le message défile en boucle.
+ScenarioPlan tickerScenario(ScenarioSet set);
 // Fenêtres des glissés du plan, de chaque appui à son relâché (décalages depuis le début du scénario).
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan);
 // stroke, zoom, scroll, page, pauses, gommer, soulever, forme-page-annotee, grille-dessus, miniatures,
 // miniatures-ferme, miniatures-pauses, zones-zoom, edition, onglets, export-fond-reference, export-fond,
-// reconnaissance
+// reconnaissance, effets-page, message-defilant
 std::vector<ScenarioPlan> allScenarios(ScenarioSet set);
 // Trait de démonstration non mesuré, bande y = 670 (décision 31).
 std::vector<PlannedInput> demoStroke();

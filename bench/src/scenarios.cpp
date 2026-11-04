@@ -3,6 +3,7 @@
 #include <actcraft/core/generator.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/features/recognitionsession.h>
+#include <actcraft/features/transitions.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <algorithm>
@@ -665,6 +666,53 @@ ScenarioPlan recognitionScenario(ScenarioSet set)
     return plan;
 }
 
+ScenarioPlan effectsScenario(ScenarioSet set)
+{
+    const int tenths = set == ScenarioSet::Court ? 5 : kEffectDefaultTenths; // 0,5 s : le minimum permis
+    const std::int64_t period = std::int64_t{tenths} * 100'000'000 + kEffectMarginNs;
+    ScenarioPlan plan;
+    plan.name = QStringLiteral("effets-page");
+    plan.generatedPages = 2; // page 1 et page 2 : les effets alternent entre elles
+    plan.setupCommands.emplace_back(QStringLiteral("view.page-effect-duration"), QVariant(tenths));
+    plan.teardownCommands.emplace_back(QStringLiteral("view.page-effect-duration"),
+                                       QVariant(kEffectDefaultTenths));
+    std::int64_t at = 0;
+    int k = 0;
+    for (const features::TransitionEffect& effect : features::transitionCatalogue()) {
+        if (effect.id == QLatin1String("none") || effect.id == QLatin1String("random")) {
+            continue; // aucun mouvement propre
+        }
+        PlannedInput choose;
+        choose.offsetNs = at;
+        choose.kind = InputKind::Command;
+        choose.command = QStringLiteral("view.page-effect");
+        choose.argument = effect.id;
+        plan.inputs.push_back(choose);
+        PlannedInput turn;
+        turn.offsetNs = at + kEffectPageDelayNs;
+        turn.kind = InputKind::Command;
+        turn.command = k % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous");
+        plan.inputs.push_back(turn);
+        at += period;
+        ++k;
+    }
+    PlannedInput reset; // après la dernière période : le dernier effet a fini dans la mesure
+    reset.offsetNs = at;
+    reset.kind = InputKind::Command;
+    reset.command = QStringLiteral("view.page-effect");
+    reset.argument = QStringLiteral("none");
+    plan.inputs.push_back(reset);
+    return plan;
+}
+
+ScenarioPlan tickerScenario(ScenarioSet set)
+{
+    ScenarioPlan plan = strokeScenario(set);
+    plan.name = QStringLiteral("message-defilant");
+    plan.tickerRuns = true;
+    return plan;
+}
+
 std::vector<std::pair<std::int64_t, std::int64_t>> dragWindows(const ScenarioPlan& plan)
 {
     std::vector<std::pair<std::int64_t, std::int64_t>> windows;
@@ -699,7 +747,9 @@ std::vector<ScenarioPlan> allScenarios(ScenarioSet set)
             tabsScenario(set),
             exportBackgroundReferenceScenario(set),
             exportBackgroundScenario(set),
-            recognitionScenario(set)};
+            recognitionScenario(set),
+            effectsScenario(set),
+            tickerScenario(set)};
 }
 
 std::vector<PlannedInput> demoStroke()

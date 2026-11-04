@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "presentation",
-  "description": "S10 de bout en bout : rideau fermé (centre noir) puis tiré du haut au milieu de la page (haut = page, bas = noir) et rouvert ; règle ouverte, trait le long du bord (encre sur le bord) ; compte à rebours de 3 s réglé dans le panneau de l'horloge avec l'action « page suivante », page 2 affichée à l'échéance. Captures : rideau, regle, apres-compte-a-rebours.",
+  "description": "S10 de bout en bout : rideau fermé (centre noir) puis tiré du haut au milieu de la page (haut = page, bas = noir) et rouvert ; règle ouverte, trait le long du bord (encre sur le bord) ; compte à rebours de 3 s réglé dans le panneau de l'horloge avec l'action « page suivante », page 2 affichée à l'échéance. Captures : rideau, regle, apres-compte-a-rebours. Le déroulé du compte à rebours est copié de compte-a-rebours.json (le lecteur de scénarios n'a pas d'inclusion) : une modification de l'un se reporte dans l'autre.",
   "steps": [
     {
       "waitReady": true

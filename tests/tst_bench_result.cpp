@@ -59,7 +59,8 @@ private slots:
         // L4-T28 : « zones-zoom » (douze avant) ; L5-T31 : « onglets » et « export-fond » après « edition »
         // (quatorze avant) ; L5-C12 : « export-fond-reference » juste avant « export-fond » ; L7-T34 :
         // « reconnaissance » en dernier (dix-sept avant, rangs inchangés).
-        // L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) après lui (vingt, rangs inchangés).
+        // L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) après lui (vingt, rangs
+        // inchangés).
         QCOMPARE(scenarios.size(), 20);
         const QStringList names{QStringLiteral("stroke"),           QStringLiteral("zoom"),
                                 QStringLiteral("scroll"),           QStringLiteral("page"),

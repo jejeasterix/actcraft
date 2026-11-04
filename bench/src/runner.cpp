@@ -1123,6 +1123,19 @@ BenchResult Runner::run(QQuickWindow* window)
                 break;
             }
         }
+        // L7-T38 (S23) : message défilant en boucle, vitesse maximale, démarré sans fenêtre d'édition.
+        QObject* ticker = nullptr;
+        if (plan.tickerRuns) {
+            ticker = m_window->findChild<QObject*>(QStringLiteral("ticker"));
+            if (ticker == nullptr || !ticker->setProperty("loop", true) ||
+                !ticker->setProperty("speed", 10) ||
+                !ticker->setProperty("text",
+                                     QStringLiteral("Banc de fluidité : message défilant en boucle")) ||
+                !QMetaObject::invokeMethod(ticker, "start") || !ticker->property("running").toBool()) {
+                result.invalidReasons << QStringLiteral("error: ticker not running before %1").arg(plan.name);
+                break;
+            }
+        }
         bool setupRefused = false;
         for (const auto& [command, argument] : plan.setupCommands) {
             if (!runWindowCommand(m_window, command, argument)) {
@@ -1212,6 +1225,9 @@ BenchResult Runner::run(QQuickWindow* window)
                 result.invalidReasons << QStringLiteral("error: page not restored after %1").arg(plan.name);
                 break;
             }
+        }
+        if (ticker != nullptr) {
+            QMetaObject::invokeMethod(ticker, "stop");
         }
         for (const auto& [command, argument] : plan.teardownCommands) { // L4-T29 : panneau refermé
             if (!runWindowCommand(m_window, command, argument)) {

@@ -140,8 +140,8 @@ private slots:
         // miniatures-pauses » (12). L4-T28 : « zones-zoom » (13). L5-T19 : « edition » (14). L5-T31 :
         // « onglets » et « export-fond » après eux (16). L5-C12 : « export-fond-reference » juste avant
         // « export-fond » (17). L7-T34 : « reconnaissance » en dernier (18 : les dix-sept premiers gardent
-        // leur nom et leur rang). L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) en dernier
-        // (20 : les dix-huit premiers gardent leur nom et leur rang).
+        // leur nom et leur rang). L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) en
+        // dernier (20 : les dix-huit premiers gardent leur nom et leur rang).
         QCOMPARE(plans.size(), std::size_t{20});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
@@ -160,8 +160,8 @@ private slots:
         QCOMPARE(plans[14].name, QStringLiteral("onglets"));
         QCOMPARE(plans[15].name, QStringLiteral("export-fond-reference"));
         QCOMPARE(plans[16].name, QStringLiteral("export-fond"));
-        QCOMPARE(plans[17].name, QStringLiteral("reconnaissance")); // L7-T34 : dix-sept avant
-        QCOMPARE(plans[18].name, QStringLiteral("effets-page"));    // L7-T38 : S22
+        QCOMPARE(plans[17].name, QStringLiteral("reconnaissance"));   // L7-T34 : dix-sept avant
+        QCOMPARE(plans[18].name, QStringLiteral("effets-page"));      // L7-T38 : S22
         QCOMPARE(plans[19].name, QStringLiteral("message-defilant")); // L7-T38 : S23
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
@@ -169,11 +169,11 @@ private slots:
         }
     }
 
-    // L7-T38 (M1, S22) : « effets-page » joue chaque effet de transitionCatalogue() (hors « none » et « random
-    // », qui ne montrent aucun mouvement propre) par page.next / page.previous en alternance, dans l'ordre du
-    // catalogue : view.page-effect <id>, puis le changement de page 50 ms après, un effet par période (durée
-    // de l'effet + marge). La dernière entrée remet « none » après la dernière période, pour que le dernier
-    // effet finisse dans la mesure. Durée de l'effet : 0,5 s en court, 1,5 s en complet.
+    // L7-T38 (M1, S22) : « effets-page » joue chaque effet de transitionCatalogue() (hors « none » et «
+    // random », qui ne montrent aucun mouvement propre) par page.next / page.previous en alternance, dans
+    // l'ordre du catalogue : view.page-effect <id>, puis le changement de page 50 ms après, un effet par
+    // période (durée de l'effet + marge). La dernière entrée remet « none » après la dernière période, pour
+    // que le dernier effet finisse dans la mesure. Durée de l'effet : 0,5 s en court, 1,5 s en complet.
     void effectsScenarioPlaysEveryCatalogueEffect()
     {
         std::vector<QString> expected;
@@ -217,9 +217,9 @@ private slots:
         }
     }
 
-    // L7-T38 (M1, S23) : « message-defilant » = les traits de « stroke » (mêmes entrées, même latence mesurée)
-    // pendant que le message défile en boucle (tickerRuns : le banc règle boucle et vitesse 10, démarre le
-    // message avant la mesure et l'arrête après). Aucun autre scénario ne porte le drapeau.
+    // L7-T38 (M1, S23) : « message-defilant » = les traits de « stroke » (mêmes entrées, même latence
+    // mesurée) pendant que le message défile en boucle (tickerRuns : le banc règle boucle et vitesse 10,
+    // démarre le message avant la mesure et l'arrête après). Aucun autre scénario ne porte le drapeau.
     void tickerScenarioWritesWhileTheMessageScrolls()
     {
         for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
