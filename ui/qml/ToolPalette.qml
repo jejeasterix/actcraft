@@ -11,6 +11,8 @@ Rectangle {
     required property Commands commands
     required property PageView view
     required property Tools tools
+    property DocumentController documentController: null
+    property var profile: null
     implicitWidth: Theme.largeurPalette
     color: Theme.palette
 
@@ -57,6 +59,7 @@ Rectangle {
                         ColorSwatches {
                             commands: paletteRoot.commands
                             view: paletteRoot.view
+                            profile: paletteRoot.profile
                         }
                     }
                     Component {
@@ -84,6 +87,16 @@ Rectangle {
                 }
             }
         }
+    }
+
+    // Lot 6 : barre de raccourcis, troisième colonne (masquée jusqu'à L6-T9).
+    ShortcutBar {
+        objectName: "shortcutBar"
+        commands: paletteRoot.commands
+        documentController: paletteRoot.documentController
+        tools: paletteRoot.tools
+        view: paletteRoot.view
+        profile: paletteRoot.profile
     }
 
     // Lot 3 : corbeille sous la palette (« Afficher la corbeille » la masque).

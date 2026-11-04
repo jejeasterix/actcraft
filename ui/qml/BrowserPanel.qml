@@ -15,6 +15,15 @@ Rectangle {
     required property Pages pages
     required property DocumentController documentController
     required property Commands commands
+    property Tools tools: null
+    property PageView view: null
+    property var profile: null
+    property string current: "pages" // identifiant de `navigators` (A8)
+    readonly property bool hasNotes: notesBrowser.hasNotes
+    function showNavigator(id) {
+        root.visible = true
+        root.current = id
+    }
     property string side: "left" // « left » ou « right »
     readonly property int minWidth: 160
     readonly property int maxWidth: 480
@@ -60,15 +69,21 @@ Rectangle {
         root.commands.setChecked("view.browsers", root.visible)
     }
     onVisibleChanged: root.syncChecked()
-    Component.onCompleted: root.syncChecked()
+    Component.onCompleted: {
+        root.syncChecked()
+        root.commands.setHandler("browser.objects", function () { root.showNavigator("objets") })
+        root.commands.setHandler("browser.properties", function () { root.showNavigator("proprietes") })
+        root.commands.setHandler("browser.notes", function () { root.showNavigator("notes") })
+        root.commands.setHandler("browser.resources", function () { root.showNavigator("ressources") })
+    }
 
     // Les cinq icônes à nous (nav-*) et celle des pages (page-copier, déjà à nous).
     readonly property var navigators: [
         { id: "pages", label: qsTr("Pages"), icon: "page-copier", enabled: true },
-        { id: "ressources", label: qsTr("Ressources"), icon: "nav-ressources", enabled: false },
-        { id: "objets", label: qsTr("Objets"), icon: "nav-objets", enabled: false },
-        { id: "notes", label: qsTr("Notes"), icon: "nav-notes", enabled: false },
-        { id: "proprietes", label: qsTr("Propriétés"), icon: "nav-proprietes", enabled: false },
+        { id: "ressources", label: qsTr("Ressources"), icon: "nav-ressources", enabled: true },
+        { id: "objets", label: qsTr("Objets"), icon: "nav-objets", enabled: true },
+        { id: "notes", label: qsTr("Notes"), icon: "nav-notes", enabled: true },
+        { id: "proprietes", label: qsTr("Propriétés"), icon: "nav-proprietes", enabled: true },
         { id: "actions", label: qsTr("Actions"), icon: "nav-actions", enabled: false }
     ]
 
@@ -88,9 +103,10 @@ Rectangle {
                 width: root.iconSize
                 height: root.iconSize
                 enabled: modelData.enabled
-                checked: modelData.id === "pages"
+                checked: modelData.id === root.current
                 display: AbstractButton.IconOnly
                 focusPolicy: Qt.NoFocus
+                onClicked: root.current = modelData.id
                 icon.source: "qrc:/qt/qml/ActCraft/Ui/icons/" + modelData.icon + ".svg"
                 icon.width: Theme.tailleIcone
                 icon.height: Theme.tailleIcone
@@ -109,19 +125,57 @@ Rectangle {
         }
     }
 
-    PageNavigator {
-        objectName: "pageNavigator"
+    StackLayout {
+        id: navigatorStack
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: iconRow.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: Theme.espace2
-        thumbnails: root.thumbnails
-        pages: root.pages
-        documentController: root.documentController
-        commands: root.commands
-        onPopupOpened: root.popupOpened()
-        onPopupClosed: root.popupClosed()
+        currentIndex: Math.max(0, root.navigators.findIndex(n => n.id === root.current))
+
+        PageNavigator {
+            objectName: "pageNavigator"
+            thumbnails: root.thumbnails
+            pages: root.pages
+            documentController: root.documentController
+            commands: root.commands
+            onPopupOpened: root.popupOpened()
+            onPopupClosed: root.popupClosed()
+        }
+        ResourceBrowser {
+            id: resourceBrowser
+            commands: root.commands
+            documentController: root.documentController
+            tools: root.tools
+            view: root.view
+            profile: root.profile
+        }
+        ObjectBrowser {
+            id: objectBrowser
+            commands: root.commands
+            documentController: root.documentController
+            tools: root.tools
+            view: root.view
+            profile: root.profile
+        }
+        NotesBrowser {
+            id: notesBrowser
+            commands: root.commands
+            documentController: root.documentController
+            tools: root.tools
+            view: root.view
+            profile: root.profile
+        }
+        PropertyBrowser {
+            id: propertyBrowser
+            commands: root.commands
+            documentController: root.documentController
+            tools: root.tools
+            view: root.view
+            profile: root.profile
+        }
+        Item {} // actions (lot 8)
     }
 
     // Bord intérieur : glissé, il règle la largeur (160 à 480).
