@@ -81,8 +81,9 @@ std::vector<PointF> shapePoints(const PageObject& object)
     return out;
 }
 
-MoveShapePointCommand::MoveShapePointCommand(std::size_t page, ObjectId shape, std::size_t index, PointF to)
-    : m_page(page), m_shape(shape), m_index(index), m_to(to)
+MoveShapePointCommand::MoveShapePointCommand(std::size_t page, ObjectId shape, std::size_t index, PointF to,
+                                             bool lockIgnored)
+    : m_page(page), m_shape(shape), m_index(index), m_to(to), m_lockIgnored(lockIgnored)
 {}
 
 void MoveShapePointCommand::redo(Document& document, Changes& changes)
@@ -94,8 +95,8 @@ void MoveShapePointCommand::redo(Document& document, Changes& changes)
         return;
     PageObject& object = page.objects[rank];
     auto* shape = std::get_if<Shape>(&body(object));
-    const std::optional<Transform> inverse =
-        shape == nullptr || object.common.locked ? std::nullopt : inverted(object.common.transform);
+    const bool refused = shape == nullptr || (object.common.locked && !m_lockIgnored);
+    const std::optional<Transform> inverse = refused ? std::nullopt : inverted(object.common.transform);
     if (!inverse)
         return;
 

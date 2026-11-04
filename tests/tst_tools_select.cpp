@@ -1,4 +1,3 @@
-#include <actcraft/core/shapepoints.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
@@ -6,6 +5,7 @@
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/shapeedits.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/core/shapepoints.h>
 #include <actcraft/tools/selectiongeometry.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/userstate.h>
@@ -1075,7 +1075,8 @@ private slots:
         QVERIFY(r.first().common.locked);
     }
 
-    // Mode conception : Agrandir et Réduire suivent la règle des poignées, verrou ignoré, restrictions gardées.
+    // Mode conception : Agrandir et Réduire suivent la règle des poignées (verrou ignoré, restrictions
+    // gardées).
     void growShrinkLockedWhileDesigning()
     {
         {
@@ -1101,6 +1102,24 @@ private slots:
             QCOMPARE(r.editor.executes, 0);
             QVERIFY(r.first().common.transform.isIdentity());
         }
+    }
+
+    // Mode conception : un objet verrouillé garde poignées et rotation ; la poignée d'angle le redimensionne,
+    // son drapeau `locked` reste posé.
+    void lockedObjectHandlesWhileDesigning()
+    {
+        Rig r;
+        r.only(100, 100, 200, 100);
+        r.first().common.locked = true;
+        r.context.lockIgnored = true;
+        r.tool.refresh();
+        QVERIFY(!r.selection.last().handles.empty());
+        QVERIFY(r.selection.last().handlesVisible);
+        QVERIFY(r.barSpot(QStringLiteral("object.rotate")).x > -1e8);
+        r.drag(300, 200, 400, 220, 4); // facteurs 1,5 et 1,2 : le plus grand gagne
+        QCOMPARE(r.editor.lifts, 1);
+        QVERIFY(closeRect(r.bounds1(), 100, 100, 300, 150));
+        QVERIFY(r.first().common.locked);
     }
 
     // Accrochage coupé (réglage disableSnap du mode conception) : le dépôt ne s'accroche plus à la grille.

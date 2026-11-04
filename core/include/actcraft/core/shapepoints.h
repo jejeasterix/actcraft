@@ -11,11 +11,12 @@ namespace actcraft::core {
 std::vector<PointF> shapePoints(const PageObject& object);
 
 // Déplace le point `index` en `to` (page), une étape ; la forme devient un polygone ; objet verrouillé : sans
-// effet.
+// effet, sauf `lockIgnored` (choix de l'outil en mode conception, F-560 ; le drapeau `locked` reste posé).
 class MoveShapePointCommand final : public UndoCommand
 {
 public:
-    MoveShapePointCommand(std::size_t page, ObjectId shape, std::size_t index, PointF to);
+    MoveShapePointCommand(std::size_t page, ObjectId shape, std::size_t index, PointF to,
+                          bool lockIgnored = false);
     void redo(Document& document, Changes& changes) override;
     void undo(Document& document, Changes& changes) override;
 
@@ -24,6 +25,7 @@ private:
     ObjectId m_shape;
     std::size_t m_index;
     PointF m_to;
+    bool m_lockIgnored;
     std::optional<PageObject> m_before;
 };
 
