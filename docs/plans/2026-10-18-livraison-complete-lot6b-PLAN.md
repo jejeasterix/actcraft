@@ -385,6 +385,11 @@ Le nombre d'objets se lit `documentController.shownObjectCount`. A17 (caméra du
 l'ouverture ; si le fichier QML de la caméra n'existe pas au début de la tâche, l'étape 3 est reportée et notée au
 rapport (la ligne de la table ne gagne aucun fichier).
 
+**Amendement 8 (L6-T21, 2026-11-04).** A17 absent à la tête (aucune caméra : lot 7 du chantier B non fusionné, relevé de
+L6-T22). Les destinations de la caméra sortent de L6-T21 et reviennent au lot 7 ; le « fichier QML de la caméra » quitte
+les fichiers touchés. Contrat de L6-T20 à suivre : `setRoot` appelé par le QML ; `trashFailed(path)` → confirmation,
+puis `remove(path, true)` ; `insert` refusé pendant un contact.
+
 <a id="tache-l6-t22"></a>
 ### Tâche L6-T22 — Mode conception (F-560)
 
