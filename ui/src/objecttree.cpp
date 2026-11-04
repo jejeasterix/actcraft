@@ -146,6 +146,38 @@ core::ObjectId topDrawnInLayer(const core::Page& page, core::ObjectId id, core::
     return id;
 }
 
+std::unordered_set<core::ObjectId> hiddenIds(const core::Page& page)
+{
+    std::unordered_set<core::ObjectId> hidden;
+    for (const core::PageObject& object : page.objects) {
+        if (!object.common.visible) {
+            hidden.insert(object.common.id);
+        }
+    }
+    return hidden;
+}
+
+// Ligne allumée (SelectedRole), lue par rebuild et par le Ctrl+clic : l'objet de la ligne est sélectionné ;
+// pour un groupe, aussi quand tous ses membres visibles le sont. Une sélection faite au canevas porte les
+// objets dessinés, jamais l'objet Group (core::objectAt, core::objectsTouching), et un masqué n'y entre pas :
+// un groupe entièrement masqué ne s'allume que par l'objet Group lui-même.
+bool rowSelected(const core::Page& page, core::ObjectId id, const std::unordered_set<core::ObjectId>& groups,
+                 const std::unordered_set<core::ObjectId>& hidden,
+                 const std::unordered_set<core::ObjectId>& selected)
+{
+    if (selected.count(id) != 0) {
+        return true;
+    }
+    if (groups.count(id) == 0) {
+        return false;
+    }
+    std::vector<core::ObjectId> shown = drawnIds(page, id, groups);
+    std::erase_if(shown, [&hidden](core::ObjectId member) { return hidden.count(member) != 0; });
+    return !shown.empty() && std::all_of(shown.begin(), shown.end(), [&selected](core::ObjectId member) {
+        return selected.count(member) != 0;
+    });
+}
+
 } // namespace
 
 ObjectTreeModel::ObjectTreeModel(QObject* parent) : QAbstractListModel(parent)
@@ -210,22 +242,30 @@ QHash<int, QByteArray> ObjectTreeModel::roleNames() const
 void ObjectTreeModel::select(int row, int modifiers)
 {
     const Row* target = objectRow(row);
-    if (m_tools == nullptr || target == nullptr) {
+    if (m_tools == nullptr || m_document == nullptr || target == nullptr) {
         return;
     }
     const core::ObjectId id = target->id;
-    std::vector<core::ObjectId> ids;
+    std::vector<core::ObjectId> ids{id};
     const auto held = Qt::KeyboardModifiers::fromInt(static_cast<Qt::KeyboardModifiers::Int>(modifiers));
     if (held.testFlag(Qt::ControlModifier)) {
+        // Ctrl bascule ce que la ligne montre (rowSelected, comme rebuild), relu sur la sélection courante :
+        // la ligne de la dernière remise à jour peut être en retard (même tour de boucle, contact). Éteindre
+        // la ligne d'un groupe retire le groupe et ses membres.
+        const core::Page& page =
+            m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
         ids = m_tools->user().selection();
-        const auto it = std::find(ids.begin(), ids.end(), id);
-        if (it != ids.end()) {
-            ids.erase(it);
+        const std::unordered_set<core::ObjectId> selected(ids.begin(), ids.end());
+        if (rowSelected(page, id, groupIds(page), hiddenIds(page), selected)) {
+            std::unordered_set<core::ObjectId> dropped{id};
+            for (const core::ObjectId member : core::expandGroups(page, {id})) {
+                dropped.insert(member);
+            }
+            std::erase_if(ids,
+                          [&dropped](core::ObjectId candidate) { return dropped.count(candidate) != 0; });
         } else {
             ids.push_back(id);
         }
-    } else {
-        ids = {id};
     }
     if (ids.empty()) {
         m_tools->clearSelection();
@@ -454,6 +494,7 @@ void ObjectTreeModel::rebuild()
     const core::Page& page =
         m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
     const std::unordered_set<core::ObjectId> groups = groupIds(page);
+    const std::unordered_set<core::ObjectId> hidden = hiddenIds(page);
     std::unordered_set<core::ObjectId> members;
     std::unordered_map<core::ObjectId, std::size_t>
         drawRank; // place dans la page : dessiné après = plus haut
@@ -485,19 +526,16 @@ void ObjectTreeModel::rebuild()
         const core::ObjectKind kind = core::kindOf(object);
         row.kind = kindKey(kind);
         row.name = common.name.empty() ? kindLabel(kind) : QString::fromStdString(common.name);
-        const auto isSelected = [&selected](core::ObjectId id) { return selected.count(id) != 0; };
-        row.selected = isSelected(common.id);
+        row.selected = rowSelected(page, common.id, groups, hidden, selected);
         std::size_t rank = i;
         if (groups.count(common.id) != 0) {
             // Règle D9 : le groupe se range au rang du plus haut de ses membres dans sa couche (l'objet Group
-            // n'est pas dessiné ; un membre d'une autre couche n'a pas de rang dans celle-ci) ; masqué,
-            // verrouillé ou sélectionné quand tous ses membres le sont (une sélection faite au canevas porte
-            // les membres, jamais l'objet Group : core::objectAt, core::objectsTouching).
+            // n'est pas dessiné ; un membre d'une autre couche n'a pas de rang dans celle-ci) ; masqué ou
+            // verrouillé quand tous ses membres le sont (sélectionné : rowSelected).
             const std::vector<core::ObjectId> drawn = drawnIds(page, common.id, groups);
             rank = drawRank.at(topDrawnInLayer(page, common.id, common.layer, groups));
             row.hidden = core::flagOfAll(page, drawn, core::ObjectFlag::Hidden);
             row.locked = core::flagOfAll(page, drawn, core::ObjectFlag::Locked);
-            row.selected = row.selected || std::all_of(drawn.begin(), drawn.end(), isSelected);
         } else {
             row.hidden = !common.visible;
             row.locked = common.locked;

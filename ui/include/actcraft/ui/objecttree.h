@@ -25,7 +25,8 @@ namespace actcraft::ui {
 // groupe a sa ligne, dans la couche de l'objet Group (la plus basse de ses membres, makeGroupCommand), au
 // rang du plus haut de ses membres dans cette couche (l'objet Group n'est pas dessiné). Règle D9, comme
 // `object.lock` et `object.hide` : masquer ou verrouiller un groupe agit sur ses membres, et sa ligne est
-// masquée (verrouillée, sélectionnée) quand tous ses membres le sont.
+// masquée (verrouillée) quand tous ses membres le sont, sélectionnée quand tous ses membres visibles le sont
+// (un masqué n'est pas sélectionnable au canevas).
 //
 // Remise à jour : une seule par tour de boucle (`resetCount` + 1), reportée pendant un contact (D6-5). Elle
 // suit l'observateur du contrôleur, `documentChanged` (émis après chaque `execute`, annulation et
@@ -67,8 +68,9 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    // Ligne d'objet → ToolHost::selectObjects (active l'outil Sélection, ne modifie pas le document) ; Ctrl
-    // ajoute ou retire l'objet de la sélection. Ligne de couche : rien.
+    // Ligne d'objet → ToolHost::selectObjects (active l'outil Sélection, ne modifie pas le document). Ctrl
+    // bascule ce que la ligne montre, relu sur la sélection courante : ligne allumée → l'objet (pour un
+    // groupe : lui et ses membres) sort de la sélection ; éteinte → il y entre. Ligne de couche : rien.
     Q_INVOKABLE void select(int row, int modifiers);
     // La ligne `row` passe juste sous la ligne `beforeRow` − 1 (indices d'avant le déplacement ; `rowCount()`
     // : en fin). Même couche : core::ReorderObjectsCommand, seuls les objets de la couche bougent (comme

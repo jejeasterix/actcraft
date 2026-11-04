@@ -715,9 +715,10 @@ private slots:
     }
 
     // Le test qui distingue (revue de L6-T14) : Ctrl bascule ce que la ligne montre. Sous le patron
-    // « identifiant de la ligne dans la sélection », Ctrl+clic sur la ligne d'un groupe allumée par ses membres
-    // ajouterait G ({A, C, G}) et la ligne ne s'éteindrait jamais. Sous le patron « ligne de la dernière remise
-    // à jour », la bascule faite avant cette remise à jour (même tour, contact) irait dans le mauvais sens.
+    // « identifiant de la ligne dans la sélection », Ctrl+clic sur la ligne d'un groupe allumée par ses
+    // membres ajouterait G ({A, C, G}) et la ligne ne s'éteindrait jamais. Sous le patron « ligne de la
+    // dernière remise à jour », la bascule faite avant cette remise à jour (même tour, contact) irait dans le
+    // mauvais sens.
     void ctrlClickTogglesAGroupLitByItsMembers()
     {
         Fixture f;
