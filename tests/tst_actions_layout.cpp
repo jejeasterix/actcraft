@@ -433,6 +433,7 @@ private slots:
                                    "object.group",
                                    "object.hide",
                                    "object.drag-copy",
+                                   "shortcutbar.add-selection",
                                    "-",
                                    "recognition.convert-to-text",
                                    "recognition.convert-to-shape"};
@@ -520,9 +521,10 @@ private slots:
             QStringLiteral("launcher.edit"),
             QStringLiteral("help.contents"),
             QStringLiteral("shortcutbar.insert"),
+            QStringLiteral("shortcutbar.add-selection"),
             QStringLiteral("settings.language"),
         };
-        QCOMPARE(ids.size(), 45);
+        QCOMPARE(ids.size(), 46);
         for (const QString& id : ids) {
             QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
         }

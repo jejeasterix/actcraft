@@ -231,6 +231,7 @@
   { "id": "launcher.edit", "label": "Raccourcis vers des programmes…", "icon": "programme", "platforms": ["windows"], "lockable": true, "restrictable": false },
   { "id": "help.contents", "label": "Aide", "icon": "aide-sommaire", "shortcut": "F1", "lockable": false, "restrictable": false },
   { "id": "shortcutbar.insert", "label": "Insérer l'objet de la barre", "argument": "text", "lockable": true, "restrictable": false },
+  { "id": "shortcutbar.add-selection", "label": "Ajouter à la barre de raccourcis", "lockable": true, "restrictable": false },
   { "id": "settings.language", "label": "Langue de l'interface", "argument": "text", "lockable": true, "restrictable": false }
   ]
 }

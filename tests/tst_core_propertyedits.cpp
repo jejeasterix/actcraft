@@ -238,6 +238,49 @@ private slots:
         QCOMPARE(m_stack.count(), before + 2);
     }
 
+    // Revue L6-T11 : un pas refusé en partie (0 accepté par la forme, refusé par le trait) ne fusionne pas.
+    // Fusionné, il aurait laissé une valeur refusée dans l'étape : Refaire après Annuler ne rejouait pas le
+    // glissé (le trait gardait son ancienne valeur, la forme non).
+    void partlyRefusedStepDoesNotMerge()
+    {
+        push({m_a, m_s}, ObjectProperty::OutlineWidth, 10.0);
+        push({m_a, m_s}, ObjectProperty::OutlineWidth, 20.0);
+        QCOMPARE(m_stack.count(), std::size_t{1});
+        push({m_a, m_s}, ObjectProperty::OutlineWidth, 0.0); // la forme prend 0, le trait refuse
+        QCOMPARE(m_stack.count(), std::size_t{2});
+        QCOMPARE(numberOf(m_a, ObjectProperty::OutlineWidth), 0.0);
+        QCOMPARE(numberOf(m_s, ObjectProperty::OutlineWidth), 20.0);
+        const std::optional<PropertyValue> shapeBefore = valueOf(m_a, ObjectProperty::OutlineWidth);
+        const std::optional<PropertyValue> strokeBefore = valueOf(m_s, ObjectProperty::OutlineWidth);
+        m_stack.undo(*m_document);
+        QCOMPARE(numberOf(m_a, ObjectProperty::OutlineWidth), 20.0);
+        QCOMPARE(numberOf(m_s, ObjectProperty::OutlineWidth), 20.0);
+        m_stack.redo(*m_document);
+        QVERIFY(valueOf(m_a, ObjectProperty::OutlineWidth) == shapeBefore);
+        QVERIFY(valueOf(m_s, ObjectProperty::OutlineWidth) == strokeBefore);
+    }
+
+    // Revue L6-T11 : épaisseur refusée (négative, non finie, nulle pour un trait) : rien ne change.
+    void refusedThicknessChangesNothing()
+    {
+        const std::optional<PropertyValue> shapeBefore = valueOf(m_a, ObjectProperty::OutlineWidth);
+        const std::optional<PropertyValue> strokeBefore = valueOf(m_s, ObjectProperty::OutlineWidth);
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        const double inf = std::numeric_limits<double>::infinity();
+        for (const double width : {-1.0, nan, inf, -inf}) {
+            const Changes changes = push({m_a, m_s}, ObjectProperty::OutlineWidth, width);
+            QVERIFY2(changes.empty(), qPrintable(QString::number(width)));
+            QVERIFY(valueOf(m_a, ObjectProperty::OutlineWidth) == shapeBefore);
+            QVERIFY(valueOf(m_s, ObjectProperty::OutlineWidth) == strokeBefore);
+        }
+        // 0 sur un trait : refusé ; sur une forme : accepté (contour absent).
+        const Changes zero = push({m_s}, ObjectProperty::OutlineWidth, 0.0);
+        QVERIFY(zero.empty());
+        QVERIFY(valueOf(m_s, ObjectProperty::OutlineWidth) == strokeBefore);
+        push({m_a}, ObjectProperty::OutlineWidth, 0.0);
+        QCOMPARE(numberOf(m_a, ObjectProperty::OutlineWidth), 0.0);
+    }
+
     // Une autre propriété, ou d'autres objets : pas de fusion.
     void differentPropertyDoesNotMerge()
     {

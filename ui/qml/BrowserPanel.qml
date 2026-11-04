@@ -18,6 +18,7 @@ Rectangle {
     property Tools tools: null
     property PageView view: null
     property var profile: null
+    property var preferences: null
     property string current: "pages" // identifiant de `navigators` (A8)
     readonly property bool hasNotes: notesBrowser.hasNotes
     function showNavigator(id) {
@@ -174,6 +175,7 @@ Rectangle {
             tools: root.tools
             view: root.view
             profile: root.profile
+            preferences: root.preferences
         }
         Item {} // actions (lot 8)
     }
