@@ -1,5 +1,6 @@
 #pragma once
 
+#include <actcraft/core/model.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/toolhost.h>
@@ -100,6 +101,9 @@ private:
     void onObjectFlagsChanged(int page, const QList<quint64>& ids);
 
     std::vector<Row> m_rows;
+    // Page et objets que montrent les lignes (dernière remise à jour) : setValue agit sur ce que l'on voit.
+    int m_page = 0;
+    std::vector<core::ObjectId> m_ids;
     QPointer<DocumentController> m_document;
     QPointer<ToolHost> m_tools;
     QPointer<Commands> m_commands;

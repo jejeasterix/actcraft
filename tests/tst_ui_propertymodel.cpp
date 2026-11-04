@@ -14,14 +14,23 @@
 #include <actcraft/core/objectflags.h>
 #include <actcraft/core/propertyedits.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/pageview.h>
 #include <actcraft/ui/propertymodel.h>
 #include <actcraft/ui/toolhost.h>
+#include <actcraft/ui/viewtransform.h>
 
+#include <QElapsedTimer>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
+#include <QQuickWindow>
 #include <QSet>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
 #include <algorithm>
@@ -30,7 +39,10 @@
 #include <variant>
 #include <vector>
 
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
+
 namespace core = actcraft::core;
+namespace render = actcraft::render;
 namespace ui = actcraft::ui;
 
 namespace {
@@ -160,6 +172,69 @@ struct Fixture
     }
 };
 
+// Le montage ci-dessus, plus la zone de page réelle (PageArea : vue unique et son cache) dans une fenêtre
+// hors écran, rendu logiciel, comme tst_ui_tabs.
+struct ViewFixture
+{
+    QQmlEngine engine;
+    std::unique_ptr<QObject> root;
+    Fixture f;
+    QQuickWindow* window = nullptr;
+    ui::PageView* view = nullptr;
+    render::FixedPageItem* fixed = nullptr;
+
+    bool mount()
+    {
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\n"
+                          "Window { width: 800; height: 600; visible: true\n"
+                          "  PageArea { objectName: \"area\"; anchors.fill: parent } }",
+                          QUrl(QStringLiteral("qrc:/tst_ui_propertymodel/Window.qml")));
+        root.reset(component.create());
+        if (!root) {
+            qWarning() << component.errors();
+            return false;
+        }
+        window = qobject_cast<QQuickWindow*>(root.get());
+        QQuickItem* area = window ? window->findChild<QQuickItem*>(QStringLiteral("area")) : nullptr;
+        if (!area) {
+            return false;
+        }
+        area->setProperty("documentController", QVariant::fromValue(&f.controller));
+        view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        fixed = window->findChild<render::FixedPageItem*>(QStringLiteral("fixedPage"));
+        if (!view || !fixed) {
+            return false;
+        }
+        f.controller.setFixedPage(fixed);
+        f.tools.setView(view);
+        return QTest::qWaitForWindowExposed(window) && waitCacheStable();
+    }
+
+    // cacheReady, puis kCacheFoldIdleMs + 300 ms sans rendu terminé (D21), borné à 20 s.
+    bool waitCacheStable()
+    {
+        if (!QTest::qWaitFor([this] { return fixed->isReady() && view->cacheReady(); }, 10000)) {
+            return false;
+        }
+        int last = view->cacheRefreshCount();
+        QElapsedTimer quiet;
+        quiet.start();
+        QElapsedTimer total;
+        total.start();
+        while (total.elapsed() < 20000) {
+            QTest::qWait(50);
+            if (view->cacheRefreshCount() != last || !view->cacheReady()) {
+                last = view->cacheRefreshCount();
+                quiet.restart();
+            } else if (quiet.elapsed() >= ui::kCacheFoldIdleMs + 300) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 } // namespace
 
 class TstUiPropertymodel : public QObject
@@ -233,7 +308,10 @@ private slots:
         QTRY_COMPARE(valueOf(f.model, QStringLiteral("outline-width")).toDouble(), 12.0);
         f.controller.undo(); // une étape
         QCOMPARE(outlineWidth(f.controller, f.shape1), before);
-        QTRY_COMPARE(valueOf(f.model, QStringLiteral("outline-width")).toDouble(), before);
+        // Annuler vide la sélection (L3-T0, ToolHost) : le modèle montre la page, puis relit l'objet.
+        QTRY_COMPARE(f.model.title(), QStringLiteral("Page"));
+        f.select({f.shape1});
+        QCOMPARE(valueOf(f.model, QStringLiteral("outline-width")).toDouble(), before);
     }
 
     // Distingue (brief, point 2) : sans closeMerge après une modification ponctuelle, la seconde saisie
@@ -307,7 +385,11 @@ private slots:
 
         QCOMPARE(roleOf(f.model, QStringLiteral("translucency"), ui::PropertyModel::EditorRole).toString(),
                  QStringLiteral("slider"));
-        QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("translucency")), 128));
+        // Réglette glissée : deux positions sans closeMerge entre elles fusionnent (SetTranslucencyCommand),
+        // le relâcher clôt l'étape.
+        const int translucency = f.model.rowOf(QStringLiteral("translucency"));
+        QVERIFY(f.model.setValue(translucency, 100));
+        QVERIFY(f.model.setValue(translucency, 128));
         f.controller.closeMerge(); // relâcher de la réglette
         QTRY_COMPARE(valueOf(f.model, QStringLiteral("translucency")).toInt(), 128);
 
@@ -316,14 +398,43 @@ private slots:
         QVERIFY(lockedInDocument(f.controller, f.shape1));
         QTRY_VERIFY(valueOf(f.model, QStringLiteral("locked")).toBool());
 
-        // Une étape par édition, aucune pour le verrou : chaque Annuler défait l'édition d'avant.
+        // Une étape par édition (le glisser compris), aucune pour le verrou : chaque Annuler défait l'édition
+        // d'avant. Annuler vide la sélection (L3-T0) : les valeurs se lisent dans le document.
+        const auto translucencyOf = [&f] {
+            const std::optional<core::PropertyValue> value =
+                inDocument(f.controller, f.shape1, core::ObjectProperty::Translucency);
+            return value ? std::get<double>(*value) : -1.0;
+        };
+        QCOMPARE(translucencyOf(), 128.0);
         f.controller.undo();
         QVERIFY(lockedInDocument(f.controller, f.shape1)); // le verrou reste
-        QTRY_COMPARE(valueOf(f.model, QStringLiteral("translucency")), translucencyBefore);
+        QCOMPARE(translucencyOf(), translucencyBefore.toDouble());
         f.controller.undo();
         QVERIFY(!hiddenInDocument(f.controller, f.shape1));
         f.controller.undo();
         QVERIFY(objectOf(f.controller, f.shape1)->common.layer == core::Layer::Middle);
+        f.select({f.shape1});
+        QCOMPARE(valueOf(f.model, QStringLiteral("translucency")), translucencyBefore);
+        QVERIFY(valueOf(f.model, QStringLiteral("visible")).toBool());
+        QVERIFY(valueOf(f.model, QStringLiteral("locked")).toBool());
+    }
+
+    // Interdit de la section : un changement de sélection ne touche pas la page ; le modèle se remet à jour
+    // (trois fois) sans aucun redessin du cache de la vue.
+    void noCacheRefreshOnSelectionChange()
+    {
+        ViewFixture v;
+        QVERIFY(v.mount());
+        const int cache = v.view->cacheRefreshCount();
+        const int refreshes = v.f.model.refreshCount();
+        v.f.select({v.f.stroke});
+        v.f.select({v.f.shape1, v.f.shape2});
+        v.f.tools.clearSelection();
+        QCoreApplication::processEvents();
+        QCOMPARE(v.f.model.refreshCount(), refreshes + 3);
+        QCOMPARE(v.f.model.title(), QStringLiteral("Page"));
+        QTest::qWait(ui::kCacheFoldIdleMs + 300);
+        QCOMPARE(v.view->cacheRefreshCount(), cache);
     }
 
     void refusedWhileLocked()
