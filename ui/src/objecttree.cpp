@@ -359,11 +359,7 @@ bool ObjectTreeModel::setHidden(int row, bool hidden)
 
 bool ObjectTreeModel::setLocked(int row, bool locked)
 {
-    if (!setFlag(row, static_cast<int>(core::ObjectFlag::Locked), locked)) {
-        return false;
-    }
-    requestReset(); // aucun Change : le contrôleur n'émet rien (objectflags.h)
-    return true;
+    return setFlag(row, static_cast<int>(core::ObjectFlag::Locked), locked);
 }
 
 bool ObjectTreeModel::setFlag(int row, int flag, bool value)
@@ -434,18 +430,7 @@ void ObjectTreeModel::setCommands(Commands* commands)
     if (m_commands == commands) {
         return;
     }
-    disconnect(m_lockConnection);
     m_commands = commands;
-    if (m_commands) {
-        // Verrou posé ailleurs : la commande a déjà été exécutée (triggered suit le gestionnaire), sans
-        // Change.
-        m_lockConnection = connect(
-            m_commands.data(), &Commands::triggered, this, [this](const QString& id, const QVariant&) {
-                if (id == QLatin1String("object.lock") || id == QLatin1String("object.drag-copy")) {
-                    requestReset();
-                }
-            });
-    }
     emit sourcesChanged();
 }
 
@@ -582,6 +567,8 @@ void ObjectTreeModel::attachDocument()
     m_documentConnections = {
         connect(controller, &DocumentController::documentChanged, this, &ObjectTreeModel::requestReset),
         connect(controller, &DocumentController::pagesChanged, this, &ObjectTreeModel::requestReset),
+        // Verrou et copie au glissement, d'où qu'ils viennent : aucun Change, ce signal seul (L6-C2).
+        connect(controller, &DocumentController::objectFlagsChanged, this, &ObjectTreeModel::requestReset),
     };
 }
 

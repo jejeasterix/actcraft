@@ -31,9 +31,8 @@ namespace actcraft::ui {
 // Remise à jour : une seule par tour de boucle (`resetCount` + 1), reportée pendant un contact (D6-5). Elle
 // suit l'observateur du contrôleur, `documentChanged` (émis après chaque `execute`, annulation et
 // rétablissement, comme au remplacement du document : demande en double, regroupée), `pagesChanged` (page
-// affichée), `ToolHost::selectionChanged`, et le verrou : verrouiller ne rend aucun core::Change
-// (objectflags.h), le contrôleur n'émet alors rien. `setLocked` demande donc lui-même la remise à jour, et un
-// verrouillage fait ailleurs se suit par `Commands::triggered` (`object.lock`, `object.drag-copy`).
+// affichée), `ToolHost::selectionChanged`, et `DocumentController::objectFlagsChanged` : verrouiller ne rend
+// aucun core::Change (objectflags.h), ce signal seul dit un verrou posé, ici ou par un autre chemin (L6-C2).
 //
 // Modifications fermées par défaut (B1) : sans `commands`, ou sous le verrou du registre, `move`, `setHidden`
 // et `setLocked` rendent faux et ne touchent pas le document.
@@ -125,7 +124,6 @@ private:
     QPointer<Commands> m_commands;
     QList<QMetaObject::Connection> m_documentConnections;
     QMetaObject::Connection m_selectionConnection;
-    QMetaObject::Connection m_lockConnection;
     int m_observer = 0;
     bool m_contactActive = false;
     bool m_pending = false;   // une remise à jour est due

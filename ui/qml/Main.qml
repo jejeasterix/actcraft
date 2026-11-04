@@ -181,6 +181,12 @@ Window {
         target: appEditing
         function onSelectionStateChanged() { root.syncObjectFlags() }
     }
+    // Un verrou posé ailleurs (arbre des objets, propriétés) ne rend aucun Change : selectionStateChanged reste
+    // muet, objectFlagsChanged le dit (L6-C2).
+    Connections {
+        target: appDocument
+        function onObjectFlagsChanged() { root.syncObjectFlags() }
+    }
     function syncObjectFlags() {
         appCommands.setChecked("object.lock", appEditing.selectionLocked)
         appCommands.setChecked("object.group", appEditing.selectionIsGroup)
