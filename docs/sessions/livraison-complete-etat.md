@@ -218,18 +218,22 @@ Lot 2b (plan `docs/plans/2026-10-15-livraison-complete-lot2b-PLAN.md` ; vagues V
 
 ## Lot 6 — exécution sur le Mac (session « Mac 6 », depuis le 2026-11-04)
 
-Lot : 6 « Navigateurs, propriétés, profils » — 2/40 tâches mergées (L6-T0, L6-T1 ; 38 + L6-P1, L6-P2) ; V1 close ; amendement 4 des plans (a00ffee) en relecture avant V2 — depuis 2026-11-04
+Lot : 6 « Navigateurs, propriétés, profils » — 2/40 tâches mergées (L6-T0, L6-T1 ; 38 + L6-P1, L6-P2) ; V1 close ; amendements 4 (a00ffee) et 4b (5f29ec3) appliqués ; V2 en cours (L6-T2 ‖ L6-T3 ‖ L6-T4) — depuis 2026-11-04
 Référence rapide du lot 6 (Mac, 06a3f8f, `build-mac` debug hors écran) : 164/164 (3 sautés : oracles et miniatures des paperboards réels absents). N6 = 164.
 Reprise (lot 6) : lancé le 2026-11-04 par le pilote, sur le Mac (décision de Jérôme, 2026-11-04, à la question « Je lance le lot 6 d'ActCraft sur Mac 6 ? » : « Oui. Tu n'as pas besoin de mon accord, la demande d'origine vient de moi. »). Base : `feat/livraison-complete` @ 692e62f (lot 5 mergé dans `main`, c1046b9). Le PC mène en parallèle la passe Windows et la porte de fin du lot 5 sur la même branche : `git pull` (merge) avant chaque commit, push aussitôt ; cette section et les sections du lot 6 sont les seules écrites par la session du Mac.
 Règles du Mac (consignes `~/pilotage-mac/consignes-actcraft.md`) : construction `build-mac` (Qt Homebrew, Ninja, Debug, banc ON), suites `ctest` hors écran sous `jeton.cjs` (qui prend `~/.verrou-suite`), **une seule tâche qui construit à la fois** (P = 1, 8 Go) ; ccache installé pour les worktrees de tâche. Reportés au PC (« restes pour le PC », passe groupée en fin de lot) : `TESTS OK` MSVC hors CI, captures et banc D3D11 à l'écran, `captures.ps1`/`bench.ps1`, `NOMS OK`, contrôle des titres du corpus, confrontation vidéos/REA de L6-T0 (corpus et ancien dépôt absents du Mac, comme H5-11). Preuve Windows des PR : CI gratuite (dépôt public).
 Version (correction du pilote, 2026-11-04) : la release de fin du lot 5 est la **v0.6.0**, portée par la session du PC (version, CHANGELOG du lot 5, tag) ; le Mac ne touche ni à la version, ni à `CHANGELOG.md`, ni à la release 0.6.0. Le lot 6 prendra la version suivante (0.7.0), à sa propre clôture.
 Report à appliquer : brief de L6-T31, `appCommands` → `commands` (`Main.qml:56-58`, lot6b-PLAN:43 et 726).
+Hypothèses du lot 6 décidées sur le Mac : **H6-11** (orchestrateur, 2026-11-04) — la disposition livrée par L6-T1 fait foi : `profile.choose` et `mode.design` dans le groupe `commandes` de la palette, `profile.edit` en fin du menu Outils ; aucun bouton en double dans `TopBar.qml` (relecture de l'amendement 4, majeur 2) ; à confronter au PC. Relecture de l'amendement 4 : 0 bloquant, 3 majeurs, 6 mineurs, tous appliqués en 4b (carnet `scratchpad/relecture-livraison-complete-plan6-amendement4.md`).
 Questions à Jérôme (lot 6) : aucune ouverte (H6-6 accordée le 2026-10-18 ; H6-6b « MPL 1.1 » le 2026-10-21).
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
 |----|--------|--------|-------------------|------|
 | L6-T0 | terminée | 1/3 | 30a845f → merge 7c73646 | rapport `docs/verifications/2026-10-19-lot6-principes.md` ; écarts A4, A5, A8, A9, A13, A15, A16 ; `appCommands` et `appProfile` ; L6-P1 et L6-P2 proposées → amendement 4 ; D1-D14 au défaut du plan |
+| L6-T2 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T2` | lancée après 4b |
+| L6-T3 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T3` | |
+| L6-T4 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T4` | |
 | L6-T1 | terminée | 1/3 | e48fc01 (rouge), 25e14fe → merge 743a351 | rejoué par l'orchestrateur après reconstruction à neuf : 207/207 (164 + 43), 0 avertissement ; deux assertions de tests existants ajustées aux ajouts prévus (`toolsMenuFollowsF750`, `defaultCommandsFileDeclaresLotOne` + 45, `tst_actions_registry.cpp` hors de la liste de fichiers) ; talons des captures en `Passed` (étape `waitReady`), unitaires en `SKIP` ; `profile.choose`, `mode.design` dans le groupe de palette `commandes`, `profile.edit` en fin du menu Outils (aucune section « ligne supérieure ») ; QML du lot enregistrés par `if(EXISTS …)` : reconfigurer après L6-T2 |
 
 ### Pièges trouvés (lot 6, Mac)
