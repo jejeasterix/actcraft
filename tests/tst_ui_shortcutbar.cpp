@@ -7,9 +7,9 @@
 #include <actcraft/ui/profilecontroller.h>
 #include <actcraft/ui/shortcutbar.h>
 
+#include <QBuffer>
 #include <QByteArray>
 #include <QImage>
-#include <QBuffer>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -33,7 +33,8 @@ struct Fixture
 
     Fixture() : prefs(dir.filePath(QStringLiteral("poste.ini")), nullptr)
     {
-        actions::ProfileStore store(dir.filePath(QStringLiteral("profiles")), QStringLiteral(":/actcraft/actions/profiles"),
+        actions::ProfileStore store(dir.filePath(QStringLiteral("profiles")),
+                                    QStringLiteral(":/actcraft/actions/profiles"),
                                     ui::ProfileController::builtinOrder());
         profile = std::make_unique<ui::ProfileController>(std::move(store), &prefs, &commands);
         profile->start();
@@ -81,11 +82,12 @@ private slots:
     void outOfPaletteToolIsRecorded()
     {
         Fixture f;
-        QVERIFY(f.commands.registry().find(QStringLiteral("present.curtain")));
-        QVERIFY(f.outOfPalette().contains(QStringLiteral("present.curtain")));
-        QVERIFY(f.commands.trigger(QStringLiteral("present.curtain")));
+        // present.curtain est dans la palette par défaut : le spot carré, lui, n'y est pas.
+        QVERIFY(f.outOfPalette().contains(QStringLiteral("present.spotlight-square")));
+        QVERIFY(f.commands.trigger(QStringLiteral("present.spotlight-square")));
         QCOMPARE(f.bar.buttons().size(), 1);
-        QCOMPARE(f.button(0).value(QStringLiteral("id")).toString(), QStringLiteral("present.curtain"));
+        QCOMPARE(f.button(0).value(QStringLiteral("id")).toString(),
+                 QStringLiteral("present.spotlight-square"));
         QCOMPARE(f.button(0).value(QStringLiteral("kind")).toString(), QStringLiteral("tool"));
     }
     void paletteToolIsNotRecorded()
@@ -102,9 +104,11 @@ private slots:
     {
         Fixture f;
         const QStringList ids = f.outOfPalette();
-        QVERIFY2(ids.size() >= 10, qPrintable(QString::number(ids.size())));
-        for (int i = 0; i < 10; ++i)
-            QVERIFY(f.commands.trigger(ids.at(i)));
+        int played = 0; // les commandes à argument obligatoire ne se déclenchent pas sans lui : on les saute
+        for (const QString& id : ids)
+            if (played < 10 && f.commands.trigger(id))
+                ++played;
+        QCOMPARE(played, 10);
         QCOMPARE(f.bar.buttons().size(), 8);
         const QString fifth = f.button(4).value(QStringLiteral("id")).toString();
         QVERIFY(f.commands.trigger(fifth));
