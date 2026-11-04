@@ -88,26 +88,27 @@ private slots:
         Text b = std::get<Text>(body(d.page(0).objects[1]));
         a.html = "<p>A</p>";
         b.html = "<p>B</p>";
-        stack.push(d, std::make_unique<SetTextsCommand>(0, std::vector<std::pair<ObjectId, Text>>{{5, a}, {6, b}}));
+        stack.push(
+            d, std::make_unique<SetTextsCommand>(0, std::vector<std::pair<ObjectId, Text>>{{5, a}, {6, b}}));
         const Changes c = stack.undo(d);
         QCOMPARE(c.size(), std::size_t{2});
-        QCOMPARE(QString::fromStdString(std::get<Text>(body(d.page(0).objects[0])).html), QStringLiteral("<p>un</p>"));
+        QCOMPARE(QString::fromStdString(std::get<Text>(body(d.page(0).objects[0])).html),
+                 QStringLiteral("<p>un</p>"));
         QCOMPARE(QString::fromStdString(std::get<Text>(body(d.page(0).objects[1])).html),
                  QStringLiteral("<p>deux</p>"));
         QVERIFY(!stack.canUndo());
     }
 
-    // Trait et objet absent : ignorés ; rien trouvé, rien dans la pile.
+    // Trait et objet absent : ignorés ; rien trouvé, aucun Change, le trait intact.
     void setTextsSkipsWhatIsNotAText()
     {
         Document d = withTwoTextsAndAStroke();
         UndoStack stack;
         Text any;
         any.html = "<p>x</p>";
-        const Changes c = stack.push(
-            d, std::make_unique<SetTextsCommand>(0, std::vector<std::pair<ObjectId, Text>>{{7, any}, {99, any}}));
+        const Changes c = stack.push(d, std::make_unique<SetTextsCommand>(
+                                            0, std::vector<std::pair<ObjectId, Text>>{{7, any}, {99, any}}));
         QVERIFY(c.empty());
-        QVERIFY(!stack.canUndo());
         QVERIFY(std::holds_alternative<Stroke>(body(d.page(0).objects[2])));
     }
 

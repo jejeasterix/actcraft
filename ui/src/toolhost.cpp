@@ -3,6 +3,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/penmodifiers.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/core/textedits.h>
 #include <actcraft/render/imagefill.h>
 #include <actcraft/tools/connectortool.h>
 #include <actcraft/tools/filltool.h>
@@ -12,6 +13,7 @@
 #include <actcraft/tools/toolregistry.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QByteArray>
 #include <QCoreApplication>
 #include <QImage>
 #include <QInputEvent>
@@ -19,6 +21,10 @@
 #include <QPoint>
 #include <QQuickWindow>
 #include <QSettings>
+#include <QTextCharFormat>
+#include <QTextCursor>
+#include <QTextDocument>
+#include <QUrl>
 #include <QVariantList>
 
 #include <algorithm>
@@ -96,6 +102,32 @@ QVariantMap hiddenFrame()
 core::Argb opaque(const QColor& color)
 {
     return static_cast<core::Argb>(color.rgba()) | 0xFF000000u; // la translucidité va à part (F-225)
+}
+
+// HTML d'un texte venu du fichier ouvert : rien n'en est chargé (bloquant 5, textediting.cpp).
+class RecolorDocument final : public QTextDocument
+{
+protected:
+    QVariant loadResource(int /*type*/, const QUrl& /*name*/) override { return QVariant(QByteArray()); }
+};
+
+// L6-P1 : tout le texte prend la couleur, comme text.color dans l'éditeur (textediting.cpp : setForeground
+// puis fusion) ; les lignes lues (runs) aussi, pour le peintre.
+core::Text recolored(const core::Text& text, core::Argb color)
+{
+    core::Text out = text;
+    RecolorDocument doc;
+    doc.setHtml(QString::fromStdString(text.html));
+    QTextCursor cursor(&doc);
+    cursor.select(QTextCursor::Document);
+    QTextCharFormat format;
+    format.setForeground(QColor::fromRgba(color));
+    cursor.mergeCharFormat(format);
+    out.html = doc.toHtml().toStdString();
+    for (core::TextSpan& run : out.runs) {
+        run.color = color;
+    }
+    return out;
 }
 
 void writeShapeSettings(const QString& file, const tools::ShapeSettings& settings)
@@ -380,6 +412,9 @@ void ToolHost::setColor(const QColor& color)
     if (!color.isValid()) {
         return;
     }
+    if (recolorSelectedTexts(color)) {
+        return; // L6-P1 : textes sélectionnés, outil et sélection gardés
+    }
     ensureSettings();
     const bool penModifier = currentTool() == QStringLiteral("pen-shape"); // règle l'encre dont elle vient
     if (!penModifier && !ownsColor(currentTool())) {
@@ -393,6 +428,32 @@ void ToolHost::setColor(const QColor& color)
     }
     storeSettings(id, settings);
     configureTool(existingTool(currentTool())); // pot de peinture, modification de stylo
+}
+
+bool ToolHost::recolorSelectedTexts(const QColor& color)
+{
+    if (!m_controller || currentTool() != QStringLiteral("select") || user().selection().empty()) {
+        return false;
+    }
+    cancelGesture(); // ce qui est soulevé revient sur la page avant la commande (execute, L3-T12)
+    const std::vector<core::ObjectId>& ids = user().selection();
+    const auto pageIndex = static_cast<std::size_t>(m_controller->currentIndex());
+    const core::Argb argb = opaque(color);
+    std::vector<std::pair<core::ObjectId, core::Text>> texts;
+    for (const core::PageObject& object : m_controller->document().page(pageIndex).objects) {
+        if (std::find(ids.begin(), ids.end(), object.common.id) == ids.end()) {
+            continue;
+        }
+        // Un groupe sélectionné n'est pas parcouru (supposé, L6-P1).
+        if (const auto* text = std::get_if<core::Text>(&core::body(object))) {
+            texts.emplace_back(object.common.id, recolored(*text, argb));
+        }
+    }
+    if (texts.empty()) {
+        return false;
+    }
+    m_controller->execute(std::make_unique<core::SetTextsCommand>(pageIndex, std::move(texts)));
+    return true;
 }
 
 void ToolHost::setWidth(qreal width)

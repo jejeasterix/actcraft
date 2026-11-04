@@ -671,12 +671,14 @@ private slots:
         for (std::size_t i = 0; i < 2; ++i) {
             const auto& text = std::get<core::Text>(core::body(app.page().objects.at(i)));
             QCOMPARE(text.runs.front().color, core::Argb{0xFFFF0000u});
-            QVERIFY2(QString::fromStdString(text.html).contains(QStringLiteral("#ff0000"), Qt::CaseInsensitive),
-                     text.html.c_str());
+            QVERIFY2(
+                QString::fromStdString(text.html).contains(QStringLiteral("#ff0000"), Qt::CaseInsensitive),
+                text.html.c_str());
         }
         app.document->undo(); // une seule étape rend les deux textes
         for (std::size_t i = 0; i < 2; ++i) {
-            QCOMPARE(std::get<core::Text>(core::body(app.page().objects.at(i))).html, std::string("<p>mot</p>"));
+            QCOMPARE(std::get<core::Text>(core::body(app.page().objects.at(i))).html,
+                     std::string("<p>mot</p>"));
         }
     }
 

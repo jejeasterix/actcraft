@@ -167,6 +167,9 @@ private:
     void writeValue(const QString& key, const QVariant& value) const;
     QString shownInkTool() const;
     QString shownWidthTool() const;
+    // L6-P1 (P11 de L6-T0) : sous Sélectionner, les textes sélectionnés prennent la couleur en une étape
+    // d'annulation ; outil, sélection et couleur de l'encre restent. Vrai si au moins un texte l'a prise.
+    bool recolorSelectedTexts(const QColor& color);
     bool eventFilter(QObject* watched, QEvent* event) override; // Maj et Ctrl (L3-T8)
 
     QPointer<Commands> m_commands;
