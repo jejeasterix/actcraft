@@ -90,6 +90,9 @@ void ClockController::setActive(bool active)
     }
     m_active = active;
     refreshTimer();
+    if (m_active) {
+        tick();
+    }
     emit activeChanged();
 }
 
@@ -313,6 +316,7 @@ void ClockController::stop()
     }
     m_lastDisplay.clear();
     emit displayChanged();
+    refreshTimer();
 }
 
 std::int64_t ClockController::nowNs() const
@@ -341,14 +345,17 @@ void ClockController::tick()
         m_lastDisplay = display;
         emit displayChanged();
     }
+    refreshTimer();
 }
 
+// Panneau affiché : la minuterie relit l'heure. Panneau caché (revue qualité z2) : elle tourne encore tant
+// qu'un compte à rebours court, pour que sa fin et son action tombent à l'heure et non au retour du panneau.
 void ClockController::refreshTimer()
 {
-    if (m_active) {
+    const bool needed = m_active || (m_countdownStarted && m_countdown.running());
+    if (needed && !m_timer.isActive()) {
         m_timer.start();
-        tick();
-    } else {
+    } else if (!needed && m_timer.isActive()) {
         m_timer.stop();
     }
 }

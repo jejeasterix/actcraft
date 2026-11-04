@@ -231,7 +231,9 @@ FloatingPanel {
     }
 
     // Poignée de coin : agrandit ou réduit le panneau en gardant ses proportions (projection du glissé sur la
-    // diagonale). `sx` et `sy` valent +1 pour un coin droit ou bas, -1 pour un coin gauche ou haut.
+    // diagonale). `sx` et `sy` valent +1 pour un coin droit ou bas, -1 pour un coin gauche ou haut. Le coin
+    // opposé reste fixe et l'échelle est bornée par la place qu'il laisse dans le parent : le panneau ne sort
+    // jamais de la couche (barre de titre et croix restent atteignables, comme au déplacement par la barre).
     component CornerGrip: Item {
         id: grip
         property int sx: 1
@@ -260,7 +262,10 @@ FloatingPanel {
                 const dx = centroid.scenePosition.x - centroid.scenePressPosition.x
                 const dy = centroid.scenePosition.y - centroid.scenePressPosition.y
                 const raw = 1 + (grip.sx * dx * w0 + grip.sy * dy * h0) / (w0 * w0 + h0 * h0)
-                const s = Math.max(root.minWidth / w0, Math.min(root.maxScale, raw))
+                const roomX = grip.sx < 0 ? x0 + w0 : (root.parent ? root.parent.width - x0 : w0 * root.maxScale)
+                const roomY = grip.sy < 0 ? y0 + h0 : (root.parent ? root.parent.height - y0 : h0 * root.maxScale)
+                const fit = Math.min(roomX / w0, roomY / h0)
+                const s = Math.max(root.minWidth / w0, Math.min(root.maxScale, fit, raw))
                 root.width = w0 * s
                 root.height = h0 * s
                 root.x = grip.sx < 0 ? x0 + w0 - root.width : x0

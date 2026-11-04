@@ -1,5 +1,7 @@
 #include "curtaincontroller.h"
 
+#include <actcraft/core/model.h>
+
 #include <cmath>
 
 namespace actcraft::ui {
@@ -89,6 +91,10 @@ void CurtainController::release()
 
 void CurtainController::reset(int start, qreal distance)
 {
+    // `start` est un core::CurtainMode (réglage de la page) : les cas ci-dessous en suivent les valeurs.
+    static_assert(
+        static_cast<int>(core::CurtainMode::Top) == 1 && static_cast<int>(core::CurtainMode::Bottom) == 2 &&
+        static_cast<int>(core::CurtainMode::Left) == 3 && static_cast<int>(core::CurtainMode::Right) == 4);
     using Start = features::Curtain::Start;
     Start where = Start::Full;
     switch (start) {

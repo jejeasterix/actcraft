@@ -128,9 +128,16 @@ std::optional<TickerSettings> tickerFromJson(const QByteArray& data)
     TickerSettings s;
     s.text = o.value(QStringLiteral("text")).toString(s.text);
     s.fontFamily = o.value(QStringLiteral("fontFamily")).toString(s.fontFamily);
-    s.fontPointSize = o.value(QStringLiteral("fontPointSize")).toDouble(s.fontPointSize);
+    // Bornes hautes de la boîte de réglage (TickerDialog.qml : taille jusqu'à 200 points, ombre jusqu'à 20
+    // px) : un fichier édité à la main ne pose pas un message de 5000 points. Les valeurs basses (nulle,
+    // négative) restent refusées par le contrôleur, qui garde alors celle de la logique.
+    constexpr double kMaxFontPointSize = 200.0;
+    constexpr int kMaxShadowOffset = 20;
+    s.fontPointSize =
+        std::min(o.value(QStringLiteral("fontPointSize")).toDouble(s.fontPointSize), kMaxFontPointSize);
     s.textColor = colorFromText(o.value(QStringLiteral("textColor")), s.textColor);
-    s.shadowOffset = o.value(QStringLiteral("shadowOffset")).toInt(s.shadowOffset);
+    s.shadowOffset =
+        std::min(o.value(QStringLiteral("shadowOffset")).toInt(s.shadowOffset), kMaxShadowOffset);
     s.shadowColor = colorFromText(o.value(QStringLiteral("shadowColor")), s.shadowColor);
     s.screenBackground = o.value(QStringLiteral("screenBackground")).toBool(s.screenBackground);
     s.backgroundColor = colorFromText(o.value(QStringLiteral("backgroundColor")), s.backgroundColor);

@@ -301,10 +301,14 @@ private slots:
         QCOMPARE(textOf(main, QStringLiteral("calculatorDisplay")), QStringLiteral("2"));
         const std::size_t before = shown(*controller).objects.size();
 
-        // Dans le panneau : rien.
+        // Dans le panneau : rien (le lâcher écrit dans le document au relâché, lu ici sans attente).
         presentationharness::strokeAt(main.window(), Pointer::Mouse, centreOf(display) - QPointF(40, 0),
                                       centreOf(display) + QPointF(40, 0));
-        QTest::qWait(50);
+        QCOMPARE(shown(*controller).objects.size(), before);
+
+        // Hors du panneau mais hors de la page (au-dessus de son bord haut) : rien non plus (revue c3a n° 2).
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, centreOf(display),
+                                      main.pageView()->pageToScene(QPointF(300, -30)));
         QCOMPARE(shown(*controller).objects.size(), before);
 
         presentationharness::strokeAt(main.window(), Pointer::Mouse, centreOf(display),
@@ -319,6 +323,7 @@ private slots:
         QVERIFY(text->bounds.contains(core::PointF{300, 200}));
         controller->undo();
         QCOMPARE(shown(*controller).objects.size(), before);
+        QVERIFY(!controller->canUndo()); // une seule étape
     }
 
     void calculatorBlocksTheStylus_data() { presentationharness::addPointerRows(); }
@@ -347,22 +352,23 @@ private slots:
                                           button + QPointF(6, 0), 3);
         }
         QTRY_COMPARE(textOf(main, QStringLiteral("calculatorDisplay")), QStringLiteral("7"));
-        QTest::qWait(50);
-        QCOMPARE(main.pageObjectCount(), before);
+        QVERIFY(main.countStaysAt(before));
 
         // Barre de titre : le panneau se déplace, aucun trait.
         const QPointF start = panel->position();
         const QPointF bar = panel->mapToScene(QPointF(100, 22));
         presentationharness::strokeAt(main.window(), pointer, bar, bar + QPointF(60, 40));
-        QTest::qWait(50);
-        QCOMPARE(main.pageObjectCount(), before);
-        QVERIFY2(panel->position() != start, "panneau déplacé par sa barre");
+        QTRY_VERIFY2(panel->position() != start, "panneau déplacé par sa barre");
+        QVERIFY(main.countStaysAt(before));
 
-        // Corps, sans gestionnaire : seule la couverture retient le trait.
-        const QPointF body = centreOf(display) - QPointF(50, 0);
-        presentationharness::strokeAt(main.window(), pointer, body, body + QPointF(100, 0));
-        QTest::qWait(50);
-        QCOMPARE(main.pageObjectCount(), before);
+        // Corps, sans gestionnaire : seule la couverture retient le trait. Visé sur la ligne du calcul, sans
+        // gestionnaire (le résultat porte le glisser du calcul, qui prendrait le trait à la souris et au
+        // doigt).
+        QQuickItem* expression = main.item(QStringLiteral("calculatorExpression"));
+        QVERIFY(expression != nullptr);
+        const QPointF body = centreOf(expression);
+        presentationharness::strokeAt(main.window(), pointer, body - QPointF(50, 0), body + QPointF(50, 0));
+        QVERIFY(main.countStaysAt(before));
 
         if (pointer == Pointer::Mouse) {
             // L'appui gauche de la souris sur un élément sans gestionnaire ne prouve rien seul : le clic

@@ -181,6 +181,15 @@ public:
                QTest::qWaitFor([this] { return m_fixed->isReady() && m_view->cacheReady(); }, 10000);
     }
 
+    // Affirmation négative sur le versement d'un trait : vrai si la page affichée garde `expected` objets
+    // pendant `ms` millisecondes, faux dès que le compte change. waitReady() n'y suffit pas : un trait sur la
+    // même page ne relance pas le décodage, la page fixe reste prête (render/src/fixedpageitem.cpp:104-114).
+    bool countStaysAt(int expected, int ms = 300) const
+    {
+        return pageObjectCount() == expected &&
+               !QTest::qWaitFor([&] { return pageObjectCount() != expected; }, ms);
+    }
+
     // Commande nommée, par Main.qml (runCommand), comme le menu ou un raccourci (tst_ui_shell, run).
     bool run(const QString& id, const QVariant& argument = QVariant()) const
     {

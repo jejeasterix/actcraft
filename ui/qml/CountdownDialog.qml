@@ -3,7 +3,8 @@ import QtQuick.Controls.Basic
 import ActCraft.Ui
 
 // Réglage du compte à rebours (F-290, L7-T16) : boîte flottante (FloatingPanel : couverture de la page). Durée
-// « hh:mm:ss » (champ countdownField), action de fin (aucune, page suivante, page précédente), répétition,
+// « hh:mm:ss » (champ countdownField), action de fin (aucune, page suivante, page précédente, rétablir la page),
+// répétition,
 // « Réinitialiser » et « Démarrer ». Entrée dans le champ ou sur la liste des actions valide : la durée est
 // prise, le compte à rebours part et la boîte se ferme. Le clavier suffit : Tab passe du champ à la liste,
 // haut et bas changent d'action. Ouverte par ClockPanel (open()).

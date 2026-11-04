@@ -142,7 +142,7 @@ Item {
 
     function track(animator, from, partial) {
         root.runningMotion = animator
-        root.passStart = Date.now()
+        root.passStart = tickerController.nowMs()
         root.passFrom = from
         root.passSpeed = tickerController.pixelsPerSecond
         root.passWidth = message.width
@@ -153,7 +153,7 @@ Item {
     // Un animateur arrêté (pause, vitesse changée, arrêt) peut signaler sa fin : seule compte celle du passage
     // en cours, arrivé au bout de sa durée.
     function finishedBy(animator) {
-        if (animator !== root.runningMotion || Date.now() - root.passStart < animator.duration - 250) {
+        if (animator !== root.runningMotion || tickerController.nowMs() - root.passStart < animator.duration - 250) {
             return false
         }
         root.runningMotion = null
@@ -161,7 +161,7 @@ Item {
     }
 
     function placeNow() {
-        const elapsed = Date.now() - root.passStart
+        const elapsed = tickerController.nowMs() - root.passStart
         if (root.partialPass) {
             return Math.max(-message.width, root.passFrom - root.passSpeed * elapsed / 1000)
         }

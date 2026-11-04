@@ -85,6 +85,14 @@ public:
     using FileChooser = std::function<QUrl(bool save)>;
     void setFileChooser(FileChooser chooser);
 
+    // Horloge des places calculées par la surcouche (départ d'un passage, pause, fin signalée), en
+    // millisecondes comme Date.now() : l'horloge réelle, remplaçable par les tests (setClock) pour des places
+    // exactes. La fin d'un passage reste cadencée par l'animateur, sur le fil de rendu : elle ne lit pas
+    // cette horloge.
+    using Clock = std::function<qint64()>;
+    void setClock(Clock clock);
+    Q_INVOKABLE double nowMs() const;
+
     // Démarre un passage depuis le bord droit (relance s'il défile déjà) ; reprend s'il était en pause.
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
@@ -124,6 +132,7 @@ private:
     bool failed(const QString& message);
 
     FileChooser m_chooser;
+    Clock m_clock;
     features::TickerSettings m_settings;
     bool m_running = false;
     bool m_paused = false;

@@ -139,7 +139,7 @@ Item {
         objectName: "curtainMenu"
         MenuItem {
             objectName: "curtainRememberEntry"
-            text: "Mémoriser pour cette page"
+            text: qsTr("Mémoriser pour cette page")
             enabled: curtainController.active && root.documentController !== null
             onTriggered: root.rememberForPage()
         }

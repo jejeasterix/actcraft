@@ -223,6 +223,42 @@ private slots:
         QVERIFY2(closeTo(curtain->covered().y(), 120), qPrintable(QString::number(curtain->covered().y())));
     }
 
+    // Revue conformité z1 et z2b : au zoom 2, le bord haut tiré à la souris de 120 px de page (240 px dans la
+    // fenêtre) se mémorise à 120, en pixels de page, et non à 240.
+    void rememberedCurtainDistanceIsInPagePixels()
+    {
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        DocumentController* controller = controllerOf(main);
+        CurtainController* curtain = curtainOf(main);
+        QObject* entry = main.window()->findChild<QObject*>(QStringLiteral("curtainRememberEntry"));
+        QVERIFY(controller != nullptr);
+        QVERIFY(curtain != nullptr);
+        QVERIFY(entry != nullptr);
+        main.pageView()->zoomAround(QPointF(0, 0), 2.0); // le coin haut gauche de la vue reste en place
+        QTRY_COMPARE(main.pageView()->zoom(), 2.0);
+        QVERIFY(main.waitReady());
+
+        QVERIFY(main.run(QStringLiteral("present.curtain")));
+        QVERIFY(curtain->active());
+        const QSizeF area = curtain->area();
+        const QPointF from = inWindow(main, QPointF(area.width() / 4, 1));
+        const QPointF to = inWindow(main, QPointF(area.width() / 4, 121));
+        QCOMPARE(qRound(to.y() - from.y()), 240);
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, from, to);
+        QTRY_VERIFY2(qAbs(curtain->covered().y() - 120) <= 1.5,
+                     qPrintable(QString::number(curtain->covered().y())));
+
+        QVERIFY(entry->property("enabled").toBool());
+        QVERIFY(QMetaObject::invokeMethod(entry, "triggered"));
+        const core::PagePresentation& remembered =
+            controller->document().page(static_cast<std::size_t>(controller->currentIndex())).presentation;
+        QVERIFY(remembered.tools == core::PageToolsMode::Curtain);
+        QVERIFY(remembered.curtain == core::CurtainMode::Top);
+        QVERIFY2(qAbs(remembered.curtainDistance - 120) <= 1.5,
+                 qPrintable(QString::number(remembered.curtainDistance)));
+    }
+
     // Bord saisi (`grip`, en fraction de la page) et sens de la traction, pour chaque côté du store.
     void rememberCurtainIsUndoneAtOnce_data()
     {
