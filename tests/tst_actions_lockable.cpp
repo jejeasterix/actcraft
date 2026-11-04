@@ -26,8 +26,10 @@ class TstActionsLockable : public QObject
     static QSet<QString> idsWhere(const QString& attribute, bool value)
     {
         QSet<QString> out;
-        const QJsonArray all =
-            QJsonDocument::fromJson(defaultCommandsJson()).object().value(QStringLiteral("commands")).toArray();
+        const QJsonArray all = QJsonDocument::fromJson(defaultCommandsJson())
+                                   .object()
+                                   .value(QStringLiteral("commands"))
+                                   .toArray();
         for (const QJsonValue& v : all) {
             const QJsonObject o = v.toObject();
             if (o.value(attribute).toBool(!value) == value) {
@@ -57,8 +59,8 @@ private slots:
     {
         CommandRegistry r;
         QString error;
-        QVERIFY2(r.loadDeclarations(R"({"format":"actcraft-commands/1","commands":[{"id":"e.f","label":"E"}]})",
-                                    error),
+        QVERIFY2(r.loadDeclarations(
+                     R"({"format":"actcraft-commands/1","commands":[{"id":"e.f","label":"E"}]})", error),
                  qPrintable(error));
         QVERIFY(r.find(QStringLiteral("e.f"))->lockable);
         QVERIFY(!r.find(QStringLiteral("e.f"))->restrictable);
@@ -133,8 +135,10 @@ private slots:
 
     void everyCommandDeclaresBoth()
     {
-        const QJsonArray all =
-            QJsonDocument::fromJson(defaultCommandsJson()).object().value(QStringLiteral("commands")).toArray();
+        const QJsonArray all = QJsonDocument::fromJson(defaultCommandsJson())
+                                   .object()
+                                   .value(QStringLiteral("commands"))
+                                   .toArray();
         QVERIFY(!all.isEmpty());
         for (const QJsonValue& v : all) {
             const QJsonObject o = v.toObject();
@@ -163,22 +167,27 @@ private slots:
             QVERIFY2(info->lockable, id);
         }
 
-        const QSet<QString> free{QStringLiteral("file.quit"),       QStringLiteral("classroom.lock"),
+        const QSet<QString> free{QStringLiteral("file.quit"),          QStringLiteral("classroom.lock"),
                                  QStringLiteral("classroom.password"), QStringLiteral("help.contents"),
-                                 QStringLiteral("help.website"),    QStringLiteral("help.about"),
-                                 QStringLiteral("page.next"),       QStringLiteral("page.previous"),
-                                 QStringLiteral("view.fullscreen"), QStringLiteral("view.fit"),
+                                 QStringLiteral("help.website"),       QStringLiteral("help.about"),
+                                 QStringLiteral("page.next"),          QStringLiteral("page.previous"),
+                                 QStringLiteral("view.fullscreen"),    QStringLiteral("view.fit"),
                                  QStringLiteral("view.zoom")};
         QCOMPARE(idsWhere(QStringLiteral("lockable"), false), free);
 
-        const QSet<QString> restrictable{
-            QStringLiteral("edit.copy"),          QStringLiteral("edit.cut"),
-            QStringLiteral("edit.duplicate"),     QStringLiteral("file.save"),
-            QStringLiteral("file.save-as"),       QStringLiteral("file.print"),
-            QStringLiteral("export.page-image"),  QStringLiteral("export.pdf"),
-            QStringLiteral("tool.camera-area"),   QStringLiteral("tool.camera-polygon"),
-            QStringLiteral("tool.camera-freehand"), QStringLiteral("tool.camera-window"),
-            QStringLiteral("tool.camera-screen")};
+        const QSet<QString> restrictable{QStringLiteral("edit.copy"),
+                                         QStringLiteral("edit.cut"),
+                                         QStringLiteral("edit.duplicate"),
+                                         QStringLiteral("file.save"),
+                                         QStringLiteral("file.save-as"),
+                                         QStringLiteral("file.print"),
+                                         QStringLiteral("export.page-image"),
+                                         QStringLiteral("export.pdf"),
+                                         QStringLiteral("tool.camera-area"),
+                                         QStringLiteral("tool.camera-polygon"),
+                                         QStringLiteral("tool.camera-freehand"),
+                                         QStringLiteral("tool.camera-window"),
+                                         QStringLiteral("tool.camera-screen")};
         QCOMPARE(idsWhere(QStringLiteral("restrictable"), true), restrictable);
 
         // Le verrou posé sur les données réelles : quitter reste possible, enregistrer non.
