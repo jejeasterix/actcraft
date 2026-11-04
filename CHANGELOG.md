@@ -4,6 +4,37 @@ Les versions d'ActCraft, de la plus récente à la plus ancienne. Une section pa
 chaque lot (décision 31 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`) ; la section sert de notes
 à la release correspondante.
 
+## 0.6.0 — 2026-11-04
+
+Édition des objets et fichiers : couper, copier, coller, grouper, organiser et aligner ; les connecteurs ; le pot de
+peinture ; plusieurs paperboards en onglets ; l'export en image et en PDF, l'import d'un PDF ou d'une présentation, et
+l'impression. Il n'y a pas eu de version 0.5.0 publiée : ses nouveautés (formes, texte, pages, grille, page allongée ;
+section 0.5.0 du journal des versions) sont aussi dans cette version.
+
+- Édition d'objet : un menu (clic droit sur la sélection) et la barre d'objet donnent couper, copier, coller,
+  dupliquer, supprimer et tout sélectionner, par le presse-papiers du système, groupes et connecteurs compris.
+  Les objets se groupent, se dégroupent (groupes de groupes acceptés), passent devant ou derrière, s'alignent,
+  s'ajustent, reprennent leur taille d'origine et se retournent. Chaque geste est une étape d'annulation.
+- Verrouiller, masquer, glisser une copie : bascules d'objet, propagées aux membres d'un groupe.
+- Pot de peinture : il remplit l'intérieur ou le contour d'une forme, le fond de la page ou une zone d'une image,
+  avec une tolérance.
+- Connecteur : il relie deux objets par leurs points d'attache (accrochage à 20 px) et suit les objets quand ils
+  bougent. Le panneau propose 14 styles (ligne, courbes, marches, coude, oblique, pointillés, flèches) avec leur
+  vignette ; chaque extrémité se règle à part (aucune, rond, flèche).
+- Modification de stylo : le stylo trace aussi des lignes et des formes géométriques, gardées comme annotations. Les
+  points d'une forme se déplacent un à un.
+- Insérer une image ou un média : par fichier ou par glisser-déposer, décodé sans figer la fenêtre.
+- Onglets : plusieurs paperboards s'ouvrent dans une barre d'onglets ; on bascule, on ferme, et on glisse des pages
+  d'un onglet à l'autre.
+- Export : la page en image, le paperboard en PDF, sans figer la fenêtre.
+- Import : un PDF devient un paperboard, une page par page, chaque page en image verrouillée sur le fond. Une
+  présentation PowerPoint s'importe en images quand PowerPoint ou LibreOffice est installé.
+- Impression : une boîte règle l'imprimante, la couleur ou le gris, les pages par feuille, les cadres, les numéros,
+  la plage, les copies, la marge et les notes, avec l'aperçu de la feuille ; les réglages sont gardés. Sans
+  imprimante, l'impression produit le PDF des feuilles.
+- Banc de mesure : nouveaux scénarios `edition`, `edition-export`, `onglets`, `export-fond`, `exporter`, `imprimer`
+  et `importer`.
+
 ## 0.5.0 — 2026-11-02
 
 Outils de la page : les formes, le texte, le navigateur de pages, le menu de page, le fond, la grille, la page
