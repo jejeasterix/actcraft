@@ -131,6 +131,21 @@ std::vector<core::ObjectId> drawnIds(const core::Page& page, core::ObjectId id,
     return ids;
 }
 
+// Objet qui range la ligne de `id` dans la couche `layer` : le plus haut de ses objets dessinés qui y sont
+// (un groupe peut être entrelacé, ou à cheval sur deux couches) ; l'objet lui-même s'il n'en a aucun.
+core::ObjectId topDrawnInLayer(const core::Page& page, core::ObjectId id, core::Layer layer,
+                               const std::unordered_set<core::ObjectId>& groups)
+{
+    const std::vector<core::ObjectId> drawn = drawnIds(page, id, groups);
+    const std::unordered_set<core::ObjectId> wanted(drawn.begin(), drawn.end());
+    for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
+        if (it->common.layer == layer && wanted.count(it->common.id) != 0) {
+            return it->common.id;
+        }
+    }
+    return id;
+}
+
 } // namespace
 
 ObjectTreeModel::ObjectTreeModel(QObject* parent) : QAbstractListModel(parent)
@@ -231,6 +246,9 @@ bool ObjectTreeModel::move(int row, int beforeRow)
     if (anchor.layer == core::Layer::Background || anchor.id == moved->id) {
         return false;
     }
+    if (beforeRow == row) {
+        return false; // déjà juste sous l'ancre : dépôt sur place, aucune étape
+    }
     const auto pageIndex = static_cast<std::size_t>(m_document->currentIndex());
     const core::Page& page = m_document->document().page(pageIndex);
     std::unordered_map<core::ObjectId, core::Layer> layers;
@@ -250,11 +268,13 @@ bool ObjectTreeModel::move(int row, int beforeRow)
         m_document->execute(std::make_unique<core::SetLayerCommand>(pageIndex, block, anchor.layer));
         return true;
     }
+    // Même couche : seuls les objets du bloc qui y sont bougent, comme core::arrangedOrder (couche par
+    // couche). Un membre d'une autre couche garde sa place : la page reste rangée par couche.
     const std::unordered_set<core::ObjectId> inBlock(block.begin(), block.end());
     std::vector<core::ObjectId> rest;
     std::vector<core::ObjectId> carried; // ordre relatif gardé
     for (const core::ObjectId id : order) {
-        (inBlock.count(id) != 0 ? carried : rest).push_back(id);
+        (inBlock.count(id) != 0 && layers[id] == anchor.layer ? carried : rest).push_back(id);
     }
     std::vector<core::ObjectId>::iterator at = rest.end();
     if (anchor.depth == 0) {
@@ -265,13 +285,21 @@ bool ObjectTreeModel::move(int row, int beforeRow)
             return false; // seul dans sa couche
         }
         at = last.base();
+    } else if (const Row* below = objectRow(beforeRow); below != nullptr && below->layer == anchor.layer) {
+        // Entre l'ancre et la ligne qui la suit (jamais la ligne déplacée : beforeRow != row) : juste
+        // au-dessus de l'objet qui range cette ligne (rebuild). L'ancre est rangée par le plus haut de ses
+        // membres ; l'objet passe aussi sous ceux de ses membres qui sont plus bas, sans couper un groupe
+        // d'un seul tenant.
+        at = std::find(rest.begin(), rest.end(),
+                       topDrawnInLayer(page, below->id, anchor.layer, groupIds(page)));
+        if (at == rest.end()) {
+            return false;
+        }
+        ++at;
     } else {
-        // Juste sous l'objet ; sous un groupe : sous le plus bas de ses membres dans l'ordre de dessin (sa
-        // ligne est au rang du plus haut, et l'objet Group, au sommet de sa couche, n'est pas dessiné).
-        const std::vector<core::ObjectId> under = core::expandGroups(page, {anchor.id});
-        const std::unordered_set<core::ObjectId> anchored(under.begin(), under.end());
+        // L'ancre est la dernière ligne de sa couche : fond de la couche.
         at = std::find_if(rest.begin(), rest.end(),
-                          [&](core::ObjectId id) { return anchored.count(id) != 0; });
+                          [&](core::ObjectId id) { return layers[id] == anchor.layer; });
         if (at == rest.end()) {
             return false;
         }
@@ -457,22 +485,19 @@ void ObjectTreeModel::rebuild()
         const core::ObjectKind kind = core::kindOf(object);
         row.kind = kindKey(kind);
         row.name = common.name.empty() ? kindLabel(kind) : QString::fromStdString(common.name);
-        row.selected = selected.count(common.id) != 0;
+        const auto isSelected = [&selected](core::ObjectId id) { return selected.count(id) != 0; };
+        row.selected = isSelected(common.id);
         std::size_t rank = i;
         if (groups.count(common.id) != 0) {
-            // Règle D9 : le groupe se range au rang de son membre le plus haut (l'objet Group, au sommet de
-            // sa couche, n'est pas dessiné) ; masqué ou verrouillé quand tous ses membres le sont.
+            // Règle D9 : le groupe se range au rang du plus haut de ses membres dans sa couche (l'objet Group
+            // n'est pas dessiné ; un membre d'une autre couche n'a pas de rang dans celle-ci) ; masqué,
+            // verrouillé ou sélectionné quand tous ses membres le sont (une sélection faite au canevas porte
+            // les membres, jamais l'objet Group : core::objectAt, core::objectsTouching).
             const std::vector<core::ObjectId> drawn = drawnIds(page, common.id, groups);
-            bool ranked = false;
-            for (const core::ObjectId id : drawn) {
-                const auto it = drawRank.find(id);
-                if (it != drawRank.end()) {
-                    rank = ranked ? std::max(rank, it->second) : it->second;
-                    ranked = true;
-                }
-            }
+            rank = drawRank.at(topDrawnInLayer(page, common.id, common.layer, groups));
             row.hidden = core::flagOfAll(page, drawn, core::ObjectFlag::Hidden);
             row.locked = core::flagOfAll(page, drawn, core::ObjectFlag::Locked);
+            row.selected = row.selected || std::all_of(drawn.begin(), drawn.end(), isSelected);
         } else {
             row.hidden = !common.visible;
             row.locked = common.locked;

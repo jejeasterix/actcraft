@@ -499,9 +499,10 @@ private slots:
     }
 
     // La ligne d'un groupe se range au rang de son membre le plus haut (ordre de dessin réel), et move ancré
-    // sur un groupe passe sous son membre le plus bas. Sous le patron « rang de l'objet Group » (sommet de la
-    // couche, edits.cpp insertAtTopOfLayer), l'arbre montrerait le groupe au-dessus de B, et A sous le groupe
-    // passerait au-dessus de tout à l'écran.
+    // sur un groupe passe juste au-dessus de la ligne suivante (ici sous m1 : le groupe reste d'un seul
+    // tenant ; groupe entrelacé : moveUnderAnInterleavedGroup). Sous le patron « rang de l'objet Group »
+    // (sommet de la couche, edits.cpp insertAtTopOfLayer), l'arbre montrerait le groupe au-dessus de B, et A
+    // sous le groupe passerait au-dessus de tout à l'écran.
     void groupRowSitsAtItsTopMember()
     {
         Fixture f;
@@ -529,8 +530,8 @@ private slots:
         QCOMPARE(rowOf(f.tree, b), middle + 2);
         QCOMPARE(rowOf(f.tree, g), middle + 3);
 
-        // A sous le groupe (ancre : le groupe) : sous m1, son membre le plus bas ; B reste au-dessus du
-        // groupe.
+        // A sous le groupe (ancre : le groupe) : juste au-dessus de la ligne suivante, donc sous m1 ; B reste
+        // au-dessus du groupe.
         const QString before = f.controller.fingerprintText();
         QVERIFY(f.tree.move(rowOf(f.tree, a), rowOf(f.tree, g) + 1));
         QCOMPARE(drawOrderOf(f.controller, all),

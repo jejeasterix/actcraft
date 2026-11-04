@@ -22,9 +22,10 @@ namespace actcraft::ui {
 // Navigateur d'objet (F-820, F-821), modèle à plat : quatre lignes de couche (`depth` 0 : du dessus,
 // intermédiaire, inférieure, fond), chacune suivie des objets de la page affichée qui y sont, du plus haut au
 // plus bas dans l'ordre de dessin (`depth` 1). Les membres d'un groupe sont portés par leur groupe : seul le
-// groupe a sa ligne, au rang de son membre le plus haut (l'objet Group, que rien ne dessine, est au sommet de
-// sa couche). Règle D9, comme `object.lock` et `object.hide` : masquer ou verrouiller un groupe agit sur ses
-// membres, et sa ligne est masquée (verrouillée) quand tous ses membres le sont.
+// groupe a sa ligne, dans la couche de l'objet Group (la plus basse de ses membres, makeGroupCommand), au
+// rang du plus haut de ses membres dans cette couche (l'objet Group n'est pas dessiné). Règle D9, comme
+// `object.lock` et `object.hide` : masquer ou verrouiller un groupe agit sur ses membres, et sa ligne est
+// masquée (verrouillée, sélectionnée) quand tous ses membres le sont.
 //
 // Remise à jour : une seule par tour de boucle (`resetCount` + 1), reportée pendant un contact (D6-5). Elle
 // suit l'observateur du contrôleur, `documentChanged` (émis après chaque `execute`, annulation et
@@ -70,9 +71,10 @@ public:
     // ajoute ou retire l'objet de la sélection. Ligne de couche : rien.
     Q_INVOKABLE void select(int row, int modifiers);
     // La ligne `row` passe juste sous la ligne `beforeRow` − 1 (indices d'avant le déplacement ; `rowCount()`
-    // : en fin). Même couche : core::ReorderObjectsCommand (sous une ligne de groupe : sous le plus bas de
-    // ses membres) ; autre couche : core::SetLayerCommand (sommet de la couche d'arrivée). Une étape. Faux :
-    // ligne de couche, arrivée dans le fond, rien ne bouge, refus.
+    // : en fin). Même couche : core::ReorderObjectsCommand, seuls les objets de la couche bougent (comme
+    // core::arrangedOrder), et la ligne déplacée arrive juste au-dessus de la ligne qui suit l'ancre (au fond
+    // de la couche si l'ancre est la dernière). Autre couche : core::SetLayerCommand (sommet de la couche
+    // d'arrivée). Une étape. Faux : ligne de couche, arrivée dans le fond, ligne déjà à sa place, refus.
     Q_INVOKABLE bool move(int row, int beforeRow);
     // core::SetObjectFlagCommand sur l'objet, ou sur le groupe et ses membres (D9) ; faux si la ligne est une
     // couche, si le drapeau a déjà cette valeur (sur tous les membres d'un groupe), ou refus.
