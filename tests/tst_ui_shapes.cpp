@@ -9,6 +9,7 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QDir>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -99,7 +100,9 @@ private:
     bool start(App& app, const QString& settingsFile)
     {
         app.engine.setInitialProperties(
-            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+            {{QStringLiteral("cacheEnabled"), true},
+             {QStringLiteral("generatedPage"), false},
+             {QStringLiteral("profileRoot"), m_dir.filePath(QStringLiteral("profiles"))}});
         app.engine.loadFromModule("ActCraft.Ui", "Main");
         if (app.engine.rootObjects().isEmpty()) {
             return false;
@@ -170,7 +173,15 @@ private:
     }
 
 private slots:
-    void initTestCase() { QVERIFY(m_dir.isValid()); }
+    void initTestCase()
+    {
+        QVERIFY(m_dir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_dir.path());
+        const QSettings probe;
+        QVERIFY2(QDir::fromNativeSeparators(probe.fileName()).startsWith(m_dir.path()),
+                 qPrintable(probe.fileName()));
+    }
 
     // Choisir une forme dans la palette active l'outil des formes et coche sa commande.
     void shapeToolActivatesWithPalette()

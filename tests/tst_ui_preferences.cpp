@@ -334,9 +334,6 @@ private slots:
     {
         const QDir tests = QFileInfo(QString::fromUtf8(__FILE__)).absoluteDir();
         QVERIFY2(tests.exists(QStringLiteral("tst_ui_preferences.cpp")), qPrintable(tests.path()));
-        // Relevés hors du périmètre de L6-T5 (2026-11-04) : à isoler, puis à retirer de cette liste.
-        const QStringList pending{QStringLiteral("tst_ui_lot5tools.cpp"), QStringLiteral("tst_ui_shapes.cpp"),
-                                  QStringLiteral("tst_ui_tools.cpp")};
         const QRegularExpression loadsMain(
             QStringLiteral(R"(loadFromModule\("ActCraft\.Ui",\s*"Main"\)|loadMainWindow\()"));
         int loaders = 0;
@@ -346,7 +343,7 @@ private slots:
             QFile f(file.absoluteFilePath());
             QVERIFY2(f.open(QIODevice::ReadOnly), qPrintable(file.fileName()));
             const QString source = QString::fromUtf8(f.readAll());
-            if (!loadsMain.match(source).hasMatch() || pending.contains(file.fileName())) {
+            if (!loadsMain.match(source).hasMatch()) {
                 continue;
             }
             ++loaders;
@@ -357,7 +354,7 @@ private slots:
                 }
             }
         }
-        QVERIFY(loaders >= 5);
+        QVERIFY(loaders >= 8);
         QVERIFY2(missing.isEmpty(), qPrintable(missing.join(QLatin1Char('\n'))));
     }
 
