@@ -4,9 +4,11 @@
 
 #include <QTest>
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <variant>
 
 using namespace actcraft::core;
@@ -409,6 +411,115 @@ private slots:
         page.baseHeight = 0;
         QCOMPARE(fingerprint(page), before);
     }
+
+    // L6-T10 : mots-clés (page, objet), description de page, style de légende. Absents, rien dans le flux :
+    // les valeurs figées restent. Présents, ils entrent en toute fin de flux derrière l'octet 0x6A : l'empreinte
+    // est alors la suite FNV-1a de celle de la même page sans eux. Un champ glissé au milieu du flux, même
+    // seulement hors défaut (comme dragCopy), donnerait une autre valeur.
+    void lot6FieldsKeepOldFingerprints()
+    {
+        QCOMPARE(fingerprint(samplePage()), std::uint64_t{0x29E4AA55B1A00D2Eull}); // figée avant L6-T10
+        Page page = samplePage();
+        page.objects[0].common.label = "Soleil";
+        page.notes = "notes";
+        const auto before = fingerprint(page);
+        page.description.clear();
+        page.keywords.clear();
+        page.objects[0].common.keywords.clear();
+        page.objects[0].common.labelStyle = LabelStyle{};
+        QCOMPARE(fingerprint(page), before);
+
+        // Suite du flux : octet de marque, description, mots-clés de la page, objets qui en portent.
+        Page described = page;
+        described.description = "Système solaire";
+        FnvTail tail{before};
+        tail.byte(0x6A);
+        tail.text("Système solaire");
+        tail.u64(0); // mots-clés de la page
+        tail.u64(0); // objets porteurs
+        QCOMPARE(fingerprint(described), tail.hash);
+
+        Page tagged = page;
+        tagged.objects[1].common.keywords = {"soleil", "lune"};
+        FnvTail objectTail{before};
+        objectTail.byte(0x6A);
+        objectTail.text("");
+        objectTail.u64(0);
+        objectTail.u64(1); // un objet porteur
+        objectTail.u64(1); // son rang
+        objectTail.u64(2);
+        objectTail.text("soleil");
+        objectTail.text("lune");
+        objectTail.text(""); // style par défaut : police, taille, couleur, contour, couleur du contour, fond
+        objectTail.f64(12);
+        objectTail.u32(0xFF000000u);
+        objectTail.byte(0);
+        objectTail.u32(0xFF000000u);
+        objectTail.u32(0x00000000u);
+        QCOMPARE(fingerprint(tagged), objectTail.hash);
+
+        // Chaque champ compte, et les frontières entre mots-clés aussi.
+        const auto differs = [&page, before](auto mutate) {
+            Page p = page;
+            mutate(p);
+            return fingerprint(p) != before;
+        };
+        QVERIFY(differs([](Page& p) { p.keywords = {"soleil"}; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.labelStyle.pointSize = 18; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.labelStyle.fontFamily = "Arial"; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.labelStyle.color = 0xFFFF0000u; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.labelStyle.outline = PenStyle::Solid; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.labelStyle.outlineColor = 0xFF00FF00u; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.labelStyle.fill = 0xFFFFFFFFu; }));
+        Page joined = page;
+        joined.keywords = {"ab"};
+        Page split = page;
+        split.keywords = {"a", "b"};
+        QVERIFY(fingerprint(joined) != fingerprint(split));
+        Page asDescription = page;
+        asDescription.description = "lune";
+        Page asKeyword = page;
+        asKeyword.keywords = {"lune"};
+        QVERIFY(fingerprint(asDescription) != fingerprint(asKeyword));
+        Page onFirst = page;
+        onFirst.objects[0].common.keywords = {"lune"};
+        Page onSecond = page;
+        onSecond.objects[1].common.keywords = {"lune"};
+        QVERIFY(fingerprint(onFirst) != fingerprint(onSecond)); // l'objet qui porte le mot-clé compte
+    }
+
+private:
+    // Suite d'un flux FNV-1a 64 bits, codé comme model.cpp : entiers petit-boutistes, réels par leur motif
+    // IEEE 754, textes par leurs octets UTF-8 précédés de leur longueur.
+    struct FnvTail
+    {
+        std::uint64_t hash;
+        void byte(std::uint8_t b)
+        {
+            hash ^= b;
+            hash *= 0x100000001B3ull;
+        }
+        void u32(std::uint32_t v)
+        {
+            for (unsigned i = 0; i < 4; ++i) {
+                byte(static_cast<std::uint8_t>((v >> (8u * i)) & 0xFFu));
+            }
+        }
+        void u64(std::uint64_t v)
+        {
+            for (unsigned i = 0; i < 8; ++i) {
+                byte(static_cast<std::uint8_t>((v >> (8u * i)) & 0xFFu));
+            }
+        }
+        void f64(double v) { u64(std::bit_cast<std::uint64_t>(v)); }
+        void text(const std::string& s)
+        {
+            u64(static_cast<std::uint64_t>(s.size()));
+            for (const char c : s) {
+                byte(static_cast<std::uint8_t>(c));
+            }
+        }
+    };
 };
 
 QTEST_GUILESS_MAIN(TstCoreModel)
