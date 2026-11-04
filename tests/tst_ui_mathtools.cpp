@@ -1502,8 +1502,49 @@ private slots:
         QVERIFY(!entryChecked(menu, QStringLiteral("Arc fermé")));
         QCOMPARE(toolValue(*tools, "arcStyle").toString(), QStringLiteral("filled"));
 
+        // Relecture du lot 7 : les coches suivent le modèle, pas seulement le clic (liaisons `checked:`).
+        // Forme et style changés par l'API directe, menu resté ouvert à sa place : les coches se déplacent.
+        tools->setProtractorShape(0, QStringLiteral("full"));
+        QTRY_VERIFY(entryChecked(menu, full));
+        QVERIFY(!entryChecked(menu, half));
+        tools->setProtractorShape(0, QStringLiteral("half"));
+        QTRY_VERIFY(entryChecked(menu, half));
+        QVERIFY(!entryChecked(menu, full));
+        tools->setArcStyle(0, QStringLiteral("closed"));
+        QTRY_VERIFY(entryChecked(menu, QStringLiteral("Arc fermé")));
+        QVERIFY(!entryChecked(menu, filled));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc")));
+        tools->setArcStyle(0, QStringLiteral("arc"));
+        QTRY_VERIFY(entryChecked(menu, QStringLiteral("Arc")));
+        QVERIFY(!entryChecked(menu, QStringLiteral("Arc fermé")));
+
         QVERIFY(chooseFromMenu(w, menu, QStringLiteral("Fermer")));
         QTRY_COMPARE(tools->count(), 0);
+    }
+
+    // Relecture du lot 7 : `commands` remplacé après la création (onCommandsChanged) : les gestionnaires
+    // math.* sont reposés sur les nouvelles commandes, et la coche de l'origine XY reprend l'état du
+    // contrôleur.
+    void replacedCommandsGetTheHandlers()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        QQuickItem* layer = w.item(QStringLiteral("mathToolsRoot"));
+        QVERIFY(layer);
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        tools->setOriginVisible(true);
+
+        auto* fresh = new actcraft::ui::Commands(layer);
+        QVERIFY(layer->setProperty("commands", QVariant::fromValue(fresh)));
+        QVERIFY(fresh->isChecked(QStringLiteral("math.xy-origin")));
+        QCOMPARE(tools->count(), 0);
+        QVERIFY(fresh->trigger(QStringLiteral("math.ruler")));
+        QCOMPARE(tools->count(), 1);
+
+        QVERIFY(fresh->trigger(QStringLiteral("math.xy-origin"))); // bascule : masquée, coche retirée
+        QVERIFY(!tools->originVisible());
+        QVERIFY(!fresh->isChecked(QStringLiteral("math.xy-origin")));
     }
 
     // F-282, L7-T34 : la gomme du lot 3 suit la mine du compas (même filtre) : le bras tourne avec elle. Elle

@@ -155,5 +155,7 @@ Item {
             if (root.commands)
                 root.commands.setChecked("math.xy-origin", mathTools.originVisible)
         })
+        // Commandes remplacées alors que l'origine est déjà visible : la coche reprend l'état du contrôleur.
+        root.commands.setChecked("math.xy-origin", mathTools.originVisible)
     }
 }
