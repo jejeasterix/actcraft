@@ -17,6 +17,9 @@ struct StartupOptions
     // Dossier des profils de l'utilisateur ; vide : <AppConfigLocation>/profiles. Joueur, banc et tests : un
     // dossier d'essai propre au lancement (L6-T5).
     QString profileRoot;
+    // Accueil ouvert au démarrage (si la case de l'accueil le permet) : seul app/main.cpp le met à vrai ; le
+    // joueur de captures, le banc et les tests le laissent faux (L6-T23).
+    bool showDashboard = false;
 };
 
 // Lit `--sans-cache` (décision 8) et `--ouvrir <fichier>`.
