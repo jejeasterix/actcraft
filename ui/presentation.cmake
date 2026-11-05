@@ -10,6 +10,8 @@ set(ACTCRAFT_UI_LOT7_QML
     qml/TransitionLayer.qml
     qml/PageEffectsPicker.qml
     qml/MathToolsLayer.qml
+    qml/MathToolZone.qml
+    qml/MathToolMenuButton.qml
     qml/RulerTool.qml
     qml/SetSquareTool.qml
     qml/ProtractorTool.qml

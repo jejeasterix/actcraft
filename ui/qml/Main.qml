@@ -520,14 +520,7 @@ Window {
     // le bandeau ; un message vide retire seulement celui-ci.
     property string webBrowserMessage: ""
     Connections {
-        target: {
-            const roots = presentationRoot.data
-            for (let i = 0; i < roots.length; ++i) {
-                if (roots[i] && roots[i].objectName === "otherToolsRoot")
-                    return roots[i].controller
-            }
-            return null
-        }
+        target: presentationRoot.otherToolsController
         ignoreUnknownSignals: true
         function onMessageChanged() {
             const text = target ? target.message : ""

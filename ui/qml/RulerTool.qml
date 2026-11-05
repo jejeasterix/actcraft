@@ -84,26 +84,8 @@ Item {
     }
 
     // Zone de saisie : curseur et geste propres, sur toute la largeur du corps.
-    component Zone: Item {
-        id: zone
-        property var owner: null
-        property string kind: "move"
-        property int cursorShape: Qt.SizeAllCursor
+    component Zone: MathToolZone {
         height: parent ? parent.height : 0
-        HoverHandler { cursorShape: zone.cursorShape }
-        DragHandler {
-            target: null
-            acceptedDevices: PointerDevice.AllDevices
-            onActiveChanged: {
-                if (!zone.owner)
-                    return
-                if (active)
-                    zone.owner.begin(zone.kind, centroid.scenePressPosition)
-                else
-                    zone.owner.end()
-            }
-            onCentroidChanged: if (active && zone.owner) zone.owner.drag(centroid.scenePosition)
-        }
     }
 
     Zone { objectName: "rulerTipLeft"; owner: ruler; kind: "length-left"; cursorShape: Qt.SizeHorCursor
@@ -126,17 +108,11 @@ Item {
         font.pixelSize: 12
         color: "#1f2a35"
     }
-    Rectangle {
+    MathToolMenuButton {
         objectName: "rulerMenuButton"
-        width: 18
-        height: 18
-        radius: 4
+        menu: rulerMenu
         x: (parent.width - width) / 2
         anchors.verticalCenter: parent.verticalCenter
-        color: "#f4f7fa"
-        border.color: "#6d7c8b"
-        Text { anchors.centerIn: parent; text: "≡"; font.pixelSize: 12; color: "#1f2a35" }
-        TapHandler { onTapped: rulerMenu.popup() }
     }
 
     Menu {

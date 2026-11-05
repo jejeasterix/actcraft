@@ -110,31 +110,9 @@ Item {
     }
 
     // Zone de saisie : curseur et geste propres ; ne reçoit que les points de sa région du triangle.
-    component Zone: Item {
-        id: zone
-        property var owner: null
-        property string kind: "move"
-        property int cursorShape: Qt.SizeAllCursor
+    component Zone: MathToolZone {
         anchors.fill: parent
-        containmentMask: QtObject {
-            function contains(point: point): bool {
-                return zone.owner !== null && zone.owner.zoneAt(point.x, point.y) === zone.kind
-            }
-        }
-        HoverHandler { cursorShape: zone.cursorShape }
-        DragHandler {
-            target: null
-            acceptedDevices: PointerDevice.AllDevices
-            onActiveChanged: {
-                if (!zone.owner)
-                    return
-                if (active)
-                    zone.owner.begin(zone.kind, centroid.scenePressPosition)
-                else
-                    zone.owner.end()
-            }
-            onCentroidChanged: if (active && zone.owner) zone.owner.drag(centroid.scenePosition)
-        }
+        shaped: true
     }
 
     Zone { objectName: "setSquareMoveZone"; owner: tool; kind: "move"; cursorShape: Qt.SizeAllCursor }
@@ -150,17 +128,11 @@ Item {
         font.pixelSize: 12
         color: "#1f2a35"
     }
-    Rectangle {
+    MathToolMenuButton {
         objectName: "setSquareMenuButton"
-        width: 18
-        height: 18
-        radius: 4
+        menu: squareMenu
         x: tool.width / 3 - width / 2
         y: tool.height / 3 - height / 2
-        color: "#f4f7fa"
-        border.color: "#6d7c8b"
-        Text { anchors.centerIn: parent; text: "≡"; font.pixelSize: 12; color: "#1f2a35" }
-        TapHandler { onTapped: squareMenu.popup() }
     }
 
     Menu {
