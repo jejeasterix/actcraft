@@ -48,12 +48,26 @@ bool start(Shell& s)
     return s.profile != nullptr;
 }
 
+// Les délégués des Repeater et Loader ne sont pas des enfants QObject de la fenêtre : on suit l'arbre visuel.
+QQuickItem* findItem(QQuickItem* root, const QString& name)
+{
+    if (!root)
+        return nullptr;
+    if (root->objectName() == name)
+        return root;
+    for (QQuickItem* child : root->childItems())
+        if (QQuickItem* found = findItem(child, name))
+            return found;
+    return nullptr;
+}
+
 QObject* named(Shell& s, const char* name)
 {
     return s.window->findChild<QObject*>(QString::fromLatin1(name));
 }
 
-// Les deux instances de LaunchersPage : celle de Main (porte les gestionnaires et la boîte) et celle de l'éditeur.
+// Les deux instances de LaunchersPage : celle de Main (porte les gestionnaires et la boîte) et celle de
+// l'éditeur.
 QObject* page(Shell& s, bool embedded)
 {
     const QList<QObject*> pages = s.window->findChildren<QObject*>(QStringLiteral("launchersPage"));
@@ -84,8 +98,9 @@ class TstUiLauncherspage : public QObject
     void putForeign(Shell& s, const QString& id, const QString& path, const QStringList& arguments)
     {
         QJsonArray entries = s.profile->profile().launchers.value(QStringLiteral("entries")).toArray();
-        const QByteArray signature = ui::Launchers::signatureOf(
-            path, arguments, QStringLiteral("Étranger"), QCryptographicHash::hash("autre", QCryptographicHash::Sha256));
+        const QByteArray signature =
+            ui::Launchers::signatureOf(path, arguments, QStringLiteral("Étranger"),
+                                       QCryptographicHash::hash("autre", QCryptographicHash::Sha256));
         entries.append(QJsonObject{{QStringLiteral("id"), id},
                                    {QStringLiteral("path"), path},
                                    {QStringLiteral("arguments"), QJsonArray::fromStringList(arguments)},
@@ -122,7 +137,8 @@ private slots:
         QCOMPARE(primary, 1);
     }
 
-    // confirm(id, …) répond à la dernière demande de l'id : la boîte montre la dernière et ne confirme qu'elle.
+    // confirm(id, …) répond à la dernière demande de l'id : la boîte montre la dernière et ne confirme
+    // qu'elle.
     void boxShowsTheLastRequest()
     {
         Shell s;
@@ -219,12 +235,12 @@ private slots:
         QVERIFY(addButton->property("enabled").toBool());
         QVERIFY(QMetaObject::invokeMethod(addButton, "clicked"));
         QTRY_COMPARE(bar->property("launcherCount").toInt(), 1);
-        QObject* button = named(s, "launcherButton0");
+        QObject* button = findItem(s.window->contentItem(), QStringLiteral("launcherButton0"));
         QVERIFY(button);
         QCOMPARE(button->property("toolTip").toString(), QStringLiteral("Programme d'essai"));
         QVERIFY(pathField->property("text").toString().isEmpty()); // champs vidés après l'ajout
 
-        QObject* remove = tab->findChild<QObject*>(QStringLiteral("launcherRemove0"));
+        QObject* remove = findItem(qobject_cast<QQuickItem*>(tab), QStringLiteral("launcherRemove0"));
         QVERIFY(remove);
         QVERIFY(QMetaObject::invokeMethod(remove, "clicked"));
         QTRY_COMPARE(bar->property("launcherCount").toInt(), 0);
@@ -236,9 +252,10 @@ private slots:
         Shell s;
         QVERIFY(start(s));
         QObject* bar = named(s, "shortcutBar");
-        QObject* edit = bar->findChild<QObject*>(QStringLiteral("launcherEditButton"));
+        QObject* edit = findItem(qobject_cast<QQuickItem*>(bar), QStringLiteral("launcherEditButton"));
         QVERIFY(edit);
-        // Visible sous Windows seulement (la commande n'existe pas ailleurs) ; jamais si la palette est réduite.
+        // Visible sous Windows seulement (la commande n'existe pas ailleurs) ; jamais si la palette est
+        // réduite.
         s.profile->setProperty("paletteCollapsed", true);
         QVERIFY(!edit->property("visible").toBool());
     }
