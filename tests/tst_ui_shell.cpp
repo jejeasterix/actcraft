@@ -1388,7 +1388,8 @@ private slots:
     {
         Shell s;
         QVERIFY(start(s));
-        for (const char* name : {"appProperties", "appObjectTree", "appNotes", "appShortcuts"}) {
+        for (const char* name :
+             {"appProperties", "appObjectTree", "appNotes", "appShortcuts", "appResources"}) {
             QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
             QVERIFY2(o, name);
             QVERIFY2(o->property("commands").value<QObject*>() != nullptr, name);
