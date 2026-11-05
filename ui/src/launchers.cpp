@@ -184,8 +184,7 @@ QVariantList Launchers::entries() const
 
 QString Launchers::localPath(const QUrl& url)
 {
-    Q_UNUSED(url)
-    return {}; // talon
+    return url.toLocalFile();
 }
 
 QString Launchers::add(const QString& path, const QStringList& arguments, const QString& toolTip)

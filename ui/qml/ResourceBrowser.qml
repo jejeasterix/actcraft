@@ -51,7 +51,19 @@ Item {
         root.selectedPath = path
         return appResources.insert(path, pagePoint)
     }
+    // Le tampon se coupe seul : navigateur masqué, élément choisi disparu, classe verrouillée.
+    onVisibleChanged: if (!root.visible) root.setStamping(false)
+    onSelectedPathChanged: if (root.selectedPath === "") root.setStamping(false)
+    Connections {
+        target: root.commands
+        function onStateChanged() {
+            if (root.commands.locked)
+                root.setStamping(false)
+        }
+    }
     function setStamping(on) {
+        if (!on && !root.stamping)
+            return
         if (on && root.view && stampCover.parent !== root.view.parent)
             stampCover.parent = root.view.parent
         root.stamping = on
@@ -390,15 +402,12 @@ Item {
         MenuItem {
             text: qsTr("Renommer…")
             enabled: root.selectedFolder !== ""
-            onTriggered: nameDialog.openFor("rename", root.selectedFolder, "")
+            onTriggered: root.commands.trigger("resources.rename")
         }
         MenuItem {
             text: qsTr("Supprimer")
             enabled: root.selectedFolder !== ""
-            onTriggered: {
-                confirmDialog.target = root.selectedFolder
-                confirmDialog.open()
-            }
+onTriggered: root.commands.trigger("resources.delete", root.selectedFolder)
         }
     }
     Menu {
@@ -410,7 +419,7 @@ Item {
         }
         MenuItem {
             text: qsTr("Renommer…")
-            onTriggered: nameDialog.openFor("rename", root.selectedPath, "")
+            onTriggered: root.commands.trigger("resources.rename")
         }
         MenuItem {
             text: qsTr("Retirer de la bibliothèque")

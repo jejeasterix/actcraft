@@ -170,6 +170,7 @@ private:
     QHash<QString, actions::Profile> m_departed;
     QTimer m_saveTimer;
     bool m_contactActive = false;
+    QString m_pendingActivation; // activation demandée pendant un contact, faite au relâché
     bool m_dirty = false;
     int m_saveCount = 0;
     int m_startCount = 0;

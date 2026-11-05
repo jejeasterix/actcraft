@@ -746,7 +746,7 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
     const QString name = newName.trimmed();
     const QFileInfo info(path);
     const QString source = QDir::cleanPath(info.absoluteFilePath());
-    if (m_commands == nullptr || m_contactActive || !validName(name) || source == m_rootPath ||
+    if (m_commands == nullptr || m_commands->isLocked() || m_contactActive || !validName(name) || source == m_rootPath ||
         !info.exists())
         return false;
     QString target = name;
@@ -767,7 +767,7 @@ bool ResourceLibrary::remove(const QString& path, bool permanently)
 {
     const QFileInfo info(path);
     const QString target = QDir::cleanPath(info.absoluteFilePath());
-    if (m_commands == nullptr || m_contactActive || target == m_rootPath || !info.exists())
+    if (m_commands == nullptr || m_commands->isLocked() || m_contactActive || target == m_rootPath || !info.exists())
         return false;
     bool done = false;
     if (usesTrash() && !permanently) {
@@ -791,7 +791,7 @@ bool ResourceLibrary::remove(const QString& path, bool permanently)
 bool ResourceLibrary::createFolder(const QString& name)
 {
     const QString trimmed = name.trimmed();
-    if (m_commands == nullptr || m_contactActive || m_folder.isEmpty() || !validName(trimmed))
+    if (m_commands == nullptr || m_commands->isLocked() || m_contactActive || m_folder.isEmpty() || !validName(trimmed))
         return false;
     const bool done = QDir(m_folder).mkdir(trimmed);
     if (done)
