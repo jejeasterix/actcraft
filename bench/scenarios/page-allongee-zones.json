@@ -50,6 +50,7 @@
     {"expect": "pageZones.visible", "value": true},
     {"expect": "pageZones.separatorCount", "value": 3},
     {"capture": "zones-plein-ecran"},
+    {"checkEdge": "separation-horizontale", "from": [300, 252], "to": [336, 260], "minIntermediate": 1, "minInk": 0},
     {"command": "view.fullscreen"},
     {"waitReady": true},
     {"remember": "documentController.fingerprint", "as": "avant"},
