@@ -13,8 +13,8 @@
 using namespace actcraft::ui;
 
 // Langue de l'interface (L6-T36) : le réglage `workstation/language` (L6-T5), le choix entre les traductions
-// livrées, l'installation du traducteur au démarrage et l'annonce du redémarrage. La langue du système est fixée
-// par QLocale::setDefault, jamais lue du poste.
+// livrées, l'installation du traducteur au démarrage et l'annonce du redémarrage. La langue du système est
+// fixée par QLocale::setDefault, jamais lue du poste.
 class TstUiLanguage : public QObject
 {
     Q_OBJECT
@@ -69,13 +69,15 @@ private slots:
         language.setPreferences(m_prefs.get());
         language.change(QStringLiteral("fr"));
         QCOMPARE(m_prefs->language(), QStringLiteral("fr"));
-        QCOMPARE(m_prefs->value(QString::fromLatin1(Preferences::kLanguage)).toString(), QStringLiteral("fr"));
+        QCOMPARE(m_prefs->value(QString::fromLatin1(Preferences::kLanguage)).toString(),
+                 QStringLiteral("fr"));
         QCOMPARE(m_prefs->allKeys(), QStringList{QString::fromLatin1(Preferences::kLanguage)});
         language.change(QString());
         QCOMPARE(m_prefs->language(), QString());
     }
 
-    // Un changement annonce le redémarrage, une fois par valeur nouvelle ; le retour à la langue du départ le retire.
+    // Un changement annonce le redémarrage, une fois par valeur nouvelle ; le retour à la langue du départ le
+    // retire.
     void restartAnnounced()
     {
         Language language;

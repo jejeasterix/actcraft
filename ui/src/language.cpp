@@ -1,5 +1,4 @@
 #include <actcraft/ui/language.h>
-
 #include <actcraft/ui/preferences.h>
 
 #include <QCoreApplication>
@@ -22,8 +21,8 @@ Language::Language(QObject* parent) : QObject(parent) {}
 QStringList Language::available()
 {
     QStringList codes;
-    const QStringList files = QDir(QString::fromLatin1(kTranslationsDir))
-                                  .entryList({QStringLiteral("actcraft_*.qm")}, QDir::Files);
+    const QStringList files =
+        QDir(QString::fromLatin1(kTranslationsDir)).entryList({QStringLiteral("actcraft_*.qm")}, QDir::Files);
     for (const QString& file : files)
         codes << file.mid(QStringLiteral("actcraft_").size()).chopped(3); // « actcraft_<code>.qm »
     std::sort(codes.begin(), codes.end());
@@ -45,8 +44,9 @@ bool Language::install(QCoreApplication& app, Preferences& preferences)
 {
     const QString code = effective(preferences);
     auto* translator = new QTranslator(&app);
-    if (!translator->load(QStringLiteral("actcraft_%1.qm").arg(code), QString::fromLatin1(kTranslationsDir))
-        || !QCoreApplication::installTranslator(translator)) {
+    if (!translator->load(QStringLiteral("actcraft_%1.qm").arg(code),
+                          QString::fromLatin1(kTranslationsDir)) ||
+        !QCoreApplication::installTranslator(translator)) {
         delete translator;
         return false;
     }

@@ -179,7 +179,8 @@ const QList<Entry>& entryTable()
                 QT_TRANSLATE_NOOP("SettingsSchema", "Durée de l'effet (dixièmes de seconde)"), 15, 5, 30,
                 kWorkstation),
         // Langue (L6-T36) : clé de Preferences, appliquée au redémarrage ; défaut : la langue du système.
-        choice("language", "workstation/language", QT_TRANSLATE_NOOP("SettingsSchema", "Langue de l'interface"),
+        choice("language", "workstation/language",
+               QT_TRANSLATE_NOOP("SettingsSchema", "Langue de l'interface"),
                {{"", QT_TRANSLATE_NOOP("SettingsSchema", "Langue du système")},
                 {"fr", QT_TRANSLATE_NOOP("SettingsSchema", "Français")}},
                kWorkstation),
