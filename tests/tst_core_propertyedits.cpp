@@ -462,6 +462,24 @@ private slots:
         QCOMPARE(page().width, 1280.0);
     }
 
+    // Un pas refusé (largeur ≤ 0) reste une étape à part : Refaire rend la dernière valeur acceptée.
+    void refusedPageStepIsNotMerged()
+    {
+        const std::size_t before = m_stack.count();
+        pushPage(PageProperty::Width, 1100.0);
+        pushPage(PageProperty::Width, 1280.0);
+        QCOMPARE(m_stack.count(), before + 1);
+        pushPage(PageProperty::Width, 0.0);
+        QCOMPARE(m_stack.count(), before + 2);
+        QCOMPARE(page().width, 1280.0);
+        m_stack.undo(*m_document);
+        m_stack.undo(*m_document);
+        QCOMPARE(page().width, 1024.0);
+        m_stack.redo(*m_document);
+        m_stack.redo(*m_document);
+        QCOMPARE(page().width, 1280.0);
+    }
+
     // Nom, description et mots-clés de la page : sans cache.
     void pageTextSparesTheCache()
     {

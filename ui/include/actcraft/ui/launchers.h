@@ -9,6 +9,7 @@
 #include <QPointer>
 #include <QString>
 #include <QStringList>
+#include <QUrl>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
@@ -53,6 +54,9 @@ public:
 
     // Identifiant du raccourci créé, vide si le chemin est vide ou s'il n'y a pas de profil.
     Q_INVOKABLE QString add(const QString& path, const QStringList& arguments, const QString& toolTip);
+    // Chemin local d'une URL rendue par le sélecteur de fichier (QUrl::toLocalFile : « C:/x.exe » sous
+    // Windows) ; vide si l'URL n'est pas un fichier local.
+    Q_INVOKABLE static QString localPath(const QUrl& url);
     Q_INVOKABLE bool remove(const QString& id); // faux si rien n'a été effacé
     // kStarted : lancé ; kConfirmationNeeded : signal confirmationNeeded émis, rien n'est lancé avant
     // confirm() ; kFailed : signal failed émis.

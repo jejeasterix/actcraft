@@ -113,6 +113,7 @@ public:
     // trashFailed(path) ; le QML peut alors proposer la suppression définitive.
     Q_INVOKABLE bool remove(const QString& path, bool permanently = false);
     Q_INVOKABLE bool createFolder(const QString& name);
+    Q_INVOKABLE bool hasItem(const QString& path) const; // dans la liste affichée (mémoire, sans disque)
     Q_INVOKABLE QString addSelection(); // Ressource<N>.actcraft dans le dossier courant, N premier libre
     Q_INVOKABLE bool insert(const QString& path, QPointF pagePoint); // dans la page courante, une étape
 

@@ -165,11 +165,12 @@ private:
     QPointer<Preferences> m_preferences;
     QPointer<Commands> m_commands;
     actions::Profile m_profile;
-    // Profils quittés avec une modification non écrite (activation pendant un contact, ou écriture refusée) :
+    // Profils quittés avec une modification non écrite (écriture refusée au changement de profil) :
     // écrits par le prochain saveNow(), repris tels quels si on les réactive avant. Jamais le profil courant.
     QHash<QString, actions::Profile> m_departed;
     QTimer m_saveTimer;
     bool m_contactActive = false;
+    QString m_pendingActivation; // activation demandée pendant un contact, faite au relâché
     bool m_dirty = false;
     int m_saveCount = 0;
     int m_startCount = 0;
