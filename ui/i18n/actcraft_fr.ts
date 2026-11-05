@@ -1905,6 +1905,11 @@
         <translation>Le raccourci a changé depuis la demande de confirmation.</translation>
     </message>
     <message>
+        <location filename="../src/launchers.cpp" line="415"/>
+        <source>Ce .exe n&apos;est pas un programme Windows : %1</source>
+        <translation>Ce .exe n&apos;est pas un programme Windows : %1</translation>
+    </message>
+    <message>
         <location filename="../src/launchers.cpp" line="382"/>
         <source>Impossible de lancer %1.</source>
         <translation>Impossible de lancer %1.</translation>

@@ -13,6 +13,7 @@
 #include <QProcess>
 #include <QRandomGenerator>
 #include <QSet>
+#include <QStandardPaths>
 #include <QUrl>
 #include <QUuid>
 #include <QtEndian>
@@ -129,13 +130,20 @@ bool opensAsDocument(const QString& path)
     return info.exists() && !(info.isFile() && info.isExecutable());
 }
 
-// Étape transitoire (tests rouges) : contrôle actif partout, comme à l'essai 1.
-bool fakeExe(const QString& path)
+#ifdef Q_OS_WIN
+// Fichier que CreateProcess démarrerait : « .exe » ajouté à un nom sans suffixe, puis le PATH pour un nom nu.
+// Lu au lancement seulement, après la confirmation. Vide : rien à lire, CreateProcess décide.
+QString programFile(const QString& path)
 {
-    if (suffixOf(path).compare(QLatin1String("exe"), Qt::CaseInsensitive) != 0 || !QFileInfo(path).isFile())
-        return false;
-    return Launchers::fakeWindowsImage(path);
+    const QString name = suffixOf(path).isEmpty() ? path + QLatin1String(".exe") : path;
+    if (suffixOf(name).compare(QLatin1String("exe"), Qt::CaseInsensitive) != 0)
+        return {};
+    if (QFileInfo(name).isFile())
+        return name;
+    const bool bare = !name.contains(QLatin1Char('/')) && !name.contains(QLatin1Char('\\'));
+    return bare ? QStandardPaths::findExecutable(name) : QString();
 }
+#endif
 
 QString documentRefusal(const QString& path)
 {
@@ -299,7 +307,7 @@ bool Launchers::fakeWindowsImage(const QString& file)
 {
     QFile image(file);
     if (!image.open(QIODevice::ReadOnly))
-        return true;
+        return false; // alias d'exécution de WindowsApps : ne s'ouvre pas, et se lance
     const QByteArray dos = image.read(0x40);
     if (dos.size() < 0x40 || !dos.startsWith("MZ"))
         return true;
@@ -402,10 +410,12 @@ bool Launchers::launch(const Entry& entry)
         emit failed(documentRefusal(entry.path));
         return false;
     }
-    if (!document && fakeExe(entry.path)) {
+#ifdef Q_OS_WIN // la boîte système qui bloquerait CreateProcess n'existe que sous Windows
+    if (!document && fakeWindowsImage(programFile(entry.path))) {
         emit failed(tr("Ce .exe n'est pas un programme Windows : %1").arg(entry.path));
         return false;
     }
+#endif
     const bool started =
         document ? QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(entry.path).absoluteFilePath()))
                  : QProcess::startDetached(entry.path, entry.arguments);
