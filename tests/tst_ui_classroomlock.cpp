@@ -685,14 +685,16 @@ void TstUiClassroomlock::everyLot6ControllerRefuses()
     pages.copySelection();
     QCOMPARE(pagesDocument.pageCount(), 2);
     QVERIFY(pages.canPaste());
-    // Amendement 12 : la boîte d'orthographe, ouverte avant le verrou, appelle le contrôleur sans passer par le
-    // registre ; il refuse lui-même « Ajouter au dictionnaire », « Remplacer » et « Remplacer tout ».
+    // Amendement 12 : la boîte d'orthographe, ouverte avant le verrou, appelle le contrôleur sans passer par
+    // le registre ; il refuse lui-même « Ajouter au dictionnaire », « Remplacer » et « Remplacer tout ».
     ui::DocumentController spellDocument;
     spellDocument.newDocument(1024, 768);
     addObject(spellDocument, textObject("<p>Un motr et un motr</p>"), core::Layer::Middle);
-    const std::string spellHtml = std::get<core::Text>(core::body(spellDocument.document().page(0).objects.at(0))).html;
+    const std::string spellHtml =
+        std::get<core::Text>(core::body(spellDocument.document().page(0).objects.at(0))).html;
     ui::Spelling spelling;
-    QVERIFY(spelling.setProperty("commands", QVariant::fromValue(f.commands.get()))); // câblage de SpellingDialog.qml
+    QVERIFY(spelling.setProperty("commands",
+                                 QVariant::fromValue(f.commands.get()))); // câblage de SpellingDialog.qml
     spelling.setDocument(&spellDocument);
     spelling.setDictionaryFolder(f.dir.filePath(QStringLiteral("dico")));
     const QString userWords = f.dir.filePath(QStringLiteral("mots.txt"));
@@ -720,7 +722,8 @@ void TstUiClassroomlock::everyLot6ControllerRefuses()
     spelling.replace(QStringLiteral("mot"));
     spelling.replaceAll(QStringLiteral("mot"));
     spelling.addToDictionary();
-    QCOMPARE(std::get<core::Text>(core::body(spellDocument.document().page(0).objects.at(0))).html, spellHtml);
+    QCOMPARE(std::get<core::Text>(core::body(spellDocument.document().page(0).objects.at(0))).html,
+             spellHtml);
     QFile written(userWords);
     QVERIFY(!written.open(QIODevice::ReadOnly) || !written.readAll().contains("motr"));
     QTest::qWait(300); // aucune insertion différée

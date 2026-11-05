@@ -46,6 +46,7 @@ Item {
         anchors.top: parent.top
         anchors.margins: Theme.espace2
         text: appProperties.title
+        textFormat: Text.PlainText // titre tiré du fichier ouvert
         color: Theme.texte
         font.pixelSize: Theme.taillePoliceTitre
         font.bold: true

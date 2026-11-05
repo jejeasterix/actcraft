@@ -60,15 +60,17 @@ class TstUiSpelling : public QObject
         addText(d, 1, 2, "<p>bonjour mosieur</p>");
         s->controller.replaceDocument(std::move(d), QUrl(), QString());
         s->commands.setProfileDir(m_dir.filePath(QStringLiteral("disposition")));
-        s->spelling.setProperty("commands", QVariant::fromValue(&s->commands)); // câblage de SpellingDialog.qml
+        s->spelling.setProperty("commands",
+                                QVariant::fromValue(&s->commands)); // câblage de SpellingDialog.qml
         s->spelling.setDocument(&s->controller);
         s->spelling.setDictionaryFolder(m_dir.filePath(QStringLiteral("dico")));
         s->spelling.setUserDictionaryPath(m_dir.filePath(name));
         return s;
     }
 
-    // La boîte dans une fenêtre, avec le raccourci global Échap de tool.select (Main.qml, ApplicationShortcut)
-    // et une vue de page réelle. Le dictionnaire de la boîte vit sous le dossier temporaire du test.
+    // La boîte dans une fenêtre, avec le raccourci global Échap de tool.select (Main.qml,
+    // ApplicationShortcut) et une vue de page réelle. Le dictionnaire de la boîte vit sous le dossier
+    // temporaire du test.
     struct Mounted
     {
         ui::Commands commands;
@@ -177,7 +179,8 @@ class TstUiSpelling : public QObject
     };
 
 private slots:
-    // Majeur (z3) : zoom 200 %, page défilée (pan négatif) : le surlignage garde la taille et la place du mot.
+    // Majeur (z3) : zoom 200 %, page défilée (pan négatif) : le surlignage garde la taille et la place du
+    // mot.
     void highlightFollowsZoomAndScroll()
     {
         const std::unique_ptr<Mounted> m = mount();

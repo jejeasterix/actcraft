@@ -1,6 +1,7 @@
 #pragma once
 
 #include <actcraft/core/spellcheck.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/profilecontroller.h>
 
@@ -24,7 +25,9 @@ namespace actcraft::ui {
 // (contactActive) : le changement attend le relâché. Le dictionnaire français est une ressource ; Hunspell
 // lit des fichiers, la copie vit dans dictionaryFolder (cache de l'application par défaut). Le dictionnaire
 // de l'utilisateur est un fichier, un mot par ligne (userDictionaryPath ; par défaut
-// `<AppDataLocation>/dictionnaire-utilisateur.txt`, sans réglage).
+// `<AppDataLocation>/dictionnaire-utilisateur.txt`, sans réglage). Amendement 12 : la boîte appelle ce
+// contrôleur sans passer par le registre ; sous le verrou de classe (ou sans `commands`), « Ajouter au
+// dictionnaire », « Remplacer » et « Remplacer tout » ne changent rien.
 class Spelling : public QObject
 {
     Q_OBJECT
@@ -32,6 +35,7 @@ class Spelling : public QObject
     Q_PROPERTY(
         actcraft::ui::DocumentController* document READ document WRITE setDocument NOTIFY wiringChanged)
     Q_PROPERTY(actcraft::ui::ProfileController* profile READ profile WRITE setProfile NOTIFY wiringChanged)
+    Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY wiringChanged)
     Q_PROPERTY(
         QString userDictionaryPath READ userDictionaryPath WRITE setUserDictionaryPath NOTIFY wiringChanged)
     Q_PROPERTY(QString dictionaryFolder READ dictionaryFolder WRITE setDictionaryFolder NOTIFY wiringChanged)
@@ -53,6 +57,8 @@ public:
     void setDocument(DocumentController* document);
     ProfileController* profile() const noexcept { return m_profile; }
     void setProfile(ProfileController* profile);
+    Commands* commands() const noexcept { return m_commands; }
+    void setCommands(Commands* commands);
     QString userDictionaryPath() const;
     void setUserDictionaryPath(const QString& path);
     QString dictionaryFolder() const;
@@ -83,6 +89,9 @@ signals:
 
 private:
     bool prepare(); // moteur et vérificateur prêts ; faux (avec message) si le dictionnaire manque
+    bool
+    mayWrite() const; // document et dictionnaire de l'utilisateur : refusés sous verrou ou sans `commands`
+    void resetState();
     void advance();
     void publish(std::optional<core::SpellHit> hit);
     void showPendingPage();
@@ -91,6 +100,7 @@ private:
 
     QPointer<DocumentController> m_document;
     QPointer<ProfileController> m_profile;
+    QPointer<Commands> m_commands;
     QString m_userDictionaryPath;
     QString m_dictionaryFolder;
     bool m_contactActive = false;
