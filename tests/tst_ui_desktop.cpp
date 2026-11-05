@@ -12,6 +12,7 @@
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QImage>
+#include <QJSEngine>
 #include <QKeySequence>
 #include <QPointer>
 #include <QQuickWindow>
@@ -1244,6 +1245,37 @@ private slots:
         }
         QVERIFY(main.run(command));
         expectWholeInTheMainWindow(main, shown, before);
+    }
+
+    // Ma1, essai 3 (tour 2 de relecture du lot 7) : la place n'est faite que pour un panneau qui s'ouvre
+    // vraiment. Une commande « mainWindow » dont le gestionnaire ne montre rien (calculatrice du système :
+    // réglage tools/calculator/mode à 1 ou 2, programme lancé, panneau fermé) garde l'annotation et la
+    // palette seule. Le gestionnaire est remplacé par un gestionnaire qui ne montre rien : le cas de la
+    // calculatrice du système, reproductible hors Windows et sans lancer de programme. Mutant : l'essai 2,
+    // place faite par bindHandler avant tout gestionnaire marqué (annotation fermée pour rien).
+    void mainWindowCommandShowingNothingKeepsTheAnnotation()
+    {
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        actcraft::ui::Commands* commands = desktop->commands();
+        QVERIFY(commands);
+        QJSEngine* engine = qjsEngine(commands);
+        QVERIFY(engine);
+        const QRect palette = main.window()->geometry();
+        commands->setHandler(QStringLiteral("tool.calculator"),
+                             engine->evaluate(QStringLiteral("(function () {})")));
+        QVERIFY(main.run(QStringLiteral("tool.calculator")));
+        QVERIFY(desktop->isAnnotating());
+        QCOMPARE(main.window()->geometry(), palette);
+        QQuickItem* panel = main.item(QStringLiteral("calculatorRoot"));
+        QVERIFY(panel);
+        QVERIFY(!panel->isVisible());
     }
 
     // Ma1, essai 2 : même règle par le raccourci clavier de la commande. Mutant : la règle dans la seule
