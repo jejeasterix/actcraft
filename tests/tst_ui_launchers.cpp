@@ -93,7 +93,9 @@ private slots:
     void formatCharactersRefused();
     void bareNameOnlyOffWindows();
     void colonAndSeparatorRefused();
-    void fakeExeRefusedBeforeStart();
+    void fakeExeRefusedOnWindowsOnly();
+    void windowsImageHeader();
+    void unopenableExeIsNotFake();
 
 private:
     QString witness(const QString& name = QStringLiteral("lance.txt")) const
@@ -758,37 +760,85 @@ void TstUiLaunchers::colonAndSeparatorRefused()
 }
 
 // L6-C17 : sous Windows, CreateProcess sur un .exe qui n'est pas une image de programme peut ouvrir une boîte
-// système et ne rend la main qu'une fois qu'on y répond (300 s sous ctest, interface gelée). Exécutable sur
-// le disque, un tel .exe est refusé au lancement, avant tout démarrage : le message le dit, pas « Impossible
-// de lancer ». Hors Windows, un en-tête MZ suivi de « PE\0\0 » passe ce contrôle et seul le démarrage échoue.
-void TstUiLaunchers::fakeExeRefusedBeforeStart()
+// système et ne rendre la main qu'une fois qu'on y répond (300 s sous ctest, interface gelée) : refusé au
+// lancement, avant tout démarrage, et le message le dit. Un nom sans suffixe est lu avec « .exe », comme
+// CreateProcess le compléterait. Ailleurs, la boîte n'existe pas : un script nommé .exe démarre comme avant.
+void TstUiLaunchers::fakeExeRefusedOnWindowsOnly()
 {
-    const QString fake = document(QStringLiteral("image.exe"));
-    QVERIFY(QFile::setPermissions(fake, QFile::permissions(fake) | QFileDevice::ExeOwner));
-    QVERIFY(QFileInfo(fake).isExecutable());
-    putForeign(QStringLiteral("faux"), fake, {QStringLiteral("/p")}, QString());
-    QCOMPARE(m_launchers->run(QStringLiteral("faux")), Launchers::kConfirmationNeeded);
-    QSignalSpy failed(m_launchers.get(), &Launchers::failed);
-    QVERIFY(!m_launchers->confirm(QStringLiteral("faux"), true));
-    QCOMPARE(failed.count(), 1);
-    QCOMPARE(failed.at(0).at(0).toString(),
-             Launchers::tr("Ce .exe n'est pas un programme Windows : %1").arg(fake));
-#ifndef Q_OS_WIN
-    QByteArray header(0x80, '\0');
-    header.replace(0, 2, "MZ");
-    header[0x3C] = 0x40;
-    header.replace(0x40, 4, QByteArray("PE\0\0", 4));
-    const QString image = m_dir->filePath(QStringLiteral("entete.exe"));
-    QFile file(image);
-    QVERIFY(file.open(QIODevice::WriteOnly) && file.write(header) == header.size());
+    const QString script = m_dir->filePath(QStringLiteral("outil.exe"));
+    QFile file(script);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("#!/bin/sh\nprintf lance > \"$1\"\n");
     file.close();
-    QVERIFY(QFile::setPermissions(image, QFile::permissions(image) | QFileDevice::ExeOwner));
-    putForeign(QStringLiteral("entete"), image, {QStringLiteral("/p")}, QString());
-    QCOMPARE(m_launchers->run(QStringLiteral("entete")), Launchers::kConfirmationNeeded);
-    failed.clear();
-    QVERIFY(!m_launchers->confirm(QStringLiteral("entete"), true));
+    QVERIFY(QFile::setPermissions(script, QFile::permissions(script) | QFileDevice::ExeOwner));
+    putForeign(QStringLiteral("script"), script, {witness()}, QString());
+    QCOMPARE(m_launchers->run(QStringLiteral("script")), Launchers::kConfirmationNeeded);
+    QSignalSpy failed(m_launchers.get(), &Launchers::failed);
+#ifdef Q_OS_WIN
+    const QString refusal = Launchers::tr("Ce .exe n'est pas un programme Windows : %1");
+    QVERIFY(!m_launchers->confirm(QStringLiteral("script"), true));
     QCOMPARE(failed.count(), 1);
-    QCOMPARE(failed.at(0).at(0).toString(), Launchers::tr("Impossible de lancer %1.").arg(image));
+    QCOMPARE(failed.at(0).at(0).toString(), refusal.arg(script));
+    const QString bare = m_dir->filePath(QStringLiteral("outil"));
+    putForeign(QStringLiteral("sans-suffixe"), bare, {}, QString());
+    QCOMPARE(m_launchers->run(QStringLiteral("sans-suffixe")), Launchers::kConfirmationNeeded);
+    failed.clear();
+    QVERIFY(!m_launchers->confirm(QStringLiteral("sans-suffixe"), true));
+    QCOMPARE(failed.count(), 1);
+    QCOMPARE(failed.at(0).at(0).toString(), refusal.arg(bare));
+    QVERIFY(stayedQuiet(witness()));
+#else
+    QVERIFY(m_launchers->confirm(QStringLiteral("script"), true));
+    QCOMPARE(failed.count(), 0);
+    QTRY_COMPARE_WITH_TIMEOUT(readFile(witness()), QByteArrayLiteral("lance"), kLaunchWaitMs);
+#endif
+}
+
+// La lecture d'en-tête, sur toutes les plateformes. e_lfanew vaut 0x80 (en-tête DOS allongé) : une lecture
+// qui suivrait les 0x40 premiers octets sans s'y déplacer lirait des zéros, ou la signature placée en 0x40.
+void TstUiLaunchers::windowsImageHeader()
+{
+    const auto write = [this](const QString& name, const QByteArray& bytes) {
+        const QString path = m_dir->filePath(name);
+        QFile file(path);
+        return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size() ? path : QString();
+    };
+    QByteArray image(0x100, '\0');
+    image.replace(0, 2, "MZ");
+    image[0x3C] = char(0x80);
+    image.replace(0x80, 4, QByteArray("PE\0\0", 4));
+    const QString pe = write(QStringLiteral("image.exe"), image);
+    QVERIFY(!pe.isEmpty());
+    QVERIFY(!Launchers::fakeWindowsImage(pe));
+
+    QByteArray shifted = image;
+    shifted.replace(0x80, 4, QByteArray(4, '\0'));
+    shifted.replace(0x40, 4, QByteArray("PE\0\0", 4));
+    QVERIFY(Launchers::fakeWindowsImage(write(QStringLiteral("decale.exe"), shifted)));
+    QVERIFY(Launchers::fakeWindowsImage(write(QStringLiteral("texte.exe"), QByteArrayLiteral("essai"))));
+    QVERIFY(Launchers::fakeWindowsImage(write(QStringLiteral("tronque.exe"), image.left(0x82))));
+}
+
+// Un .exe qui ne s'ouvre pas en lecture n'est pas déclaré faux : CreateProcess décide. Sous Windows, les
+// alias d'exécution de WindowsApps (winget.exe…) échouent à l'ouverture et se lancent ; ailleurs, un fichier
+// sans droit de lecture.
+void TstUiLaunchers::unopenableExeIsNotFake()
+{
+#ifdef Q_OS_WIN
+    const QString alias = QDir(qEnvironmentVariable("LOCALAPPDATA"))
+                              .filePath(QStringLiteral("Microsoft/WindowsApps/winget.exe"));
+    if (!QFileInfo::exists(alias))
+        QSKIP("Alias d'exécution winget.exe absent de ce poste : rien à prouver ici.");
+    QVERIFY(!Launchers::fakeWindowsImage(alias));
+#else
+    const QString locked = m_dir->filePath(QStringLiteral("verrou.exe"));
+    QFile file(locked);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("essai");
+    file.close();
+    QVERIFY(QFile::setPermissions(locked, QFileDevice::WriteOwner));
+    QVERIFY(!QFile(locked).open(QIODevice::ReadOnly));
+    QVERIFY(!Launchers::fakeWindowsImage(locked));
 #endif
 }
 

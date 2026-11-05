@@ -70,6 +70,12 @@ public:
     static QByteArray signatureOf(const QString& path, const QStringList& arguments, const QString& toolTip,
                                   const QByteArray& key);
 
+    // Vrai si le fichier s'ouvre et que son en-tête n'est pas celui d'un programme Windows (« MZ », puis
+    // « PE\0\0 » à l'adresse lue en 0x3C). Un fichier qui ne s'ouvre pas (alias d'exécution de WindowsApps)
+    // n'est pas déclaré faux : CreateProcess décide. launch() ne l'appelle que sous Windows, après la
+    // confirmation.
+    static bool fakeWindowsImage(const QString& file);
+
 signals:
     void profileChanged();
     void entriesChanged();

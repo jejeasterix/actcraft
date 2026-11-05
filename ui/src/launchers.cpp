@@ -129,21 +129,12 @@ bool opensAsDocument(const QString& path)
     return info.exists() && !(info.isFile() && info.isExecutable());
 }
 
-// Un .exe qui n'est pas une image de programme (« MZ », puis « PE\0\0 » à l'adresse lue en 0x3C) : sous
-// Windows, CreateProcess peut alors ouvrir une boîte système et ne rendre la main qu'une fois qu'on y répond,
-// interface gelée. Lu au lancement seulement, après la confirmation.
+// Étape transitoire (tests rouges) : contrôle actif partout, comme à l'essai 1.
 bool fakeExe(const QString& path)
 {
     if (suffixOf(path).compare(QLatin1String("exe"), Qt::CaseInsensitive) != 0 || !QFileInfo(path).isFile())
-        return false; // un nom cherché dans le PATH n'est pas lu ici
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly))
-        return true;
-    const QByteArray dos = file.read(0x40);
-    if (dos.size() < 0x40 || !dos.startsWith("MZ"))
-        return true;
-    return !file.seek(qFromLittleEndian<quint32>(dos.constData() + 0x3C)) ||
-           file.read(4) != QByteArray("PE\0\0", 4);
+        return false;
+    return Launchers::fakeWindowsImage(path);
 }
 
 QString documentRefusal(const QString& path)
@@ -302,6 +293,18 @@ QByteArray Launchers::signatureOf(const QString& path, const QStringList& argume
     const QByteArray message = QJsonDocument(QJsonArray{path, QJsonArray::fromStringList(arguments), toolTip})
                                    .toJson(QJsonDocument::Compact);
     return QMessageAuthenticationCode::hash(message, key, QCryptographicHash::Sha256);
+}
+
+bool Launchers::fakeWindowsImage(const QString& file)
+{
+    QFile image(file);
+    if (!image.open(QIODevice::ReadOnly))
+        return true;
+    const QByteArray dos = image.read(0x40);
+    if (dos.size() < 0x40 || !dos.startsWith("MZ"))
+        return true;
+    return !image.seek(qFromLittleEndian<quint32>(dos.constData() + 0x3C)) ||
+           image.read(4) != QByteArray("PE\0\0", 4);
 }
 
 QJsonArray Launchers::storedItems() const
