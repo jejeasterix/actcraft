@@ -635,7 +635,8 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
         // Copies prises avant le soulèvement, qui retire l'objet de la page. Seul le HTML assaini entre dans
         // le TextEdit (bloquant 5), sans image `data:` (L6-C15) : son document les décoderait
         // (ui/src/isolatedtext.h). Texte rendu sans modification : l'objet revient tel quel (commit).
-        doc->setHtml(safeTextHtml(QString::fromStdString(existing->html), {}, DataImages::Drop));
+        m_originalHtml = QString::fromStdString(existing->html);
+        doc->setHtml(safeTextHtml(m_originalHtml, {}, DataImages::Drop));
         m_editing = *hit;
         m_vertical = existing->vertical;
         m_objectBounds = existing->bounds;
@@ -733,6 +734,7 @@ void TextEditing::finish()
     m_fixedWidth = 0;
     m_geometryChanged = false;
     m_initialHtml.clear();
+    m_originalHtml.clear();
     m_preedit.clear();
     m_columnKey.clear();
     updateColumn(nullptr);
@@ -759,9 +761,13 @@ void TextEditing::commit()
         empty = doc->toPlainText().trimmed().isEmpty();
         edited = live != m_initialHtml;
         unchanged = !edited && !m_geometryChanged;
-        const QString safe = safeTextHtml(live, {}); // un collage riche ne fait pas entrer de ressource
+        // Texte existant non modifié, cadre déplacé ou élargi : son HTML d'origine, images `data:` comprises
+        // (l'éditeur ne les a pas reçues), mesuré comme le peintre le dessine.
+        const bool original = id != 0 && !edited;
+        const QString safe =
+            safeTextHtml(original ? m_originalHtml : live, {}); // collage riche : rien n'entre
         text.bounds = measuredBounds(safe);
-        text.html = safe.toStdString();
+        text.html = (original ? m_originalHtml : safe).toStdString();
         text.vertical = m_vertical;
         if (!m_vertical) { // une colonne n'a pas de première ligne horizontale : l'emprise
             text.firstBaseline = firstLineBaseline(safe, text.bounds);

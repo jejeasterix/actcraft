@@ -143,7 +143,8 @@ private:
     qreal m_wrapWidth = 0;
     qreal m_fixedWidth = 0; // > 0 : largeur imposée (texte existant, poignée d'extension)
     bool m_geometryChanged = false;
-    QString m_initialHtml; // HTML du TextEdit au début de l'édition : inchangé, aucune étape
+    QString m_initialHtml;  // HTML du TextEdit au début de l'édition : inchangé, aucune étape
+    QString m_originalHtml; // HTML du texte existant, tel qu'enregistré : gardé si seul le cadre change
     // Mémoire de la police et de la taille (D7) : celles des textes suivants. L'en-tête figé (L4-T1) ne donne
     // pas accès à tools::UserState : la mémoire est gardée ici.
     QString m_nextFamily; // vide : police de l'application (N2-3)
