@@ -1,0 +1,49 @@
+<html>
+<head><meta charset="utf-8"><title>Aide d'ActCraft</title></head>
+<body>
+<h1>Aide d'ActCraft</h1>
+<p>Cette aide est embarquée : elle s'affiche sans connexion. La touche F1 l'ouvre ; elle ouvrira la page de l'outil
+courant lorsqu'elle existera, sinon ce sommaire.</p>
+
+<h2><a name="sommaire">Sommaire</a></h2>
+<ul>
+<li><a href="#pages">Pages et paquets de ressources</a></li>
+<li><a href="#outils">Outils de dessin, de sélection et de texte</a></li>
+<li><a href="#profils">Profils et mode conception</a></li>
+<li><a href="#documents">Documents récents et tableau d'accueil</a></li>
+<li><a href="#classe">Mode classe protégé</a></li>
+<li><a href="#mot-de-passe-oublie">Mot de passe de la classe oublié</a></li>
+</ul>
+
+<h2><a name="pages">Pages et paquets de ressources</a></h2>
+<p>Un document est une suite de pages. Le navigateur de ressources range les images, les sons et les modèles ;
+glissez un élément sur la page pour l'y placer.</p>
+
+<h2><a name="outils">Outils de dessin, de sélection et de texte</a></h2>
+<p>La barre d'outils regroupe le stylo, le surligneur, la gomme, la sélection et le texte. Chaque outil garde ses
+réglages d'une session à l'autre.</p>
+
+<h2><a name="profils">Profils et mode conception</a></h2>
+<p>Un profil choisit les commandes et les paramètres proposés. L'éditeur de profils permet d'en créer, d'en importer et
+de revenir aux réglages d'origine ; le mode conception donne accès à l'organisation de l'interface.</p>
+
+<h2><a name="documents">Documents récents et tableau d'accueil</a></h2>
+<p>Le tableau d'accueil liste les documents récents avec leur résumé et propose les actions courantes.</p>
+
+<h2><a name="classe">Mode classe protégé</a></h2>
+<p>Le verrouillage de la classe grise les commandes réservées à l'enseignant. Au premier verrouillage, ActCraft demande
+de créer un mot de passe (deux saisies) ; il n'existe aucun mot de passe par défaut. Pour déverrouiller, saisissez ce
+mot de passe.</p>
+
+<h2><a name="mot-de-passe-oublie">Mot de passe de la classe oublié</a></h2>
+<p>Le mot de passe n'est pas récupérable : seule une empreinte salée en est gardée. Pour retrouver l'accès :</p>
+<ol>
+<li>Fermez ActCraft.</li>
+<li>Dans la configuration de l'application (le fichier de réglages de l'utilisateur), supprimez toutes les clés dont le
+nom commence par <b>classroom/</b> : <b>classroom/hash</b>, <b>classroom/salt</b>, <b>classroom/iterations</b> et
+<b>classroom/locked</b>.</li>
+<li>Relancez ActCraft : la classe est déverrouillée et le prochain verrouillage demande un nouveau mot de passe.</li>
+</ol>
+<p><a href="#sommaire">Retour au sommaire</a></p>
+</body>
+</html>

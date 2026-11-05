@@ -51,12 +51,14 @@ actcraft_add_test(tst_bench_content
     LIBS ActCraft::bench)
 
 # Fumée du banc (décision 33) : sans actcraft_add_test pour le lancement, qui construit son propre exécutable.
+# Relecture L6-C11 : la fumée retient le décodage (--retenir-decodage), jamais valide pour la mesure : code 2
+# (MESURE INVALIDE) partout. tst_bench_result vérifie la mécanique : en release, decode-held-for-testing est la
+# seule raison d'invalidité ; en debug, build-not-release s'y ajoute.
+set(_bench_smoke_expected "2")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(_bench_smoke_expected "2")
-    set(_bench_smoke_valid 0)
+    set(_bench_smoke_release 0)
 else()
-    set(_bench_smoke_expected "0,1")
-    set(_bench_smoke_valid 1)
+    set(_bench_smoke_release 1)
 endif()
 set(_bench_smoke_json ${CMAKE_BINARY_DIR}/bench-smoke.json)
 
@@ -84,7 +86,7 @@ set_tests_properties(tst_bench_smoke PROPERTIES
 actcraft_add_test(tst_bench_result
     SOURCES tst_bench_result.cpp
     LIBS Qt6::Core)
-target_compile_definitions(tst_bench_result PRIVATE ACTCRAFT_EXPECT_VALID=${_bench_smoke_valid})
+target_compile_definitions(tst_bench_result PRIVATE ACTCRAFT_SMOKE_RELEASE=${_bench_smoke_release})
 set_tests_properties(tst_bench_result PROPERTIES
     FIXTURES_REQUIRED bench_smoke_json
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;ACTCRAFT_BENCH_SMOKE_JSON=${_bench_smoke_json}")
@@ -322,7 +324,7 @@ set_tests_properties(tst_captures_ouvrir_flipchart_synthetique PROPERTIES
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 
-# Scénarios du lot 3 (S34, S35, S37, S6), talons du socle : remplis par L3-T15, L3-T16, L3-T18.
+# Scénarios du lot 3 (S34, S35, S37, S6), posés par L3-T15, L3-T16 et L3-T18.
 
 add_test(NAME tst_captures_selection
     COMMAND $<TARGET_FILE:actcraft-captures>
@@ -364,7 +366,7 @@ set_tests_properties(tst_captures_ecrire_gommer_annuler PROPERTIES
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 
-# Lot 4 (L4-T1) : scénarios d'interface du lot, talons réduits à waitReady jusqu'à leur tâche.
+# Lot 4 (L4-T1) : scénarios d'interface du lot.
 add_test(NAME tst_captures_formes
     COMMAND $<TARGET_FILE:actcraft-captures>
         --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/formes.json
@@ -488,3 +490,21 @@ set_tests_properties(tst_captures_edition_export PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+
+# Lot 6 (L6-T1) : quinze scénarios de captures, décrits par les tâches nommées dans leur « description ». Hors écran, rendu logiciel, comme premiers-pas.
+foreach(_scn IN ITEMS profils palette couleurs proprietes navigateur-objets notes etiquettes reglages-gardes ressources mode-creation tableau-de-bord raccourcis-programmes classe-protegee orthographe aide-langue)
+    string(REPLACE "-" "_" _scn_id "${_scn}")
+    add_test(NAME tst_captures_${_scn_id}
+        COMMAND $<TARGET_FILE:actcraft-captures>
+            --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/${_scn}.json
+            --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_scn})
+    set_tests_properties(tst_captures_${_scn_id} PROPERTIES
+        TIMEOUT 300
+        SKIP_RETURN_CODE 77
+        ENVIRONMENT "${_bench_env_offscreen}"
+        PASS_REGULAR_EXPRESSION "SCENARIO OK"
+        FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+endforeach()
+# L6-T31 : le mot de passe d'essai du scénario n'apparaît jamais dans sa sortie.
+set_tests_properties(tst_captures_classe_protegee PROPERTIES
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE|essai-1234")

@@ -1,0 +1,29 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "notes",
+  "description": "F-830 : notes riches de la page affichée. L'icône de notes de la ligne supérieure n'apparaît que sur une page qui en a.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"expect": "documentController.pageCount", "value": 2},
+    {"expect": "appNotes.hasNotes", "value": false},
+    {"expect": "notesIcon.visible", "value": false},
+    {"command": "browser.notes"},
+    {"expect": "browserPanel.current", "value": "notes"},
+    {"waitFor": "notesEditor.activeFocus", "value": true, "timeoutMs": 5000},
+    {"typeText": "Rappeler la consigne"},
+    {"expect": "appNotes.hasNotes", "value": true},
+    {"expect": "notesIcon.visible", "value": true},
+    {"waitReady": true},
+    {"capture": "notes-p2"},
+    {"command": "page.previous"},
+    {"waitReady": true},
+    {"expect": "appNotes.hasNotes", "value": false},
+    {"expect": "notesIcon.visible", "value": false},
+    {"capture": "p1-sans"},
+    {"command": "page.next"},
+    {"waitReady": true},
+    {"expect": "appNotes.hasNotes", "value": true}
+  ]
+}

@@ -6,9 +6,12 @@
 #include <actcraft/bench/runner.h>
 #include <actcraft/bench/verdict.h>
 
+#include <QDir>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -43,6 +46,18 @@ int main(int argc, char* argv[])
     }
     applyRenderBackend(backend);
 
+    // Dossier des résultats par défaut, calculé avant l'interface (amendement 3, n5) : il porte aussi les
+    // réglages et les profils d'essai du banc, vidés à chaque lancement et posés avant tout objet (N1).
+    const QString defaultDir = QCoreApplication::applicationDirPath() + QStringLiteral("/resultats-banc");
+    const QString settingsDir = QDir(defaultDir).filePath(QStringLiteral("reglages"));
+    const QString profilesDir = QDir(defaultDir).filePath(QStringLiteral("profils"));
+    QDir(settingsDir).removeRecursively();
+    QDir(profilesDir).removeRecursively();
+    QStandardPaths::setTestModeEnabled(true);
+    QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
+
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde les périphériques
     // synthétiques de l'injecteur, et le collecteur reçoit des appels directs du fil de rendu.
     actcraft::bench::Runner runner(options);
@@ -50,6 +65,7 @@ int main(int argc, char* argv[])
     StartupOptions startup;
     startup.cacheEnabled = options.cacheEnabled;
     startup.generatedPage = true; // le banc mesure la page de 300 objets (DA7)
+    startup.profileRoot = profilesDir;
     QQuickWindow* window = loadMainWindow(engine, startup);
     if (!window) {
         printLine(QStringLiteral("MESURE INVALIDE"));
@@ -59,7 +75,6 @@ int main(int argc, char* argv[])
     int code = static_cast<int>(actcraft::bench::ExitCode::Invalid);
     QTimer::singleShot(0, &app, [&] {
         actcraft::bench::BenchResult result = runner.run(window);
-        const QString defaultDir = QCoreApplication::applicationDirPath() + QStringLiteral("/resultats-banc");
         const QString path =
             actcraft::bench::resolveOutputPath(options, defaultDir, actcraft::bench::resultFileName(result));
         QString writeError;

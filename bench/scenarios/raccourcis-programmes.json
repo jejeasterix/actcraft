@@ -1,0 +1,18 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "raccourcis-programmes",
+  "description": "S20 (L6-T30) : un raccourci vers launcher_probe est ajouté (launcher.edit avec {path, arguments, toolTip}) puis lancé par launcher.run (index « 0 » : launcherButton0) ; il est retiré (launcher.edit avec {remove: 0}). Windows seulement. Reste à écrire quand le banc saura écrire un profil d'un autre poste et développer ${SORTIE} dans un argument de commande : import de ce profil, lancement refusé (confirmation.png).",
+  "platforms": ["windows"],
+  "steps": [
+    {"waitReady": true},
+    {"command": "launcher.edit", "argument": {"path": "build/debug/tests/launcher_probe.exe", "arguments": [".tmp/temoin-1.txt"], "toolTip": "Programme d'essai"}},
+    {"wait": 400},
+    {"expect": "launcherButton0.toolTip", "value": "Programme d'essai"},
+    {"capture": "barre"},
+    {"command": "launcher.run", "argument": "0"},
+    {"wait": 2000},
+    {"command": "launcher.edit", "argument": {"remove": 0}},
+    {"wait": 400},
+    {"expect": "shortcutBar.launcherCount", "value": "0"}
+  ]
+}

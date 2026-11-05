@@ -171,6 +171,27 @@ RectF boundsOnPage(const PageObject& object) noexcept
     return box.grown(0);
 }
 
+std::optional<PointF> centerOfExtents(const std::vector<PageObject>& objects) noexcept
+{
+    bool any = false;
+    double left = 0, top = 0, right = 0, bottom = 0;
+    for (const PageObject& object : objects) {
+        if (!hasExtent(object)) {
+            continue;
+        }
+        const RectF box = boundsOnPage(object);
+        left = any ? std::min(left, box.x) : box.x;
+        top = any ? std::min(top, box.y) : box.y;
+        right = any ? std::max(right, box.x + box.width) : box.x + box.width;
+        bottom = any ? std::max(bottom, box.y + box.height) : box.y + box.height;
+        any = true;
+    }
+    if (!any) {
+        return std::nullopt;
+    }
+    return PointF{(left + right) / 2, (top + bottom) / 2};
+}
+
 namespace {
 
 // Emprise sur la page d'un objet, groupes résolus par la page ; `visiting` protège d'un cycle de groupes.

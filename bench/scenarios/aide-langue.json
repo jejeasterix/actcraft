@@ -1,0 +1,18 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "aide-langue",
+  "description": "Aide intégrée et langue (L6-T35, L6-T36) : F1 (help.contents) ouvre le lecteur d'aide, qui est capturé puis fermé par Échap ; la langue est réglée sur le français (settings.language) et relue sur les réglages du poste.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "help.contents"},
+    {"wait": 400},
+    {"expect": "helpViewer.visible", "value": true},
+    {"capture": "aide"},
+    {"key": "Esc"},
+    {"wait": 200},
+    {"expect": "helpViewer.visible", "value": false},
+    {"command": "settings.language", "argument": "fr"},
+    {"wait": 200},
+    {"expect": "appPreferences.language", "value": "fr"}
+  ]
+}

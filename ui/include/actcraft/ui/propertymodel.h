@@ -1,0 +1,136 @@
+#pragma once
+
+#include <actcraft/core/model.h>
+#include <actcraft/ui/commands.h>
+#include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/toolhost.h>
+
+#include <QAbstractListModel>
+#include <QHash>
+#include <QList>
+#include <QMetaObject>
+#include <QPointer>
+#include <QString>
+#include <QVariant>
+#include <QtQml/qqmlregistration.h>
+
+#include <vector>
+
+namespace actcraft::ui {
+
+// Modèle du navigateur de propriétés (L6-T12, F-570 à F-576, F-581, F-583, F-840) : liste à deux colonnes
+// groupée en sections selon la sélection de ToolHost (A5). Rien de sélectionné : propriétés de la page
+// affichée ; un objet : celles qui s'appliquent à lui (core::readProperty) ; plusieurs objets : celles qui
+// s'appliquent à tous, valeur affichée si elle est la même pour tous, sinon invalide.
+//
+// Le modèle ne modifie le document que par DocumentController::execute (une commande de L6-T11 par
+// setValue) et ne sélectionne rien. Remise à jour regroupée (une par tour de boucle) et reportée pendant un
+// contact (D6-5). Garantie pour L6-T13 : tant que les lignes sont les mêmes (mêmes descripteurs, dans le même
+// ordre), seules les valeurs changent et dataChanged part sur la seule colonne de valeur (ValueRole), ligne
+// par ligne, sans reset : les délégués sont gardés (réglette tenue, champ en saisie). Un reset n'a lieu que
+// si la structure change (page ou objet, autre sélection de types). Un changement de drapeau d'objet (verrou,
+// masqué, copie au glissement) ne rend aucun core::Change : il se suit par
+// DocumentController::objectFlagsChanged, quel que soit le chemin (L6-C2).
+class PropertyModel : public QAbstractListModel
+{
+    Q_OBJECT
+    QML_ELEMENT
+    Q_PROPERTY(
+        actcraft::ui::DocumentController* document READ document WRITE setDocument NOTIFY sourcesChanged)
+    Q_PROPERTY(actcraft::ui::ToolHost* tools READ tools WRITE setTools NOTIFY sourcesChanged)
+    Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY sourcesChanged)
+    Q_PROPERTY(QString title READ title NOTIFY refreshed) // « Page », « Trait », « Forme », « 3 objets »…
+    Q_PROPERTY(bool contactActive READ contactActive WRITE setContactActive NOTIFY contactActiveChanged)
+    Q_PROPERTY(bool editable READ editable NOTIFY editableChanged)
+    Q_PROPERTY(int refreshCount READ refreshCount NOTIFY refreshed)
+
+public:
+    enum Role
+    {
+        SectionRole = Qt::UserRole +
+            1, // identification, appearance, outline, fill, position, label, misc, page
+        SectionLabelRole,
+        KeyRole,     // identifiant de la propriété (kebab-case)
+        LabelRole,   // libellé français
+        EditorRole,  // text, number, color, slider, choice, bool, keywords
+        ValueRole,   // QVariant ; invalide si les objets diffèrent. choice : indice dans ChoicesRole
+        ChoicesRole, // QStringList pour « choice »
+        MinRole,
+        MaxRole,
+    };
+    Q_ENUM(Role)
+
+    explicit PropertyModel(QObject* parent = nullptr);
+    ~PropertyModel() override;
+
+    int rowCount(const QModelIndex& parent = {}) const override;
+    QVariant data(const QModelIndex& index, int role) const override;
+    QHash<int, QByteArray> roleNames() const override;
+
+    // Exécute une commande de L6-T11 (ou SetLayerCommand, SetObjectFlagCommand, SetTranslucencyCommand pour
+    // couche, visibilité, verrou et translucidité) sur la page affichée ou les objets sélectionnés. Faux sans
+    // document ni commandes, verrou de classe posé, ligne inconnue, valeur illisible, ou nombre hors de
+    // [MinRole, MaxRole] pour « number » et « slider » (refusé, jamais écrêté : rien n'est exécuté), ou si le
+    // cœur refuse la valeur (rien n'est appliqué : aucune étape entrée dans la pile, aucun drapeau changé) ;
+    // la valeur affichée reste celle du document. Mots-clés reçus en une chaîne : séparés par des espaces ou
+    // des virgules. Une modification ponctuelle (tout éditeur sauf « slider ») clôt l'étape restée ouverte
+    // avant elle et la sienne après elle (closeMerge) : elle reste une étape à elle. Seule la réglette
+    // glissée fusionne, jusqu'à endEdit().
+    Q_INVOKABLE bool setValue(int row, const QVariant& value);
+    // Relâcher de la réglette (D10) : clôt l'étape du glissé (DocumentController::closeMerge), pour que le
+    // glissé suivant en fasse une autre. Le QML n'appelle jamais le document lui-même (L6-T13).
+    Q_INVOKABLE void endEdit();
+    Q_INVOKABLE int rowOf(const QString& key) const; // -1 si absente
+
+    DocumentController* document() const noexcept;
+    void setDocument(DocumentController* document);
+    ToolHost* tools() const noexcept;
+    void setTools(ToolHost* tools);
+    Commands* commands() const noexcept;
+    void setCommands(Commands* commands);
+    QString title() const;
+    bool contactActive() const noexcept;
+    void setContactActive(bool active);
+    bool editable() const;
+    int refreshCount() const noexcept;
+
+signals:
+    void sourcesChanged();
+    void refreshed();
+    void contactActiveChanged();
+    void editableChanged();
+
+private:
+    struct Row;
+    void requestRefresh(); // regroupe : un seul refresh() par tour de boucle, rien pendant un contact
+    void schedule();
+    void flush();
+    // Lignes de la page affichée et de la sélection ; met à jour m_page, m_ids et m_title.
+    std::vector<Row> rebuild();
+    void attachDocument();
+    void detachDocument();
+    void updateEditable();
+    void onObjectFlagsChanged(int page, const QList<quint64>& ids);
+
+    std::vector<Row> m_rows;
+    // Page et objets que montrent les lignes (dernière remise à jour) : setValue agit sur ce que l'on voit.
+    int m_page = 0;
+    std::vector<core::ObjectId> m_ids;
+    QPointer<DocumentController> m_document;
+    QPointer<ToolHost> m_tools;
+    QPointer<Commands> m_commands;
+    int m_observer = 0;
+    QList<QMetaObject::Connection> m_documentConnections;
+    QMetaObject::Connection m_selectionConnection;
+    QMetaObject::Connection m_commandsConnection;
+    bool m_contactActive = false;
+    bool m_pending = false;
+    bool m_scheduled = false;
+    bool m_editable = false;
+    int m_refreshes = 0;
+    int m_applied = 0;      // changements et drapeaux vus : setValue compare avant/après
+    bool m_sliding = false; // un glissé de réglette est en cours (entre son premier pas et endEdit)
+    QString m_title;
+};
+
+} // namespace actcraft::ui

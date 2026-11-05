@@ -363,6 +363,14 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         }
         return true;
     }
+    if (o.contains(QStringLiteral("restart"))) {
+        step.kind = UiStepKind::Restart;
+        if (!o.value(QStringLiteral("restart")).isBool() || !o.value(QStringLiteral("restart")).toBool()) {
+            why = QStringLiteral("relance invalide (restart : true)");
+            return false;
+        }
+        return true;
+    }
     if (o.contains(QStringLiteral("touch"))) {
         step.kind = UiStepKind::Touch;
         if (!parsePoints(o.value(QStringLiteral("touch")), step.points)) {
@@ -647,6 +655,10 @@ QString propertyText(const QVariant& value)
 {
     if (!value.isValid()) {
         return QStringLiteral("<absente>");
+    }
+    // Pointeur d'objet nul : « <nul> », distinct d'un objet posé (L6-T31 : câblage lu par un scénario).
+    if (value.metaType().flags().testFlag(QMetaType::PointerToQObject) && !value.value<QObject*>()) {
+        return QStringLiteral("<nul>");
     }
     switch (value.typeId()) {
     case QMetaType::Bool:
@@ -983,6 +995,10 @@ bool UiScenarioPlayer::typeText(const UiStep& step, QStringList& report)
 {
     m_window->requestActivate();
     const bool active = QTest::qWaitForWindowActive(m_window, kActivateTimeoutMs);
+    // Amendement 12 (L6-T31) : le texte saisi dans un champ en mode mot de passe n'est jamais écrit en clair.
+    const QQuickItem* focused = m_window->activeFocusItem();
+    const QVariant echo = focused ? focused->property("echoMode") : QVariant();
+    const bool secret = echo.isValid() && echo.toInt() != 0; // TextInput.Normal
     bool accepted = true;
     for (const QChar c : step.value) {
         const QString text(c);
@@ -995,7 +1011,8 @@ bool UiScenarioPlayer::typeText(const UiStep& step, QStringList& report)
     }
     QCoreApplication::processEvents();
     report << QStringLiteral("TEXTE %1 %2%3")
-                  .arg(step.value, accepted ? QStringLiteral("OK") : QStringLiteral("ECHEC"),
+                  .arg(secret ? QStringLiteral("******") : step.value,
+                       accepted ? QStringLiteral("OK") : QStringLiteral("ECHEC"),
                        accepted || active ? QString() : QStringLiteral(" (fenêtre inactive)"));
     return accepted;
 }
@@ -1532,6 +1549,51 @@ bool UiScenarioPlayer::fileCheck(const UiStep& step, QStringList& report)
     return ok;
 }
 
+void UiScenarioPlayer::setRestartHandler(RestartHandler handler)
+{
+    m_restart = std::move(handler);
+}
+
+// Quitter et relancer (S9) : le profil est écrit (saveCount stable 2 s au plus), puis l'hôte recrée
+// l'interface.
+bool UiScenarioPlayer::restart(QStringList& report)
+{
+    if (!m_restart) {
+        report << QStringLiteral("RELANCE ECHEC (aucun gestionnaire de relance)");
+        return false;
+    }
+    report << QStringLiteral("RELANCE");
+    const auto saves = [this] {
+        const QObject* profile = find(QStringLiteral("appProfile"));
+        return profile ? profile->property("saveCount").toInt() : -1;
+    };
+    int last = saves();
+    QElapsedTimer total;
+    total.start();
+    QElapsedTimer quiet;
+    quiet.start();
+    waitUntil(
+        [&] {
+            const int now = saves();
+            if (now != last) {
+                last = now;
+                quiet.restart();
+            }
+            return quiet.elapsed() >= 400 || total.elapsed() >= 2000;
+        },
+        2500);
+    QQuickWindow* fresh = m_restart();
+    if (!fresh) {
+        report << QStringLiteral("RELANCE ECHEC (interface non rechargée)");
+        return false;
+    }
+    m_window = fresh;
+    m_gestures.reset(); // lié à l'ancienne fenêtre
+    m_loopProbe.reset();
+    report << QStringLiteral("RELANCE OK");
+    return true;
+}
+
 bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
 {
     switch (step.kind) {
@@ -1570,9 +1632,26 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return true;
     }
     case UiStepKind::WaitReady: {
-        const bool ok = waitUntil([this] { return isReady(); }, kReadyTimeoutMs);
+        // L6-C11 : prêt = page et cache prêts ET une synchronisation commencée depuis l'étape. Les
+        // dispositions de Qt Quick (palette ancrée, panneau ouvert) ne s'appliquent qu'au polissage, juste
+        // avant la synchronisation d'une image ; en release, page et cache sont souvent déjà prêts et le
+        // stylet suivant visait une disposition jamais polie. beforeSynchronizing plutôt que frameSwapped :
+        // le fil principal (le nôtre) est bloqué pendant toute synchronisation, donc celle vue après la
+        // connexion suit un polissage postérieur à l'étape, même en boucle threadée ; un frameSwapped peut
+        // venir d'une image déjà en vol. Compteur partagé et connexion directe (fil de rendu), comme
+        // watchEventLoop : rien n'écrit sur la pile après le retour. Une fenêtre non exposée ne rend pas
+        // d'image : page et cache seuls.
+        auto synced = std::make_shared<std::atomic<bool>>(false);
+        const QMetaObject::Connection connection = QObject::connect(
+            m_window, &QQuickWindow::beforeSynchronizing, m_window, [synced] { synced->store(true); },
+            Qt::DirectConnection);
+        m_window->update();
+        const bool ok =
+            waitUntil([this, &synced] { return (synced->load() || !m_window->isExposed()) && isReady(); },
+                      kReadyTimeoutMs);
+        QObject::disconnect(connection);
         report << (ok ? QStringLiteral("PRET OK")
-                      : QStringLiteral("PRET ECHEC (page ou cache pas prêts après 10 s)"));
+                      : QStringLiteral("PRET ECHEC (page, cache ou image pas prêts après 10 s)"));
         return ok;
     }
     case UiStepKind::Capture: {
@@ -1615,6 +1694,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return archiveContains(step, report);
     case UiStepKind::FileCheck:
         return fileCheck(step, report);
+    case UiStepKind::Restart:
+        return restart(report);
     case UiStepKind::Touch:
         return touch(step, report);
     case UiStepKind::Pinch:

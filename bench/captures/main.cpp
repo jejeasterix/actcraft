@@ -6,9 +6,15 @@
 #include <QDir>
 #include <QFile>
 #include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QScreen>
+#include <QSettings>
+#include <QStandardPaths>
+#include <QSysInfo>
 #include <QTest>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
@@ -72,8 +78,16 @@ int main(int argc, char* argv[])
     if (scenarioPath.isEmpty() || !file.open(QIODevice::ReadOnly)) {
         return invalid(QStringLiteral("scénario introuvable : %1").arg(scenarioPath));
     }
+    const QByteArray content = file.readAll();
+    // Un scénario peut déclarer "platforms": ["windows"] ; ailleurs il ne se joue pas (code 77, « Skipped »).
+    const QJsonArray platforms =
+        QJsonDocument::fromJson(content).object().value(QStringLiteral("platforms")).toArray();
+    if (!platforms.isEmpty() && !platforms.contains(QJsonValue(QSysInfo::productType()))) {
+        printLine(QStringLiteral("SCENARIO HORS PLATEFORME"));
+        return 77;
+    }
     UiScenario scenario;
-    if (!parseUiScenario(file.readAll(), scenario, error)) {
+    if (!parseUiScenario(content, scenario, error)) {
         return invalid(QStringLiteral("%1 : %2").arg(scenarioPath, error));
     }
     std::vector<UiStep> reads;
@@ -100,26 +114,64 @@ int main(int argc, char* argv[])
         }
     }
 
+    // Réglages et profils d'essai propres à ce lancement (L6-T5, amendement 3, N1), posés avant tout objet :
+    // jamais ceux du poste. `<sortie>` est propre au scénario et au rendu ; l'étape `restart` ne vide rien.
+    const QDir outputDir(output);
+    const QString settingsDir = outputDir.filePath(QStringLiteral("reglages"));
+    const QString profilesDir = outputDir.filePath(QStringLiteral("profils"));
+    QDir(settingsDir).removeRecursively();
+    QDir(profilesDir).removeRecursively();
+    QStandardPaths::setTestModeEnabled(true);
+    // Racine « Mes ressources » d'essai (mode test : jamais le dossier réel du poste) vidée à chaque
+    // lancement, pour que le scénario `ressources` se rejoue sans nettoyage à la main.
+    QDir(QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
+             .filePath(QStringLiteral("ActCraft/Ressources")))
+        .removeRecursively();
+    QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
+    StartupOptions startup = parseStartupOptions(args); // --sans-cache compris
+    startup.profileRoot = profilesDir;
+
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde le stylet synthétique.
     std::unique_ptr<UiScenarioPlayer> player;
-    QQmlApplicationEngine engine;
-    QQuickWindow* window = loadMainWindow(engine, parseStartupOptions(args)); // --sans-cache compris
+    auto engine = std::make_unique<QQmlApplicationEngine>();
+    // Charge l'interface sur les dossiers d'essai ci-dessus et l'affiche ; sert au démarrage et à l'étape
+    // `restart` (mêmes dossiers, jamais ceux du poste).
+    const auto launch = [&]() -> QQuickWindow* {
+        QQuickWindow* shown = loadMainWindow(*engine, startup);
+        if (!shown) {
+            return nullptr;
+        }
+        QScreen* screen = QGuiApplication::primaryScreen();
+        shown->setScreen(screen); // écran principal (4 moniteurs sur le poste de Jérôme)
+        if (fullScreen) {
+            shown->setGeometry(screen->geometry());
+            shown->showFullScreen();
+        } else {
+            shown->resize(windowSize);
+            shown->setPosition(screen->availableGeometry().center() -
+                               QPoint(windowSize.width() / 2, windowSize.height() / 2));
+            shown->showNormal();
+        }
+        return shown;
+    };
+    QQuickWindow* window = launch();
     if (!window) {
         return invalid(QStringLiteral("interface non chargée"));
     }
-    QScreen* screen = QGuiApplication::primaryScreen();
-    window->setScreen(screen); // écran principal (4 moniteurs sur le poste de Jérôme)
-    if (fullScreen) {
-        window->setGeometry(screen->geometry());
-        window->showFullScreen();
-    } else {
-        window->resize(windowSize);
-        window->setPosition(screen->availableGeometry().center() -
-                            QPoint(windowSize.width() / 2, windowSize.height() / 2));
-        window->showNormal();
-    }
     player = std::make_unique<UiScenarioPlayer>(window);
     player->setLineSink(printLine); // une ligne par étape, au fil de l'eau
+    player->setRestartHandler([&]() -> QQuickWindow* {
+        engine.reset(); // détruit l'ancien moteur et sa fenêtre avant d'en créer un autre
+        engine = std::make_unique<QQmlApplicationEngine>();
+        QQuickWindow* fresh = launch();
+        if (!fresh || !QTest::qWaitForWindowExposed(fresh, 10000)) {
+            return nullptr;
+        }
+        window = fresh;
+        return fresh;
+    });
 
     int code = 2;
     QTimer::singleShot(0, &app, [&] {

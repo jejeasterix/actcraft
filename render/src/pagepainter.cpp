@@ -846,11 +846,10 @@ void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLo
     p.restore();
 }
 
-void paintObject(QPainter& p, const core::PageObject& object, const ImageLookup& images)
+namespace {
+// Transformation, translucidité, puis paintObjectLocal ; sans regarder la visibilité.
+void paintPlaced(QPainter& p, const core::PageObject& object, const ImageLookup& images)
 {
-    if (!object.common.visible || std::get_if<core::Group>(&object)) {
-        return;
-    }
     p.save();
     const core::Transform& t = object.common.transform;
     p.setTransform(QTransform(t.m11, t.m12, t.m21, t.m22, t.dx, t.dy), true);
@@ -859,6 +858,15 @@ void paintObject(QPainter& p, const core::PageObject& object, const ImageLookup&
     }
     paintObjectLocal(p, object, images);
     p.restore();
+}
+} // namespace
+
+void paintObject(QPainter& p, const core::PageObject& object, const ImageLookup& images)
+{
+    if (!object.common.visible || std::get_if<core::Group>(&object)) {
+        return;
+    }
+    paintPlaced(p, object, images);
 }
 
 void paintBackground(QPainter& p, const core::Page& page, const ImageLookup& images)
@@ -909,7 +917,14 @@ void paintPage(QPainter& p, const core::Page& page, const ImageLookup& images, c
         paintGrid(p, page, options.thumbnail);
     }
     for (const core::PageObject& object : page.objects) {
-        paintObject(p, object, images);
+        if (object.common.visible || !options.showHiddenTranslucent) {
+            paintObject(p, object, images);
+        } else if (!std::get_if<core::Group>(&object)) {
+            p.save();
+            p.setOpacity(p.opacity() * kHiddenShownOpacity);
+            paintPlaced(p, object, images);
+            p.restore();
+        }
     }
     if (options.grid && page.grid.drawnAbove) {
         paintGrid(p, page, options.thumbnail);

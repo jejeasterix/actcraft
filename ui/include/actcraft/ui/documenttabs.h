@@ -1,8 +1,10 @@
 #pragma once
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 
 #include <QAbstractListModel>
+#include <QPointer>
 #include <QQmlEngine>
 #include <QString>
 #include <QUrl>
@@ -25,6 +27,9 @@ class DocumentTabs : public QAbstractListModel
     Q_PROPERTY(PageView* view READ view WRITE setView NOTIFY viewChanged)
     Q_PROPERTY(int currentIndex READ currentIndex NOTIFY currentIndexChanged)
     Q_PROPERTY(QString position READ position WRITE setPosition NOTIFY positionChanged) // top, bottom, hidden
+    // Amendement 12 (L6-T31) : sous verrou de classe, ouvrir, fermer un onglet et y déposer des pages suivent
+    // file.new, file.close et page.paste, quel que soit le QML appelant. Nul : aucun verrou.
+    Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY commandsChanged)
 public:
     enum Role
     {
@@ -47,14 +52,16 @@ public:
     int currentIndex() const;
     QString position() const;
     void setPosition(const QString& position);
+    Commands* commands() const;
+    void setCommands(Commands* commands);
 
     Q_INVOKABLE void newTab();
     Q_INVOKABLE void openInNewTab(const QUrl& url);
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE bool requestClose(int index); // faux : saveRequested(int) émis
     Q_INVOKABLE void closeWithoutSaving(int index);
-    Q_INVOKABLE void copyPagesToTab(const QVariantList& pageIndexes,
-                                    int tabIndex); // F-011 : avant la première page
+    // F-011 : avant la première page ; faux si rien n'est copié.
+    Q_INVOKABLE bool copyPagesToTab(const QVariantList& pageIndexes, int tabIndex);
     // L5-C11 : un onglet garé ou affiché est-il modifié ? (Quitter les parcourt tous ; ajout seul.)
     Q_INVOKABLE bool isModifiedAt(int index) const;
     Q_INVOKABLE void next();
@@ -66,6 +73,7 @@ signals:
     void viewChanged();
     void currentIndexChanged();
     void positionChanged();
+    void commandsChanged();
     void saveRequested(int index);
 
 private:
@@ -76,6 +84,7 @@ private:
     void emitRow(int row);
     DocumentController* m_document = nullptr;
     PageView* m_view = nullptr;
+    QPointer<Commands> m_commands;
     QString m_position = QStringLiteral("top");
     std::vector<Tab> m_tabs;
     int m_current = 0;

@@ -1,5 +1,6 @@
 #include "startup.h"
 
+#include <actcraft/actions/commandregistry.h>
 #include <actcraft/core/document.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
@@ -10,7 +11,12 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QFile>
 #include <QImage>
+#include <QJSValue>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
@@ -38,6 +44,7 @@ namespace {
 
 struct Shell
 {
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
     ui::PageView* view = nullptr;
@@ -49,9 +56,13 @@ bool ready(Shell& s)
     return QTest::qWaitFor([&] { return s.fixed->isReady() && s.view->cacheReady(); }, 10000);
 }
 
-bool start(Shell& s)
+// showDashboard : comme app/main.cpp (L6-T23), l'accueil s'ouvre au démarrage.
+bool start(Shell& s, bool showDashboard = false)
 {
-    s.window = loadMainWindow(s.engine, StartupOptions{});
+    StartupOptions options;
+    options.profileRoot = s.profiles.path();
+    options.showDashboard = showDashboard;
+    s.window = loadMainWindow(s.engine, options);
     if (!s.window || !QTest::qWaitForWindowExposed(s.window)) {
         return false;
     }
@@ -334,7 +345,7 @@ class TstUiShell : public QObject
 
 private:
     std::unique_ptr<QPointingDevice> m_stylus;
-    // Réglages des outils (ToolHost) : jamais dans le vrai registre.
+    // Réglages des outils (ToolHost) et du poste (Preferences) : jamais dans le vrai registre.
     QTemporaryDir m_settingsDir;
 
     void post(Shell& s, QEvent::Type type, QPointF scene, Qt::MouseButtons buttons)
@@ -1256,7 +1267,9 @@ private slots:
             QCOMPARE(menuIds(menu->property("entries").toList()), cleaned);
         }
         commands->setPlatform(actions::Platform::Windows);
-        QCOMPARE(menu->property("visibleCommandCount").toInt(), 13);
+        // 14 entrées d'avant le lot 6 (sélection sans annotation : les deux « Convertir » masquées), plus
+        // browser.properties et resources.add (L6-P2) = 16.
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 16);
         QVERIFY(menuIds(menu->property("entries").toList()).contains(QStringLiteral("transform")));
     }
 
@@ -1290,7 +1303,9 @@ private slots:
         QTRY_VERIFY(editing->selectionIsAnnotation());
         QVERIFY(ids().contains(toShape));
         QVERIFY(ids().contains(toText));
-        QCOMPARE(menu->property("visibleCommandCount").toInt(), 15);
+        // 16 entrées d'avant le lot 6 (annotation : les deux « Convertir » offertes, sous Windows), plus
+        // browser.properties et resources.add (L6-P2) = 18.
+        QCOMPARE(menu->property("visibleCommandCount").toInt(), 18);
         commands->setPlatform(actions::Platform::MacOS);
         QVERIFY(ids().contains(toShape));
         QVERIFY(!ids().contains(toText));
@@ -1299,8 +1314,243 @@ private slots:
         QVERIFY(!ids().contains(toShape));
     }
 
+    // Lot 6 (L6-T2) : les emplacements de la coquille existent et reçoivent les commandes par propriété.
+    void lot6ShellPlaceholders()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name :
+             {"paletteFrame", "shortcutBar", "extendedColors", "colorLoupe", "objectBrowser",
+              "propertyBrowser", "notesBrowser", "resourceBrowser", "labelTip", "dashboard", "profileChooser",
+              "profileEditor", "classroomLockDialog", "spellingDialog", "helpViewer", "saveSummaryDialog",
+              "notesIcon"})
+            QVERIFY2(s.window->findChild<QObject*>(QString::fromLatin1(name)), name);
+        // Amendement 4 (C2) : chaque emplacement reçoit les commandes par propriété, jamais par l'id de
+        // Main.qml.
+        for (const char* name :
+             {"paletteFrame", "shortcutBar", "objectBrowser", "propertyBrowser", "notesBrowser",
+              "resourceBrowser", "labelTip", "dashboard", "profileEditor", "classroomLockDialog",
+              "spellingDialog", "helpViewer", "saveSummaryDialog"}) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o && o->property("commands").value<QObject*>() != nullptr, name);
+        }
+    }
+
+    // L6-T23 : l'accueil reste fermé sans `showDashboard` ; les récents du poste sont liés aux préférences,
+    // au résumé et au menu Fichier ; le mandataire réseau est instancié au démarrage.
+    void lot6DashboardAndRecentsWiring()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* dashboard = s.window->findChild<QObject*>(QStringLiteral("dashboard"));
+        QVERIFY(dashboard);
+        QCOMPARE(dashboard->property("visible").toBool(), false);
+        QObject* prefs = s.window->findChild<QObject*>(QStringLiteral("appPreferences"));
+        QObject* actions = s.window->findChild<QObject*>(QStringLiteral("fileActions"));
+        QObject* recents = s.window->findChild<QObject*>(QStringLiteral("appRecents"));
+        QVERIFY(prefs && actions && recents);
+        QCOMPARE(actions->property("preferences").value<QObject*>(), prefs);
+        QCOMPARE(recents->property("preferences").value<QObject*>(), prefs);
+        QCOMPARE(dashboard->property("recents").value<QObject*>(), recents);
+        QObject* summary = s.window->findChild<QObject*>(QStringLiteral("saveSummaryDialog"));
+        QVERIFY(summary);
+        QCOMPARE(summary->property("recents").value<QObject*>(), recents);
+        QVERIFY(s.window->findChild<QObject*>(QStringLiteral("appNetwork")));
+        bool fileMenuLinked = false;
+        for (QObject* o : s.window->findChildren<QObject*>()) {
+            if (o->property("isCommandMenu").toBool() &&
+                o->property("spec").toMap().value(QStringLiteral("id")).toString() == QLatin1String("file")) {
+                fileMenuLinked = o->property("recents").value<QObject*>() == recents;
+            }
+        }
+        QVERIFY(fileMenuLinked);
+    }
+
+    // L6-C16 : scénario S3 de scripts/essai-android.ps1 rejoué hors écran. L'application ouvre l'accueil au
+    // démarrage (L6-T23, plan 6b : « fenêtre d'accueil devant la fenêtre principale au démarrage ») : son
+    // voile
+    // (#80000000) assombrit la palette au bord droit (CI : lu 21 23 27 au lieu de 43 47 54). Le script ferme
+    // l'accueil d'un toucher sur le voile, au point `$accueil` qu'il déclare, puis garde ses contrôles tels
+    // quels. Écran de la CI : 2560 × 1600 pixels à la densité 320 (1280 × 800 points). Sur l'émulateur, la
+    // fenêtre commence sous la barre d'état : le point d'écran (x, y) en pixels tombe en (x / 2, y / 2 -
+    // barre) points dans la fenêtre. La CI verte du lot 5 lisait la pastille rouge à 416 pixels (208 points)
+    // quand elle occupait 174..193 points de la fenêtre (intérieur 175..192, hors contour) : barre de 16 à 33
+    // points. Les deux bornes et une valeur courante.
+    void s3StartupDashboardClosedByTheScriptTap_data()
+    {
+        QTest::addColumn<int>("barre");
+        QTest::newRow("barre d'état 16 points") << 16;
+        QTest::newRow("barre d'état 24 points") << 24;
+        QTest::newRow("barre d'état 33 points") << 33;
+    }
+
+    void s3StartupDashboardClosedByTheScriptTap()
+    {
+        QFETCH(int, barre);
+        static constexpr int largeur = 2560; // profil pixel_tablet : le script refuse un autre écran
+        static constexpr int hauteur = 1600;
+        static constexpr int densite = 2; // 320 / 160
+        // [int] de PowerShell arrondit au lieu de tronquer.
+        const auto psInt = [](double value) { return qRound(value); };
+        const auto readSource = [](const QString& path) {
+            QFile file(path);
+            return file.open(QIODevice::ReadOnly | QIODevice::Text) ? QString::fromUtf8(file.readAll())
+                                                                    : QString();
+        };
+        const QString script = readSource(QFINDTESTDATA("../scripts/essai-android.ps1"));
+        const QString themeQml = readSource(QFINDTESTDATA("../ui/qml/Theme.qml"));
+        QVERIFY2(!script.isEmpty() && !themeQml.isEmpty(), "essai-android.ps1 ou Theme.qml illisible");
+        const QRegularExpressionMatch tap =
+            QRegularExpression(QStringLiteral(R"(\$accueil = @\{ X = \[int\]\(\$largeur \* ([0-9.]+)\); )"
+                                              R"(Y = \[int\]\(\$hauteur \* ([0-9.]+)\) \})"))
+                .match(script);
+        QVERIFY2(tap.hasMatch(),
+                 "point de fermeture de l'accueil ($accueil) introuvable dans essai-android.ps1");
+        const QRegularExpressionMatch swatch =
+            QRegularExpression(
+                QStringLiteral(R"re('pastille rouge, coin bas-droit'; X = \$largeur - ([0-9]+); )re"
+                               R"re(Y = \[int\]\(\$hauteur \* ([0-9.]+)\))re"))
+                .match(script);
+        QVERIFY2(swatch.hasMatch(), "point de la pastille rouge introuvable dans essai-android.ps1");
+        // Repère du script (décision 23) : la couleur « palette » lue dans le thème.
+        const QRegularExpressionMatch hex =
+            QRegularExpression(QStringLiteral(R"re(property color palette:\s*"(#[0-9A-Fa-f]{6})")re"))
+                .match(themeQml);
+        QVERIFY(hex.hasMatch());
+        const QColor palette(hex.captured(1));
+        const QColor veiled(palette.red() / 2, palette.green() / 2, palette.blue() / 2);
+
+        Shell s;
+        QVERIFY(start(s, true));
+        s.window->resize(largeur / densite, hauteur / densite - barre);
+        QTRY_COMPARE(s.window->width(), largeur / densite);
+        QTRY_COMPARE(s.window->height(), hauteur / densite - barre);
+        // Pixel de la capture d'écran du script (x, y) lu dans la fenêtre.
+        const auto pixel = [&s, barre](int x, int y) {
+            const QImage image = s.window->grabWindow();
+            const qreal ratio = s.window->effectiveDevicePixelRatio();
+            return image.pixelColor(
+                QPointF(qreal(x) / densite * ratio, (qreal(y) / densite - barre) * ratio).toPoint());
+        };
+        QObject* dashboard = s.window->findChild<QObject*>(QStringLiteral("dashboard"));
+        QVERIFY(dashboard);
+        QTRY_VERIFY(dashboard->property("visible").toBool());
+
+        // Avant le toucher : la lecture de la CI, palette sous le voile, aux points de contrôle de la
+        // palette.
+        const int ys[] = {psInt(hauteur * 0.25), psInt(hauteur * 0.5), psInt(hauteur * 0.75)};
+        for (const int y : ys) {
+            QTRY_VERIFY2(near(pixel(largeur - 3, y), veiled, 6),
+                         qPrintable(QStringLiteral("voile, y = %1").arg(y)));
+        }
+
+        // Le toucher du script ferme l'accueil.
+        const QPoint at(qRound(psInt(largeur * tap.captured(1).toDouble()) / qreal(densite)),
+                        qRound(psInt(hauteur * tap.captured(2).toDouble()) / qreal(densite)) - barre);
+        QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, at);
+        QTRY_VERIFY(!dashboard->property("visible").toBool());
+
+        // Puis les contrôles du script, seuils inchangés : palette au bord droit, puis rectangles entiers.
+        for (const int y : ys) {
+            QTRY_VERIFY2(near(pixel(largeur - 3, y), palette, 16),
+                         qPrintable(QStringLiteral("palette absente au bord droit, y = %1").arg(y)));
+        }
+        QVERIFY2(near(pixel(psInt(largeur * 0.765), psInt(hauteur * 0.87)), QColor(255, 255, 255), 12),
+                 "page");
+        QVERIFY2(near(pixel(largeur - 192, psInt(hauteur * 0.72)), palette, 16), "fond de palette");
+        const int swatchX = largeur - swatch.captured(1).toInt();
+        const int swatchY = psInt(hauteur * swatch.captured(2).toDouble());
+        QVERIFY2(near(pixel(swatchX, swatchY), QColor(229, 57, 53), 40),
+                 qPrintable(QStringLiteral("pastille rouge en (%1, %2) : lu %3")
+                                .arg(swatchX)
+                                .arg(swatchY)
+                                .arg(pixel(swatchX, swatchY).name())));
+    }
+
+    void everyLot6CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        const QByteArray json = actcraft::actions::defaultCommandsJson();
+        const QJsonArray all =
+            QJsonDocument::fromJson(json).object().value(QStringLiteral("commands")).toArray();
+        bool inLot6 = false;
+        for (const QJsonValue& v : all) {
+            const QString id = v.toObject().value(QStringLiteral("id")).toString();
+            if (id == QStringLiteral("palette.dock-left"))
+                inLot6 = true;
+            if (inLot6 && commands->isAvailable(id))
+                QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
+        }
+        QVERIFY(inLot6);
+    }
+
+    // Lot 6 (L6-T18, amendement 2) : les contrôleurs du lot reçoivent les commandes, et suivent le contact.
+    void lot6ControllersWired()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name :
+             {"appProperties", "appObjectTree", "appNotes", "appShortcuts", "appResources"}) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o, name);
+            QVERIFY2(o->property("commands").value<QObject*>() != nullptr, name);
+        }
+        // N2 : contactActive suit pageArea.view.contactActive dans l'application.
+        const QStringList followers = {QStringLiteral("appProfile"), QStringLiteral("appProperties"),
+                                       QStringLiteral("appObjectTree"), QStringLiteral("appNotes")};
+        const QPointF a = s.view->mapToScene(QPointF(s.view->width() / 2, s.view->height() / 2));
+        post(s, QEvent::TabletPress, a, Qt::LeftButton);
+        for (const QString& name : followers)
+            QTRY_VERIFY2(s.window->findChild<QObject*>(name)->property("contactActive").toBool(),
+                         qPrintable(name));
+        post(s, QEvent::TabletRelease, a, Qt::NoButton);
+        for (const QString& name : followers)
+            QTRY_VERIFY2(!s.window->findChild<QObject*>(name)->property("contactActive").toBool(),
+                         qPrintable(name));
+    }
+
+    void browserTabsInOrder()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* panel = s.window->findChild<QObject*>(QStringLiteral("browserPanel"));
+        QVERIFY(panel);
+        QVariant navigators = panel->property("navigators");
+        if (navigators.metaType() == QMetaType::fromType<QJSValue>())
+            navigators = navigators.value<QJSValue>().toVariant();
+        QStringList ids;
+        for (const QVariant& n : navigators.toList())
+            ids << n.toMap().value(QStringLiteral("id")).toString();
+        QCOMPARE(ids, (QStringList{"pages", "ressources", "objets", "notes", "proprietes", "actions"}));
+        QCOMPARE(panel->property("current").toString(), QStringLiteral("pages"));
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands && commands->trigger(QStringLiteral("browser.objects")));
+        QCOMPARE(panel->property("current").toString(), QStringLiteral("objets"));
+        QVERIFY(panel->property("visible").toBool());
+    }
+
     // Aucun avertissement QML (propriété requise absente, type inconnu, liaison nulle...), au chargement
     // comme à la fermeture de la fenêtre.
+    // Amendement 4, C3 : `appProfile` et `appPreferences` trouvés par leur nom ; les instances du lot
+    // reçoivent le profil par propriété (C2).
+    void profileFoundByName()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* profile = s.window->findChild<QObject*>(QStringLiteral("appProfile"));
+        QVERIFY(profile);
+        QVERIFY(s.window->findChild<QObject*>(QStringLiteral("appPreferences")));
+        for (const char* name :
+             {"paletteFrame", "toolPalette", "browserPanel", "profileEditor", "dashboard"}) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o, name);
+            QVERIFY2(o->property("profile").value<QObject*>() == profile, name);
+        }
+    }
+
     void shellLoadsWithoutQmlWarning()
     {
         QTest::failOnWarning(QRegularExpression(QStringLiteral("qrc:.*\\.qml")));

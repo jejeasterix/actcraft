@@ -183,7 +183,7 @@ ToolAdapters::ToolAdapters(DocumentController& controller, PageView& pageView, r
       commandsRef(commandList), document(controller), ink(inkItem), strokes(controller, pageView),
       lift(layer), selection(commandList, std::move(showSelection)),
       view(pageView, commandList, std::move(trashArea), std::move(trashHover)), commands(commandList),
-      context{document, ink, strokes, lift, selection, view, commands, user}
+      context{document, ink, strokes, lift, selection, view, commands, user, false, false}
 {}
 
 bool ToolAdapters::matches(const DocumentController* controller, const PageView* pageView,

@@ -2,6 +2,8 @@
 #include "startup.h"
 
 #include <actcraft/formats/urlio.h>
+#include <actcraft/ui/language.h>
+#include <actcraft/ui/preferences.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QGuiApplication>
@@ -43,6 +45,13 @@ int main(int argc, char* argv[])
     }
     applyRenderBackend(backend);
 
+    // Langue (D6-11) : traducteur installé avant le chargement du QML. Le Preferences de la fenêtre est une
+    // instance QML ; celui-ci, temporaire, lit les mêmes réglages (QSettings par défaut).
+    {
+        actcraft::ui::Preferences preferences;
+        actcraft::ui::Language::install(app, preferences);
+    }
+
     QQmlApplicationEngine engine;
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); },
@@ -55,6 +64,7 @@ int main(int argc, char* argv[])
             options.openUrl = actcraft::formats::urlFromArgument(file);
         }
     }
+    options.showDashboard = true; // l'application seule ouvre l'accueil au démarrage (L6-T23)
     if (!loadMainWindow(engine, options)) {
         return 1;
     }

@@ -11,6 +11,7 @@ Rectangle {
     required property Commands commands
     required property DocumentController documentController
     required property PageView view
+    property bool notesVisible: false
     signal popupOpened()
     signal popupClosed()
 
@@ -62,6 +63,22 @@ Rectangle {
 
         Item {
             Layout.fillWidth: true
+        }
+
+        ToolButton {
+            id: notesIcon
+            objectName: "notesIcon"
+            visible: bar.notesVisible
+            Layout.fillHeight: true
+            Layout.preferredWidth: Theme.tailleBouton
+            display: AbstractButton.IconOnly
+            focusPolicy: Qt.NoFocus
+            icon.source: "qrc:/qt/qml/ActCraft/Ui/icons/notes-page.svg"
+            icon.width: Theme.tailleIcone
+            icon.height: Theme.tailleIcone
+            icon.color: Theme.texte
+            Accessible.name: qsTr("Notes de la page")
+            onClicked: bar.commands.trigger("browser.notes")
         }
 
         Label {

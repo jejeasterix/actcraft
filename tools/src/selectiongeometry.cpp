@@ -116,7 +116,7 @@ core::PointF toObjectPoint(const core::PageObject& object, core::PointF pagePoin
 }
 
 SelectionView layoutSelection(const core::Page& page, const std::vector<core::ObjectId>& ids, double zoom,
-                              const QStringList& barCommands)
+                              const QStringList& barCommands, bool lockIgnored)
 {
     if (!(zoom > 0)) {
         zoom = 1;
@@ -136,8 +136,9 @@ SelectionView layoutSelection(const core::Page& page, const std::vector<core::Ob
         united = united ? core::unitedRect(*united, bounds) : bounds;
         single = &object;
         ++count;
-        resizable = resizable && !object.common.locked && object.common.restrictions.resizable;
-        rotatable = rotatable && !object.common.locked && object.common.restrictions.rotatable;
+        const bool unlocked = unlockedFor(object, lockIgnored);
+        resizable = resizable && unlocked && object.common.restrictions.resizable;
+        rotatable = rotatable && unlocked && object.common.restrictions.rotatable;
     }
     SelectionView out;
     if (!united) {
@@ -170,7 +171,7 @@ SelectionView layoutSelection(const core::Page& page, const std::vector<core::Ob
         commands.removeAll(QStringLiteral("object.rotate"));
     }
     out.bar = layoutBar(out.corners, commands, zoom);
-    if (count == 1 && !single->common.locked) {
+    if (count == 1 && (unlockedFor(*single, lockIgnored))) {
         out.smartPoints = smartPointsOnPage(*single);
     }
     return out;

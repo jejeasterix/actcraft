@@ -1,0 +1,32 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "mode-creation",
+  "description": "S9.8 (L6-T22) : mode conception (F-560). Un trait rouge épais, sélectionné puis masqué (object.hide, drapeau du document) : la page ne le montre plus. mode.design : appDesign.active vrai, l'objet masqué est dessiné translucide par la vue (centre teinté, capture conception) ; mode.design à nouveau : il redevient invisible (capture normal).",
+  "steps": [
+    {"waitReady": true},
+    {"command": "pen.color", "argument": "#E53935"},
+    {"command": "pen.width", "argument": 40},
+    {"stroke": [[300, 400], [700, 400]], "pressure": 1.0},
+    {"waitReady": true},
+    {"command": "tool.select"},
+    {"pointer": [[500, 400]]},
+    {"waitReady": true},
+    {"expect": "appTools.selectionCount", "value": 1},
+    {"command": "object.hide"},
+    {"waitReady": true},
+    {"pointer": [[900, 650]]},
+    {"waitReady": true},
+    {"expect": "appTools.selectionCount", "value": 0},
+    {"checkPixel": "masque-cache", "at": [500, 400], "color": "#FFFFFF", "tolerance": 60},
+    {"command": "mode.design"},
+    {"waitReady": true},
+    {"expect": "appDesign.active", "value": true},
+    {"capture": "conception"},
+    {"checkPixel": "masque-visible", "at": [500, 400], "color": "#F5B0AE", "tolerance": 60},
+    {"command": "mode.design"},
+    {"waitReady": true},
+    {"expect": "appDesign.active", "value": false},
+    {"capture": "normal"},
+    {"checkPixel": "masque-rendu", "at": [500, 400], "color": "#FFFFFF", "tolerance": 60}
+  ]
+}

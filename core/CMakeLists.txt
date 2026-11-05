@@ -52,5 +52,15 @@ actcraft_add_module(core
         src/penmodifiers.cpp
         include/actcraft/core/printlayout.h
         src/printlayout.cpp
+        include/actcraft/core/propertyedits.h
+        src/propertyedits.cpp
+        include/actcraft/core/notesedits.h
+        src/notesedits.cpp
+        include/actcraft/core/spellcheck.h
+        src/spellcheck.cpp
+        src/hunspellengine.cpp
     DEPENDS
         Qt6::Core)
+
+# Orthographe (D6-9) : Hunspell, bibliothèque statique tierce, liée sans être exposée aux modules dépendants.
+target_link_libraries(actcraft_core PRIVATE hunspell)

@@ -56,7 +56,13 @@ struct PaintOptions
     bool background = true;
     bool grid = true;
     bool thumbnail = false; // grille lissée à 0,7 px, échelle de miniature
+    // Mode conception (F-560, L6-T22) : objets masqués dessinés à kHiddenShownOpacity. Jamais posée par les
+    // miniatures, l'impression ni l'export : seule une vue de page la demande.
+    bool showHiddenTranslucent = false;
 };
+
+// Opacité d'un objet masqué que le mode conception montre (F-560), au peintre et aux nœuds de la vue.
+inline constexpr double kHiddenShownOpacity = 0.4;
 
 // Objet en coordonnées de l'objet, sans sa transformation ni sa translucidité (le moteur peint de la scène
 // les pose par ses nœuds) ; rien pour un groupe.

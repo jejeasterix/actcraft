@@ -14,6 +14,8 @@ Menu {
     required property Commands commands
     property var spec: ({ id: "", label: "", items: [] })
     readonly property bool isCommandMenu: true
+    // Documents récents (L6-T24) : liste de FileActions (`fileActions.recents`), liée par le menu Fichier de Main.qml.
+    property var recents: null
     title: spec.label
     // Largeur : la plus large des entrées (libellé + raccourci). Le style de base se règle sur un fond de 200 px et
     // ne suit pas la largeur des contenus : libellés tronqués, raccourcis sur les libellés.
@@ -46,6 +48,49 @@ Menu {
     onSpecChanged: syncEntries()
     Component.onCompleted: syncEntries()
 
+    // Sous-menu dynamique « Documents récents », inséré après `file.open` du menu Fichier tant que la liste n'est
+    // pas vide ; chaque entrée rejoue `file.open <url>`.
+    property bool recentShown: false
+    function syncRecent() {
+        const wanted = menu.spec.id === "file" && menu.recents && menu.recents.count > 0
+        if (menu.recentShown && !wanted) {
+            menu.removeMenu(recentMenu)
+            menu.recentShown = false
+        }
+        if (!wanted)
+            return
+        if (!menu.recentShown) {
+            for (let i = 0; i < menu.count; ++i) {
+                const it = menu.itemAt(i)
+                if (it && it.objectName === "menuItem-file.open") {
+                    menu.insertMenu(i + 1, recentMenu)
+                    menu.recentShown = true
+                    break
+                }
+            }
+        }
+    }
+    onRecentsChanged: Qt.callLater(menu.syncRecent)
+    Connections {
+        target: menu.recents
+        function onChanged() { Qt.callLater(menu.syncRecent) }
+    }
+    property Menu recentMenu: Menu {
+        objectName: "recentDocumentsMenu"
+        title: qsTr("Documents récents")
+        Instantiator {
+            model: menu.recents ? menu.recents.entries : []
+            delegate: MenuItem {
+                required property var modelData
+                objectName: "recentDocument-" + modelData.name
+                text: modelData.name
+                onTriggered: if (menu.commands) menu.commands.trigger("file.open", modelData.url)
+            }
+            onObjectAdded: (index, object) => recentMenu.insertItem(index, object)
+            onObjectRemoved: (index, object) => recentMenu.removeItem(object)
+        }
+    }
+
     Instantiator {
         model: entries
         delegate: DelegateChooser {
@@ -65,7 +110,14 @@ Menu {
                 }
             }
         }
-        onObjectAdded: (index, object) => object.isCommandMenu === true ? menu.insertMenu(index, object) : menu.insertItem(index, object)
-        onObjectRemoved: (index, object) => object.isCommandMenu === true ? menu.removeMenu(object) : menu.removeItem(object)
+        onObjectAdded: (index, object) => {
+            object.isCommandMenu === true ? menu.insertMenu(index, object) : menu.insertItem(index, object)
+            Qt.callLater(menu.syncRecent)
+        }
+        onObjectRemoved: (index, object) => {
+            object.isCommandMenu === true ? menu.removeMenu(object) : menu.removeItem(object)
+            menu.recentShown = false // l'indice du sous-menu a bougé : il est reposé
+            Qt.callLater(menu.syncRecent)
+        }
     }
 }

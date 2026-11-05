@@ -195,6 +195,9 @@ private slots:
         waitFrame(f);
         QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
         const int rebuilds = f.page->rebuildCount();
+        // L6-C11 : en release, le décodage finirait avant l'image suivante ; retenu, il dure plus d'une
+        // image.
+        f.page->setDecodeHeldForTesting(true);
         f.page->setPage(
             core::generatePage(core::kDefaultSeed)); // 30 images à synthétiser : pas prêt aussitôt
         QVERIFY(!f.page->isReady());
@@ -202,6 +205,7 @@ private slots:
         QVERIFY(!f.page->isReady()); // sinon la capture suivante ne prouverait rien
         // Tant que la page suivante n'est pas prête, l'ancienne reste affichée (jamais un fond blanc nu).
         QVERIFY(colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
+        f.page->setDecodeHeldForTesting(false);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
         QVERIFY(!colorNear(f.window.grabWindow().pixelColor(500, 400), QColor(Qt::blue), 2));
@@ -260,6 +264,7 @@ private slots:
         f.page->setPage(first);
         QTRY_VERIFY(f.page->isReady());
         waitFrame(f);
+        f.page->setDecodeHeldForTesting(true); // L6-C11 : décodage plus long qu'une image, même en release
         f.page->setPage(core::generatePage(core::kDefaultSeed));
         f.page->setSize(QSizeF(1024, 768)); // comme PageArea : l'élément prend la taille de la page affichée
         waitFrame(f);
@@ -272,6 +277,7 @@ private slots:
         waitFrame(f);
         QVERIFY(!f.page->isReady());
         QVERIFY(colorNear(f.window.grabWindow().pixelColor(800, 600), QColor(0x3c, 0x3f, 0x45), 2));
+        f.page->setDecodeHeldForTesting(false);
         QTRY_VERIFY(f.page->isReady());
     }
 

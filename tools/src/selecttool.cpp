@@ -79,29 +79,32 @@ bool contains(const std::vector<core::ObjectId>& ids, core::ObjectId id)
 }
 
 // Verrouillé ou non déplaçable : sélectionné, jamais déplacé (F-210, P28).
-bool movable(const core::PageObject& object)
+// Mode conception (lockIgnored, F-560) : le verrou ne retient plus, les restrictions si.
+bool movable(const core::PageObject& object, bool lockIgnored)
 {
-    return !object.common.locked && object.common.restrictions.movable;
+    return unlockedFor(object, lockIgnored) && object.common.restrictions.movable;
 }
 
 // Dimensionnable : la règle des poignées (layoutSelection, beginTransform ; P28, P30), pas celle du glisser.
-bool resizable(const core::PageObject& object)
+bool resizable(const core::PageObject& object, bool lockIgnored)
 {
-    return !object.common.locked && object.common.restrictions.resizable;
+    return unlockedFor(object, lockIgnored) && object.common.restrictions.resizable;
 }
 
 // Pivotable : la même règle pour le bouton de rotation (beginTransform ; P28).
-bool rotatable(const core::PageObject& object)
+bool rotatable(const core::PageObject& object, bool lockIgnored)
 {
-    return !object.common.locked && object.common.restrictions.rotatable;
+    return unlockedFor(object, lockIgnored) && object.common.restrictions.rotatable;
 }
 
-// Parmi `ids` (présents), ceux qu'Agrandir et Réduire changent (M1, L3-C9).
-std::vector<core::ObjectId> resizableAmong(const core::Page& page, const std::vector<core::ObjectId>& ids)
+// Parmi `ids` (présents), ceux qu'Agrandir et Réduire changent (M1, L3-C9) : la règle des poignées, verrou
+// ignoré compris (mode conception).
+std::vector<core::ObjectId> resizableAmong(const core::Page& page, const std::vector<core::ObjectId>& ids,
+                                           bool lockIgnored)
 {
     std::vector<core::ObjectId> out;
     for (const core::ObjectId id : ids) {
-        if (resizable(page.objects[core::indexOf(page, id)])) {
+        if (resizable(page.objects[core::indexOf(page, id)], lockIgnored)) {
             out.push_back(id);
         }
     }
@@ -332,7 +335,7 @@ void SelectTool::scaleSelection(double factor)
 {
     const core::Page& page = m_context.document.page();
     const std::vector<core::ObjectId> ids = present(page, m_context.user.selection());
-    const std::vector<core::ObjectId> scaled = resizableAmong(page, ids);
+    const std::vector<core::ObjectId> scaled = resizableAmong(page, ids, m_context.lockIgnored);
     if (scaled.empty()) {
         return;
     }
@@ -412,7 +415,7 @@ void SelectTool::press(const input::Sample& sample)
     }
     if (!selection.empty()) { // barre et poignées passent avant tout, même avec Maj ou Ctrl
         const SelectionView grabFrame =
-            layoutSelection(page, selection, zoom, m_context.view.objectBarCommands());
+            layoutSelection(page, selection, zoom, m_context.view.objectBarCommands(), m_context.lockIgnored);
         const SelectionHit grabbed = hitSelection(grabFrame, m_start, zoom);
         if (grabbed.kind == SelectionHitKind::BarButton) {
             m_command = grabbed.command;
@@ -467,7 +470,7 @@ void SelectTool::press(const input::Sample& sample)
         }
         return;
     }
-    const SelectionView frame = layoutSelection(page, selection, zoom, {});
+    const SelectionView frame = layoutSelection(page, selection, zoom, {}, m_context.lockIgnored);
     if (hitSelection(frame, m_start, zoom).kind == SelectionHitKind::Inside) {
         m_grab = Grab::Drag; // dans le cadre, hors de tout objet : déplace la sélection
         m_grabbed = selection;
@@ -533,7 +536,7 @@ void SelectTool::beginDrag(bool force)
     std::vector<core::ObjectId> ids;
     for (const core::ObjectId id : m_grabbed) {
         const std::size_t index = core::indexOf(page, id);
-        if (index != page.objects.size() && (force || movable(page.objects[index]))) {
+        if (index != page.objects.size() && (force || movable(page.objects[index], m_context.lockIgnored))) {
             ids.push_back(id);
         }
     }
@@ -552,7 +555,8 @@ void SelectTool::beginDrag(bool force)
             m_copySources = core::closureForCopy(page, m_copied); // soulevés, ils quittent la page
         }
     }
-    m_frame = layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {});
+    m_frame =
+        layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
     liftForGesture(std::move(ids), State::Dragging);
 }
 
@@ -566,12 +570,14 @@ void SelectTool::beginTransform(State kind)
             continue;
         }
         const core::PageObject& object = page.objects[index];
-        const bool allowed = kind == State::Resizing ? resizable(object) : rotatable(object); // P28
+        const bool allowed = kind == State::Resizing ? resizable(object, m_context.lockIgnored)
+                                                     : rotatable(object, m_context.lockIgnored); // P28
         if (allowed) {
             ids.push_back(id);
         }
     }
-    m_frame = layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {});
+    m_frame =
+        layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
     if (ids.empty() || m_frame.corners.size() != 4 ||
         (kind == State::Resizing && m_frame.handles.size() != 8)) {
         return;
@@ -589,14 +595,14 @@ void SelectTool::beginSmartPoint()
         return;
     }
     const std::size_t index = core::indexOf(page, selection.front());
-    if (index == page.objects.size() || page.objects[index].common.locked) {
+    if (index == page.objects.size() || (page.objects[index].common.locked && !m_context.lockIgnored)) {
         return;
     }
     const auto* shape = std::get_if<core::Shape>(&core::body(page.objects[index]));
     if (shape == nullptr || m_smartPoint >= core::smartPoints(*shape).size()) {
         return;
     }
-    m_frame = layoutSelection(page, selection, m_context.view.zoom(), {});
+    m_frame = layoutSelection(page, selection, m_context.view.zoom(), {}, m_context.lockIgnored);
     m_smartParameters.clear();
     m_smartMoved = false;
     liftForGesture({selection.front()}, State::SmartPoint);
@@ -638,8 +644,9 @@ void SelectTool::endSmartPoint(bool cancelled)
     showFrame();
 }
 
-// Un point de forme d'une forme seule, non verrouillée : soulevée, son aperçu est le résultat de
-// MoveShapePointCommand sur une copie (L5-T9, aucune règle refaite ici) ; le dépôt est une seule commande.
+// Un point de forme d'une forme seule, non verrouillée (ou verrou ignoré) : soulevée, son aperçu est le
+// résultat de MoveShapePointCommand sur une copie (L5-T9, aucune règle refaite ici) ; le dépôt est une seule
+// commande. Aperçu et dépôt passent à la commande le choix « verrou ignoré » : sa garde reste au cœur.
 void SelectTool::beginShapePoint()
 {
     const core::Page& page = m_context.document.page();
@@ -648,11 +655,11 @@ void SelectTool::beginShapePoint()
         return;
     }
     const std::size_t index = core::indexOf(page, selection.front());
-    if (index == page.objects.size() || page.objects[index].common.locked ||
+    if (index == page.objects.size() || (page.objects[index].common.locked && !m_context.lockIgnored) ||
         m_shapePoint >= core::shapePoints(page.objects[index]).size()) {
         return; // D9 : un verrouillé ne bouge pas par ses points
     }
-    m_frame = layoutSelection(page, selection, m_context.view.zoom(), {});
+    m_frame = layoutSelection(page, selection, m_context.view.zoom(), {}, m_context.lockIgnored);
     m_shapePointTo.reset();
     liftForGesture({selection.front()}, State::ShapePoint);
 }
@@ -665,7 +672,8 @@ void SelectTool::updateShapePoint(core::PointF point)
     core::Document probe; // hors du document : aucun redessin du cache pendant le geste
     probe.page(0).objects.push_back(*m_firstLifted);
     core::Changes ignored;
-    core::MoveShapePointCommand(0, m_firstLifted->common.id, m_shapePoint, point).redo(probe, ignored);
+    core::MoveShapePointCommand(0, m_firstLifted->common.id, m_shapePoint, point, m_context.lockIgnored)
+        .redo(probe, ignored);
     core::PageObject preview = probe.page(0).objects.front();
     m_shapePointTo = point;
     SelectionView view = m_frame;
@@ -686,10 +694,10 @@ void SelectTool::endShapePoint(bool cancelled)
         // L5-T10 : le connecteur lié suit ; enveloppée, la commande ne fusionne plus, le geste reste une
         // étape parce qu'il n'en dépose qu'une, au relâché.
         const std::size_t page = m_context.document.pageIndex();
-        m_context.document.drop(
-            core::withFollowingConnectors(m_context.document.page(), page,
-                                          std::make_unique<core::MoveShapePointCommand>(
-                                              page, m_lifted.front(), m_shapePoint, *m_shapePointTo)));
+        m_context.document.drop(core::withFollowingConnectors(
+            m_context.document.page(), page,
+            std::make_unique<core::MoveShapePointCommand>(page, m_lifted.front(), m_shapePoint,
+                                                          *m_shapePointTo, m_context.lockIgnored)));
     }
     m_context.lift.clear();
     reset();
@@ -781,7 +789,8 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
 {
     core::Transform delta = gestureTransform(point);
     const std::size_t page = m_context.document.pageIndex();
-    if (m_state == State::Dragging && !cancelled && m_firstLifted && !m_context.view.overTrash(point)) {
+    if (m_state == State::Dragging && !cancelled && m_firstLifted && !m_context.snapDisabled &&
+        !m_context.view.overTrash(point)) {
         // Accrochage au dépôt seulement (F-622) : les objets sont soulevés, donc hors de la page ; on
         // accroche d'après la copie du premier, sur la grille de la page.
         core::Page probe;
@@ -823,8 +832,8 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
 
 void SelectTool::showBand(core::PointF point)
 {
-    SelectionView view =
-        layoutSelection(m_context.document.page(), m_context.user.selection(), m_context.view.zoom(), {});
+    SelectionView view = layoutSelection(m_context.document.page(), m_context.user.selection(),
+                                         m_context.view.zoom(), {}, m_context.lockIgnored);
     view.rubberBand = core::normalizedRect(m_start, point);
     publish(view);
 }
@@ -882,8 +891,9 @@ void SelectTool::release(const input::Sample& sample)
 
 void SelectTool::showFrame()
 {
-    SelectionView view = layoutSelection(m_context.document.page(), m_context.user.selection(),
-                                         m_context.view.zoom(), m_context.view.objectBarCommands());
+    SelectionView view =
+        layoutSelection(m_context.document.page(), m_context.user.selection(), m_context.view.zoom(),
+                        m_context.view.objectBarCommands(), m_context.lockIgnored);
     view.shapePoints = shownShapePoints(m_context.user.selection());
     if (!view.shapePoints.empty()) { // les carrés remplacent poignées et points intelligents (F-527)
         view.handlesVisible = false;

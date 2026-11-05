@@ -16,6 +16,7 @@
 #include <QLibraryInfo>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -44,6 +45,10 @@ QByteArray fakeConverter(const QString& source)
         .toLocal8Bit();
 }
 
+// Profils d'essai (amendement 3, N1), posé par initTestCase : sous les réglages jetables, créés avant que les
+// tests ne redirigent TMPDIR vers un dossier qui doit rester vide.
+QString g_profileRoot;
+
 // L'interface réelle (Main.qml) : les commandes passent par leurs gestionnaires, comme au menu et aux
 // scénarios.
 struct Shell
@@ -56,7 +61,9 @@ struct Shell
 
     bool start()
     {
-        window = loadMainWindow(engine, StartupOptions{});
+        StartupOptions options;
+        options.profileRoot = g_profileRoot;
+        window = loadMainWindow(engine, options);
         if (!window || !QTest::qWaitForWindowExposed(window)) {
             return false;
         }
@@ -188,9 +195,16 @@ void pointTempAt(const QString& directory)
 class TestUiImport : public QObject
 {
     Q_OBJECT
+    // Réglages du poste (Preferences de Main.qml) : INI dans un dossier jetable, jamais ceux du poste (N1).
+    QTemporaryDir m_settings;
+
 private slots:
     void initTestCase()
     {
+        QVERIFY(m_settings.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settings.path());
+        g_profileRoot = m_settings.filePath(QStringLiteral("profiles"));
         qunsetenv("ACTCRAFT_OFFICE_CONVERTER");
         qunsetenv("ACTCRAFT_POWERSHELL");
         g_environment.remember();

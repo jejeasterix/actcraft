@@ -4,6 +4,8 @@
 #include <actcraft/core/undo.h>
 
 #include <cstddef>
+#include <optional>
+#include <vector>
 
 namespace actcraft::core {
 
@@ -23,6 +25,9 @@ bool hasExtent(const PageObject& object) noexcept;
 // Rectangle englobant en coordonnées de page, épaisseur comprise (transformation appliquée) ; 0 × 0 à
 // l'origine pour un objet sans emprise (hasExtent faux), ce qui n'est pas une position.
 RectF boundsOnPage(const PageObject& object) noexcept;
+// Centre de l'union des emprises des objets qui en ont une (un groupe n'en a pas : ses membres) ;
+// nullopt si aucun n'en a.
+std::optional<PointF> centerOfExtents(const std::vector<PageObject>& objects) noexcept;
 // Variantes qui lisent la page : un groupe ne porte que des identifiants de membres, son emprise est l'union
 // des emprises sur la page de ses membres (groupes imbriqués compris, cycle protégé ; la transformation du
 // groupe lui-même n'est pas appliquée : les membres portent leur propre transformation). Un groupe vide, ou

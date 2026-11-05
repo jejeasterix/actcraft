@@ -1,0 +1,31 @@
+{
+  "format": "actcraft-profile/1",
+  "id": "calcul-geometrie",
+  "label": "Compter et construire",
+  "icon-pixels": 24,
+  "palette": {
+    "dock": "right",
+    "collapsed": false,
+    "shortcuts-hidden": false,
+    "pinned": true,
+    "swatches": 16
+  },
+  "browsers": {
+    "visible": false,
+    "side": "left",
+    "pinned": true,
+    "current": "pages",
+    "width": 240
+  },
+  "fit-page": true,
+  "trash-visible": true,
+  "pinned": [
+    "math.ruler",
+    "math.set-square",
+    "math.protractor",
+    "math.compass",
+    "math.xy-origin",
+    "tool.dice",
+    "tool.calculator"
+  ]
+}

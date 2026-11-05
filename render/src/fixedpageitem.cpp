@@ -122,6 +122,7 @@ void FixedPageItem::restart(Decode decode, Scope scope)
         }
         ++m_decodeCount;
         m_decodingInputs = decodeInputs(page());
+        m_heldDecodeDone = false; // un décodage retenu et fini est remplacé par celui-ci
         m_images.generate(page(), &document());
     }
     emit objectCountChanged();
@@ -380,6 +381,23 @@ void FixedPageItem::setForceRasterized(bool on)
     update();
 }
 
+bool FixedPageItem::showHiddenTranslucent() const noexcept
+{
+    return m_showHiddenTranslucent;
+}
+
+void FixedPageItem::setShowHiddenTranslucent(bool on)
+{
+    if (m_showHiddenTranslucent == on) {
+        return;
+    }
+    m_showHiddenTranslucent = on;
+    m_rebuild = true; // une reconstruction par bascule, et un redessin du cache de la vue (contentChanged)
+    update();
+    emit showHiddenTranslucentChanged();
+    emit contentChanged();
+}
+
 int FixedPageItem::rasterizationCount() const noexcept
 {
     return m_rasterizationCount.load();
@@ -410,8 +428,21 @@ void FixedPageItem::rescaleRasterNodes(const core::Page& page, const RenderConte
     }
 }
 
+void FixedPageItem::setDecodeHeldForTesting(bool held)
+{
+    m_decodeHeld = held;
+    if (!held && m_heldDecodeDone) {
+        m_heldDecodeDone = false;
+        onImagesReady();
+    }
+}
+
 void FixedPageItem::onImagesReady()
 {
+    if (m_decodeHeld) {
+        m_heldDecodeDone = true;
+        return;
+    }
     m_rebuild = true;
     m_ready = true;
     emit readyChanged();
@@ -431,8 +462,8 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     // Logiciel : racine de transformation (identité). Sous une racine QSGNode nue déjà rendue, le moteur
     // logiciel de Qt 6.12 peint les nœuds ajoutés sans la transformation de l'élément (voir InkItem).
     QSGNode* root = old ? old : (software ? new QSGTransformNode : new QSGNode);
-    const NodeContexts contexts =
-        nodeContexts(window(), software, &m_images, m_rasterScale, m_forceRasterized);
+    const NodeContexts contexts = nodeContexts(window(), software, &m_images, m_rasterScale,
+                                               m_forceRasterized, m_showHiddenTranslucent);
     const RenderContext& painted = contexts.painted;
     const bool rasterized = !painted.software;
     const core::Page& shown = page();

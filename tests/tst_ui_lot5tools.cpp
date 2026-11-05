@@ -117,7 +117,9 @@ private:
     bool start(App& app, const QString& name = QStringLiteral("vierge.ini"))
     {
         app.engine.setInitialProperties(
-            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+            {{QStringLiteral("cacheEnabled"), true},
+             {QStringLiteral("generatedPage"), false},
+             {QStringLiteral("profileRoot"), m_dir.filePath(QStringLiteral("profiles"))}});
         app.engine.loadFromModule("ActCraft.Ui", "Main");
         if (app.engine.rootObjects().isEmpty()) {
             return false;

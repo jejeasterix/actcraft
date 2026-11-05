@@ -95,7 +95,7 @@ actcraft_add_test(tst_ui_escape
     SOURCES tst_ui_escape.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 
-# Lot 5 (L5-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# Lot 5 (L5-T1) : tests des tâches nommées.
 # L5-T14
 actcraft_add_test(tst_ui_objectediting
     SOURCES tst_ui_objectediting.cpp
@@ -129,3 +129,99 @@ target_include_directories(tst_ui_import PRIVATE ${PROJECT_SOURCE_DIR}/app)
 target_compile_definitions(tst_ui_import PRIVATE
     ACTCRAFT_CMAKE="${CMAKE_COMMAND}"
     ACTCRAFT_IMPORT_DATA="${PROJECT_SOURCE_DIR}/tests/data/import")
+
+# Lot 6 (L6-T1) : tests des tâches nommées.
+# L6-T5
+actcraft_add_test(tst_ui_preferences
+    SOURCES tst_ui_preferences.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T6
+actcraft_add_test(tst_ui_profiles
+    SOURCES tst_ui_profiles.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T7
+actcraft_add_test(tst_ui_palette
+    SOURCES tst_ui_palette.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_palette PRIVATE ${PROJECT_SOURCE_DIR}/app)
+# L6-T8
+actcraft_add_test(tst_ui_colors
+    SOURCES tst_ui_colors.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T9
+actcraft_add_test(tst_ui_shortcutbar
+    SOURCES tst_ui_shortcutbar.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T12
+actcraft_add_test(tst_ui_propertymodel
+    SOURCES tst_ui_propertymodel.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T14
+actcraft_add_test(tst_ui_objecttree
+    SOURCES tst_ui_objecttree.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T16
+actcraft_add_test(tst_ui_notes
+    SOURCES tst_ui_notes.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T17
+actcraft_add_test(tst_ui_labels
+    SOURCES tst_ui_labels.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T20
+actcraft_add_test(tst_ui_resources
+    SOURCES tst_ui_resources.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T22
+actcraft_add_test(tst_ui_designmode
+    SOURCES tst_ui_designmode.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T24
+actcraft_add_test(tst_ui_recents
+    SOURCES tst_ui_recents.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T25
+actcraft_add_test(tst_ui_profileeditor
+    SOURCES tst_ui_profileeditor.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T26
+actcraft_add_test(tst_ui_layouteditor
+    SOURCES tst_ui_layouteditor.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T27
+actcraft_add_test(tst_ui_settingsschema
+    SOURCES tst_ui_settingsschema.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T28
+actcraft_add_test(tst_ui_network
+    SOURCES tst_ui_network.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T29
+actcraft_add_test(tst_ui_launchers
+    SOURCES tst_ui_launchers.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T30
+actcraft_add_test(tst_ui_launcherspage
+    SOURCES tst_ui_launcherspage.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+add_dependencies(tst_ui_launcherspage launcher_probe)
+# L6-T31
+actcraft_add_test(tst_ui_classroomlock
+    SOURCES tst_ui_classroomlock.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T34
+actcraft_add_test(tst_ui_spelling
+    SOURCES tst_ui_spelling.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T35
+actcraft_add_test(tst_ui_help
+    SOURCES tst_ui_help.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T36
+actcraft_add_test(tst_ui_language
+    SOURCES tst_ui_language.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+# Programme d'essai des raccourcis vers des programmes (L6-T29).
+add_executable(launcher_probe launcher_probe.cpp)
+actcraft_set_warnings(launcher_probe)

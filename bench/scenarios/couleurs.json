@@ -1,0 +1,31 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "couleurs",
+  "description": "S9.2 : clic droit sur une pastille (grille étendue 6 × 6), couleur ajoutée gardée en dernière pastille, copieur de couleur (loupe). Profil « preparation » posé d'abord : 24 places pour les 16 couleurs de base, la blanche (16e) reste, la couleur ajoutée prend la 17e (1re colonne, 5e rangée). Les lectures nommées swatch-15 et swatch-16 ne dépendent pas de la géométrie. checkPixel lit en coordonnées de page (zoom 0,901, page à (122,7 ; 76) dans la fenêtre).",
+  "steps": [
+    {"waitReady": true},
+    {"command": "profile.activate", "argument": "preparation"},
+    {"wait": 200},
+    {"expect": "appProfile.currentId", "value": "preparation"},
+    {"expect": "appProfile.swatches", "value": 24},
+    {"pointer": [[1186, 260]], "button": "right", "space": "window"},
+    {"wait": 300},
+    {"capture": "etendue"},
+    {"pointer": [[700, 22]], "space": "window"},
+    {"command": "color.add", "argument": "#12AB34"},
+    {"wait": 200},
+    {"expect": "appColors.extraCount", "value": 1},
+    {"expect": "swatch-15.modelData", "value": "#FFFFFF"},
+    {"expect": "swatch-16.modelData", "value": "#12AB34"},
+    {"checkPixel": "pastille-base-gardee", "at": [1261, 284], "color": "#FFFFFF", "tolerance": 8},
+    {"checkPixel": "pastille-ajoutee", "at": [1180, 310], "color": "#12AB34", "tolerance": 8},
+    {"command": "color.pick"},
+    {"wait": 200},
+    {"expect": "colorLoupe.active", "value": true},
+    {"capture": "loupe"},
+    {"pointer": [[60, 400]], "space": "window", "button": "left"},
+    {"expect": "colorLoupe.active", "value": false},
+    {"expect": "appColors.extraCount", "value": 2},
+    {"key": "Esc"}
+  ]
+}

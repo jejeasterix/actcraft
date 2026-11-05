@@ -164,6 +164,9 @@ void ObjectEditing::setDocument(DocumentController* document)
     if (document != nullptr) {
         connect(document, &DocumentController::documentChanged, this, &ObjectEditing::selectionStateChanged);
         connect(document, &DocumentController::pagesChanged, this, &ObjectEditing::selectionStateChanged);
+        // Un drapeau posé ailleurs (arbre, propriétés) ne rend aucun Change : documentChanged reste muet.
+        connect(document, &DocumentController::objectFlagsChanged, this,
+                &ObjectEditing::selectionStateChanged);
     }
     emit documentChanged();
     emit selectionStateChanged();

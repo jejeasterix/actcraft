@@ -6,6 +6,7 @@
 #include <actcraft/core/undo.h>
 #include <actcraft/render/fixedpageitem.h>
 
+#include <QList>
 #include <QObject>
 #include <QPointer>
 #include <QSizeF>
@@ -227,6 +228,13 @@ signals:
     void liftingChanged();
     // Une fois par page touchée par une commande (objet ou page, hors page retirée), après settle().
     void pageContentChanged(int page);
+    // L6-C2 (H6-15) : une fois par page dont un objet a changé de drapeau (core::ObjectFlag : verrou, masqué,
+    // copie au glissement), quel que soit le chemin (execute, annulation, rétablissement, dépôt), après les
+    // autres signaux de la modification. `ids` : ces objets, par identifiant croissant. Verrouiller et la
+    // copie au glissement ne rendent aucun Change : ni observateur, ni documentChanged, ni pageContentChanged
+    // ne le disent, ce signal seul. Rien si aucun drapeau ne change (drapeau déjà posé ; objet ajouté ou
+    // retiré avec les siens).
+    void objectFlagsChanged(int page, const QList<quint64>& ids);
 
 private:
     void setBusy(bool busy);
@@ -245,6 +253,19 @@ private:
     // ou disparu). Seul appel du cache. Vrai si le nombre de pages ou la page affichée a changé.
     bool settle(const core::Changes& changes, ChangeOrigin origin);
     void notifyObservers(const core::Changes& changes, ChangeOrigin origin);
+    // Un objet du document et ses drapeaux (core::ObjectFlag) : relevé avant une modification, comparé après.
+    struct FlaggedObject
+    {
+        core::ObjectId id = 0;
+        std::size_t page = 0;
+        std::uint8_t flags = 0; // un bit par drapeau
+    };
+    // Tous les objets du document, par identifiant croissant (les identifiants sont uniques d'une page à
+    // l'autre).
+    std::vector<FlaggedObject> flaggedObjects() const;
+    // objectFlagsChanged pour chaque objet présent dans `before` et dans le document dont les drapeaux ont
+    // changé ; un objet absent de `before` est entré avec les siens.
+    void notifyFlags(const std::vector<FlaggedObject>& before);
     // Signaux d'état après une modification : pagesChanged (si `pages`), document, pile, modifié.
     void notifyState(bool pages);
     void updateModified(); // modifiedChanged si l'état « modifié » a changé

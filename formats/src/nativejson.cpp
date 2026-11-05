@@ -543,10 +543,34 @@ QJsonObject actionJson(const Action& action)
                     unknownKeys);
 }
 
+// Mots-clés (L6-T10) : tableau de textes.
+QJsonArray keywordsJson(const std::vector<std::string>& words)
+{
+    QJsonArray list;
+    for (const std::string& word : words) {
+        list.append(str(word));
+    }
+    return list;
+}
+
+// Style de légende (L6-T10) : ses six clés, écrites ensemble dès qu'une valeur n'est pas celle par défaut.
+QJsonObject labelStyleJson(const LabelStyle& style)
+{
+    const auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] =
+        style;
+    return withKept(QJsonObject{{u"fontFamily"_s, str(fontFamily)},
+                                {u"pointSize"_s, pointSize},
+                                {u"color"_s, colorText(textColor)},
+                                {u"outline"_s, nameText(outlineStyle)},
+                                {u"outlineColor"_s, colorText(outlineColor)},
+                                {u"fill"_s, colorText(background)}},
+                    unknownKeys);
+}
+
 void writeCommon(QJsonObject& j, const ObjectCommon& common)
 {
     const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-                 actions] = common;
+                 labelStyle, keywords, actions] = common;
     j.insert(u"id"_s, idValue(id));
     j.insert(u"name"_s, str(name));
     j.insert(u"layer"_s, nameText(layer));
@@ -561,6 +585,12 @@ void writeCommon(QJsonObject& j, const ObjectCommon& common)
              QJsonObject{{u"move"_s, movable}, {u"size"_s, resizable}, {u"rotate"_s, rotatable}});
     j.insert(u"transform"_s, transformJson(transform));
     j.insert(u"label"_s, str(label));
+    if (labelStyle != LabelStyle{}) {
+        j.insert(u"labelStyle"_s, labelStyleJson(labelStyle)); // facultative (L6-T10) : absente, défaut
+    }
+    if (!keywords.empty()) {
+        j.insert(u"keywords"_s, keywordsJson(keywords)); // facultative (L6-T10) : absente, aucun mot-clé
+    }
     QJsonArray list;
     for (const Action& action : actions) {
         list.append(actionJson(action));
@@ -832,8 +862,8 @@ QJsonObject zonesJson(const PageZones& zones)
 
 QJsonObject pageJson(const Page& page)
 {
-    const auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight,
-                 zones] = page; // baseHeight : L4-T6 ; zones : L4-T27
+    const auto& [width, height, objects, background, grid, name, notes, description, keywords, presentation,
+                 unknownKeys, baseHeight, zones] = page; // baseHeight : L4-T6 ; zones : L4-T27 ; L6-T10
     QJsonObject j;
     j.insert(u"width"_s, width);
     j.insert(u"height"_s, height);
@@ -842,6 +872,12 @@ QJsonObject pageJson(const Page& page)
     }
     j.insert(u"name"_s, str(name));
     j.insert(u"notes"_s, str(notes));
+    if (!description.empty()) {
+        j.insert(u"description"_s, str(description)); // facultative (L6-T10) : absente, aucune
+    }
+    if (!keywords.empty()) {
+        j.insert(u"keywords"_s, keywordsJson(keywords)); // facultative (L6-T10) : absente, aucun mot-clé
+    }
     const auto& [fill, image] = background;
     j.insert(u"background"_s, QJsonObject{{u"fill"_s, fillJson(fill)}, {u"image"_s, str(image)}});
     j.insert(u"grid"_s, gridJson(grid));
@@ -909,6 +945,7 @@ struct KnownKeys
     std::array<QJsonObject, kObjectKindCount> objects; // Unknown : vide, jamais consulté
     QJsonObject page;
     QJsonObject presentation; // toutes les sous-clés, « origin » comprise
+    QJsonObject labelStyle;   // les six sous-clés du style de légende (L6-T10)
     QJsonObject action;
     QJsonObject run;
     QJsonObject level;
@@ -1288,11 +1325,40 @@ Action readAction(Reader& r, const QJsonObject& j)
     return action;
 }
 
+// Mots-clés (L6-T10) : absents, aucun ; un élément qui n'est pas un texte est sauté avec un avertissement.
+std::vector<std::string> readKeywords(Reader& r, const QJsonObject& j)
+{
+    std::vector<std::string> words;
+    for (const QJsonValue& value : r.readArray(j, u"keywords")) {
+        if (value.isString()) {
+            words.push_back(value.toString().toStdString());
+        } else {
+            r.warn(u"« keywords » : élément qui n'est pas un texte, ignoré"_s);
+        }
+    }
+    return words;
+}
+
+// Style de légende (L6-T10) : absent, ou chaque clé absente, la valeur par défaut.
+LabelStyle readLabelStyle(Reader& r, const QJsonObject& j)
+{
+    LabelStyle style;
+    auto& [fontFamily, pointSize, textColor, outlineStyle, outlineColor, background, unknownKeys] = style;
+    unknownKeys = unknownKeysOf(j, r.known->labelStyle);
+    fontFamily = r.readString(j, u"fontFamily");
+    pointSize = r.readNumber(j, u"pointSize", pointSize);
+    textColor = r.readColor(j, u"color", textColor);
+    outlineStyle = r.readEnum(kPenStyles, j, u"outline", outlineStyle);
+    outlineColor = r.readColor(j, u"outlineColor", outlineColor);
+    background = r.readColor(j, u"fill", background);
+    return style;
+}
+
 ObjectCommon readCommon(Reader& r, const QJsonObject& j)
 {
     ObjectCommon common;
     auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-           actions] = common;
+           labelStyle, keywords, actions] = common;
     id = r.readId(j, u"id");
     name = r.readString(j, u"name");
     layer = r.readEnum(kLayers, j, u"layer", layer);
@@ -1307,6 +1373,8 @@ ObjectCommon readCommon(Reader& r, const QJsonObject& j)
     rotatable = r.readFlag(jr, u"rotate", rotatable);
     transform = r.readTransform(j, u"transform", transform);
     label = r.readString(j, u"label");
+    labelStyle = readLabelStyle(r, r.readChild(j, u"labelStyle"));
+    keywords = readKeywords(r, j);
     for (const QJsonValue& value : r.readArray(j, u"actions")) {
         if (const std::optional<QJsonObject> ja = r.readElement(value, u"actions")) {
             actions.push_back(readAction(r, *ja));
@@ -1500,7 +1568,9 @@ template <std::size_t I = 0> PageObject blankObject(std::size_t index)
 PageObject everyKeyObject(std::size_t index)
 {
     PageObject object = blankObject(index);
-    object.common.dragCopy = true; // lot 5 : clé facultative
+    object.common.dragCopy = true;          // lot 5 : clé facultative
+    object.common.labelStyle.pointSize = 1; // L6-T10 : « labelStyle » et ses six clés, écrites hors défaut
+    object.common.keywords = {"keyword"};   // L6-T10 : « keywords », écrite hors défaut
     if (auto* connector = std::get_if<Connector>(&body(object))) {
         connector->style = 1;
         connector->capA = ConnectorCap::Arrow;
@@ -1577,7 +1647,11 @@ std::optional<PageObject> readObject(Reader& r, const QJsonValue& value)
     PageObject object = blankObject(index);
     std::visit([&r, &j](auto& held) { readBody(r, *j, held); }, body(object));
     object.common = readCommon(r, *j);
-    object.unknownKeys = unknownKeysOf(*j, r.known->objects[index]);
+    // « labelStyle » est lue par readLabelStyle, qui garde ses sous-clés inconnues ; hors des clés inconnues
+    // de l'objet, elle y serait gardée en double.
+    QJsonObject objectKeys = *j;
+    objectKeys.remove(u"labelStyle"_s);
+    object.unknownKeys = unknownKeysOf(objectKeys, r.known->objects[index]);
     return object;
 }
 
@@ -1659,8 +1733,8 @@ PageZones readZones(Reader& r, const QJsonObject& j)
 Page readPage(Reader& r, const QJsonObject& j)
 {
     Page page;
-    auto& [width, height, objects, background, grid, name, notes, presentation, unknownKeys, baseHeight,
-           zones] = page; // baseHeight : L4-T6 ; zones : L4-T27
+    auto& [width, height, objects, background, grid, name, notes, description, keywords, presentation,
+           unknownKeys, baseHeight, zones] = page; // baseHeight : L4-T6 ; zones : L4-T27 ; L6-T10
     // « presentation » est lue par readPresentation, qui garde ses sous-clés inconnues ; hors des clés
     // inconnues de la page : pageJson(Page{}) ne l'écrit pas, elle y serait gardée en double et réécrite même
     // remise aux réglages par défaut.
@@ -1673,6 +1747,8 @@ Page readPage(Reader& r, const QJsonObject& j)
     baseHeight = r.readNumber(j, u"baseHeight", baseHeight);
     name = r.readString(j, u"name");
     notes = r.readString(j, u"notes");
+    description = r.readString(j, u"description");
+    keywords = readKeywords(r, j);
     const QJsonObject jb = r.readChild(j, u"background");
     auto& [fill, image] = background;
     fill = r.readFill(jb, u"fill", fill);
@@ -1743,10 +1819,13 @@ KnownKeys knownKeys()
                                    .vertical = 1,
                                    .frameWidth = 1,
                                    .frameHeight = 1}; // « zones » n'est écrite que hors défaut (L4-T27)
+    everyPageKey.description = "description";         // L6-T10 : écrite hors défaut seulement
+    everyPageKey.keywords = {"keyword"};              // L6-T10 : idem
     known.page = pageJson(everyPageKey);
     PagePresentation everyPresentationKey;
     everyPresentationKey.hasOrigin = true;
     known.presentation = presentationJson(everyPresentationKey);
+    known.labelStyle = labelStyleJson(LabelStyle{});
     known.action = actionJson(Action{});
     known.run = runJson(TextSpan{});
     known.level = gridLevelJson(GridLevel{});

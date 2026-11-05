@@ -358,7 +358,10 @@ private slots:
                 QCOMPARE(m.items, (QStringList{"desktop.annotate", "desktop.tools", "-", "tool.pen",
                                                "tool.highlighter", "tool.eraser", "-", "tool.handwriting",
                                                "tool.shape-recognition", "-", "present.curtain", ">spot",
-                                               ">camera", ">math", ">other-tools"}));
+                                               ">camera", ">math", ">other-tools",
+                                               // Lot 6 (L6-T1) : fin du menu, après « Autres outils ».
+                                               "-", "spell.check", "launcher.edit", "classroom.lock",
+                                               "classroom.password", "-", "profile.edit"}));
                 // Amendement 1 du lot 4, F-750 : « tool.text-vertical » en fin d'« Autres outils ».
                 for (const MenuSpec& sub : m.submenus) {
                     if (sub.id == QLatin1String("other-tools")) {
@@ -411,6 +414,17 @@ private slots:
         QCOMPARE(registry.ids().count(QStringLiteral("edit.cut")), 1); // déclarée une seule fois
     }
 
+    // L6-P2 (P13) : les deux entrées du lot 6 forment un groupe final, après la reconnaissance.
+    void lot6EntriesInObjectMenu()
+    {
+        const Layout layout = layoutFromResources();
+        const qsizetype properties = layout.objectMenu.indexOf(QStringLiteral("browser.properties"));
+        const qsizetype add = layout.objectMenu.indexOf(QStringLiteral("resources.add"));
+        QVERIFY(properties > 0 && add == properties + 1);
+        QCOMPARE(layout.objectMenu.at(properties - 1), QStringLiteral("-"));
+        QCOMPARE(layout.objectMenu.count(QStringLiteral("browser.properties")), 1);
+    }
+
     void objectMenuOrder()
     {
         const Layout layout = layoutFromResources();
@@ -430,9 +444,13 @@ private slots:
                                    "object.group",
                                    "object.hide",
                                    "object.drag-copy",
+                                   "shortcutbar.add-selection",
                                    "-",
                                    "recognition.convert-to-text",
-                                   "recognition.convert-to-shape"};
+                                   "recognition.convert-to-shape",
+                                   "-",
+                                   "browser.properties",
+                                   "resources.add"};
         QCOMPARE(layout.objectMenu, expected);
         QCOMPARE(layout.objectSubmenus.size(), std::size_t{3});
         QCOMPARE(layout.objectSubmenus[0].items.size(), 13);
@@ -465,6 +483,69 @@ private slots:
             qPrintable(error));
         QCOMPARE(unknownCommands(withUnknown, registryFromResources()),
                  QStringList{QStringLiteral("nope.cmd")});
+    }
+
+    void lot6EntriesDeclared()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const QStringList ids = {
+            QStringLiteral("palette.dock-left"),
+            QStringLiteral("palette.dock-right"),
+            QStringLiteral("palette.dock-top"),
+            QStringLiteral("palette.dock-bottom"),
+            QStringLiteral("palette.float"),
+            QStringLiteral("palette.collapse"),
+            QStringLiteral("palette.collapse-full"),
+            QStringLiteral("palette.pin"),
+            QStringLiteral("palette.icon-size"),
+            QStringLiteral("color.more"),
+            QStringLiteral("color.pick"),
+            QStringLiteral("color.dialog"),
+            QStringLiteral("color.add"),
+            QStringLiteral("browser.objects"),
+            QStringLiteral("browser.properties"),
+            QStringLiteral("browser.notes"),
+            QStringLiteral("browser.resources"),
+            QStringLiteral("profile.choose"),
+            QStringLiteral("profile.activate"),
+            QStringLiteral("profile.edit"),
+            QStringLiteral("profile.save-as"),
+            QStringLiteral("profile.import"),
+            QStringLiteral("profile.export"),
+            QStringLiteral("profile.delete"),
+            QStringLiteral("profile.reset"),
+            QStringLiteral("mode.design"),
+            QStringLiteral("view.dashboard"),
+            QStringLiteral("file.recent-clear"),
+            QStringLiteral("resources.mine"),
+            QStringLiteral("resources.shared"),
+            QStringLiteral("resources.other"),
+            QStringLiteral("resources.insert"),
+            QStringLiteral("resources.add"),
+            QStringLiteral("resources.stamp"),
+            QStringLiteral("resources.new-folder"),
+            QStringLiteral("resources.rename"),
+            QStringLiteral("resources.delete"),
+            QStringLiteral("classroom.lock"),
+            QStringLiteral("classroom.password"),
+            QStringLiteral("spell.check"),
+            QStringLiteral("launcher.run"),
+            QStringLiteral("launcher.edit"),
+            QStringLiteral("help.contents"),
+            QStringLiteral("shortcutbar.insert"),
+            QStringLiteral("shortcutbar.add-selection"),
+            QStringLiteral("settings.language"),
+        };
+        QCOMPARE(ids.size(), 46);
+        for (const QString& id : ids) {
+            QVERIFY2(registry.find(id) != nullptr, qPrintable(id));
+        }
+        QCOMPARE(registry.find(QStringLiteral("help.contents"))->shortcut, QStringLiteral("F1"));
+        QVERIFY(registry.find(QStringLiteral("help.website"))->shortcut.isEmpty());
+        QCOMPARE(registry.find(QStringLiteral("launcher.edit"))->platforms, Platforms(Platform::Windows));
+        QVERIFY(registry.find(QStringLiteral("mode.design"))->checkable);
     }
 
     void unknownCommandsAreListedOnce()

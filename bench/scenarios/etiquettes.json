@@ -1,0 +1,161 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "etiquettes",
+  "description": "F-576 : légende d'un objet montrée au survol. Une forme posée, légende « Soleil » saisie dans l'éditeur « label » du navigateur de propriétés, pointeur au repos sur la forme : la bulle s'affiche après 400 ms.",
+  "steps": [
+    {
+      "waitReady": true
+    },
+    {
+      "command": "tool.shape"
+    },
+    {
+      "command": "shape.choose",
+      "argument": "rectangle"
+    },
+    {
+      "pointer": [
+        [
+          300,
+          300
+        ],
+        [
+          400,
+          350
+        ],
+        [
+          500,
+          400
+        ]
+      ]
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "command": "tool.select"
+    },
+    {
+      "pointer": [
+        [
+          400,
+          350
+        ]
+      ]
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "command": "browser.properties"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "expect": "appTools.selectionCount",
+      "value": 1
+    },
+    {
+      "pointer": [
+        [
+          100,
+          649
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "pointer": [
+        [
+          100,
+          577
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "pointer": [
+        [
+          100,
+          461
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "pointer": [
+        [
+          100,
+          253
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "expect": "labelTip.text",
+      "value": ""
+    },
+    {
+      "pointer": [
+        [
+          150,
+          417
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "waitFor": "prop-label.activeFocus",
+      "value": true,
+      "timeoutMs": 5000
+    },
+    {
+      "typeText": "Soleil"
+    },
+    {
+      "pointer": [
+        [
+          150,
+          177
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "waitFor": "prop-name.activeFocus",
+      "value": true,
+      "timeoutMs": 5000
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "capture": "legende-saisie"
+    },
+    {
+      "pointer": [
+        [
+          597,
+          392
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "waitFor": "labelTip.text",
+      "value": "Soleil",
+      "timeoutMs": 3000
+    },
+    {
+      "wait": 600
+    },
+    {
+      "expect": "labelTip.text",
+      "value": "Soleil"
+    },
+    {
+      "capture": "bulle"
+    }
+  ]
+}

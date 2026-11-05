@@ -46,6 +46,11 @@ Window {
     // Fixées avant le chargement par l'application, le banc ou les tests (app/startup.cpp).
     property bool cacheEnabled: true
     property bool generatedPage: false
+    // Dossier des profils de l'utilisateur ; vide : <AppConfigLocation>/profiles (StartupOptions::profileRoot).
+    property string profileRoot: ""
+    // Accueil au démarrage : posée à vrai par app/main.cpp seulement (StartupOptions::showDashboard) ; le joueur
+    // de captures, le banc et les tests la laissent fausse.
+    property bool showDashboard: false
     // État de l'interface, lu par les tests et par actcraft-captures. Le plein écran est l'état réel de la
     // fenêtre : il suit aussi une sortie par le système, et la coche de « Plein écran » le suit.
     readonly property bool fullScreen: root.visibility === Window.FullScreen
@@ -56,6 +61,42 @@ Window {
     Commands {
         id: appCommands
         objectName: "commands"
+    }
+
+    // Lot 6 (L6-T5) : réglages du poste et profil courant, relu au démarrage (à défaut, « preparation »).
+    Preferences {
+        id: appPreferences
+        objectName: "appPreferences"
+    }
+    ProfileController {
+        id: appProfile
+        objectName: "appProfile"
+        commands: appCommands
+        preferences: appPreferences
+        userRoot: root.profileRoot
+    }
+
+    // Lot 6 (L6-T22) : mode conception (F-560). Gestionnaire natif de `mode.design`, réglages du profil
+    // (section design-mode), bascule gardée pendant un contact. Il ne touche pas au document : la vue de page
+    // montre les objets masqués, les outils ignorent le verrou et l'accrochage ; miniatures et export non.
+    DesignMode {
+        id: appDesign
+        objectName: "appDesign"
+        commands: appCommands
+        profile: appProfile
+        contactActive: pageArea.view ? pageArea.view.contactActive : false
+    }
+    Binding {
+        target: pageArea.fixedPage
+        property: "showHiddenTranslucent"
+        value: appDesign.hiddenShown
+    }
+
+    // Lot 6 (L6-T28) : le mandataire gardé s'applique dès la construction ; sans hôte saisi, ActCraft rend la main
+    // à la configuration du système. La page Réseau a sa propre instance (mêmes réglages).
+    NetworkSettings {
+        id: appNetwork
+        objectName: "appNetwork"
     }
 
     DocumentController {
@@ -80,12 +121,13 @@ Window {
         documentController: appDocument
         view: pageArea.view
         // Amendement 5 (L4-T19) : aucun rendu de miniature panneau des navigateurs caché.
-        active: browserPanel.visible
+        active: browserPanel.visible && browserPanel.current === "pages"
     }
     Pages {
         id: appPages
         objectName: "appPages"
         documentController: appDocument
+        commands: appCommands // amendement 12 : gestes du navigateur refusés sous verrou
     }
     TextEditing {
         id: appText
@@ -102,6 +144,8 @@ Window {
         documentController: appDocument
         view: pageArea.view
         liftLayer: pageArea.liftLayer
+        lockIgnored: appDesign.lockIgnored
+        snapDisabled: appDesign.snapDisabled
     }
 
     // Lot 5 : édition des objets, insertion, onglets, échanges de fichiers et impression (types C++ de L5-T1).
@@ -121,6 +165,7 @@ Window {
         objectName: "appTabs"
         document: appDocument
         view: pageArea.view
+        commands: appCommands // amendement 12 : onglets refusés sous verrou
     }
     FileExchange {
         id: appExchange
@@ -245,6 +290,7 @@ Window {
         commands: appCommands
         documentController: appDocument
         view: pageArea.view
+        notesVisible: browserPanel.hasNotes
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -278,6 +324,10 @@ Window {
             pages: appPages
             documentController: appDocument
             commands: appCommands
+            tools: appTools
+            view: pageArea.view
+            profile: appProfile
+            preferences: appPreferences
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -323,13 +373,29 @@ Window {
             tools: appTools
         }
 
-        ToolPalette {
-            id: toolPalette
+        // Lot 6 : cadre de la palette (L6-T7), ancré à droite comme avant.
+        PaletteFrame {
+            id: paletteFrame
             Layout.fillHeight: true
-            Layout.preferredWidth: Theme.largeurPalette
+            implicitHeight: 0 // la hauteur vient de la ligne, pas du contenu (sinon boucle de mise en page)
+            Layout.preferredWidth: paletteFrame.slotWidth
             commands: appCommands
-            view: pageArea.view
+            documentController: appDocument
             tools: appTools
+            view: pageArea.view
+            profile: appProfile
+            preferences: appPreferences
+
+            ToolPalette {
+                id: toolPalette
+                anchors.fill: parent
+                commands: appCommands
+                view: pageArea.view
+                tools: appTools
+                documentController: appDocument
+                profile: appProfile
+                preferences: appPreferences
+            }
         }
     }
 
@@ -423,6 +489,7 @@ Window {
                 required property var modelData
                 commands: appCommands
                 spec: modelData
+                recents: fileActions.recents
             }
             onObjectAdded: (index, object) => mainMenu.insertMenu(index, object)
             onObjectRemoved: (index, object) => mainMenu.removeMenu(object)
@@ -449,9 +516,14 @@ Window {
         document: appDocument
         tabs: appTabs
         textEditing: appText
+        preferences: appPreferences // documents récents gardés (L6-T24)
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
         onSaveAbandoned: documentTabBar.closeAfterSave = false
+        onSaved: (url) => {
+            if (appProfile.setting("document", "summary-on-save", false))
+                saveSummaryDialog.show(fileActions.recents.summary(appDocument, url))
+        }
     }
 
     // Fermeture de la fenêtre : même demande que « Quitter ».
@@ -496,6 +568,110 @@ Window {
             if (!ok)
                 messageBanner.show(qsTr("Enregistrement impossible : %1").arg(message))
         }
+    }
+
+    // Lot 6 : emplacements de la coquille, instanciés une fois, masqués (talons remplis par leurs tâches).
+    ExtendedColors {
+        id: extendedColors
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    ColorLoupe {
+        id: colorLoupe
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    LabelTip {
+        id: labelTip
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    Dashboard {
+        id: dashboard
+        recents: fileActions.recents
+        showDashboard: root.showDashboard
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    ProfileChooser {
+        id: profileChooser
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    ProfileEditor {
+        id: profileEditor
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    ClassroomLockDialog {
+        id: classroomLockDialog
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    SpellingDialog {
+        id: spellingDialog
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    HelpViewer {
+        id: helpViewer
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    SaveSummaryDialog {
+        id: saveSummaryDialog
+        recents: fileActions.recents
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
+    }
+    LaunchersPage {
+        id: launchersPage
+        commands: appCommands
+        documentController: appDocument
+        tools: appTools
+        view: pageArea.view
+        profile: appProfile
+        preferences: appPreferences
     }
 
     // Lot 7 : surcouches plein cadre et panneaux flottants (rideau, spot, message défilant, dés, horloge…).

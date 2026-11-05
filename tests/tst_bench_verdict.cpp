@@ -16,6 +16,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -125,6 +127,7 @@ std::vector<std::pair<std::uint64_t, std::int64_t>> receivedInOrder(std::uint64_
 // Vraie interface (ActCraft.Ui/Main), hors écran, en rendu logiciel (tests/CMakeLists.txt).
 struct App
 {
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
     ui::PageView* view = nullptr;
@@ -134,6 +137,7 @@ bool start(App& app)
 {
     StartupOptions options;
     options.generatedPage = true; // le banc mesure la page de 300 objets
+    options.profileRoot = app.profiles.path();
     app.window = loadMainWindow(app.engine, options);
     if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
         return false;
@@ -151,10 +155,12 @@ bool start(App& app)
 BenchResult runBench(BenchOptions options)
 {
     options.scenarioSet = ScenarioSet::Court;
+    QTemporaryDir profiles; // profils d'essai (amendement 3, N1), détruit après le moteur
     Runner runner(options);
     QQmlApplicationEngine engine;
     StartupOptions startup;
     startup.generatedPage = true;
+    startup.profileRoot = profiles.path();
     QQuickWindow* window = loadMainWindow(engine, startup);
     if (!window) {
         BenchResult none;
@@ -180,8 +186,17 @@ QString describeChecks(const BenchResult& r)
 class TstBenchVerdict : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_settingsDir;
 
 private slots:
+    void initTestCase()
+    {
+        // Main.qml porte Preferences et ProfileController : réglages INI d'essai, jamais ceux du poste.
+        QVERIFY(m_settingsDir.isValid());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+    }
+
     void goodRunIsWithinBudget()
     {
         BenchResult r = good();
@@ -777,6 +792,28 @@ private slots:
         QCOMPARE(latency.unmatched, std::size_t{0});
         QCOMPARE(latency.seq.size(), std::size_t{57});
         QVERIFY(!recorder->swapNs().empty());
+    }
+
+    // L6-C11 : en release hors écran, le décodage d'une page finit avant l'image suivante ; le contrôle de
+    // flash relève alors page-flash-unverified, qui n'est pas une erreur du parcours. La démonstration et ses
+    // contrôles de contenu se jouent quand même (sinon content-check-failed s'y ajoute à tort).
+    void onlyAnErrorSkipsTheDemo()
+    {
+        BenchResult r;
+        QVERIFY(!hasRunError(r));
+        r.invalidReasons << QStringLiteral("page-flash-unverified");
+        QVERIFY(!hasRunError(r));
+        r.invalidReasons << QStringLiteral("error: demo cache not ready at start");
+        QVERIFY(hasRunError(r));
+    }
+
+    // Relecture L6-C11 : une séquence d'entrées ratée reste une erreur du parcours ; la démonstration
+    // (jusqu'à ~45 s d'attentes bornées) est sautée comme avant hasRunError.
+    void sequenceMismatchSkipsTheDemo()
+    {
+        BenchResult r;
+        r.invalidReasons << sequenceMismatchReason(QStringLiteral("stroke"));
+        QVERIFY(hasRunError(r));
     }
 
     // Chemin réel (Runner::run → runDemo) à 1366 × 768 (Dell 3510) : la démonstration recentre la vue sur ses

@@ -1,3 +1,4 @@
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/render/inkitem.h>
@@ -20,11 +21,16 @@
 #include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTextDocument>
+#include <QUrl>
 #include <QVariant>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include <algorithm>
 #include <memory>
+#include <string>
 #include <variant>
+#include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -56,6 +62,47 @@ struct App
     core::ObjectId idAt(std::size_t index) const { return page().objects.at(index).common.id; }
     bool busy() const { return tools->activeTool() && tools->activeTool()->isBusy(); }
 };
+
+// L6-P1 : objet de la page affichée par identifiant (l'ordre de la page suit les couches).
+const core::PageObject& objectWithId(const App& app, core::ObjectId id)
+{
+    const std::vector<core::PageObject>& objects = app.page().objects;
+    const auto it = std::find_if(objects.begin(), objects.end(),
+                                 [id](const core::PageObject& object) { return object.common.id == id; });
+    Q_ASSERT(it != objects.end());
+    return *it;
+}
+
+const core::Text& textWithId(const App& app, core::ObjectId id)
+{
+    return std::get<core::Text>(core::body(objectWithId(app, id)));
+}
+
+// Texte « mot » sans couleur, à l'abscisse donnée.
+core::Text plainWord(double x)
+{
+    core::Text text;
+    text.bounds = {x, 100, 150, 40};
+    text.html = "<p>mot</p>";
+    core::TextSpan run;
+    run.text = "mot";
+    text.runs.push_back(run);
+    return text;
+}
+
+core::Stroke blackStroke()
+{
+    core::Stroke stroke;
+    stroke.points = {{300, 300, 0.5f}, {400, 350, 0.5f}};
+    return stroke;
+}
+
+QString plainText(const std::string& html)
+{
+    QTextDocument doc;
+    doc.setHtml(QString::fromStdString(html));
+    return doc.toPlainText();
+}
 
 QString originName(ui::DocumentController::ChangeOrigin origin)
 {
@@ -126,7 +173,9 @@ private:
     bool start(App& app, const QString& settingsFile = QString())
     {
         app.engine.setInitialProperties(
-            {{QStringLiteral("cacheEnabled"), true}, {QStringLiteral("generatedPage"), false}});
+            {{QStringLiteral("cacheEnabled"), true},
+             {QStringLiteral("generatedPage"), false},
+             {QStringLiteral("profileRoot"), m_settingsDir.filePath(QStringLiteral("profiles"))}});
         app.engine.loadFromModule("ActCraft.Ui", "Main");
         if (app.engine.rootObjects().isEmpty()) {
             return false;
@@ -643,6 +692,162 @@ private slots:
         QCOMPARE(app.document->fingerprintText(), before);
         QTest::touchEvent(app.window, m_touch).release(0, app.scene(QPointF(440, 300)));
         QCOMPARE(app.document->fingerprintText(), before);
+    }
+
+    // L6-P1 (P11 de L6-T0) : sous Sélectionner, la couleur choisie recolore les textes sélectionnés en une
+    // seule étape d'annulation ; l'outil et la sélection restent.
+    void colorRecolorsSelectedTexts()
+    {
+        App app;
+        QVERIFY(start(app));
+        const auto page = static_cast<std::size_t>(app.document->currentIndex());
+        for (int i = 0; i < 2; ++i) {
+            core::Text text;
+            text.bounds = {100.0 + 200 * i, 100, 150, 40};
+            text.html = "<p>mot</p>";
+            core::TextSpan run;
+            run.text = "mot";
+            text.runs.push_back(run);
+            app.document->execute(std::make_unique<core::AddObjectCommand>(page, core::PageObject{text}));
+        }
+        app.tools->selectObjects({app.idAt(0), app.idAt(1)});
+        const QColor ink = app.tools->color();
+        QVERIFY(ink != QColor(Qt::red)); // sinon la garde de l'encre ci-dessous ne prouverait rien
+        app.tools->setColor(QColor(Qt::red));
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("select"));
+        QCOMPARE(app.tools->selectionCount(), 2);
+        QCOMPARE(app.tools->color(), ink); // l'encre ne prend pas la couleur des textes (relecture L6-P1)
+        for (std::size_t i = 0; i < 2; ++i) {
+            const auto& text = std::get<core::Text>(core::body(app.page().objects.at(i)));
+            QCOMPARE(text.runs.front().color, core::Argb{0xFFFF0000u});
+            QCOMPARE(text.runs.front().text, std::string("mot"));
+            QCOMPARE(plainText(text.html), QStringLiteral("mot")); // contenu gardé
+            QVERIFY2(
+                QString::fromStdString(text.html).contains(QStringLiteral("#ff0000"), Qt::CaseInsensitive),
+                text.html.c_str());
+        }
+        app.document->undo(); // une seule étape rend les deux textes
+        for (std::size_t i = 0; i < 2; ++i) {
+            QCOMPARE(std::get<core::Text>(core::body(app.page().objects.at(i))).html,
+                     std::string("<p>mot</p>"));
+        }
+    }
+
+    // Sans texte sélectionné, la règle de L3-T0 reste : la couleur va au dernier outil d'encre.
+    void colorWithoutSelectedTextKeepsTheInkRule()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->activate(QStringLiteral("select"));
+        app.tools->setColor(QColor(Qt::blue));
+        QVERIFY(app.tools->currentTool() != QStringLiteral("select"));
+        QCOMPARE(app.tools->color(), QColor(Qt::blue));
+    }
+
+    // Relecture L6-P1 : la même couleur choisie deux fois ne fait qu'une étape ; la seconde ne change rien
+    // (aucune étape sans effet dans la pile).
+    void colorTwiceIsOneStep()
+    {
+        App app;
+        QVERIFY(start(app));
+        const auto page = static_cast<std::size_t>(app.document->currentIndex());
+        app.document->execute(
+            std::make_unique<core::AddObjectCommand>(page, core::PageObject{plainWord(100)}));
+        const core::ObjectId id = app.idAt(0);
+        app.tools->selectObjects({id});
+        app.tools->setColor(QColor(Qt::red));
+        const std::string once = textWithId(app, id).html;
+        QVERIFY(once != "<p>mot</p>");
+        app.tools->setColor(QColor(Qt::red));
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("select"));
+        QCOMPARE(textWithId(app, id).html, once);
+        app.document->undo(); // la seule étape de la couleur
+        QCOMPARE(textWithId(app, id).html, std::string("<p>mot</p>"));
+    }
+
+    // Relecture L6-P1 : un texte qui a déjà la couleur (HTML lu d'un fichier, comparé après le même
+    // aller-retour que la recoloration) ne fait aucune étape : un document propre le reste ; l'outil, la
+    // sélection et l'encre restent.
+    void colorAlreadyTakenAddsNoStep()
+    {
+        App app;
+        QVERIFY(start(app));
+        constexpr core::ObjectId id = 1000;
+        core::Document document = app.document->document();
+        core::Text text = plainWord(100);
+        text.html = "<p style=\"color:#ff0000\">mot</p>";
+        text.runs.front().color = 0xFFFF0000u;
+        core::PageObject object{text};
+        object.common.id = id;
+        document.page(0).objects.push_back(object);
+        document.refreshNextId();
+        app.document->replaceDocument(std::move(document), QUrl(), QString()); // pile vide, état propre
+        QVERIFY(!app.document->isModified());
+        QVERIFY(!app.document->canUndo());
+        app.tools->activate(QStringLiteral("select"));
+        app.tools->selectObjects({id});
+        const QColor ink = app.tools->color();
+        QVERIFY(ink != QColor(Qt::red));
+        app.tools->setColor(QColor(Qt::red));
+        QVERIFY(!app.document->canUndo());
+        QVERIFY(!app.document->isModified());
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("select"));
+        QCOMPARE(app.tools->selectionCount(), 1);
+        QCOMPARE(app.tools->color(), ink);
+        QCOMPARE(textWithId(app, id).html, text.html);
+    }
+
+    // Relecture L6-P1 : une sélection non vide sans texte (un trait seul) garde la règle de l'encre (L3-T0) ;
+    // le trait ne change pas.
+    void colorOnStrokeOnlyKeepsTheInkRule()
+    {
+        App app;
+        QVERIFY(start(app));
+        const auto page = static_cast<std::size_t>(app.document->currentIndex());
+        app.document->execute(
+            std::make_unique<core::AddObjectCommand>(page, core::PageObject{blackStroke()}));
+        app.tools->activate(QStringLiteral("select"));
+        app.tools->selectObjects({app.idAt(0)});
+        QCOMPARE(app.tools->selectionCount(), 1);
+        const QString before = app.document->fingerprintText();
+        app.tools->setColor(QColor(Qt::blue));
+        QVERIFY(app.tools->currentTool() != QStringLiteral("select"));
+        QCOMPARE(app.tools->color(), QColor(Qt::blue));
+        QCOMPARE(app.document->fingerprintText(), before);
+    }
+
+    // Relecture L6-P1 : sélection mixte texte + trait : seul le texte prend la couleur, en une étape ;
+    // l'outil, la sélection et l'encre restent.
+    void colorOnTextAndStrokeRecolorsOnlyTheText()
+    {
+        App app;
+        QVERIFY(start(app));
+        const auto page = static_cast<std::size_t>(app.document->currentIndex());
+        app.document->execute(
+            std::make_unique<core::AddObjectCommand>(page, core::PageObject{plainWord(100)}));
+        const core::ObjectId textId = app.idAt(0);
+        app.document->execute(
+            std::make_unique<core::AddObjectCommand>(page, core::PageObject{blackStroke()}));
+        core::ObjectId strokeId = 0;
+        for (const core::PageObject& object : app.page().objects) {
+            if (object.common.id != textId) {
+                strokeId = object.common.id;
+            }
+        }
+        QVERIFY(strokeId != 0);
+        app.tools->activate(QStringLiteral("select"));
+        app.tools->selectObjects({textId, strokeId});
+        const QColor ink = app.tools->color();
+        QVERIFY(ink != QColor(Qt::red));
+        app.tools->setColor(QColor(Qt::red));
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("select"));
+        QCOMPARE(app.tools->selectionCount(), 2);
+        QCOMPARE(app.tools->color(), ink);
+        QCOMPARE(textWithId(app, textId).runs.front().color, core::Argb{0xFFFF0000u});
+        QCOMPARE(std::get<core::Stroke>(core::body(objectWithId(app, strokeId))).color, blackStroke().color);
+        app.document->undo(); // une seule étape rend le texte
+        QCOMPARE(textWithId(app, textId).html, std::string("<p>mot</p>"));
+        QCOMPARE(app.page().objects.size(), std::size_t{2});
     }
 };
 

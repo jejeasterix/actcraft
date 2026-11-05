@@ -4,6 +4,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/penmodifiers.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/core/textedits.h>
 #include <actcraft/render/imagefill.h>
 #include <actcraft/tools/connectortool.h>
 #include <actcraft/tools/filltool.h>
@@ -13,6 +14,7 @@
 #include <actcraft/tools/toolregistry.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QByteArray>
 #include <QCoreApplication>
 #include <QImage>
 #include <QInputEvent>
@@ -21,6 +23,10 @@
 #include <QPointF>
 #include <QQuickWindow>
 #include <QSettings>
+#include <QTextCharFormat>
+#include <QTextCursor>
+#include <QTextDocument>
+#include <QUrl>
 #include <QVariantList>
 
 #include <algorithm>
@@ -98,6 +104,41 @@ QVariantMap hiddenFrame()
 core::Argb opaque(const QColor& color)
 {
     return static_cast<core::Argb>(color.rgba()) | 0xFF000000u; // la translucidité va à part (F-225)
+}
+
+// HTML d'un texte venu du fichier ouvert : rien n'en est chargé (bloquant 5, textediting.cpp).
+class RecolorDocument final : public QTextDocument
+{
+protected:
+    QVariant loadResource(int /*type*/, const QUrl& /*name*/) override { return QVariant(QByteArray()); }
+};
+
+// L6-P1 : tout le texte prend la couleur, comme text.color dans l'éditeur (textediting.cpp : setForeground
+// puis fusion) ; les lignes lues (runs) aussi, pour le peintre. Texte qui l'a déjà : rien (pas d'étape vide).
+// Comme TextEditing::commit (unchanged = live == m_initialHtml), le HTML est comparé après le même
+// aller-retour par QTextDocument, jamais à celui du fichier, que toHtml réécrit toujours.
+std::optional<core::Text> recolored(const core::Text& text, core::Argb color)
+{
+    RecolorDocument doc;
+    doc.setHtml(QString::fromStdString(text.html));
+    const QString before = doc.toHtml();
+    QTextCursor cursor(&doc);
+    cursor.select(QTextCursor::Document);
+    QTextCharFormat format;
+    format.setForeground(QColor::fromRgba(color));
+    cursor.mergeCharFormat(format);
+    const QString after = doc.toHtml();
+    const bool runsTaken = std::all_of(text.runs.begin(), text.runs.end(),
+                                       [color](const core::TextSpan& run) { return run.color == color; });
+    if (after == before && runsTaken) {
+        return std::nullopt;
+    }
+    core::Text out = text;
+    out.html = after.toStdString();
+    for (core::TextSpan& run : out.runs) {
+        run.color = color;
+    }
+    return out;
 }
 
 void writeShapeSettings(const QString& file, const tools::ShapeSettings& settings)
@@ -382,6 +423,9 @@ void ToolHost::setColor(const QColor& color)
     if (!color.isValid()) {
         return;
     }
+    if (recolorSelectedTexts(color)) {
+        return; // L6-P1 : textes sélectionnés, outil et sélection gardés
+    }
     ensureSettings();
     const bool penModifier = currentTool() == QStringLiteral("pen-shape"); // règle l'encre dont elle vient
     if (!penModifier && !ownsColor(currentTool())) {
@@ -395,6 +439,36 @@ void ToolHost::setColor(const QColor& color)
     }
     storeSettings(id, settings);
     configureTool(existingTool(currentTool())); // pot de peinture, modification de stylo
+}
+
+bool ToolHost::recolorSelectedTexts(const QColor& color)
+{
+    if (!m_controller || currentTool() != QStringLiteral("select") || user().selection().empty()) {
+        return false;
+    }
+    cancelGesture(); // ce qui est soulevé revient sur la page avant la commande (execute, L3-T12)
+    const std::vector<core::ObjectId>& ids = user().selection();
+    const auto pageIndex = static_cast<std::size_t>(m_controller->currentIndex());
+    const core::Argb argb = opaque(color);
+    bool anyText = false;
+    std::vector<std::pair<core::ObjectId, core::Text>> texts; // seulement ceux que la couleur change
+    for (const core::PageObject& object : m_controller->document().page(pageIndex).objects) {
+        if (std::find(ids.begin(), ids.end(), object.common.id) == ids.end()) {
+            continue;
+        }
+        // Un groupe sélectionné n'est pas parcouru (supposé, L6-P1).
+        if (const auto* text = std::get_if<core::Text>(&core::body(object))) {
+            anyText = true;
+            if (std::optional<core::Text> value = recolored(*text, argb)) {
+                texts.emplace_back(object.common.id, std::move(*value));
+            }
+        }
+    }
+    if (!texts.empty()) {
+        m_controller->execute(std::make_unique<core::SetTextsCommand>(pageIndex, std::move(texts)));
+    }
+    // Textes qui ont tous déjà la couleur : ni étape, ni couleur passée à l'encre (relecture L6-P1).
+    return anyText;
 }
 
 void ToolHost::setWidth(qreal width)
@@ -617,6 +691,41 @@ tools::UserState& ToolHost::user(input::UserId)
     return *m_user;
 }
 
+bool ToolHost::lockIgnored() const noexcept
+{
+    return m_lockIgnored;
+}
+
+void ToolHost::setLockIgnored(bool ignored)
+{
+    if (m_lockIgnored == ignored) {
+        return;
+    }
+    m_lockIgnored = ignored;
+    if (m_adapters) {
+        m_adapters->context.lockIgnored = ignored;
+    }
+    refreshSelection();
+    emit designFlagsChanged();
+}
+
+bool ToolHost::snapDisabled() const noexcept
+{
+    return m_snapDisabled;
+}
+
+void ToolHost::setSnapDisabled(bool disabled)
+{
+    if (m_snapDisabled == disabled) {
+        return;
+    }
+    m_snapDisabled = disabled;
+    if (m_adapters) {
+        m_adapters->context.snapDisabled = disabled;
+    }
+    emit designFlagsChanged();
+}
+
 ToolAdapters* ToolHost::adapters() const
 {
     render::InkItem* ink = m_view ? m_view->ink() : nullptr;
@@ -636,6 +745,8 @@ ToolAdapters* ToolHost::adapters() const
         *m_controller, *m_view, *ink, *m_liftLayer, m_commands.data(), self->user(),
         [self](const QVariantMap& frame, bool handles) { self->showSelection(frame, handles); },
         [self] { return self->m_trashArea; }, [self](bool hover) { self->setTrashHoverState(hover); });
+    m_adapters->context.lockIgnored = m_lockIgnored;
+    m_adapters->context.snapDisabled = m_snapDisabled;
     return m_adapters.get();
 }
 

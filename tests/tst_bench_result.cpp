@@ -38,12 +38,19 @@ private slots:
         QVERIFY(m_root.value("informative").toBool());
     }
 
+    // Relecture L6-C11 : la fumée retient le décodage, jamais valide pour la mesure et tracé dans le JSON. En
+    // release, c'est la seule raison d'invalidité (une autre, page-flash-unverified ou content-check-failed,
+    // ferait échouer) ; en debug, build-not-release s'y ajoute.
     void validityFollowsBuildType()
     {
-        QCOMPARE(m_root.value("valid_for_measurement").toBool(), ACTCRAFT_EXPECT_VALID != 0);
-        if constexpr (ACTCRAFT_EXPECT_VALID == 0) {
-            const QJsonArray reasons = m_root.value("verdict").toObject().value("invalid_reasons").toArray();
+        QVERIFY(!m_root.value("valid_for_measurement").toBool());
+        QVERIFY(m_root.value("decode_held_for_testing").toBool());
+        const QJsonArray reasons = m_root.value("verdict").toObject().value("invalid_reasons").toArray();
+        if constexpr (ACTCRAFT_SMOKE_RELEASE != 0) {
+            QCOMPARE(reasons, QJsonArray{QStringLiteral("decode-held-for-testing")});
+        } else {
             QVERIFY(reasons.contains(QStringLiteral("build-not-release")));
+            QVERIFY(reasons.contains(QStringLiteral("decode-held-for-testing")));
         }
     }
 

@@ -17,10 +17,18 @@ inline constexpr double kBarButtonScreen = 24.0;   // bouton carré de la barre 
 inline constexpr double kBarGapScreen = 8.0;       // écart cadre → barre
 inline constexpr double kEnlargeStep = 1.1;        // F-523
 
+// Le verrou retient-il l'objet ? Non en mode conception (`lockIgnored`, F-560), où le drapeau `locked` reste
+// posé mais ne retient plus ; les restrictions, elles, s'appliquent toujours.
+inline bool unlockedFor(const core::PageObject& object, bool lockIgnored) noexcept
+{
+    return lockIgnored || !object.common.locked;
+}
+
 // Cadre (emprise réunie ; un seul objet : son cadre transformé), 8 poignées (ordre de HandleKind), barre
 // au-dessus du cadre, replacée sous lui si elle sortirait du haut de la page (F-521). Coordonnées de page.
+// `lockIgnored` (mode conception, F-560) : un objet verrouillé garde poignées, rotation et points.
 SelectionView layoutSelection(const core::Page& page, const std::vector<core::ObjectId>& ids, double zoom,
-                              const QStringList& barCommands);
+                              const QStringList& barCommands, bool lockIgnored = false);
 
 enum class SelectionHitKind : std::uint8_t
 {

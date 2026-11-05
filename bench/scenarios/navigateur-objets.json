@@ -1,0 +1,31 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "navigateur-objets",
+  "description": "S9.3 : navigateur d'objet. Deux rectangles posés, navigateur ouvert (4 couches + 2 objets = 6 lignes), clic sur une ligne d'objet (un objet sélectionné), glisser de la ligne du bas au-dessus de l'autre (ordre inversé, une étape), annulation.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.shape"},
+    {"command": "shape.choose", "argument": "rectangle"},
+    {"pointer": [[500, 200], [600, 260], [700, 320]]},
+    {"waitReady": true},
+    {"pointer": [[800, 400], [900, 460], [1000, 520]]},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 2},
+    {"command": "browser.objects"},
+    {"waitReady": true},
+    {"expect": "objectBrowser.visible", "value": true},
+    {"expect": "appObjectTree.rowCount", "value": 6},
+    {"expect": "appTools.selectionCount", "value": 0},
+    {"capture": "arbre"},
+    {"pointer": [[110, 188]], "space": "window"},
+    {"expect": "appTools.selectionCount", "value": 1},
+    {"capture": "selection"},
+    {"pointer": [[110, 188], [110, 170], [110, 148]], "space": "window"},
+    {"waitReady": true},
+    {"expect": "appTools.selectionCount", "value": 1},
+    {"capture": "deplace"},
+    {"command": "edit.undo"},
+    {"waitReady": true},
+    {"expect": "appObjectTree.rowCount", "value": 6}
+  ]
+}

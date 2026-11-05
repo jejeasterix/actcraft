@@ -115,7 +115,8 @@ QSGNode* PendingLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     if (m_nodes.size() < wanted.size()) {
         const core::Page& shown = m_page->page();
         const NodeContexts contexts =
-            nodeContexts(window(), software, nullptr, m_page->rasterScale(), m_page->forceRasterized());
+            nodeContexts(window(), software, nullptr, m_page->rasterScale(), m_page->forceRasterized(),
+                         m_page->showHiddenTranslucent());
         // Les objets en attente sont les derniers de la page (invariant tenu par FixedPageItem).
         const std::size_t first = shown.objects.size() - wanted.size();
         for (std::size_t k = m_nodes.size(); k < wanted.size(); ++k) {

@@ -33,6 +33,10 @@ class Commands : public QObject
     Q_PROPERTY(QString platformName READ platformName NOTIFY layoutChanged)
     Q_PROPERTY(QStringList errors READ errors NOTIFY layoutChanged)
     Q_PROPERTY(int revision READ revision NOTIFY stateChanged)
+    // Verrou de classe (D6-7), en lecture seule : seul ClassroomLock le pose et le lève (setLocked, C++).
+    Q_PROPERTY(bool locked READ isLocked NOTIFY stateChanged)
+    // Commandes disponibles grisées par le verrou (0 hors du verrou), lue par les scénarios.
+    Q_PROPERTY(int lockedCount READ lockedCount NOTIFY stateChanged)
 
 public:
     explicit Commands(QObject* parent = nullptr);
@@ -65,6 +69,9 @@ public:
 
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument = QVariant());
     Q_INVOKABLE void setHandler(const QString& id, const QJSValue& handler);
+    // Gestionnaire C++ (L6-T5 : `profile.activate`, posé par ProfileController), gardé à travers reload() et
+    // prioritaire sur un gestionnaire JavaScript ; un gestionnaire vide le retire.
+    void setNativeHandler(const QString& id, actions::CommandRegistry::Handler handler);
     Q_INVOKABLE QString label(const QString& id) const;
     // « qrc:/qt/qml/ActCraft/Ui/icons/<icône>.svg », ou vide.
     Q_INVOKABLE QString iconUrl(const QString& id) const;
@@ -78,6 +85,17 @@ public:
     Q_INVOKABLE void setEnabled(const QString& id, bool enabled);
     Q_INVOKABLE bool isChecked(const QString& id) const;
     Q_INVOKABLE void setChecked(const QString& id, bool checked);
+    // Verrou de classe du registre (D6-7) : désactive les commandes verrouillables sans toucher leur état
+    // propre ; gardé à travers reload(). C++ seulement (L6-T31) : aucune voie QML ne lève le verrou sans le
+    // mot de passe ; seul ClassroomLock l'appelle.
+    void setLocked(bool locked);
+    bool isLocked() const noexcept;
+    int lockedCount() const;
+    // Amendement 12 : un geste qui ne passe pas par le registre (barre d'onglets, navigateur de pages) suit
+    // sa commande sous verrou ; hors du verrou, il ne dépend pas d'elle. C++ seulement.
+    bool allowsWhileLocked(const QString& id) const;
+    // Idem pour un possesseur dont les commandes peuvent manquer (absentes : permis).
+    static bool allowsWhileLocked(const Commands* commands, const char* id);
 
 signals:
     void layoutChanged();
@@ -97,6 +115,10 @@ private:
     QStringList m_errors;
     QSet<QString> m_hidden;
     QHash<QString, QJSValue> m_handlers;
+    QHash<QString, actions::CommandRegistry::Handler> m_nativeHandlers;
+    // Gestionnaire en cours : le registre qui le porte n'est ni remplacé ni modifié avant son retour.
+    int m_triggerDepth = 0;
+    bool m_reloadPending = false;
     int m_revision = 0;
 };
 

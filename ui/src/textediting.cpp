@@ -1,3 +1,5 @@
+#include "isolatedtext.h"
+
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
@@ -41,11 +43,6 @@
 #include <vector>
 
 namespace actcraft::ui {
-
-using ResourceObserver = std::function<void(const QUrl&, const QVariant&)>;
-
-QString safeTextHtml(const QString& html, const ResourceObserver& observer);
-std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer);
 
 namespace {
 
@@ -228,6 +225,13 @@ std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer)
 // retirées.
 QString safeTextHtml(const QString& html, const ResourceObserver& observer)
 {
+    return safeTextHtml(html, observer, DataImages::Keep);
+}
+
+// Même assainissement ; `Drop` retire aussi les images `data:` (éditeurs des notes et des objets texte,
+// ui/src/isolatedtext.h).
+QString safeTextHtml(const QString& html, const ResourceObserver& observer, DataImages dataImages)
+{
     AnalysisDocument document(observer);
     document.setHtml(html);
     cleanFrames(document.rootFrame());
@@ -258,7 +262,8 @@ QString safeTextHtml(const QString& html, const ResourceObserver& observer)
                 continue;
             }
             QTextCharFormat format = fragment.charFormat();
-            if (format.isImageFormat() && !isDataUrl(format.toImageFormat().name())) {
+            if (format.isImageFormat() &&
+                (dataImages == DataImages::Drop || !isDataUrl(format.toImageFormat().name()))) {
                 images.push_back({fragment.position(), fragment.length()});
                 continue;
             }
@@ -628,8 +633,10 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
     m_geometryChanged = false;
     if (existing) {
         // Copies prises avant le soulèvement, qui retire l'objet de la page. Seul le HTML assaini entre dans
-        // le TextEdit (bloquant 5).
-        doc->setHtml(safeTextHtml(QString::fromStdString(existing->html), {}));
+        // le TextEdit (bloquant 5), sans image `data:` (L6-C15) : son document les décoderait
+        // (ui/src/isolatedtext.h). Texte rendu sans modification : l'objet revient tel quel (commit).
+        m_originalHtml = QString::fromStdString(existing->html);
+        doc->setHtml(safeTextHtml(m_originalHtml, {}, DataImages::Drop));
         m_editing = *hit;
         m_vertical = existing->vertical;
         m_objectBounds = existing->bounds;
@@ -727,13 +734,16 @@ void TextEditing::finish()
     m_fixedWidth = 0;
     m_geometryChanged = false;
     m_initialHtml.clear();
+    m_originalHtml.clear();
     m_preedit.clear();
     m_columnKey.clear();
     updateColumn(nullptr);
 }
 
-// F-252, D7 : une étape au plus. Texte neuf vide : oublié, sans étape ; texte existant vidé : supprimé en une
-// étape ; texte inchangé : revient sans étape.
+// F-252, D7 : une étape au plus. Texte neuf vide : oublié, sans étape ; texte inchangé : revient sans étape ;
+// texte existant vidé par l'utilisateur : supprimé en une étape. L6-C15 : jamais de suppression sans
+// modification du texte ; l'éditeur ne reçoit pas les images `data:` du fichier, un texte qui n'a qu'elles y
+// paraît vide.
 void TextEditing::commit()
 {
     if (!m_active) {
@@ -743,15 +753,21 @@ void TextEditing::commit()
     const core::ObjectId id = m_editing;
     const std::size_t page = m_page;
     bool empty = true;
-    bool unchanged = false;
+    bool edited = false;    // texte modifié (frappe, mise en forme)
+    bool unchanged = false; // ni le texte ni le cadre
     core::Text text;
     if (doc) {
         const QString live = doc->toHtml();
         empty = doc->toPlainText().trimmed().isEmpty();
-        unchanged = live == m_initialHtml && !m_geometryChanged;
-        const QString safe = safeTextHtml(live, {}); // un collage riche ne fait pas entrer de ressource
+        edited = live != m_initialHtml;
+        unchanged = !edited && !m_geometryChanged;
+        // Texte existant non modifié, cadre déplacé ou élargi : son HTML d'origine, images `data:` comprises
+        // (l'éditeur ne les a pas reçues), mesuré comme le peintre le dessine.
+        const bool original = id != 0 && !edited;
+        const QString safe =
+            safeTextHtml(original ? m_originalHtml : live, {}); // collage riche : rien n'entre
         text.bounds = measuredBounds(safe);
-        text.html = safe.toStdString();
+        text.html = (original ? m_originalHtml : safe).toStdString();
         text.vertical = m_vertical;
         if (!m_vertical) { // une colonne n'a pas de première ligne horizontale : l'emprise
             text.firstBaseline = firstLineBaseline(safe, text.bounds);
@@ -765,10 +781,10 @@ void TextEditing::commit()
                 object.common.layer = core::Layer::Middle; // F-253 : couche intermédiaire
                 m_controller->execute(std::make_unique<core::AddObjectCommand>(page, std::move(object)));
             }
-        } else if (empty) {
-            m_controller->dropLifted(std::make_unique<core::RemoveObjectsCommand>(page, std::vector{id}));
         } else if (unchanged) {
             m_controller->dropLifted(nullptr);
+        } else if (empty && edited) {
+            m_controller->dropLifted(std::make_unique<core::RemoveObjectsCommand>(page, std::vector{id}));
         } else {
             m_controller->dropLifted(std::make_unique<core::SetTextCommand>(page, id, std::move(text)));
         }

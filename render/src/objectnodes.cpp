@@ -1,5 +1,7 @@
 #include "objectnodes.h"
 
+#include <actcraft/render/pagepainter.h>
+
 #include <QMatrix4x4>
 #include <QSGOpacityNode>
 #include <QSGTransformNode>
@@ -8,7 +10,7 @@
 namespace actcraft::render {
 
 NodeContexts nodeContexts(QQuickWindow* window, bool software, const ImageStore* images, double rasterScale,
-                          bool forceRasterized)
+                          bool forceRasterized, bool showHidden)
 {
     NodeContexts out;
     out.context.window = window;
@@ -17,6 +19,7 @@ NodeContexts nodeContexts(QQuickWindow* window, bool software, const ImageStore*
     out.context.rasterScale = rasterScale;
     out.painted = out.context;
     out.painted.software = software && !forceRasterized;
+    out.showHidden = showHidden;
     return out;
 }
 
@@ -40,9 +43,11 @@ QSGNode* wrapped(QSGNode* node, const core::ObjectCommon& common)
         transform->appendChildNode(node);
         node = transform;
     }
-    if (common.translucency != 0) {
+    // Objet masqué montré par le mode conception : translucide, en plus de sa propre translucidité.
+    const double shown = common.visible ? 1.0 : kHiddenShownOpacity;
+    if (common.translucency != 0 || !common.visible) {
         auto* opacity = new QSGOpacityNode;
-        opacity->setOpacity(1.0 - common.translucency / 255.0);
+        opacity->setOpacity(shown * (1.0 - common.translucency / 255.0));
         opacity->appendChildNode(node);
         node = opacity;
     }
@@ -55,7 +60,7 @@ ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
                             const NodeContexts& contexts)
 {
     ObjectNode out;
-    if (!object.common.visible || std::get_if<core::Group>(&object)) {
+    if ((!object.common.visible && !contexts.showHidden) || std::get_if<core::Group>(&object)) {
         return out;
     }
     QSGNode* node = nullptr;

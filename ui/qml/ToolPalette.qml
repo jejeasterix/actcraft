@@ -11,6 +11,20 @@ Rectangle {
     required property Commands commands
     required property PageView view
     required property Tools tools
+    property DocumentController documentController: null
+    property var profile: null
+    property var preferences: null
+    // Posé par PaletteFrame : palette ancrée en haut ou en bas, groupes côte à côte.
+    property bool horizontal: false
+    readonly property real contentHeight: column.implicitHeight + 2 * Theme.espace2
+    // Groupes de la disposition, puis le groupe du profil (commandes épinglées, F-033) filtré par disponibilité.
+    readonly property var groups: {
+        const list = paletteRoot.commands.palette.slice()
+        const pins = paletteRoot.profile ? paletteRoot.profile.pinned.filter(id => paletteRoot.commands.isAvailable(id)) : []
+        if (pins.length > 0)
+            list.push({ group: "profil", items: pins })
+        return list
+    }
     implicitWidth: Theme.largeurPalette
     color: Theme.palette
 
@@ -21,23 +35,35 @@ Rectangle {
         anchors.bottom: parent.bottom
         // Hauteur réservée en bas pour la corbeille quand elle est affichée.
         anchors.bottomMargin: trash.visible ? trash.height : 0.0
-        contentHeight: column.implicitHeight + 2 * Theme.espace2
+        contentHeight: paletteRoot.horizontal ? height : paletteRoot.contentHeight
+        contentWidth: paletteRoot.horizontal ? column.implicitWidth + 2 * Theme.espace2 : width
+        flickableDirection: paletteRoot.horizontal ? Flickable.HorizontalFlick : Flickable.VerticalFlick
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
-        ColumnLayout {
+        GridLayout {
             id: column
+            objectName: "paletteRows"
             x: Theme.espace2
             y: Theme.espace2
-            width: paletteRoot.width - 2 * Theme.espace2
-            spacing: Theme.espace2
+            width: paletteRoot.horizontal ? implicitWidth : paletteRoot.width - 2 * Theme.espace2
+            columns: paletteRoot.horizontal ? 64 : 1
+            rowSpacing: Theme.espace2
+            columnSpacing: Theme.espace3
+            // Réduite : la première rangée seulement (F-032).
+            readonly property int shownRows: paletteRoot.profile && paletteRoot.profile.paletteCollapsed
+                                             ? Math.min(1, groupRepeater.count) : groupRepeater.count
 
             Repeater {
-                model: paletteRoot.commands.palette
+                id: groupRepeater
+                model: paletteRoot.groups
                 delegate: ColumnLayout {
                     id: groupItem
                     required property var modelData
-                    Layout.fillWidth: true
+                    required property int index
+                    visible: groupItem.index < column.shownRows
+                    Layout.fillWidth: !paletteRoot.horizontal
+                    Layout.alignment: Qt.AlignTop
                     spacing: Theme.espace2
 
                     Loader {
@@ -47,6 +73,7 @@ Rectangle {
                                        : buttonsComponent
                     }
                     Rectangle {
+                        visible: !paletteRoot.horizontal
                         Layout.fillWidth: true
                         implicitHeight: 1
                         color: Theme.separateur
@@ -57,6 +84,7 @@ Rectangle {
                         ColorSwatches {
                             commands: paletteRoot.commands
                             view: paletteRoot.view
+                            profile: paletteRoot.profile
                         }
                     }
                     Component {
@@ -69,7 +97,7 @@ Rectangle {
                     Component {
                         id: buttonsComponent
                         Grid {
-                            columns: 2
+                            columns: paletteRoot.horizontal ? 64 : 2
                             spacing: Theme.espace1
                             Repeater {
                                 model: groupItem.modelData.items
@@ -84,6 +112,17 @@ Rectangle {
                 }
             }
         }
+    }
+
+    // Lot 6 : barre de raccourcis, troisième colonne (masquée jusqu'à L6-T9).
+    ShortcutBar {
+        objectName: "shortcutBar"
+        visible: !(paletteRoot.profile && (paletteRoot.profile.shortcutsHidden || paletteRoot.profile.paletteCollapsed))
+        commands: paletteRoot.commands
+        documentController: paletteRoot.documentController
+        tools: paletteRoot.tools
+        view: paletteRoot.view
+        profile: paletteRoot.profile
     }
 
     // Lot 3 : corbeille sous la palette (« Afficher la corbeille » la masque).
