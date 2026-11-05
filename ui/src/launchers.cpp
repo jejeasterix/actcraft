@@ -4,6 +4,7 @@
 
 #include <QCryptographicHash>
 #include <QDesktopServices>
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -45,8 +46,12 @@ bool sameBytes(const QByteArray& a, const QByteArray& b)
 // qui part.
 bool refusedCharacter(const QString& text, bool controls, QLatin1String forbidden)
 {
-    for (const QChar ch : text) {
-        const QChar::Category category = ch.category();
+    for (qsizetype i = 0; i < text.size(); ++i) { // par point de code : U+E0001 tient en deux unités UTF-16
+        const QChar ch = text.at(i);
+        char32_t code = ch.unicode();
+        if (ch.isHighSurrogate() && i + 1 < text.size() && text.at(i + 1).isLowSurrogate())
+            code = QChar::surrogateToUcs4(ch, text.at(++i));
+        const QChar::Category category = QChar::category(code);
         if (category == QChar::Other_Format || (controls && category == QChar::Other_Control) ||
             forbidden.contains(ch))
             return true;
@@ -54,9 +59,19 @@ bool refusedCharacter(const QString& text, bool controls, QLatin1String forbidde
     return false;
 }
 
+// Un deux-points ailleurs qu'après une lettre de lecteur désigne un flux NTFS (`e.bat::$DATA`) ou un volume.
+bool misplacedColon(const QString& path)
+{
+    const char16_t first = path.isEmpty() ? u'\0' : path.at(0).unicode();
+    const bool drive = path.size() > 1 && path.at(1) == QLatin1Char(':') &&
+                       ((first >= u'A' && first <= u'Z') || (first >= u'a' && first <= u'z'));
+    return path.indexOf(QLatin1Char(':'), drive ? 2 : 0) >= 0;
+}
+
 bool unsafeFields(const QString& path, const QStringList& arguments, const QString& toolTip)
 {
-    if (refusedCharacter(path, true, QLatin1String("\"<>|?*")) || refusedCharacter(toolTip, false, {}))
+    if (refusedCharacter(path, true, QLatin1String("\"<>|?*")) || refusedCharacter(toolTip, false, {}) ||
+        misplacedColon(path) || path.endsWith(QLatin1Char('/')) || path.endsWith(QLatin1Char('\\')))
         return true;
     return std::any_of(arguments.cbegin(), arguments.cend(),
                        [](const QString& argument) { return refusedCharacter(argument, true, {}); });
@@ -66,10 +81,16 @@ bool unsafeFields(const QString& path, const QStringList& arguments, const QStri
 // et « \ » compris ; Windows retire du nom les points et espaces finaux.
 QString suffixOf(const QString& path)
 {
-    QString name = path;
-    while (name.endsWith(QLatin1Char('.')) || name.endsWith(QLatin1Char(' ')))
-        name.chop(1);
-    name = name.mid(qMax(name.lastIndexOf(QLatin1Char('/')), name.lastIndexOf(QLatin1Char('\\'))) + 1);
+    // « . » et « .. » résolus comme Windows (`x.lnk\.`, `x.vbs\y\..`) ; QDir::fromNativeSeparators ne
+    // convertirait « \ » que sous Windows.
+    QString name = QString(path).replace(QLatin1Char('\\'), QLatin1Char('/'));
+    for (QString before; before != name;) {
+        before = name;
+        name = QDir::cleanPath(name);
+        while (name.endsWith(QLatin1Char('.')) || name.endsWith(QLatin1Char(' ')))
+            name.chop(1);
+    }
+    name = name.mid(name.lastIndexOf(QLatin1Char('/')) + 1);
     const qsizetype dot = name.lastIndexOf(QLatin1Char('.'));
     return dot < 0 ? QString() : name.mid(dot + 1);
 }
@@ -79,8 +100,9 @@ QString suffixOf(const QString& path)
 bool executedType(const QString& path)
 {
     static const QStringList kTypes =
-        QStringLiteral(
-            "bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc cpl reg lnk url inf scf")
+        QStringLiteral("bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc cpl reg lnk url "
+                       "inf scf appref-ms "
+                       "settingcontent-ms application gadget jar library-ms search-ms website xbap diagcab")
             .split(QLatin1Char(' '));
     return kTypes.contains(suffixOf(path), Qt::CaseInsensitive);
 }
@@ -90,7 +112,12 @@ bool executedType(const QString& path)
 bool namedProgram(const QString& path)
 {
     const QString suffix = suffixOf(path);
+#ifdef Q_OS_WIN
+    // CreateProcess compléterait un nom sans suffixe (.com avant .exe) : un .exe explicite seulement.
+    return suffix.compare(QLatin1String("exe"), Qt::CaseInsensitive) == 0;
+#else
     return suffix.isEmpty() || suffix.compare(QLatin1String("exe"), Qt::CaseInsensitive) == 0;
+#endif
 }
 
 // Le critère de launch() : un document s'ouvre par openUrl, qui ne transmet aucun paramètre.
@@ -213,8 +240,8 @@ int Launchers::run(const QString& id)
         return kFailed;
     }
     if (!entry->arguments.isEmpty() && !namedProgram(entry->path)) {
-        emit failed(
-            tr("Seul un programme (.exe, ou nom sans suffixe) prend des paramètres : %1").arg(entry->path));
+        emit failed(tr("Seul un programme (.exe ; sans suffixe hors Windows) prend des paramètres : %1")
+                        .arg(entry->path));
         return kFailed;
     }
     if (!trusted(*entry, key(false))) {

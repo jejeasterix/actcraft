@@ -90,6 +90,8 @@ private slots:
     void argumentsNeedANamedProgram();
     void controlInArgumentRefused();
     void formatCharactersRefused();
+    void bareNameOnlyOffWindows();
+    void colonAndSeparatorRefused();
 
 private:
     QString witness(const QString& name = QStringLiteral("lance.txt")) const
@@ -426,12 +428,12 @@ void TstUiLaunchers::tamperedArgumentsAskAgain()
 void TstUiLaunchers::confirmationShowsPathAndArguments()
 {
     const QStringList arguments{QStringLiteral("/i"), QStringLiteral("http://exemple.test/x.msi")};
-    putForeign(QStringLiteral("msi"), QStringLiteral("msiexec"), arguments, QStringLiteral("Installer"));
+    putForeign(QStringLiteral("msi"), QStringLiteral("msiexec.exe"), arguments, QStringLiteral("Installer"));
     QSignalSpy asked(m_launchers.get(), &Launchers::confirmationNeeded);
     QCOMPARE(m_launchers->run(QStringLiteral("msi")), Launchers::kConfirmationNeeded);
     QCOMPARE(asked.count(), 1);
     QCOMPARE(asked.at(0).at(0).toString(), QStringLiteral("msi"));
-    QCOMPARE(asked.at(0).at(1).toString(), QStringLiteral("msiexec"));
+    QCOMPARE(asked.at(0).at(1).toString(), QStringLiteral("msiexec.exe"));
     QCOMPARE(asked.at(0).at(2).toStringList(), arguments);
     QVERIFY(!m_launchers->confirm(QStringLiteral("msi"), false));
 }
@@ -530,7 +532,8 @@ void TstUiLaunchers::executableDocumentsRefused()
                       QStringLiteral("adresse.Url ")};
     const QStringList types =
         QStringLiteral("bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc "
-                       "cpl reg lnk url inf scf")
+                       "cpl reg lnk url inf scf appref-ms settingcontent-ms application gadget jar "
+                       "library-ms search-ms website xbap diagcab")
             .split(QLatin1Char(' '));
     for (const QString& type : types)
         names << QStringLiteral("type.") + type;
@@ -540,6 +543,12 @@ void TstUiLaunchers::executableDocumentsRefused()
         putForeign(ids.constLast(), document(name), {}, QString());
     }
     ids << m_launchers->add(document(QStringLiteral("signe.vbs")), {}, QStringLiteral("Signé"));
+    // « . » et « .. » finaux : Windows les résout, le type visé reste celui du fichier d'avant.
+    for (const QString& trick :
+         {QStringLiteral("type.lnk/."), QStringLiteral("type.bat\\."), QStringLiteral("type.vbs/y/..")}) {
+        ids << QStringLiteral("piege %1").arg(trick);
+        putForeign(ids.constLast(), m_dir->filePath(trick), {}, QString());
+    }
     for (const QString& id : std::as_const(ids)) {
         if (QTest::currentTestFailed())
             return;
@@ -624,7 +633,7 @@ void TstUiLaunchers::changedSinceRequestRunsNothing()
 
 // Rien ne lit le disque avant la confirmation (un chemin UNC étranger ouvrirait une connexion SMB) : une
 // entrée à paramètres doit viser un programme reconnu par son nom. Le test qui distingue : un .txt absent est
-// refusé alors que le disque dirait « programme » ; un fichier sans suffixe qui existe demande confirmation
+// refusé alors que le disque dirait « programme » ; un faux .exe qui existe demande confirmation
 // alors que le disque dirait « document », et n'est refusé qu'au lancement.
 void TstUiLaunchers::argumentsNeedANamedProgram()
 {
@@ -638,7 +647,7 @@ void TstUiLaunchers::argumentsNeedANamedProgram()
     if (QTest::currentTestFailed())
         return;
 
-    putForeign(QStringLiteral("sans-suffixe"), document(QStringLiteral("notes")), arguments, QString());
+    putForeign(QStringLiteral("sans-suffixe"), document(QStringLiteral("faux.exe")), arguments, QString());
     QSignalSpy asked(m_launchers.get(), &Launchers::confirmationNeeded);
     QCOMPARE(m_launchers->run(QStringLiteral("sans-suffixe")), Launchers::kConfirmationNeeded);
     QCOMPARE(asked.count(), 1);
@@ -682,6 +691,14 @@ void TstUiLaunchers::formatCharactersRefused()
         ids << QStringLiteral("info-bulle-%1").arg(int(code), 4, 16);
         putForeign(ids.constLast(), m_probe, {witness()}, QStringLiteral("Calcu") + QChar(code));
     }
+    // Hors du plan de base (U+E0001, deux unités UTF-16) : le contrôle lit des points de code.
+    const char32_t tag = U'\U000E0001';
+    ids << QStringLiteral("info-bulle-e0001") << QStringLiteral("chemin-e0001");
+    putForeign(ids.at(ids.size() - 2), m_probe, {witness()},
+               QStringLiteral("Calcu") + QString::fromUcs4(&tag, 1));
+    putForeign(ids.constLast(),
+               QStringLiteral("C:/essai/image") + QString::fromUcs4(&tag, 1) + QStringLiteral(".exe"), {},
+               QString());
     for (const QString& id : std::as_const(ids)) {
         if (QTest::currentTestFailed())
             return;
@@ -690,6 +707,40 @@ void TstUiLaunchers::formatCharactersRefused()
     if (QTest::currentTestFailed())
         return;
     QVERIFY(stayedQuiet(witness()));
+}
+
+// Décision de l'orchestrateur : sous Windows, CreateProcess compléterait un nom sans suffixe (.com avant
+// .exe) ; une entrée à paramètres y vise un .exe explicite. Ailleurs, un programme n'a pas de suffixe. La
+// lettre de lecteur garde son deux-points.
+void TstUiLaunchers::bareNameOnlyOffWindows()
+{
+    const QStringList arguments{QStringLiteral("/i"), QStringLiteral("x.msi")};
+    putForeign(QStringLiteral("nu"), QStringLiteral("msiexec"), arguments, QString());
+    putForeign(QStringLiteral("exe"), QStringLiteral("D:/outils/msiexec.EXE"), arguments, QString());
+#ifdef Q_OS_WIN
+    expectRefused(QStringLiteral("nu"));
+#else
+    QCOMPARE(m_launchers->run(QStringLiteral("nu")), Launchers::kConfirmationNeeded);
+    QVERIFY(!m_launchers->confirm(QStringLiteral("nu"), false));
+#endif
+    QCOMPARE(m_launchers->run(QStringLiteral("exe")), Launchers::kConfirmationNeeded);
+    QVERIFY(!m_launchers->confirm(QStringLiteral("exe"), false));
+}
+
+// Décision de l'orchestrateur : un deux-points ailleurs qu'après une lettre de lecteur (flux NTFS) et un
+// chemin qui finit par un séparateur sont refusés, même sans paramètre.
+void TstUiLaunchers::colonAndSeparatorRefused()
+{
+    const QStringList paths{QStringLiteral("C:/essai/e.bat::$DATA"),
+                            QStringLiteral("C:/essai/notes.txt:flux"), QStringLiteral("essai:prog.exe"),
+                            QStringLiteral("C:/essai/dossier/"), QStringLiteral("C:\\essai\\dossier\\")};
+    for (qsizetype i = 0; i < paths.size(); ++i)
+        putForeign(QStringLiteral("piege-%1").arg(i), paths.at(i), {}, QString());
+    for (qsizetype i = 0; i < paths.size(); ++i) {
+        if (QTest::currentTestFailed())
+            return;
+        expectRefused(QStringLiteral("piege-%1").arg(i));
+    }
 }
 
 QTEST_MAIN(TstUiLaunchers)

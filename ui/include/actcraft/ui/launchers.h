@@ -25,10 +25,10 @@ namespace actcraft::ui {
 // Lancement sans interpréteur : QProcess::startDetached(programme, paramètres en liste) pour un exécutable,
 // QDesktopServices::openUrl pour un fichier. Refusés par run() avant toute confirmation : un chemin qui
 // contient un guillemet, un caractère de contrôle ou l'un de <>|?* ; les types que Windows exécute (.bat,
-// .cmd, scripts, .lnk…) ; des paramètres pour autre chose qu'un programme nommé (.exe ou sans suffixe) ; un
-// caractère de mise en forme Unicode partout, de contrôle dans un paramètre. Décidé sur les chaînes seules :
-// rien ne lit le disque avant la confirmation ; au lancement, un document qui porte des paramètres ne part
-// pas. Un identifiant en double : la première entrée seule compte.
+// .cmd, scripts, .lnk…) ; des paramètres pour autre chose qu'un programme nommé (.exe ; sans suffixe hors
+// Windows) ; un caractère de mise en forme Unicode partout, de contrôle dans un paramètre. Décidé sur les
+// chaînes seules : rien ne lit le disque avant la confirmation ; au lancement, un document qui porte des
+// paramètres ne part pas. Un identifiant en double : la première entrée seule compte.
 class Launchers : public QObject
 {
     Q_OBJECT
