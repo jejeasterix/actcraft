@@ -9,6 +9,7 @@
 #include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/notescontroller.h>
 #include <actcraft/ui/objecttree.h>
+#include <actcraft/ui/pagescontroller.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/profilecontroller.h>
 #include <actcraft/ui/propertymodel.h>
@@ -183,6 +184,14 @@ void TstUiClassroomlock::firstLockCreatesThePassword()
     QVERIFY(f.lock->isLocked());
     QVERIFY(f.commands->isLocked());
     QVERIFY(f.prefs->value(key(ui::ClassroomLock::kLockedKey)).toBool());
+    // m3 : empreinte effacée pendant le verrou (fichier relu) : aucun mot de passe ne se crée, le verrou tient.
+    f.prefs->remove(key(ui::ClassroomLock::kHashKey));
+    f.prefs->remove(key(ui::ClassroomLock::kSaltKey));
+    f.prefs->remove(key(ui::ClassroomLock::kIterationsKey));
+    QVERIFY(!f.lock->createPassword(QStringLiteral("autre-5678"), QStringLiteral("autre-5678")));
+    QVERIFY(!f.lock->isBusy());
+    QVERIFY(f.lock->isLocked());
+    QVERIFY(f.commands->isLocked());
 }
 
 void TstUiClassroomlock::everyLockableGreyed()
@@ -228,6 +237,23 @@ void TstUiClassroomlock::wrongPasswordKeepsTheLock()
     QVERIFY(f.prefs->value(key(ui::ClassroomLock::kLockedKey)).toBool());
     QVERIFY(!f.unlock(QString()));
     QVERIFY(f.lock->isLocked());
+
+    // M2 : `classroom.password` n'est pas verrouillable ; changer le mot de passe avec un ancien faux ne change
+    // rien, et le nouveau ne lève pas le verrou.
+    const QString hash = f.prefs->value(key(ui::ClassroomLock::kHashKey)).toString();
+    const QString salt = f.prefs->value(key(ui::ClassroomLock::kSaltKey)).toString();
+    const QString intruder = QStringLiteral("pirate-1");
+    QSignalSpy replaced(f.lock.get(), &ui::ClassroomLock::passwordReplaced);
+    if (f.lock->changePassword(QStringLiteral("faux"), intruder)) {
+        QVERIFY(!waitResult(replaced));
+    }
+    QVERIFY(!f.lock->isBusy());
+    QCOMPARE(f.prefs->value(key(ui::ClassroomLock::kHashKey)).toString(), hash);
+    QCOMPARE(f.prefs->value(key(ui::ClassroomLock::kSaltKey)).toString(), salt);
+    QVERIFY(!f.unlock(intruder));
+    QVERIFY(f.lock->isLocked());
+    QVERIFY(f.commands->isLocked());
+    QVERIFY(f.unlock(kPassword)); // l'ancien reste le bon
 }
 
 void TstUiClassroomlock::rightPasswordUnlocks()
@@ -264,6 +290,13 @@ void TstUiClassroomlock::lockSurvivesRestart()
     }
     QVERIFY(f.unlock(kPassword));
     f.open();
+    QVERIFY(!f.lock->isLocked());
+    QVERIFY(!f.commands->isLocked());
+    // m4 : le verrou n'est reposé à la relance que si une empreinte existe (sinon, rien ne le lèverait).
+    QVERIFY(f.lock->lock());
+    f.prefs->remove(key(ui::ClassroomLock::kHashKey));
+    f.open();
+    QVERIFY(!f.lock->hasPassword());
     QVERIFY(!f.lock->isLocked());
     QVERIFY(!f.commands->isLocked());
 }
@@ -371,6 +404,7 @@ void TstUiClassroomlock::qmlCannotBypass()
     ui::DocumentController document;
     document.newDocument(800, 600);
     ui::DocumentTabs tabs;
+    tabs.setProperty("commands", QVariant::fromValue(f.commands.get())); // câblage de Main.qml
     tabs.setDocument(&document);
     QQmlComponent windowComponent(&engine);
     windowComponent.setData("import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\n"
@@ -420,6 +454,51 @@ void TstUiClassroomlock::qmlCannotBypass()
     QVERIFY(f.unlock(kPassword));
     clickAdd();
     QCOMPARE(tabs.rowCount(), before + 2);
+
+    // M1, amendement 12 : sous verrou, fermer un onglet (« × », clic du milieu, « Ne pas enregistrer ») suit
+    // file.close et déposer des pages suit sa commande. Le modèle refuse lui-même : un appel direct, sans la
+    // barre (tout autre QML), ne passe pas non plus ; une garde QML seule le laisserait passer.
+    QCOMPARE(tabs.rowCount(), 3);
+    QCOMPARE(tabs.currentIndex(), 2);
+    QVERIFY(addObject(document, shapeAt(100), core::Layer::Middle) != 0); // onglet affiché modifié
+    QVERIFY(tabs.isModifiedAt(2));
+    QVERIFY(!tabs.isModifiedAt(0));
+    const auto item = [window](const char* name) {
+        return window->findChild<QQuickItem*>(QString::fromLatin1(name));
+    };
+    QTRY_VERIFY(item("documentTabClose0") && item("documentTabSelect1") && item("documentTabClose2"));
+    auto* saveChanges = window->findChild<QObject*>(QStringLiteral("tabSaveChangesDialog"));
+    QVERIFY(saveChanges);
+    const auto click = [window](QQuickItem* target, Qt::MouseButton button) {
+        QTest::mouseClick(window, button, {},
+                          target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint());
+        QCoreApplication::processEvents();
+    };
+    QSignalSpy asked(&tabs, &ui::DocumentTabs::saveRequested);
+    QVERIFY(f.lock->lock());
+    click(item("documentTabClose0"), Qt::LeftButton);    // « × » d'un onglet non modifié
+    click(item("documentTabSelect1"), Qt::MiddleButton); // clic du milieu
+    click(item("documentTabClose2"), Qt::LeftButton);    // onglet modifié : aucune boîte
+    QVERIFY(QMetaObject::invokeMethod(saveChanges, "discardRequested")); // « Ne pas enregistrer »
+    QCOMPARE(tabs.rowCount(), 3);
+    QCOMPARE(asked.count(), 0);
+    QVERIFY(tabs.isModifiedAt(2));
+    QVERIFY(QMetaObject::invokeMethod(&tabs, "newTab"));
+    QVERIFY(QMetaObject::invokeMethod(
+        &tabs, "openInNewTab", Q_ARG(QUrl, QUrl::fromLocalFile(f.dir.filePath(QStringLiteral("absent.actcraft"))))));
+    bool closed = true;
+    QVERIFY(QMetaObject::invokeMethod(&tabs, "requestClose", Q_RETURN_ARG(bool, closed), Q_ARG(int, 0)));
+    QVERIFY(!closed);
+    QVERIFY(QMetaObject::invokeMethod(&tabs, "closeWithoutSaving", Q_ARG(int, 2)));
+    QVERIFY(QMetaObject::invokeMethod(&tabs, "copyPagesToTab", Q_ARG(QVariantList, QVariantList{0}), Q_ARG(int, 0)));
+    QCOMPARE(tabs.rowCount(), 3);
+    QCOMPARE(tabs.currentIndex(), 2);
+    QVERIFY(tabs.isModifiedAt(2));
+    QVERIFY(!tabs.isModifiedAt(0)); // aucune page déposée
+    QCOMPARE(asked.count(), 0);
+    QVERIFY(f.unlock(kPassword));
+    click(item("documentTabClose0"), Qt::LeftButton); // hors du verrou, « × » ferme l'onglet non modifié
+    QCOMPARE(tabs.rowCount(), 2);
 }
 
 // Amendement 1 : Commands::setEnabled compare à l'état propre (isOwnEnabled), pas à isEnabled, qui voit à
@@ -495,8 +574,27 @@ void TstUiClassroomlock::everyLot6ControllerRefuses()
     const int row2 = treeRowOf(tree, shape2);
     QVERIFY(row1 >= 0 && row2 >= 0);
     const std::vector<core::ObjectId> order = idsOnPage(document);
+    // Amendement 12 : les gestes du navigateur de pages (Suppr, Ctrl+X, Ctrl+V, Ctrl+D) appellent le contrôleur
+    // de pages sans passer par le registre ; il refuse lui-même sous verrou.
+    ui::DocumentController pagesDocument;
+    pagesDocument.newDocument(1024, 768);
+    ui::PagesController pages;
+    pages.setProperty("commands", QVariant::fromValue(f.commands.get())); // câblage de Main.qml
+    pages.setDocumentController(&pagesDocument);
+    pages.insertBlank(true);
+    pages.click(0, 0);
+    pages.copySelection();
+    QCOMPARE(pagesDocument.pageCount(), 2);
+    QVERIFY(pages.canPaste());
 
     QVERIFY(f.createAndLock());
+    const auto pageCountAfter = [&pages, &pagesDocument](const char* gesture) {
+        return QMetaObject::invokeMethod(&pages, gesture) ? pagesDocument.pageCount() : -1;
+    };
+    QCOMPARE(pageCountAfter("deleteSelection"), 2);    // Suppr
+    QCOMPARE(pageCountAfter("cutSelection"), 2);       // Ctrl+X
+    QCOMPARE(pageCountAfter("paste"), 2);              // Ctrl+V
+    QCOMPARE(pageCountAfter("duplicateSelection"), 2); // Ctrl+D
     QVERIFY(!properties.setValue(properties.rowOf(QStringLiteral("outline-width")), 12));
     QVERIFY(!tree.move(row2, row1));
     QVERIFY(!tree.setHidden(row1, true));
