@@ -23,6 +23,7 @@ Item {
     function open() {
         help.openFor(root.tools ? root.tools.currentTool : "")
         root.visible = true
+        root.forceActiveFocus() // Échap atteint l'item, pas le raccourci de tool.select
     }
 
     function close() {
@@ -56,6 +57,8 @@ Item {
         }
     }
 
+    // Échap est aussi le raccourci de tool.select : le lecteur ouvert le garde pour lui.
+    Keys.onShortcutOverride: event => { event.accepted = event.key === Qt.Key_Escape }
     Keys.onEscapePressed: root.close()
 
     Component.onCompleted: {
