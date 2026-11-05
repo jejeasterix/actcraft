@@ -2,7 +2,11 @@
 #include <actcraft/actions/profilestore.h>
 #include <actcraft/ui/profilecontroller.h>
 
+#include <actcraft/ui/commands.h>
+
+#include <QDir>
 #include <QFile>
+#include <QTemporaryDir>
 #include <QtTest>
 
 using namespace actcraft;
@@ -122,6 +126,41 @@ private slots:
             QVERIFY2(p->palette.swatches == 16, qPrintable(id));
             QVERIFY2(p->browsers.current == QStringLiteral("pages"), qPrintable(id));
         }
+    }
+
+    // Amendement 9 : un profil fourni dont seul <dossier>/layout.json a changé est « modifié », et « Revenir à
+    // l'origine » retire ce fichier. Le patron écarté (`hasUserCopy` seul) ne regarde que <id>.json.
+    void layoutAloneMarksTheBuiltinModified()
+    {
+        QTemporaryDir root;
+        ui::Commands commands;
+        ui::ProfileController controller(
+            actions::ProfileStore(root.filePath(QStringLiteral("profiles")),
+                                  QStringLiteral(":/actcraft/actions/profiles"),
+                                  ui::ProfileController::builtinOrder()),
+            nullptr, &commands);
+        controller.start();
+        const QString id = controller.currentId();
+        QVERIFY(controller.store().isBuiltin(id));
+        const auto modified = [&controller, &id]() {
+            for (const QVariant& entry : controller.profiles())
+                if (entry.toMap().value(QStringLiteral("id")).toString() == id)
+                    return entry.toMap().value(QStringLiteral("modified")).toBool();
+            return false;
+        };
+        QVERIFY(!modified());
+        const QString layout = controller.store().directory(id) + QStringLiteral("/layout.json");
+        QVERIFY(QDir().mkpath(controller.store().directory(id)));
+        QFile file(layout);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QVERIFY(file.write("{}") > 0);
+        file.close();
+        QVERIFY(!controller.store().hasUserCopy(id));
+        QVERIFY(modified());
+        commands.trigger(QStringLiteral("profile.reset"));
+        QCOMPARE(controller.currentId(), id);
+        QVERIFY(!QFile::exists(layout));
+        QVERIFY(!modified());
     }
 };
 

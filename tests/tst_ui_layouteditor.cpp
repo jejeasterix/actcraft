@@ -91,6 +91,58 @@ QJsonObject menuObject(const QJsonObject& layout, const QString& id)
     return {};
 }
 
+// Groupes de la palette que ToolPalette ne dessine pas en boutons : il y charge le nuancier et l'épaisseur.
+bool undrawnGroup(const QString& group)
+{
+    return group == QLatin1String("couleurs") || group == QLatin1String("epaisseur");
+}
+
+// Commandes de Commands::palette() rangées sous un groupe non dessiné : absentes de l'écran.
+QStringList hiddenCommands(const QVariantList& palette)
+{
+    QStringList out;
+    for (const QVariant& group : palette)
+        if (undrawnGroup(group.toMap().value(QStringLiteral("group")).toString()))
+            out << ids(group.toMap().value(QStringLiteral("items")).toList());
+    return out;
+}
+
+// Même garde sur la palette aplatie que montre l'éditeur.
+QStringList hiddenItems(const QVariantList& items)
+{
+    QStringList out;
+    bool undrawn = false;
+    for (const QVariant& value : items) {
+        const QVariantMap item = value.toMap();
+        if (item.contains(QStringLiteral("group")))
+            undrawn = undrawnGroup(item.value(QStringLiteral("group")).toString());
+        else if (undrawn)
+            out << item.value(QStringLiteral("id")).toString();
+    }
+    return out;
+}
+
+int indexOf(const QVariantList& items, const QString& id)
+{
+    return static_cast<int>(ids(items).indexOf(id));
+}
+
+int groupIndex(const QVariantList& items, const QString& group)
+{
+    for (int i = 0; i < items.size(); ++i)
+        if (items.at(i).toMap().value(QStringLiteral("group")).toString() == group)
+            return i;
+    return -1;
+}
+
+bool currentModified(const ui::ProfileController& profile)
+{
+    for (const QVariant& entry : profile.profiles())
+        if (entry.toMap().value(QStringLiteral("id")).toString() == profile.currentId())
+            return entry.toMap().value(QStringLiteral("modified")).toBool();
+    return false;
+}
+
 // Banc : registre, profil courant dans un dossier temporaire, éditeur lié aux deux.
 struct Bench
 {
@@ -296,6 +348,106 @@ private slots:
         expected.replace(1, first);
         QCOMPARE(writtenFile.value(QStringLiteral("items")).toArray(), expected);
         QCOMPARE(written.value(QStringLiteral("x-extension")), layout.value(QStringLiteral("x-extension")));
+    }
+
+    // Majeur 1 : une commande n'atterrit jamais sous « couleurs » ou « epaisseur », que ToolPalette ne dessine
+    // pas en boutons. Le patron écarté (ces en-têtes traités comme les autres) range tool.select sous
+    // « epaisseur » au premier « Monter » : l'outil disparaît de la palette, sans message.
+    void commandsStayInDrawnGroups()
+    {
+        Bench bench;
+        bench.editor.setTarget(QStringLiteral("palette"));
+        QVariantList items = bench.editor.items();
+        const int select = indexOf(items, QStringLiteral("tool.select"));
+        // Témoin : tool.select ouvre son groupe, et l'en-tête d'avant est un bloc non dessiné.
+        QVERIFY(select >= 2);
+        QVERIFY(items.at(select - 1).toMap().contains(QStringLiteral("group")));
+        QVERIFY(undrawnGroup(items.at(select - 2).toMap().value(QStringLiteral("group")).toString()));
+        QVERIFY(hiddenCommands(bench.commands.palette()).isEmpty());
+
+        bench.editor.moveUp(select);
+        QVERIFY(hiddenItems(bench.editor.items()).isEmpty());
+        QVERIFY(bench.editor.apply());
+        QVERIFY(paletteIds(bench.commands.palette()).contains(QStringLiteral("tool.select")));
+        QVERIFY(hiddenCommands(bench.commands.palette()).isEmpty());
+
+        // Retirer l'en-tête du groupe de tool.select, pousser chaque bloc non dessiné en bas, puis ajouter.
+        items = bench.editor.items();
+        int header = indexOf(items, QStringLiteral("tool.select"));
+        while (header >= 0 && !items.at(header).toMap().contains(QStringLiteral("group")))
+            --header;
+        QVERIFY(header >= 0);
+        bench.editor.removeAt(header);
+        QVERIFY(hiddenItems(bench.editor.items()).isEmpty());
+        for (const QString& group : {QStringLiteral("couleurs"), QStringLiteral("epaisseur")}) {
+            for (qsizetype step = 0; step < bench.editor.items().size(); ++step) {
+                const int at = groupIndex(bench.editor.items(), group);
+                if (at < 0 || !bench.editor.moveDown(at))
+                    break;
+            }
+            QVERIFY2(hiddenItems(bench.editor.items()).isEmpty(), qPrintable(group));
+        }
+        QVERIFY(bench.editor.add(QStringLiteral("file.new-1024x768")));
+        QVERIFY(hiddenItems(bench.editor.items()).isEmpty());
+        QVERIFY(bench.editor.apply());
+        const QVariantList palette = bench.commands.palette();
+        QVERIFY(hiddenCommands(palette).isEmpty());
+        for (const QString& id : {QStringLiteral("tool.select"), QStringLiteral("file.new-1024x768")})
+            QVERIFY2(paletteIds(palette).contains(id), qPrintable(id));
+    }
+
+    // Majeur 2 : « Revenir à l'origine » relit la disposition, même à identifiant de profil égal. Le patron
+    // écarté (relire au seul changement d'identifiant) montre la liste périmée et la réécrit au prochain
+    // « Terminé ». Modifier une autre liste ne suffit pas à le voir (apply() relit le disque) : la garde est
+    // le contenu montré et la même liste remodifiée.
+    void resetReloadsTheLayout()
+    {
+        Bench bench;
+        const QJsonArray origin = readJson(defaultLayoutPath()).value(QStringLiteral("objectBar")).toArray();
+        bench.editor.setTarget(QStringLiteral("objectBar"));
+        const QStringList shown = tokens(bench.editor.items());
+        QVERIFY(bench.editor.add(QStringLiteral("file.save")));
+        QVERIFY(bench.editor.apply());
+        QVERIFY(QFile::exists(bench.profileLayout()));
+        const QString id = bench.profile->currentId();
+        bench.commands.trigger(QStringLiteral("profile.reset"));
+        QCOMPARE(bench.profile->currentId(), id);
+        QVERIFY(!QFile::exists(bench.profileLayout()));
+        QCOMPARE(tokens(bench.editor.items()), shown);
+        QVERIFY(!bench.editor.modified());
+
+        bench.editor.setTarget(QStringLiteral("contextMenu"));
+        QVERIFY(bench.editor.addSeparator());
+        QVERIFY(bench.editor.apply());
+        QCOMPARE(readJson(bench.profileLayout()).value(QStringLiteral("objectBar")).toArray(), origin);
+
+        bench.commands.trigger(QStringLiteral("profile.reset"));
+        bench.editor.setTarget(QStringLiteral("objectBar"));
+        QVERIFY(bench.editor.moveDown(0));
+        QVERIFY(bench.editor.apply());
+        QJsonArray expected = origin;
+        expected.replace(0, origin.at(1));
+        expected.replace(1, origin.at(0));
+        QCOMPARE(readJson(bench.profileLayout()).value(QStringLiteral("objectBar")).toArray(), expected);
+        QCOMPARE(readJson(bench.profileLayout()).value(QStringLiteral("contextMenu")),
+                 readJson(defaultLayoutPath()).value(QStringLiteral("contextMenu")));
+    }
+
+    // Amendement 9 : après « Terminé », la liste des profils est signalée et le profil fourni est « modifié »
+    // (« Revenir à l'origine » actif), sans copie <id>.json.
+    void applyMarksTheProfileModified()
+    {
+        Bench bench;
+        const QString id = bench.profile->currentId();
+        QVERIFY(bench.profile->store().isBuiltin(id));
+        QVERIFY(!currentModified(*bench.profile));
+        QSignalSpy list(bench.profile.get(), &ui::ProfileController::listChanged);
+        bench.editor.setTarget(QStringLiteral("objectBar"));
+        QVERIFY(bench.editor.add(QStringLiteral("file.save")));
+        QVERIFY(bench.editor.apply());
+        QVERIFY(list.count() > 0);
+        QVERIFY(!bench.profile->store().hasUserCopy(id));
+        QVERIFY(currentModified(*bench.profile));
     }
 };
 
