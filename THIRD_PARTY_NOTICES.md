@@ -97,3 +97,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
+
+## Hunspell 1.7.2
+
+Correcteur orthographique, lié statiquement à ActCraft. Copyright 2002-2022 Németh László et contributeurs.
+Source : https://github.com/hunspell/hunspell (version étiquetée v1.7.2). Hunspell est proposé sous une triple licence
+(MPL 1.1, GPL 2.0 ou LGPL 2.1) ; ActCraft l'utilise sous l'option **Mozilla Public License 1.1** (une des trois
+licences proposées par ses auteurs). Texte dans `third_party/hunspell/COPYING.MPL`, mentions dans
+`third_party/hunspell/license.hunspell` et `license.myspell`. Les sources de Hunspell livrées avec ActCraft sont celles
+de la version 1.7.2, sans modification ; elles sont disponibles à l'adresse ci-dessus.
+
+## Dictionnaire français (Grammalecte)
+
+Dictionnaires orthographiques français, version 7.7, variante « classique » (fichiers `fr.aff` et `fr.dic`, copies
+inchangées de `fr-classique.aff` et `fr-classique.dic`). Olivier R. et contributeurs, https://grammalecte.net/.
+Licence **Mozilla Public License 2.0** (texte dans `third_party/dictionaries/fr/LICENSE.txt`,
+http://www.mozilla.org/MPL/2.0/). Le dictionnaire est livré dans les ressources de l'application.
