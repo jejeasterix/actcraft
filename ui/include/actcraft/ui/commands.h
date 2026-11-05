@@ -33,6 +33,10 @@ class Commands : public QObject
     Q_PROPERTY(QString platformName READ platformName NOTIFY layoutChanged)
     Q_PROPERTY(QStringList errors READ errors NOTIFY layoutChanged)
     Q_PROPERTY(int revision READ revision NOTIFY stateChanged)
+    // Verrou de classe (D6-7), en lecture seule : seul ClassroomLock le pose et le lève (setLocked, C++).
+    Q_PROPERTY(bool locked READ isLocked NOTIFY stateChanged)
+    // Commandes disponibles grisées par le verrou (0 hors du verrou), lue par les scénarios.
+    Q_PROPERTY(int lockedCount READ lockedCount NOTIFY stateChanged)
 
 public:
     explicit Commands(QObject* parent = nullptr);
@@ -82,9 +86,14 @@ public:
     Q_INVOKABLE bool isChecked(const QString& id) const;
     Q_INVOKABLE void setChecked(const QString& id, bool checked);
     // Verrou de classe du registre (D6-7) : désactive les commandes verrouillables sans toucher leur état
-    // propre ; gardé à travers reload().
+    // propre ; gardé à travers reload(). C++ seulement (L6-T31) : aucune voie QML ne lève le verrou sans le
+    // mot de passe ; seul ClassroomLock l'appelle.
     void setLocked(bool locked);
     bool isLocked() const noexcept;
+    int lockedCount() const;
+    // Amendement 12 : un geste qui ne passe pas par le registre (barre d'onglets, navigateur de pages) suit
+    // sa commande sous verrou ; hors du verrou, il ne dépend pas d'elle. C++ seulement.
+    bool allowsWhileLocked(const QString& id) const;
 
 signals:
     void layoutChanged();

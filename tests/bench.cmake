@@ -504,3 +504,6 @@ foreach(_scn IN ITEMS profils palette couleurs proprietes navigateur-objets note
         PASS_REGULAR_EXPRESSION "SCENARIO OK"
         FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 endforeach()
+# L6-T31 : le mot de passe d'essai du scénario n'apparaît jamais dans sa sortie.
+set_tests_properties(tst_captures_classe_protegee PROPERTIES
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE|essai-1234")
