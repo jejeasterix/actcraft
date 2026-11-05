@@ -50,13 +50,44 @@ private:
         }
     };
 
-    // Notes d'un fichier reçu : feuille importée, images locale et distante, lien.
+    // Image data: SVG qui référence un fichier (la TextArea la décoderait, Qt Svg lirait le fichier) ; image
+    // data: PNG d'un point.
+    static std::string svgData()
+    {
+        return "data:image/"
+               "svg+xml;base64,"
+               "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+"
+               "PGltYWdlIGhyZWY9ImZpbGU6Ly8vYWN0Y3JhZnQtYWJzZW50L3gucG5nIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiLz48L"
+               "3N2Zz4=";
+    }
+    static std::string pngData()
+    {
+        return "data:image/"
+               "png;base64,"
+               "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJgg"
+               "g==";
+    }
+
+    // Notes d'un fichier reçu : feuille importée, images locale, distante, data: SVG et data: PNG, lien.
     static std::string hostileNotes()
     {
         return "<style>@import url(file:///actcraft-absent/s.css);</style>"
                "<p><b>Gras</b> texte <img src=\"file:///actcraft-absent/i.png\">"
                "<img src=\"http://actcraft.invalid/i.png\"> <a "
-               "href=\"http://actcraft.invalid/\">lien</a></p>";
+               "href=\"http://actcraft.invalid/\">lien</a><img src=\"" +
+               svgData() + "\"><img src=\"" + pngData() + "\"></p>";
+    }
+
+    // Premier fragment interdit dans le HTML donné à l'éditeur QML, ou vide.
+    static QString firstForbidden(const QString& shown)
+    {
+        for (const char* forbidden :
+             {"actcraft-absent", "actcraft.invalid", "@import", "<img", "data:image"}) {
+            if (shown.contains(QLatin1String(forbidden))) {
+                return QLatin1String(forbidden);
+            }
+        }
+        return {};
     }
 
     // Document de deux pages ; sans notes. Page 1 affichée.
@@ -211,6 +242,47 @@ private slots:
         // Le texte montré, rendu tel quel par l'éditeur, n'est pas une frappe.
         f.notes.setHtml(shown);
         QCOMPARE(f.document.document().page(0).notes, hostileNotes());
+    }
+
+    // Essai 2 (contre-relecture) : la TextArea décode les images data: et choisit le décodeur sur le contenu,
+    // pas sur le type déclaré ; un SVG y lirait l'image qu'il référence. Choix : l'éditeur ne reçoit aucune
+    // image, data: raster comprises ; la page garde les siennes tant que personne n'écrit.
+    void displayedNotesCarryNoImage()
+    {
+        Fixture f;
+        const std::string notes =
+            "<p>avant <img src=\"" + svgData() + "\"> milieu <img src=\"" + pngData() + "\"> fin</p>";
+        f.document.execute(std::make_unique<core::SetPageNotesCommand>(0, notes));
+        const QString shown = f.notes.html();
+        QVERIFY(shown.contains(QLatin1String("avant")));
+        QVERIFY(shown.contains(QLatin1String("milieu")));
+        QVERIFY(shown.contains(QLatin1String("fin")));
+        QVERIFY2(firstForbidden(shown).isEmpty(),
+                 qPrintable(firstForbidden(shown) + QLatin1Char(' ') + shown));
+        QCOMPARE(f.document.document().page(0).notes, notes);
+    }
+
+    // Retour par annulation : notes hostiles à l'ouverture, frappe, annulation ; le texte montré est
+    // réassaini.
+    void undoShowsTheNotesSanitized()
+    {
+        ui::DocumentController document;
+        ui::Commands commands;
+        ui::NotesController notes;
+        core::Document opened;
+        opened.page(0).notes = hostileNotes();
+        document.replaceDocument(std::move(opened), QUrl(), QStringLiteral("Notes")); // pile vide
+        notes.setCommands(&commands);
+        notes.setDocument(&document);
+        QVERIFY2(firstForbidden(notes.html()).isEmpty(), qPrintable(notes.html()));
+        notes.setHtml(QStringLiteral("<p>x</p>"));
+        QCOMPARE(document.document().page(0).notes, std::string("<p>x</p>"));
+        document.undo();
+        QCOMPARE(document.document().page(0).notes, hostileNotes());
+        const QString shown = notes.html();
+        QVERIFY(shown.contains(QLatin1String("Gras")));
+        QVERIFY2(firstForbidden(shown).isEmpty(),
+                 qPrintable(firstForbidden(shown) + QLatin1Char(' ') + shown));
     }
 };
 
