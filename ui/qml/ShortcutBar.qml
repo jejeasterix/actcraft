@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls.Basic
 import ActCraft.Ui
 
 // Troisième colonne de la palette (F-140, F-141) : outils lancés hors palette, puis boutons d'objets.
@@ -13,6 +14,12 @@ Item {
     property var preferences: null
     readonly property alias model: appShortcuts
     readonly property bool hasButtons: appShortcuts.buttons.length > 0
+    readonly property alias launchers: launchers
+    readonly property int launcherCount: launchers.entries.length
+    readonly property string editId: "launcher.edit"
+    readonly property string runId: "launcher.run"
+    // E3 : bouton d'édition en bas, absent si la palette est réduite ou la barre masquée.
+    readonly property bool editVisible: root.profile ? !(root.profile.paletteCollapsed || root.profile.shortcutsHidden) : true
     implicitWidth: column.implicitWidth
     implicitHeight: column.implicitHeight
 
@@ -25,6 +32,14 @@ Item {
         tools: root.tools
     }
 
+    // Raccourcis vers des programmes (F-142) : lus du profil, lancés par la commande launcher.run (une seule
+    // boîte de confirmation, celle de LaunchersPage).
+    Launchers {
+        id: launchers
+        objectName: "barLaunchers"
+        profile: root.profile
+    }
+
     Column {
         id: column
         spacing: Theme.espace1
@@ -35,6 +50,40 @@ Item {
                 required property var modelData
                 sourceComponent: cell.modelData.kind === "tool" ? toolButton : objectButton
             }
+        }
+        Repeater {
+            model: launchers.entries
+            delegate: launcherButton
+        }
+        CommandButton {
+            objectName: "launcherEditButton"
+            commands: root.commands
+            commandId: root.editId
+            visible: root.editVisible && root.commands.isAvailable(root.editId)
+        }
+    }
+
+    Component {
+        id: launcherButton
+        ToolButton {
+            id: launcherDelegate
+            required property int index
+            required property var modelData
+            property string toolTip: modelData.toolTip
+            objectName: "launcherButton" + index
+            implicitWidth: Theme.tailleBouton
+            implicitHeight: Theme.tailleBouton
+            enabled: root.commands.revision >= 0 && root.commands.isEnabled(root.runId)
+            focusPolicy: Qt.NoFocus
+            display: AbstractButton.IconOnly
+            icon.source: root.commands.iconUrl(root.editId)
+            icon.width: Theme.tailleIcone
+            icon.height: Theme.tailleIcone
+            Accessible.name: toolTip
+            ToolTip.visible: hovered
+            ToolTip.delay: 600
+            ToolTip.text: toolTip
+            onClicked: root.commands.trigger(root.runId, modelData.id)
         }
     }
 
