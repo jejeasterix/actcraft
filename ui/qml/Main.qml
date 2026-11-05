@@ -48,6 +48,9 @@ Window {
     property bool generatedPage: false
     // Dossier des profils de l'utilisateur ; vide : <AppConfigLocation>/profiles (StartupOptions::profileRoot).
     property string profileRoot: ""
+    // Accueil au démarrage : posée à vrai par app/main.cpp seulement (StartupOptions::showDashboard) ; le joueur
+    // de captures, le banc et les tests la laissent fausse.
+    property bool showDashboard: false
     // État de l'interface, lu par les tests et par actcraft-captures. Le plein écran est l'état réel de la
     // fenêtre : il suit aussi une sortie par le système, et la coche de « Plein écran » le suit.
     readonly property bool fullScreen: root.visibility === Window.FullScreen
@@ -87,6 +90,13 @@ Window {
         target: pageArea.fixedPage
         property: "showHiddenTranslucent"
         value: appDesign.hiddenShown
+    }
+
+    // Lot 6 (L6-T28) : le mandataire gardé s'applique dès la construction ; sans hôte saisi, ActCraft rend la main
+    // à la configuration du système. La page Réseau a sa propre instance (mêmes réglages).
+    NetworkSettings {
+        id: appNetwork
+        objectName: "appNetwork"
     }
 
     DocumentController {
@@ -477,6 +487,7 @@ Window {
                 required property var modelData
                 commands: appCommands
                 spec: modelData
+                recents: fileActions.recents
             }
             onObjectAdded: (index, object) => mainMenu.insertMenu(index, object)
             onObjectRemoved: (index, object) => mainMenu.removeMenu(object)
@@ -503,9 +514,14 @@ Window {
         document: appDocument
         tabs: appTabs
         textEditing: appText
+        preferences: appPreferences // documents récents gardés (L6-T24)
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
         onSaveAbandoned: documentTabBar.closeAfterSave = false
+        onSaved: (url) => {
+            if (appProfile.setting("document", "summary-on-save", false))
+                saveSummaryDialog.show(fileActions.recents.summary(appDocument, url))
+        }
     }
 
     // Fermeture de la fenêtre : même demande que « Quitter ».
@@ -582,6 +598,8 @@ Window {
     }
     Dashboard {
         id: dashboard
+        recents: fileActions.recents
+        showDashboard: root.showDashboard
         commands: appCommands
         documentController: appDocument
         tools: appTools
@@ -636,6 +654,7 @@ Window {
     }
     SaveSummaryDialog {
         id: saveSummaryDialog
+        recents: fileActions.recents
         commands: appCommands
         documentController: appDocument
         tools: appTools

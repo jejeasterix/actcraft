@@ -27,7 +27,7 @@
     {"expect": "dashboard.visible", "value": true},
     {"expect": "dashboard.recentCount", "value": 2},
     {"capture": "accueil"},
-    {"pointer": [[640, 560]], "space": "window"},
+    {"pointer": [[527, 339]], "space": "window"},
     {"waitFor": "documentController.busy", "value": false},
     {"waitReady": true},
     {"expect": "documentController.pageCount", "value": 3},

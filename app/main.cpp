@@ -55,6 +55,7 @@ int main(int argc, char* argv[])
             options.openUrl = actcraft::formats::urlFromArgument(file);
         }
     }
+    options.showDashboard = true; // l'application seule ouvre l'accueil au démarrage (L6-T23)
     if (!loadMainWindow(engine, options)) {
         return 1;
     }
