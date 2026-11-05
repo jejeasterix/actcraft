@@ -1209,25 +1209,28 @@ BenchResult Runner::run(QQuickWindow* window)
             }
         }
         // L7-T38 (S23) : message défilant en boucle, vitesse maximale, démarré sans fenêtre d'édition.
-        QObject* ticker = nullptr;
-        if (plan.tickerRuns) {
-            ticker = m_window->findChild<QObject*>(QStringLiteral("ticker"));
-            if (ticker == nullptr || !ticker->setProperty("loop", true) ||
-                !ticker->setProperty("speed", 10) ||
-                !ticker->setProperty("text",
-                                     QStringLiteral("Banc de fluidité : message défilant en boucle")) ||
-                !QMetaObject::invokeMethod(ticker, "start") || !ticker->property("running").toBool()) {
-                result.invalidReasons << QStringLiteral("error: ticker not running before %1").arg(plan.name);
-                break;
-            }
-        }
-        // Arrêté à toute sortie de ce passage (break compris) : boucle, vitesse et texte du banc ne restent
-        // pas pour le scénario suivant.
-        const auto stopTicker = qScopeGuard([ticker] {
+        // À toute sortie de ce passage (break compris, démarrage refusé aussi) : arrêté, puis boucle, vitesse
+        // et texte d'avant rétablis ; TickerController::stop() ne remet aucun des trois.
+        QObject* const ticker =
+            plan.tickerRuns ? m_window->findChild<QObject*>(QStringLiteral("ticker")) : nullptr;
+        const QVariant loopBefore = ticker ? ticker->property("loop") : QVariant();
+        const QVariant speedBefore = ticker ? ticker->property("speed") : QVariant();
+        const QVariant textBefore = ticker ? ticker->property("text") : QVariant();
+        const auto restoreTicker = qScopeGuard([ticker, loopBefore, speedBefore, textBefore] {
             if (ticker != nullptr) {
                 QMetaObject::invokeMethod(ticker, "stop");
+                ticker->setProperty("loop", loopBefore);
+                ticker->setProperty("speed", speedBefore);
+                ticker->setProperty("text", textBefore);
             }
         });
+        if (plan.tickerRuns &&
+            (ticker == nullptr || !ticker->setProperty("loop", true) || !ticker->setProperty("speed", 10) ||
+             !ticker->setProperty("text", QStringLiteral("Banc de fluidité : message défilant en boucle")) ||
+             !QMetaObject::invokeMethod(ticker, "start") || !ticker->property("running").toBool())) {
+            result.invalidReasons << QStringLiteral("error: ticker not running before %1").arg(plan.name);
+            break;
+        }
         // L7-T38 : effet et durée d'avant le scénario, rétablis à toute sortie de ce passage (break compris,
         // mesure interrompue) ; teardownCommands remet aussi « none ».
         QObject* const transition =
