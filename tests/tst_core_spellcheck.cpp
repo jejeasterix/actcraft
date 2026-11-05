@@ -229,6 +229,24 @@ private slots:
         Document other;
         QVERIFY(checker.replace(other, *hit, "monsieur") == nullptr);
     }
+    // Amendement 15 : le HTML de l'éditeur (QTextDocument::toHtml) porte des retours à la ligne entre ses
+    // balises ; ils ne comptent pas dans les positions (« mosieur » commence à 8, comme dans QTextDocument).
+    void editorHtmlStartsAtTheFirstLetter()
+    {
+        Document d;
+        addText(d, 0, 1,
+                "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+                "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+                "p, li { white-space: pre-wrap; }\n"
+                "</style></head><body style=\" font-size:9pt;\">\n"
+                "<p style=\" margin-top:0px;\"><span style=\" font-size:14pt;\">bonjour mosieur</span></p></body></html>");
+        SpellChecker checker(*m_engine, SpellRules{});
+        const auto hit = checker.next(d);
+        QVERIFY(hit);
+        QCOMPARE(hit->word, std::string("mosieur"));
+        QCOMPARE(hit->start, std::size_t{8});
+        QVERIFY(checker.replace(d, *hit, "monsieur") != nullptr);
+    }
     void htmlTagsAreNotWords()
     {
         Document d;
