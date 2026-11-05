@@ -738,8 +738,10 @@ void TextEditing::finish()
     updateColumn(nullptr);
 }
 
-// F-252, D7 : une étape au plus. Texte neuf vide : oublié, sans étape ; texte existant vidé : supprimé en une
-// étape ; texte inchangé : revient sans étape.
+// F-252, D7 : une étape au plus. Texte neuf vide : oublié, sans étape ; texte inchangé : revient sans étape ;
+// texte existant vidé par l'utilisateur : supprimé en une étape. L6-C15 : jamais de suppression sans
+// modification du texte ; l'éditeur ne reçoit pas les images `data:` du fichier, un texte qui n'a qu'elles y
+// paraît vide.
 void TextEditing::commit()
 {
     if (!m_active) {
@@ -749,12 +751,14 @@ void TextEditing::commit()
     const core::ObjectId id = m_editing;
     const std::size_t page = m_page;
     bool empty = true;
-    bool unchanged = false;
+    bool edited = false;    // texte modifié (frappe, mise en forme)
+    bool unchanged = false; // ni le texte ni le cadre
     core::Text text;
     if (doc) {
         const QString live = doc->toHtml();
         empty = doc->toPlainText().trimmed().isEmpty();
-        unchanged = live == m_initialHtml && !m_geometryChanged;
+        edited = live != m_initialHtml;
+        unchanged = !edited && !m_geometryChanged;
         const QString safe = safeTextHtml(live, {}); // un collage riche ne fait pas entrer de ressource
         text.bounds = measuredBounds(safe);
         text.html = safe.toStdString();
@@ -771,10 +775,10 @@ void TextEditing::commit()
                 object.common.layer = core::Layer::Middle; // F-253 : couche intermédiaire
                 m_controller->execute(std::make_unique<core::AddObjectCommand>(page, std::move(object)));
             }
-        } else if (empty) {
-            m_controller->dropLifted(std::make_unique<core::RemoveObjectsCommand>(page, std::vector{id}));
         } else if (unchanged) {
             m_controller->dropLifted(nullptr);
+        } else if (empty && edited) {
+            m_controller->dropLifted(std::make_unique<core::RemoveObjectsCommand>(page, std::vector{id}));
         } else {
             m_controller->dropLifted(std::make_unique<core::SetTextCommand>(page, id, std::move(text)));
         }
