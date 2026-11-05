@@ -10,7 +10,7 @@ Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (20
 Relectures : mac
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
 Lot : 7 « Présentation et outils » — 33/33 tâches terminées (+ L7-T33b, corrective) ; fin de lot (3.8) en cours
-Tâche : fin du lot 7 (3.8, exercer avant de clore) — en cours
+Tâche : lot 7 fini côté Mac (2026-11-05) — reste la passe PC groupée (voir « Fin du lot 7 côté Mac »)
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -250,3 +250,8 @@ Preuves rejouées par l'orchestrateur : Mac debug 203/209 (`.tmp/rejeu-test.txt`
 Diff des correctifs en deux plages (A `0ba3637..8f8b2c7a`, B `aa73fdee..5cf1c47f`, le merge de `main` exclu), 95 fichiers, 3 zones × 2 axes, 6 `reviewer-adversarial`, tout lu. Verdict : **0 bloquant, 2 majeurs** (Ma1 : M8 rouvert pendant l'annotation du bureau ; Ma2 : bornes de `tst_ui_ticker` affaiblies), mineurs, consignés et simplifications : `docs/sessions/livraison-complete-b-outils/relecture-lot7-tour2.md`. Décision de l'orchestrateur : tâches correctives L7-T42 (Ma1 + mineurs du bureau) puis L7-T43 (Ma2 + mineurs), une après l'autre dans le worktree partagé ; c'est le dernier tour de correctifs autorisé (borne : deux tours). Les simplifications du tour 2 vont au rapport de clôture (L7-T39 a eu son unique essai).
 
 Correctifs du tour 2 clos le 2026-11-05 : L7-T42 (2d9cafcb) et L7-T43 (7cd065c0). Plus aucun bloquant ni majeur ouvert. Borne atteinte : deux tours de correctifs ; les mineurs restants vont au rapport de clôture.
+
+## Fin du lot 7 côté Mac (2026-11-05)
+Exercer avant de clore (3.8, étape 3), tête 1eb33eb4, `build-mac` Debug, 0 avertissement : les 34 scénarios de `bench/scenarios/` joués hors écran en rendu logiciel 1280x800 (`.tmp/exercer.sh` du worktree `L7-corr`, sorties `.tmp/exercer/`) : 33 `SCENARIO OK` ; `importer` en échec hors ctest seulement (`ATTENTE appTabs.count=2 ECHEC`, il exige le convertisseur factice `ACTCRAFT_OFFICE_CONVERTER` que pose `tests/bench.cmake:541`) et vert en ctest (`tst_captures_importer` Passed). Suite Mac 216/216, CI Windows release 222/222 (run 42023630620).
+**Passe PC groupée, à faire au retour du PC** (réservée au PC, non faite sur le Mac) : banc D3D11 plein écran de clôture, dont S22 `effets-page` (« aucune image au-delà de la limite » ; Mac logiciel : 2,4 à 2,5 % > 25 ms) et S23 `message-defilant` ; captures à l'écran en D3D11 (`captures.ps1 -Scenario tous -Rendu d3d11`, jeton `ecran`) ; `NOMS OK` ; graphe (`graphify update .`) ; caméra en pixels logiques avec un rapport de pixels ≠ 1 (`camera_win.cpp:75-83`) ; preuves de `keyinjector_win.cpp` ; seuil de 125/200 ms de la garde M4 sur vraie machine ; mutant de la caméra `desktopCaptureKeepsTheSelection` (plantage au lieu d'échec, L7-T35).
+**À la porte de clôture** : H-M8 révisée (choisir un outil de la fenêtre principale pendant l'annotation ferme l'annotation, écart à l'original) ; raccourcis `Qt.ApplicationShortcut` actifs pendant l'annotation (défaut antérieur) ; `/INCREMENTAL` dans les presets ; conversions de la sélection limitées au stylo ; H7-16 ; écart de L7-T25 ; simplifications et consignés du tour 2 (`relecture-lot7-tour2.md`) ; mineurs consignés de L7-T42 et L7-T43 (leurs lignes) ; erreurs QML `BrowserPanel.qml:51/53` (lot 4).
