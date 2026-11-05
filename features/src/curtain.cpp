@@ -1,3 +1,5 @@
+#include "nearestside.h"
+
 #include <actcraft/features/curtain.h>
 
 #include <algorithm>
@@ -47,23 +49,25 @@ bool Curtain::press(QPointF point)
     if (w <= 0 || h <= 0)
         return false;
     const double top = m_top * h, bottom = (1 - m_bottom) * h, left = m_left * w, right = (1 - m_right) * w;
-    const bool alongX = point.x() >= left - kGrabMargin && point.x() <= right + kGrabMargin;
-    const bool alongY = point.y() >= top - kGrabMargin && point.y() <= bottom + kGrabMargin;
-    struct Candidate
-    {
-        Edge edge;
-        double distance;
-    };
-    const Candidate candidates[] = {
-        {Edge::Top, alongX ? std::abs(point.y() - top) : kGrabMargin + 1},
-        {Edge::Bottom, alongX ? std::abs(point.y() - bottom) : kGrabMargin + 1},
-        {Edge::Left, alongY ? std::abs(point.x() - left) : kGrabMargin + 1},
-        {Edge::Right, alongY ? std::abs(point.x() - right) : kGrabMargin + 1},
-    };
-    const auto best =
-        std::min_element(std::begin(candidates), std::end(candidates),
-                         [](const Candidate& a, const Candidate& b) { return a.distance < b.distance; });
-    m_edge = best->distance <= kGrabMargin ? best->edge : Edge::None;
+    const std::optional<Side> side = nearestSide(point, left, top, right, bottom, kGrabMargin,
+                                                 {Side::Top, Side::Bottom, Side::Left, Side::Right});
+    m_edge = Edge::None;
+    if (side) {
+        switch (*side) {
+        case Side::Left:
+            m_edge = Edge::Left;
+            break;
+        case Side::Right:
+            m_edge = Edge::Right;
+            break;
+        case Side::Top:
+            m_edge = Edge::Top;
+            break;
+        case Side::Bottom:
+            m_edge = Edge::Bottom;
+            break;
+        }
+    }
     return m_edge != Edge::None;
 }
 

@@ -17,8 +17,6 @@ using Node = core::EquationNode;
 using Kind = core::EquationNode::Kind;
 using Path = std::vector<int>;
 
-constexpr std::string_view kCursorClass = "actcraft-cursor";
-
 struct TemplateRow
 {
     const char16_t* id;
@@ -225,63 +223,13 @@ void markEmptySlots(Node& node)
     }
 }
 
-// Retire le jeton actcraft-cursor des listes class (l'attribut disparaît s'il ne reste rien) ; une liste sans
-// ce jeton reste telle quelle.
+// Retire la marque actcraft-cursor de tout l'arbre.
 void dropCursorMark(Node& node)
 {
-    auto& attributes = node.attributes;
-    for (auto it = attributes.begin(); it != attributes.end();) {
-        if (it->first != "class") {
-            ++it;
-            continue;
-        }
-        const std::string& value = it->second;
-        std::string kept;
-        bool found = false;
-        std::size_t position = 0;
-        while (position < value.size()) {
-            const std::size_t start = value.find_first_not_of(" \t\r\n", position);
-            if (start == std::string::npos) {
-                break;
-            }
-            const std::size_t end = std::min(value.find_first_of(" \t\r\n", start), value.size());
-            const std::string_view token(value.data() + start, end - start);
-            if (token == kCursorClass) {
-                found = true;
-            } else {
-                if (!kept.empty()) {
-                    kept += ' ';
-                }
-                kept.append(token);
-            }
-            position = end;
-        }
-        if (!found) {
-            ++it;
-        } else if (kept.empty()) {
-            it = attributes.erase(it);
-        } else {
-            it->second = std::move(kept);
-            ++it;
-        }
-    }
+    core::removeClassToken(node, core::kCursorClass);
     for (Node& child : node.children) {
         dropCursorMark(child);
     }
-}
-
-void addCursorMark(Node& node)
-{
-    for (auto& [name, value] : node.attributes) {
-        if (name == "class") {
-            if (!value.empty()) {
-                value += ' ';
-            }
-            value += kCursorClass;
-            return;
-        }
-    }
-    node.attributes.emplace_back("class", std::string(kCursorClass));
 }
 
 // Case atteinte par haut (`up`) ou bas depuis l'enfant `from` d'un élément à deux dimensions ; -1 : aucune.
@@ -666,7 +614,7 @@ std::string EquationEditor::editorMathml() const
 {
     Node copy = m_root;
     if (Node* node = walk(copy, m_cursor); node && !m_cursor.empty()) {
-        addCursorMark(*node);
+        core::addClassToken(*node, core::kCursorClass);
     }
     return core::toMathml(copy);
 }

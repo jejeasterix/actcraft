@@ -15,6 +15,8 @@ QtObject {
     property Item pageArea: null
     property Item pageOverlays: null
     property Item layer: null
+    // Contrôleur des autres outils (navigateur web…), pour le bandeau de Main.qml.
+    readonly property QtObject otherToolsController: otherToolsRoot.controller
 
     // Racines assignées par nom : une propriété par défaut déclarée dans ce fichier ne sert qu'aux objets
     // déclarés là où le type est utilisé (Main.qml), pas aux enfants écrits ici (Qt : « Cannot assign to

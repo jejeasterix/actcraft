@@ -472,7 +472,9 @@ void DesktopController::releaseMainFront()
 
 QVariantList DesktopController::wheelEntries(double radius, double ringRadius) const
 {
-    const auto toVariant = [](const std::vector<features::WheelEntry>& entries, double r,
+    // Entrées placées sur le cercle de rayon r ; leur anneau secondaire, sur le cercle extérieur (rayon
+    // ringR), dont les propres anneaux restent sur ce même cercle.
+    const auto toVariant = [](const std::vector<features::WheelEntry>& entries, double r, double ringR,
                               auto&& self) -> QVariantList {
         QVariantList list;
         const std::vector<QPointF> positions = features::wheelPositions(static_cast<int>(entries.size()), r);
@@ -483,21 +485,12 @@ QVariantList DesktopController::wheelEntries(double radius, double ringRadius) c
             entry.insert(QStringLiteral("x"), positions[i].x());
             entry.insert(QStringLiteral("y"), positions[i].y());
             entry.insert(QStringLiteral("restoresMain"), opensInTheMainWindow(entries[i].command));
-            entry.insert(QStringLiteral("ring"), self(entries[i].ring, r, self));
+            entry.insert(QStringLiteral("ring"), self(entries[i].ring, ringR, ringR, self));
             list.push_back(entry);
         }
         return list;
     };
-    const std::vector<features::WheelEntry> wheel = features::defaultWheel();
-    QVariantList list = toVariant(wheel, radius, toVariant);
-    // Anneaux secondaires : sur le cercle extérieur.
-    for (qsizetype i = 0; i < list.size(); ++i) {
-        QVariantMap entry = list[i].toMap();
-        entry.insert(QStringLiteral("ring"),
-                     toVariant(wheel[static_cast<std::size_t>(i)].ring, ringRadius, toVariant));
-        list[i] = entry;
-    }
-    return list;
+    return toVariant(features::defaultWheel(), radius, ringRadius, toVariant);
 }
 
 void DesktopController::setCaptureSource(CaptureSource source)

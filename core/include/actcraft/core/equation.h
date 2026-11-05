@@ -58,6 +58,19 @@ inline constexpr int kMaxEquationDepth = 64; // éléments imbriqués, math comp
 // seul ce jeton est retiré, les autres classes et les autres attributs restent dans `attributes`.
 inline constexpr std::string_view kPlaceholderClass = "actcraft-placeholder";
 
+// Marque du curseur de l'éditeur : une classe de `attributes`, que la mise en page surligne en mode Editor.
+inline constexpr std::string_view kCursorClass = "actcraft-cursor";
+
+// Jetons d'une liste class, séparés par des blancs ASCII.
+std::vector<std::string> classTokens(const std::string& value);
+// Vrai si une liste class du nœud contient le jeton.
+bool hasClassToken(const EquationNode& node, std::string_view token);
+// Ajoute le jeton à la première liste class du nœud, ou crée l'attribut class.
+void addClassToken(EquationNode& node, std::string_view token);
+// Retire le jeton des listes class du nœud (l'attribut disparaît s'il ne reste rien) ; une liste sans ce
+// jeton reste telle quelle. Le nœud seul, pas ses enfants.
+void removeClassToken(EquationNode& node, std::string_view token);
+
 // Lit un MathML UTF-8 (racine math). Erreur (nullopt, `error` renseigné) : XML mal formé, UTF-8 invalide, DTD
 // (aucune entité externe ni déclarée n'est lue), plus de kMaxMathmlBytes octets ou de kMaxEquationDepth
 // niveaux, arité d'un élément reconnu fausse. Un élément inconnu de cette version devient un nœud Raw. Les

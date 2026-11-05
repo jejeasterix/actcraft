@@ -46,6 +46,12 @@ constexpr int kStrokeSubdivisions = 16; // déplacements postés entre deux poin
 constexpr int kReadyTimeoutMs = 10000;
 constexpr int kStrokeTimeoutMs = 5000;   // trait figé après le relâché
 constexpr int kActivateTimeoutMs = 2000; // fenêtre active avant une touche
+
+// Raison donnée quand le plafond d'attente des images est atteint (grabLoadedScene n'a pas rendu `loaded`).
+QString imageStillLoading()
+{
+    return QStringLiteral("image encore en chargement après %1 ms").arg(kReadyTimeoutMs);
+}
 // Bornes des étapes de L2-T20 (le scénario est une entrée non fiable) : attente d'une propriété de 1 ms à 2
 // min, seuil de boucle de 1 ms à 1 min.
 constexpr int kWaitForDefaultMs = 10000;
@@ -1247,7 +1253,7 @@ bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
     if (!v) {
         read = QStringLiteral("vue de page introuvable");
     } else if (!loaded) {
-        read = QStringLiteral("image encore en chargement après %1 ms").arg(kReadyTimeoutMs);
+        read = imageStillLoading();
     } else if (image.isNull()) {
         read = QStringLiteral("capture vide");
     } else {
@@ -1275,9 +1281,7 @@ bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
     bool loaded = false;
     const QImage image = grabLoadedScene(m_window, loaded);
     if (!loaded) {
-        report << QStringLiteral("BORD %1 ECART (image encore en chargement après %2 ms)")
-                      .arg(step.name)
-                      .arg(kReadyTimeoutMs);
+        report << QStringLiteral("BORD %1 ECART (%2)").arg(step.name, imageStillLoading());
         return false;
     }
     int count = -1;
@@ -1626,7 +1630,7 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         const QString path = QDir(m_outputDir).filePath(file);
         QString why;
         if (!loaded) {
-            why = QStringLiteral("image encore en chargement après %1 ms").arg(kReadyTimeoutMs);
+            why = imageStillLoading();
         } else if (image.isNull()) {
             why = QStringLiteral("capture vide");
         } else if (isUniform(image)) {
