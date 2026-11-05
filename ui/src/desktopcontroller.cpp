@@ -492,6 +492,11 @@ void DesktopController::setCaptureSource(CaptureSource source)
     m_capture = source ? std::move(source) : CaptureSource(grabPrimaryScreen);
 }
 
+const DesktopController::CaptureSource& DesktopController::captureSource() const noexcept
+{
+    return m_capture;
+}
+
 void DesktopController::toggle()
 {
     setAnnotating(!m_annotating);

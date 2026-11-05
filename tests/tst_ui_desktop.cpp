@@ -9,6 +9,7 @@
 #include <actcraft/ui/pageview.h>
 
 #include <QColor>
+#include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QImage>
 #include <QPointer>
@@ -956,8 +957,10 @@ private slots:
 
     // M4 (relecture du lot 7) : la capture n'endort pas le fil principal. La commande rend la main aussitôt,
     // nos fenêtres masquées ; la saisie vient après le délai, puis le fond est posé et les fenêtres
-    // reviennent ; une seconde demande pendant ce temps est refusée. Mutant : saisie dans la commande même
-    // (l'ancien QThread::msleep de 250 ms).
+    // reviennent ; une seconde demande pendant ce temps est refusée. La source de production est enveloppée,
+    // pas remplacée : elle tourne sur le fil principal et sa durée y est mesurée, bien sous le délai de 250
+    // ms (mineur du tour 2 : remplacée, un sommeil remis dans grabPrimaryScreen, lieu du défaut M4, passait).
+    // Mutants : saisie dans la commande même ; QThread::msleep(250) remis dans grabPrimaryScreen.
     void captureDoesNotBlockTheMainThread()
     {
         MainWindow main;
@@ -966,9 +969,16 @@ private slots:
         QVERIFY(desktop);
         DocumentController* open = openDocumentOf(main);
         QVERIFY(open);
+        const DesktopController::CaptureSource screen = desktop->captureSource();
+        QVERIFY(screen);
         int calls = 0;
-        desktop->setCaptureSource([&calls] {
+        qint64 screenMs = -1;
+        desktop->setCaptureSource([&calls, &screen, &screenMs] {
             ++calls;
+            QElapsedTimer clock;
+            clock.start();
+            static_cast<void>(screen()); // l'image d'un écran hors écran ne sert pas : seule sa durée compte
+            screenMs = clock.elapsed();
             return fakeDesktop();
         });
         QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
@@ -981,6 +991,8 @@ private slots:
         QCOMPARE(finished.count(), 1);
         QVERIFY(finished.first().at(0).toBool());
         QCOMPARE(calls, 1);
+        // La saisie de production n'endort pas le fil principal : moitié du délai d'affichage au plus.
+        QVERIFY2(screenMs >= 0 && screenMs < 125, qPrintable(QString::number(screenMs)));
         QVERIFY(main.window()->isVisible());
         QVERIFY(!shownPage(*open).background.image.empty());
     }

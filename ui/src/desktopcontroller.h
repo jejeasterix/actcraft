@@ -83,6 +83,8 @@ public:
     bool toolsShown() const noexcept;
 
     void setCaptureSource(CaptureSource source);
+    // La source en place (par défaut, celle de production) : un test l'enveloppe pour la mesurer (M4).
+    const CaptureSource& captureSource() const noexcept;
 
     Q_INVOKABLE void toggle();
     // P13 : insère après la page affichée une page transparente vierge de sa taille (une étape) et l'affiche.
