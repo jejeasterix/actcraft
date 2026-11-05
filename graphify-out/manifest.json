@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/options.h": {
-    "mtime": 1793855912.3671064,
-    "ast_hash": "9a750df05f4506dd6a7000f41c240dff",
+    "mtime": 1793865742.3523374,
+    "ast_hash": "26399eac4cf598ad5d4935b2ec67674e",
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/recorder.h": {
@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/result.h": {
-    "mtime": 1793855912.3672485,
-    "ast_hash": "0f9f21b50e9bad523317f968a4e355af",
+    "mtime": 1793865742.3525317,
+    "ast_hash": "0fe38f560c99b0c346d620f9fb3e5394",
     "semantic_hash": ""
   },
   "bench/include/actcraft/bench/runner.h": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "bench/src/options.cpp": {
-    "mtime": 1793855912.3712766,
-    "ast_hash": "5a9e8a9700e19288849ac470d4dc31ad",
+    "mtime": 1793865742.352841,
+    "ast_hash": "63fc8b3d4690a483061eb1028646e812",
     "semantic_hash": ""
   },
   "bench/src/recorder.cpp": {
@@ -155,13 +155,13 @@
     "semantic_hash": ""
   },
   "bench/src/result.cpp": {
-    "mtime": 1793855912.3714364,
-    "ast_hash": "a14d09747bec55f1e1d9a46bd0f8ed4f",
+    "mtime": 1793865742.3530316,
+    "ast_hash": "8b1fe7d8c18c6f731261261bb69dbeb1",
     "semantic_hash": ""
   },
   "bench/src/runner.cpp": {
-    "mtime": 1793855912.3716078,
-    "ast_hash": "addbb0c9c24c4bfd5c938c2cf03f5bd6",
+    "mtime": 1793865742.353299,
+    "ast_hash": "3a6d0266f102d75a99d7b48f38eb65cc",
     "semantic_hash": ""
   },
   "bench/src/scenarios.cpp": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "bench/src/verdict.cpp": {
-    "mtime": 1793855912.3720834,
-    "ast_hash": "a79030cd5cf26b49469793bf1d2bcaf6",
+    "mtime": 1793865742.353746,
+    "ast_hash": "ea360a0b0ab66dc4b53ddb2e210f9ff4",
     "semantic_hash": ""
   },
   "core/include/actcraft/core/clock.h": {
@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "render/include/actcraft/render/fixedpageitem.h": {
-    "mtime": 1793855912.6120067,
-    "ast_hash": "91a3c5b48b0fc979f9636fecf046df59",
+    "mtime": 1793865742.3552744,
+    "ast_hash": "2ff7898c199dbc4938a479e8f8fe3d32",
     "semantic_hash": ""
   },
   "render/include/actcraft/render/imagerenderer.h": {
@@ -335,8 +335,8 @@
     "semantic_hash": ""
   },
   "render/src/fixedpageitem.cpp": {
-    "mtime": 1793855912.6135092,
-    "ast_hash": "b5c4c41c9572c382e5b9c462a553948f",
+    "mtime": 1793865742.355469,
+    "ast_hash": "fee8a2529e4fd580b0435b97a3e54ed0",
     "semantic_hash": ""
   },
   "render/src/imagerenderer.cpp": {
@@ -475,8 +475,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_result.cpp": {
-    "mtime": 1793855912.6202638,
-    "ast_hash": "776160eb97df11d8f665f205c0115779",
+    "mtime": 1793865742.3560903,
+    "ast_hash": "1c67ad43fb8184c56fceda37788d96b5",
     "semantic_hash": ""
   },
   "tests/tst_bench_scenarios.cpp": {
@@ -490,8 +490,8 @@
     "semantic_hash": ""
   },
   "tests/tst_bench_verdict.cpp": {
-    "mtime": 1793855912.6208465,
-    "ast_hash": "fafcece15acf37ffda9591eed686ccb2",
+    "mtime": 1793865742.3563006,
+    "ast_hash": "4cf4010c2b08c56ead03ecb8efa38618",
     "semantic_hash": ""
   },
   "tests/tst_core_generator.cpp": {
@@ -535,8 +535,8 @@
     "semantic_hash": ""
   },
   "tests/tst_render_fixedpage.cpp": {
-    "mtime": 1793855912.6274416,
-    "ast_hash": "53254113f463afce9495c1ce19a69aea",
+    "mtime": 1793865742.3564827,
+    "ast_hash": "a2888038785e0cb6d40976575010cd6a",
     "semantic_hash": ""
   },
   "tests/tst_render_images.cpp": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "bench/src/uiscenario.cpp": {
-    "mtime": 1793855912.3719811,
-    "ast_hash": "eed77c1db8c59ff4969dc7615d5893aa",
+    "mtime": 1793865742.353581,
+    "ast_hash": "612953fc9835028aa37e703064cee881",
     "semantic_hash": ""
   },
   "core/include/actcraft/core/document.h": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shell.cpp": {
-    "mtime": 1793855935.897469,
-    "ast_hash": "3c1ffc8613b92df24c60c5cafca6e6d6",
+    "mtime": 1793857888.8714511,
+    "ast_hash": "7500690cd9122c260a6806c50a3f6f97",
     "semantic_hash": ""
   },
   "tests/tst_ui_theme.cpp": {
@@ -970,8 +970,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1793855912.3891172,
-    "ast_hash": "0b8ba73b661cc5ee8e9094d12f710749",
+    "mtime": 1793865742.3548882,
+    "ast_hash": "2f15ca9310757d2eb8765bd81fa6ce0e",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -3647,6 +3647,11 @@
   "tests/tst_ui_launcherspage.cpp": {
     "mtime": 1793855912.6319506,
     "ast_hash": "98da9d7193d511acabcb6d657779d40e",
+    "semantic_hash": ""
+  },
+  "docs/mesures/2026-10-20-lot6-fin.md": {
+    "mtime": 1793868127.1746004,
+    "ast_hash": "35fd9cfe7e005f80376ea6bf314bfe98",
     "semantic_hash": ""
   }
 }
