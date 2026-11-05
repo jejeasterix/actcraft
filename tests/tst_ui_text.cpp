@@ -530,6 +530,40 @@ private slots:
         h.editing.moveFrame({30, 0});
         h.editing.commit();
         QCOMPARE(h.controller.shownObjectCount(), 1);
+        QCOMPARE(h.htmlOfFirst(), variants.first());
+    }
+
+    // L6-C15 essai 2 : cadre déplacé ou élargi sans frappe : l'objet garde son HTML d'origine, image `data:`
+    // comprise ; seule l'emprise change, en une étape que l'annulation défait.
+    void frameChangeWithoutTypingKeepsTheOriginalHtml()
+    {
+        const QString html = QStringLiteral(
+            "<p>avant<img src=\"data:image/png;base64,iVBORw0KGgo=\" width=\"40\" height=\"40\">après</p>");
+        const auto boundsOfFirst = [](const Harness& h) {
+            const core::Page& p =
+                h.controller.document().page(static_cast<std::size_t>(h.controller.currentIndex()));
+            const auto* text = std::get_if<core::Text>(&core::body(p.objects.front()));
+            return text ? text->bounds : core::RectF{};
+        };
+        for (const bool widen : {false, true}) {
+            Harness h;
+            h.addHtml(html, {200, 200, 300, 60});
+            QVERIFY(h.editing.beginAt({210, 210}, false));
+            if (widen) {
+                h.editing.setFrameWidth(360);
+            } else {
+                h.editing.moveFrame({30, 0});
+            }
+            h.editing.commit();
+            QCOMPARE(h.controller.shownObjectCount(), 1);
+            QCOMPARE(h.htmlOfFirst(), html);
+            QCOMPARE(boundsOfFirst(h).x, widen ? 200.0 : 230.0);
+            QCOMPARE(boundsOfFirst(h).width, widen ? 360.0 : 300.0);
+            h.controller.undo();
+            QCOMPARE(h.htmlOfFirst(), html);
+            QCOMPARE(boundsOfFirst(h).x, 200.0);
+            QCOMPARE(boundsOfFirst(h).width, 300.0);
+        }
     }
 
     // L6-C15 : la forme à deux arguments garde les images `data:`, pour les appelants dont le document ne
