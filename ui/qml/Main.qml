@@ -664,15 +664,6 @@ Window {
         profile: appProfile
         preferences: appPreferences
     }
-    SettingsPage {
-        id: settingsPage
-        commands: appCommands
-        documentController: appDocument
-        tools: appTools
-        view: pageArea.view
-        profile: appProfile
-        preferences: appPreferences
-    }
     LaunchersPage {
         id: launchersPage
         commands: appCommands
