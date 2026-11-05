@@ -70,7 +70,7 @@
     { "id": "tool.web-browser", "label": "Navigateur web" },
     { "id": "insert.date-time", "label": "Date et heure" },
     { "id": "insert.equation", "label": "Équation…", "mainWindow": true },
-    { "id": "equation.edit", "label": "Modifier l'équation", "argument": "number" },
+    { "id": "equation.edit", "label": "Modifier l'équation", "argument": "number", "mainWindow": true },
     { "id": "tool.shape-recognition", "label": "Reconnaissance de forme", "icon": "forme-reconnue", "checkable": true },
     { "id": "tool.handwriting", "label": "Reconnaissance d'écriture", "icon": "ecriture", "shortcut": "Ctrl+Shift+H", "checkable": true, "platforms": ["windows"] },
     { "id": "recognition.convert-to-shape", "label": "Convertir en forme" },

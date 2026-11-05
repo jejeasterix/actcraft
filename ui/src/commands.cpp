@@ -93,14 +93,22 @@ void Commands::bindHandler(const QString& id)
         if (!handler.isCallable() || !engine) {
             return;
         }
-        if (const actions::CommandInfo* info = m_registry.find(id); info && info->opensInMainWindow) {
-            emit mainWindowNeeded(id);
-        }
         const QJSValue result = handler.call({engine->toScriptValue(argument)});
         if (result.isError()) {
             qWarning("ActCraft : commande %s : %s", qPrintable(id), qPrintable(result.toString()));
         }
     });
+}
+
+void Commands::requestMainWindow(const QString& id)
+{
+    const actions::CommandInfo* info = m_registry.find(id);
+    if (!info || !info->opensInMainWindow) {
+        qWarning("ActCraft : commande %s : fenêtre principale demandée sans le drapeau « mainWindow »",
+                 qPrintable(id));
+        return;
+    }
+    emit mainWindowNeeded(id);
 }
 
 void Commands::bumpState()

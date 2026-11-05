@@ -65,6 +65,10 @@ public:
 
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument = QVariant());
     Q_INVOKABLE void setHandler(const QString& id, const QJSValue& handler);
+    // Appelé par le gestionnaire d'une commande « mainWindow » (CommandInfo::opensInMainWindow) juste avant
+    // de montrer son panneau, et seulement s'il le montre (Ma1 essai 3 : la calculatrice du système n'en
+    // montre aucun) : émet mainWindowNeeded. Commande sans ce drapeau : refusée, avertissement.
+    Q_INVOKABLE void requestMainWindow(const QString& id);
     Q_INVOKABLE QString label(const QString& id) const;
     // « qrc:/qt/qml/ActCraft/Ui/icons/<icône>.svg », ou vide.
     Q_INVOKABLE QString iconUrl(const QString& id) const;
@@ -83,9 +87,9 @@ signals:
     void layoutChanged();
     void stateChanged();
     void triggered(const QString& id, const QVariant& argument);
-    // Juste avant le gestionnaire d'une commande « mainWindow » (CommandInfo::opensInMainWindow), quel que
-    // soit le chemin (menu, palette, raccourci, roue, trigger direct) : la fenêtre principale doit être
-    // rendue.
+    // Juste avant qu'une commande « mainWindow » (CommandInfo::opensInMainWindow) montre son panneau, quel
+    // que soit le chemin (menu, palette, raccourci, roue, trigger direct), par requestMainWindow : la
+    // fenêtre principale doit être rendue.
     void mainWindowNeeded(const QString& id);
 
 private:

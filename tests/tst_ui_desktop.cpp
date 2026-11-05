@@ -1,4 +1,5 @@
 #include "desktopcontroller.h"
+#include "presentationdocument.h"
 #include "support/lot7registry.h"
 #include "support/presentationharness.h"
 
@@ -1012,10 +1013,14 @@ private slots:
             return fakeDesktop();
         });
         qint64 finishMs = -1;
-        connect(desktop, &DesktopController::backgroundCaptured, this,
-                [&finishing, &finishMs] { finishMs = finishing.elapsed(); });
-        QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
+        qint64 totalMs = -1;
         QElapsedTimer running;
+        connect(desktop, &DesktopController::backgroundCaptured, this,
+                [&finishing, &finishMs, &running, &totalMs] {
+                    finishMs = finishing.elapsed();
+                    totalMs = running.elapsed();
+                });
+        QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
         running.start();
         QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
         const qint64 runMs = running.elapsed();
@@ -1030,6 +1035,11 @@ private slots:
         // Ni la commande ni la fin de la capture n'endorment le fil principal (sous le délai de 250 ms).
         QVERIFY2(runMs < 200, qPrintable(QStringLiteral("commande : %1 ms").arg(runMs)));
         QVERIFY2(finishMs >= 0 && finishMs < 200, qPrintable(QStringLiteral("fin : %1 ms").arg(finishMs)));
+        // Toute la chaîne, de la commande à backgroundCaptured, moins le délai de 250 ms des fenêtres
+        // masquées : un sommeil entre ce délai et l'appel de la source (finishCapture) échappe aux deux
+        // mesures précédentes, pas à celle-ci (mineur du tour 2, mutant : msleep(250) avant m_capture()).
+        QVERIFY2(totalMs >= 0 && totalMs < 250 + 200,
+                 qPrintable(QStringLiteral("commande à fin : %1 ms").arg(totalMs)));
         QVERIFY(main.window()->isVisible());
         QVERIFY(!shownPage(*open).background.image.empty());
     }
@@ -1274,6 +1284,51 @@ private slots:
         QVERIFY(desktop->isAnnotating());
         QCOMPARE(main.window()->geometry(), palette);
         QQuickItem* panel = main.item(QStringLiteral("calculatorRoot"));
+        QVERIFY(panel);
+        QVERIFY(!panel->isVisible());
+    }
+
+    // Ma1, essai 3 (mineur du tour 2) : equation.edit ouvre le même panneau (equationRoot) que
+    // insert.equation, et se déclenche pendant l'annotation (trigger d'un scénario). Équation connue : le
+    // panneau s'ouvre entier dans la fenêtre principale ; équation inconnue : aucun panneau, l'annotation
+    // reste. Mutants : drapeau « mainWindow » retiré d'equation.edit (place refusée, panneau rogné dans la
+    // palette) ; place demandée avant equationController.edit (annotation fermée pour rien).
+    void equationEditDuringAnnotation_data()
+    {
+        QTest::addColumn<bool>("known");
+        QTest::newRow("equation connue") << true;
+        QTest::newRow("equation inconnue") << false;
+    }
+    void equationEditDuringAnnotation()
+    {
+        QFETCH(bool, known);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        DocumentController* open = openDocumentOf(main);
+        QVERIFY(open);
+        actcraft::core::Equation equation;
+        equation.bounds = actcraft::core::RectF{100, 100, 160, 60};
+        equation.mathml = "<math><mi>x</mi><mo>+</mo><mi>y</mi></math>";
+        actcraft::core::PageObject object = std::move(equation);
+        object.common.layer = actcraft::core::Layer::Middle;
+        const actcraft::core::ObjectId id =
+            actcraft::ui::DocumentInsertions(*open).insertObject(std::move(object));
+        const QRect palette = main.window()->geometry();
+        const double target = static_cast<double>(id) + (known ? 0.0 : 1000.0);
+        QVERIFY(main.run(QStringLiteral("equation.edit"), QVariant(target)));
+        if (known) {
+            expectWholeInTheMainWindow(main, QStringLiteral("equationRoot"), before);
+            return;
+        }
+        QVERIFY(desktop->isAnnotating());
+        QCOMPARE(main.window()->geometry(), palette);
+        QQuickItem* panel = main.item(QStringLiteral("equationRoot"));
         QVERIFY(panel);
         QVERIFY(!panel->isVisible());
     }
