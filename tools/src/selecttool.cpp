@@ -82,19 +82,19 @@ bool contains(const std::vector<core::ObjectId>& ids, core::ObjectId id)
 // Mode conception (lockIgnored, F-560) : le verrou ne retient plus, les restrictions si.
 bool movable(const core::PageObject& object, bool lockIgnored)
 {
-    return (lockIgnored || !object.common.locked) && object.common.restrictions.movable;
+    return unlockedFor(object, lockIgnored) && object.common.restrictions.movable;
 }
 
 // Dimensionnable : la règle des poignées (layoutSelection, beginTransform ; P28, P30), pas celle du glisser.
 bool resizable(const core::PageObject& object, bool lockIgnored)
 {
-    return (lockIgnored || !object.common.locked) && object.common.restrictions.resizable;
+    return unlockedFor(object, lockIgnored) && object.common.restrictions.resizable;
 }
 
 // Pivotable : la même règle pour le bouton de rotation (beginTransform ; P28).
 bool rotatable(const core::PageObject& object, bool lockIgnored)
 {
-    return (lockIgnored || !object.common.locked) && object.common.restrictions.rotatable;
+    return unlockedFor(object, lockIgnored) && object.common.restrictions.rotatable;
 }
 
 // Parmi `ids` (présents), ceux qu'Agrandir et Réduire changent (M1, L3-C9) : la règle des poignées, verrou
