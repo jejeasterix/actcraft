@@ -214,6 +214,12 @@ QString placeOf(const QQuickItem* item, const QQuickWindow* window)
         .arg(window->height());
 }
 
+// Place faite pour un outil de la fenêtre principale (annotation fermée, fenêtre plus réduite) : attente
+// bornée. Une attente QTRY_* par défaut qui échoue dure 15 s (5 s, puis 10 s de diagnostic) : sous le mutant
+// « clé mainWindow non lue », 24 lignes Ma1/M8 en échec dépassaient le délai de 300 s de ctest, qui semblait
+// pendre (essai 3). Ici, une ligne en échec dure 6 s.
+constexpr int kRoomMadeMs = 2000;
+
 // Ma1 : annotation ouverte, la fenêtre principale n'est plus que la palette. `before` : sa géométrie d'avant.
 void openAnnotationWithPaletteOnly(MainWindow& main, QRect& before)
 {
@@ -235,9 +241,9 @@ void expectWholeInTheMainWindow(MainWindow& main, const QString& shown, const QR
     QQuickWindow* window = main.window();
     QQuickItem* item = shownItemOf(main, shown);
     QVERIFY2(item, qPrintable(shown));
+    QTRY_VERIFY_WITH_TIMEOUT(!desktopOf(main)->isAnnotating(), kRoomMadeMs);
     QTRY_VERIFY2(item->isVisible(), qPrintable(shown + QStringLiteral(" jamais montré")));
     QTRY_VERIFY2(shownWholeIn(item, window), qPrintable(placeOf(item, window)));
-    QVERIFY(!desktopOf(main)->isAnnotating());
     QTRY_COMPARE(window->geometry(), before);
 }
 
@@ -1166,7 +1172,7 @@ private slots:
         QTRY_VERIFY(wheel->isVisible());
         QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
         QVERIFY2(clickRingEntry(desktop, wheel, command), qPrintable(command));
-        QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
+        QTRY_VERIFY_WITH_TIMEOUT(main.window()->visibility() != QWindow::Minimized, kRoomMadeMs);
         QVERIFY(main.window()->isVisible());
         QVERIFY(!desktop->property("toolsShown").toBool());
         if (!panel.isEmpty()) {
@@ -1213,7 +1219,7 @@ private slots:
         QTRY_VERIFY(wheel->isVisible());
         QTRY_COMPARE(window->visibility(), QWindow::Minimized);
         QVERIFY2(clickRingEntry(desktop, wheel, command), qPrintable(command));
-        QTRY_VERIFY(window->visibility() != QWindow::Minimized);
+        QTRY_VERIFY_WITH_TIMEOUT(window->visibility() != QWindow::Minimized, kRoomMadeMs);
         QVERIFY(window->isVisible());
         QVERIFY(!desktop->property("toolsShown").toBool());
         QQuickItem* item = shownItemOf(main, shown);
