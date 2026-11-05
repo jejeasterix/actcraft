@@ -228,7 +228,8 @@ QString safeTextHtml(const QString& html, const ResourceObserver& observer)
     return safeTextHtml(html, observer, DataImages::Keep);
 }
 
-// Même assainissement ; `Drop` retire aussi les images `data:` (éditeur des notes, ui/src/isolatedtext.h).
+// Même assainissement ; `Drop` retire aussi les images `data:` (éditeurs des notes et des objets texte,
+// ui/src/isolatedtext.h).
 QString safeTextHtml(const QString& html, const ResourceObserver& observer, DataImages dataImages)
 {
     AnalysisDocument document(observer);
@@ -632,8 +633,9 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
     m_geometryChanged = false;
     if (existing) {
         // Copies prises avant le soulèvement, qui retire l'objet de la page. Seul le HTML assaini entre dans
-        // le TextEdit (bloquant 5).
-        doc->setHtml(safeTextHtml(QString::fromStdString(existing->html), {}));
+        // le TextEdit (bloquant 5), sans image `data:` (L6-C15) : son document les décoderait
+        // (ui/src/isolatedtext.h). Texte rendu sans modification : l'objet revient tel quel (commit).
+        doc->setHtml(safeTextHtml(QString::fromStdString(existing->html), {}, DataImages::Drop));
         m_editing = *hit;
         m_vertical = existing->vertical;
         m_objectBounds = existing->bounds;

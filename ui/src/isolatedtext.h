@@ -20,9 +20,12 @@ using ResourceObserver = std::function<void(const QUrl&, const QVariant&)>;
 // en forme gardés.
 QString safeTextHtml(const QString& html, const ResourceObserver& observer);
 
-// Images `data:` : gardées par la forme à deux arguments (document qui ne décode aucune image), ou retirées.
-// L'éditeur QML des notes les retire : sa TextArea riche les décode et choisit le décodeur sur le contenu,
-// pas sur le type déclaré ; un SVG y lirait les images qu'il référence.
+// Images `data:` : la forme à deux arguments les garde, pour les appelants dont le HTML ne va qu'à un
+// document qui ne décode aucune image (document isolé de la mesure : ligne de base à l'ouverture, validation
+// de l'éditeur des textes ; peintre, qui n'en garde que la place). `Drop` les retire, pour les documents Qt
+// Quick qui les décodent et choisissent le décodeur sur le contenu, pas sur le type déclaré (un SVG y lirait
+// les images qu'il référence) : TextArea riche de l'éditeur des notes, TextEdit de l'éditeur des objets
+// texte.
 enum class DataImages
 {
     Keep,
