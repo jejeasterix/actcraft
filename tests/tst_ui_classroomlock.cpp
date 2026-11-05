@@ -485,16 +485,21 @@ void TstUiClassroomlock::qmlCannotBypass()
     QTRY_VERIFY(item("documentTabClose0") && item("documentTabSelect1") && item("documentTabClose2"));
     auto* saveChanges = window->findChild<QObject*>(QStringLiteral("tabSaveChangesDialog"));
     QVERIFY(saveChanges);
+    // Faux si l'élément manque (onglet fermé à tort) : un échec lisible plutôt qu'un plantage.
     const auto click = [window](QQuickItem* target, Qt::MouseButton button) {
+        if (!target) {
+            return false;
+        }
         QTest::mouseClick(window, button, {},
                           target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint());
         QCoreApplication::processEvents();
+        return true;
     };
     QSignalSpy asked(&tabs, &ui::DocumentTabs::saveRequested);
     QVERIFY(f.lock->lock());
-    click(item("documentTabClose0"), Qt::LeftButton);                    // « × » d'un onglet non modifié
-    click(item("documentTabSelect1"), Qt::MiddleButton);                 // clic du milieu
-    click(item("documentTabClose2"), Qt::LeftButton);                    // onglet modifié : aucune boîte
+    QVERIFY(click(item("documentTabClose0"), Qt::LeftButton));           // « × » d'un onglet non modifié
+    QVERIFY(click(item("documentTabSelect1"), Qt::MiddleButton));        // clic du milieu
+    QVERIFY(click(item("documentTabClose2"), Qt::LeftButton));           // onglet modifié : aucune boîte
     QVERIFY(QMetaObject::invokeMethod(saveChanges, "discardRequested")); // « Ne pas enregistrer »
     QCOMPARE(tabs.rowCount(), 3);
     QCOMPARE(asked.count(), 0);
@@ -515,7 +520,8 @@ void TstUiClassroomlock::qmlCannotBypass()
     QVERIFY(!tabs.isModifiedAt(0)); // aucune page déposée
     QCOMPARE(asked.count(), 0);
     QVERIFY(f.unlock(kPassword));
-    click(item("documentTabClose0"), Qt::LeftButton); // hors du verrou, « × » ferme l'onglet non modifié
+    QVERIFY(
+        click(item("documentTabClose0"), Qt::LeftButton)); // hors du verrou, « × » ferme l'onglet non modifié
     QCOMPARE(tabs.rowCount(), 2);
 }
 
