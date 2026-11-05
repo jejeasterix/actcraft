@@ -542,6 +542,8 @@ et, sur l'instance `dashboard`, `recents: fileActions.recents` ; `Dashboard.qml`
 et `root.commands` ; délégués `recent<n>`. `setting(section, clé, défaut)` : nom réel de `ProfileController` (L6-T5),
 `Q_INVOKABLE` ; le relire. Le nombre de pages se lit `documentController.pageCount`.
 
+**Amendement 11 (L6-T23, 2026-11-05).** Aucun lecteur de la miniature du fichier natif n'existe côté `ui/`. Fichiers élargis : `ui/include/actcraft/ui/recentdocuments.h`, `ui/src/recentdocuments.cpp`, `tests/tst_ui_recents.cpp` (ou le test de `RecentDocuments` existant), et `tests/tst_ui_shell.cpp` (test de câblage déjà ajouté). Chaque document récent expose sa vignette, lue de `thumbnails/page-1.png` dans l'archive hors du fil principal (même voie que les vignettes de L6-T20 : une lecture à la fois, aucune pendant un contact, fichier absent ou illisible → pas de vignette, sans erreur). `Dashboard.qml` l'affiche, et le nom seul reste quand elle manque.
+
 <a id="tache-l6-t24"></a>
 ### Tâche L6-T24 — Documents récents et résumé à l'enregistrement
 
