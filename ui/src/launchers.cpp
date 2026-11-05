@@ -14,6 +14,7 @@
 #include <QUrl>
 #include <QUuid>
 
+#include <algorithm>
 #include <utility>
 
 namespace actcraft::ui {
@@ -38,32 +39,58 @@ bool sameBytes(const QByteArray& a, const QByteArray& b)
     return diff == 0;
 }
 
-// Un guillemet, un caractère de contrôle (NUL et tabulation compris) ou l'un de <>|?* déplace la fin du nom
-// de programme dans la ligne de commande de Windows, que Qt ne protège pas : le suffixe lu ici ne serait plus
-// celui qui part, et des paramètres non montrés suivraient.
-bool unsafePath(const QString& path)
+// Un caractère de mise en forme (U+202E, U+200B, U+2066 à U+2069…) maquille ce que la boîte montre. Un
+// caractère de contrôle (NUL, tabulation…) coupe ou déplace la ligne de commande de Windows, que Qt ne
+// protège pas ; dans le chemin, un guillemet ou l'un de <>|?* aussi : le suffixe lu ici ne serait plus celui
+// qui part.
+bool refusedCharacter(const QString& text, bool controls, QLatin1String forbidden)
 {
-    for (const QChar ch : path) {
-        if (ch.category() == QChar::Other_Control || QLatin1String("\"<>|?*").contains(ch))
+    for (const QChar ch : text) {
+        const QChar::Category category = ch.category();
+        if (category == QChar::Other_Format || (controls && category == QChar::Other_Control) ||
+            forbidden.contains(ch))
             return true;
     }
     return false;
 }
 
+bool unsafeFields(const QString& path, const QStringList& arguments, const QString& toolTip)
+{
+    if (refusedCharacter(path, true, QLatin1String("\"<>|?*")) || refusedCharacter(toolTip, false, {}))
+        return true;
+    return std::any_of(arguments.cbegin(), arguments.cend(),
+                       [](const QString& argument) { return refusedCharacter(argument, true, {}); });
+}
+
+// Suffixe du nom visé, lu sur la chaîne seule (aucun accès disque avant la confirmation), séparateurs « / »
+// et « \ » compris ; Windows retire du nom les points et espaces finaux.
+QString suffixOf(const QString& path)
+{
+    QString name = path;
+    while (name.endsWith(QLatin1Char('.')) || name.endsWith(QLatin1Char(' ')))
+        name.chop(1);
+    name = name.mid(qMax(name.lastIndexOf(QLatin1Char('/')), name.lastIndexOf(QLatin1Char('\\'))) + 1);
+    const qsizetype dot = name.lastIndexOf(QLatin1Char('.'));
+    return dot < 0 ? QString() : name.mid(dot + 1);
+}
+
 // Types que Windows exécute : cmd.exe interpréterait un .bat ou un .cmd et ses paramètres, openUrl
 // (ShellExecute) lance tout type associé, et un .lnk porte une commande que la boîte ne peut pas montrer.
-// Lu sur la chaîne seule : aucun accès disque avant la confirmation. Windows retire du nom les points et
-// espaces finaux.
 bool executedType(const QString& path)
 {
     static const QStringList kTypes =
         QStringLiteral(
             "bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc cpl reg lnk url inf scf")
             .split(QLatin1Char(' '));
-    QString name = path;
-    while (name.endsWith(QLatin1Char('.')) || name.endsWith(QLatin1Char(' ')))
-        name.chop(1);
-    return kTypes.contains(QFileInfo(name).suffix(), Qt::CaseInsensitive);
+    return kTypes.contains(suffixOf(path), Qt::CaseInsensitive);
+}
+
+// Programme reconnu par son nom (.exe, ou nom sans suffixe cherché dans le PATH) : seul il prend des
+// paramètres.
+bool namedProgram(const QString& path)
+{
+    const QString suffix = suffixOf(path);
+    return suffix.isEmpty() || suffix.compare(QLatin1String("exe"), Qt::CaseInsensitive) == 0;
 }
 
 // Le critère de launch() : un document s'ouvre par openUrl, qui ne transmet aucun paramètre.
@@ -173,19 +200,21 @@ int Launchers::run(const QString& id)
         emit failed(tr("Raccourci introuvable."));
         return kFailed;
     }
-    // Refus avant toute confirmation, la garde du chemin d'abord : les contrôles suivants lisent ce chemin.
-    if (unsafePath(entry->path)) {
+    // Refus avant toute confirmation, sur les chaînes seules (le disque n'est lu qu'au lancement), la garde
+    // des caractères d'abord : les contrôles suivants lisent ce chemin.
+    if (unsafeFields(entry->path, entry->arguments, entry->toolTip)) {
         emit failed(
-            tr("Chemin refusé : il contient un guillemet, un caractère de contrôle ou l'un de < > | ? *."));
+            tr("Raccourci refusé : caractère invisible ou de contrôle, ou l'un de \" < > | ? * dans le "
+               "chemin."));
         return kFailed;
     }
     if (executedType(entry->path)) {
         emit failed(tr("Ce type de fichier ne se lance pas depuis un raccourci : %1").arg(entry->path));
         return kFailed;
     }
-    // Le disque n'est lu que pour une entrée qui porte des paramètres.
-    if (!entry->arguments.isEmpty() && opensAsDocument(entry->path)) {
-        emit failed(documentRefusal(entry->path));
+    if (!entry->arguments.isEmpty() && !namedProgram(entry->path)) {
+        emit failed(
+            tr("Seul un programme (.exe, ou nom sans suffixe) prend des paramètres : %1").arg(entry->path));
         return kFailed;
     }
     if (!trusted(*entry, key(false))) {

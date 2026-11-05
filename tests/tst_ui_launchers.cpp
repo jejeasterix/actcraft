@@ -8,6 +8,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMessageAuthenticationCode>
@@ -86,6 +87,9 @@ private slots:
     void documentTakesNoArguments();
     void duplicateIdKeepsFirst();
     void changedSinceRequestRunsNothing();
+    void argumentsNeedANamedProgram();
+    void controlInArgumentRefused();
+    void formatCharactersRefused();
 
 private:
     QString witness(const QString& name = QStringLiteral("lance.txt")) const
@@ -409,7 +413,9 @@ void TstUiLaunchers::tamperedArgumentsAskAgain()
     QCOMPARE(m_launchers->run(id), Launchers::kConfirmationNeeded);
     QVERIFY(!m_launchers->confirm(id, false));
     editStored(id, QStringLiteral("toolTip"), QStringLiteral("Essai"));
-    editStored(id, QStringLiteral("path"), m_probe + QStringLiteral("-autre"));
+    // Un autre programme nommé (même suffixe) : seule la signature fait demander.
+    editStored(id, QStringLiteral("path"),
+               QFileInfo(m_probe).dir().filePath(QStringLiteral("autre-") + QFileInfo(m_probe).fileName()));
     QVERIFY(!entryAt(0).value(QStringLiteral("trusted")).toBool());
     QCOMPARE(m_launchers->run(id), Launchers::kConfirmationNeeded);
     QVERIFY(!m_launchers->confirm(id, false));
@@ -614,6 +620,76 @@ void TstUiLaunchers::changedSinceRequestRunsNothing()
     QVERIFY(!QFile::exists(other));
     // La demande est consommée : une seconde acceptation ne lance rien.
     QVERIFY(!m_launchers->confirm(id, true));
+}
+
+// Rien ne lit le disque avant la confirmation (un chemin UNC étranger ouvrirait une connexion SMB) : une
+// entrée à paramètres doit viser un programme reconnu par son nom. Le test qui distingue : un .txt absent est
+// refusé alors que le disque dirait « programme » ; un fichier sans suffixe qui existe demande confirmation
+// alors que le disque dirait « document », et n'est refusé qu'au lancement.
+void TstUiLaunchers::argumentsNeedANamedProgram()
+{
+    const QStringList arguments{QStringLiteral("/p")};
+    putForeign(QStringLiteral("unc"), QStringLiteral(R"(\\hote\partage\x.txt)"), arguments, QString());
+    putForeign(QStringLiteral("absent"), m_dir->filePath(QStringLiteral("absent.txt")), arguments, QString());
+    expectRefused(QStringLiteral("unc"));
+    if (QTest::currentTestFailed())
+        return;
+    expectRefused(QStringLiteral("absent"));
+    if (QTest::currentTestFailed())
+        return;
+
+    putForeign(QStringLiteral("sans-suffixe"), document(QStringLiteral("notes")), arguments, QString());
+    QSignalSpy asked(m_launchers.get(), &Launchers::confirmationNeeded);
+    QCOMPARE(m_launchers->run(QStringLiteral("sans-suffixe")), Launchers::kConfirmationNeeded);
+    QCOMPARE(asked.count(), 1);
+    QSignalSpy failed(m_launchers.get(), &Launchers::failed);
+    QVERIFY(!m_launchers->confirm(QStringLiteral("sans-suffixe"), true));
+    QCOMPARE(failed.count(), 1);
+}
+
+// Un caractère de contrôle dans un paramètre (NUL, tabulation, DEL) coupe la ligne réellement lancée alors
+// que la boîte le montre entier : refusé comme dans le chemin. Guillemet, étoile et chevrons y restent
+// permis, Qt les protège dans la ligne de commande.
+void TstUiLaunchers::controlInArgumentRefused()
+{
+    const QStringList bad{QStringLiteral("a") + QChar(u'\0') + QStringLiteral("b"), QStringLiteral("a\tb"),
+                          QStringLiteral("a") + QChar(u'\x7f')};
+    for (qsizetype i = 0; i < bad.size(); ++i)
+        putForeign(QStringLiteral("controle-%1").arg(i), m_probe, {witness(), bad.at(i)}, QString());
+    for (qsizetype i = 0; i < bad.size(); ++i) {
+        if (QTest::currentTestFailed())
+            return;
+        expectRefused(QStringLiteral("controle-%1").arg(i));
+    }
+    if (QTest::currentTestFailed())
+        return;
+    putForeign(QStringLiteral("permis"), m_probe, {witness(), QStringLiteral(R"(a "b" *.txt <c>)")},
+               QString());
+    QCOMPARE(m_launchers->run(QStringLiteral("permis")), Launchers::kConfirmationNeeded);
+    QVERIFY(!m_launchers->confirm(QStringLiteral("permis"), false));
+}
+
+// Un caractère de mise en forme Unicode (U+202E inverse l'affichage, U+200B est invisible, U+2066 à U+2069
+// isolent un sens d'écriture, U+FEFF) maquille ce que la boîte montre : refusé dans le chemin, un paramètre
+// ou l'info-bulle.
+void TstUiLaunchers::formatCharactersRefused()
+{
+    QStringList ids{QStringLiteral("chemin"), QStringLiteral("parametre")};
+    putForeign(ids.at(0), QStringLiteral("C:/essai/image\u202Egpj.exe"), {}, QString());
+    putForeign(ids.at(1), m_probe, {witness(), QStringLiteral("\u200B/x")}, QString());
+    for (const char16_t code :
+         {u'\u202E', u'\u200B', u'\u2066', u'\u2067', u'\u2068', u'\u2069', u'\uFEFF'}) {
+        ids << QStringLiteral("info-bulle-%1").arg(int(code), 4, 16);
+        putForeign(ids.constLast(), m_probe, {witness()}, QStringLiteral("Calcu") + QChar(code));
+    }
+    for (const QString& id : std::as_const(ids)) {
+        if (QTest::currentTestFailed())
+            return;
+        expectRefused(id);
+    }
+    if (QTest::currentTestFailed())
+        return;
+    QVERIFY(stayedQuiet(witness()));
 }
 
 QTEST_MAIN(TstUiLaunchers)
