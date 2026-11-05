@@ -1261,6 +1261,58 @@ private slots:
         expectWholeInTheMainWindow(main, shown, before);
     }
 
+    // Ma1, essai 2 : même règle par la palette (« Horloge », seul outil de la fenêtre principale qu'elle
+    // porte), cherchée dans la palette elle-même. Mutant : la règle dans la seule roue.
+    void mainWindowToolFromThePaletteDuringAnnotationIsWhole()
+    {
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QQuickItem* palette =
+            presentationharness::findItem(main.window()->contentItem(), QStringLiteral("toolPalette"));
+        QVERIFY(palette);
+        QQuickItem* button = presentationharness::findItem(palette, QStringLiteral("button-tool.clock"));
+        QVERIFY(button);
+        QVERIFY(QMetaObject::invokeMethod(button, "click"));
+        expectWholeInTheMainWindow(main, QStringLiteral("clockRoot"), before);
+    }
+
+    // Ma1, essai 2 : même règle par le menu « Outils » de la barre du haut, que la fenêtre réduite garde
+    // (« Outils de maths » : dés, calculatrice ; « Autres outils » : horloge, message défilant). Mutant : la
+    // règle dans la seule roue.
+    void mainWindowToolFromTheMenuDuringAnnotationIsWhole_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("shown");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice")
+            << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QStringLiteral("tickerDialog");
+    }
+    void mainWindowToolFromTheMenuDuringAnnotationIsWhole()
+    {
+        QFETCH(QString, command);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QQuickItem* menuButton =
+            presentationharness::findItem(main.window()->contentItem(), QStringLiteral("menu-tools"));
+        QVERIFY(menuButton);
+        QVERIFY(QMetaObject::invokeMethod(menuButton, "clicked"));
+        auto* entry = menuButton->findChild<QQuickItem*>(QStringLiteral("menuItem-") + command);
+        QVERIFY2(entry, qPrintable(command));
+        QVERIFY(QMetaObject::invokeMethod(entry, "click"));
+        expectWholeInTheMainWindow(main, shown, before);
+    }
+
     // M2 (relecture du lot 7 ; plan 7b, L7-T30 ; F-640 : effets désactivés pendant l'annotation de bureau) :
     // annotation ouverte, page.next du document ouvert change de page aussitôt, sans instantané ni effet ;
     // fermée, l'effet revient. Mutant : TransitionBlockers::desktopAnnotation jamais posé.
