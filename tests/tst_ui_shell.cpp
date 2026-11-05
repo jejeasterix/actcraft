@@ -11,6 +11,7 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QFile>
 #include <QImage>
 #include <QJSValue>
 #include <QJsonArray>
@@ -55,10 +56,12 @@ bool ready(Shell& s)
     return QTest::qWaitFor([&] { return s.fixed->isReady() && s.view->cacheReady(); }, 10000);
 }
 
-bool start(Shell& s)
+// showDashboard : comme app/main.cpp (L6-T23), l'accueil s'ouvre au démarrage.
+bool start(Shell& s, bool showDashboard = false)
 {
     StartupOptions options;
     options.profileRoot = s.profiles.path();
+    options.showDashboard = showDashboard;
     s.window = loadMainWindow(s.engine, options);
     if (!s.window || !QTest::qWaitForWindowExposed(s.window)) {
         return false;
@@ -1361,6 +1364,78 @@ private slots:
             }
         }
         QVERIFY(fileMenuLinked);
+    }
+
+    // L6-C16 : scénario S3 de scripts/essai-android.ps1 rejoué hors écran. L'application ouvre l'accueil au
+    // démarrage (L6-T23, plan 6b : « fenêtre d'accueil devant la fenêtre principale au démarrage ») : son
+    // voile
+    // (#80000000) assombrit la palette au bord droit (CI : lu 21 23 27 au lieu de 43 47 54). Le script ferme
+    // l'accueil d'un toucher sur le voile, au point `$accueil` qu'il déclare, puis garde ses contrôles tels
+    // quels. Écran de la CI : 2560 × 1600 à la densité 320 (1280 × 800 points) : coordonnées du script
+    // divisées par 2.
+    void s3StartupDashboardClosedByTheScriptTap()
+    {
+        const auto readSource = [](const QString& path) {
+            QFile file(path);
+            return file.open(QIODevice::ReadOnly | QIODevice::Text) ? QString::fromUtf8(file.readAll())
+                                                                    : QString();
+        };
+        const QString script = readSource(QFINDTESTDATA("../scripts/essai-android.ps1"));
+        const QString themeQml = readSource(QFINDTESTDATA("../ui/qml/Theme.qml"));
+        QVERIFY2(!script.isEmpty() && !themeQml.isEmpty(), "essai-android.ps1 ou Theme.qml illisible");
+        const QRegularExpressionMatch tap =
+            QRegularExpression(QStringLiteral(R"(\$accueil = @\{ X = \[int\]\(\$largeur \* ([0-9.]+)\); )"
+                                              R"(Y = \[int\]\(\$hauteur \* ([0-9.]+)\) \})"))
+                .match(script);
+        QVERIFY2(tap.hasMatch(),
+                 "point de fermeture de l'accueil ($accueil) introuvable dans essai-android.ps1");
+        // Repère du script (essai-android.ps1:47, décision 23) : la couleur « palette » lue dans le thème.
+        const QRegularExpressionMatch hex =
+            QRegularExpression(QStringLiteral(R"re(property color palette:\s*"(#[0-9A-Fa-f]{6})")re"))
+                .match(themeQml);
+        QVERIFY(hex.hasMatch());
+        const QColor palette(hex.captured(1));
+        const QColor veiled(palette.red() / 2, palette.green() / 2, palette.blue() / 2);
+
+        constexpr int largeur = 2560; // profil pixel_tablet (essai-android.ps1:73)
+        constexpr int hauteur = 1600;
+        constexpr int densite = 2; // 320 / 160
+        Shell s;
+        QVERIFY(start(s, true));
+        s.window->resize(largeur / densite, hauteur / densite);
+        QTRY_COMPARE(s.window->width(), largeur / densite);
+        QTRY_COMPARE(s.window->height(), hauteur / densite);
+        const auto pixel = [&s](int x, int y) {
+            const QImage image = s.window->grabWindow();
+            const qreal ratio = s.window->effectiveDevicePixelRatio();
+            return image.pixelColor(QPointF(x * ratio / densite, y * ratio / densite).toPoint());
+        };
+        QObject* dashboard = s.window->findChild<QObject*>(QStringLiteral("dashboard"));
+        QVERIFY(dashboard);
+        QTRY_VERIFY(dashboard->property("visible").toBool());
+
+        // Avant le toucher : la lecture de la CI, palette sous le voile, aux trois points du script (lignes
+        // 74-78).
+        const int ys[] = {int(hauteur * 0.25), int(hauteur * 0.5), int(hauteur * 0.75)};
+        for (const int y : ys) {
+            QTRY_VERIFY2(near(pixel(largeur - 3, y), veiled, 6),
+                         qPrintable(QStringLiteral("voile, y = %1").arg(y)));
+        }
+
+        // Le toucher du script ferme l'accueil.
+        const QPoint at(int(largeur * tap.captured(1).toDouble()) / densite,
+                        int(hauteur * tap.captured(2).toDouble()) / densite);
+        QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, at);
+        QTRY_VERIFY(!dashboard->property("visible").toBool());
+
+        // Puis les contrôles du script, seuils inchangés (lignes 74-78 et 83-87).
+        for (const int y : ys) {
+            QTRY_VERIFY2(near(pixel(largeur - 3, y), palette, 16),
+                         qPrintable(QStringLiteral("palette absente au bord droit, y = %1").arg(y)));
+        }
+        QVERIFY2(near(pixel(int(largeur * 0.765), int(hauteur * 0.87)), QColor(255, 255, 255), 12), "page");
+        QVERIFY2(near(pixel(largeur - 192, int(hauteur * 0.72)), palette, 16), "fond de palette");
+        QVERIFY2(near(pixel(largeur - 178, int(hauteur * 0.26)), QColor(229, 57, 53), 40), "pastille rouge");
     }
 
     void everyLot6CommandHasAHandler()
