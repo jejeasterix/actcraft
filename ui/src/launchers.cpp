@@ -15,20 +15,12 @@
 #include <QUrl>
 #include <QUuid>
 
-#include <QDateTime>
 #include <algorithm>
-#include <cstdio>
 #include <utility>
 
 namespace actcraft::ui {
 
 namespace {
-
-void diag(const char* step)
-{
-    std::fprintf(stderr, "DIAG lib %s %lld\n", step, static_cast<long long>(QDateTime::currentMSecsSinceEpoch()));
-    std::fflush(stderr);
-}
 
 const QString kEntries = QStringLiteral("entries");
 const QString kId = QStringLiteral("id");
@@ -257,9 +249,7 @@ int Launchers::run(const QString& id)
                         .arg(entry->path));
         return kFailed;
     }
-    diag("run avant key(false)");
     if (!trusted(*entry, key(false))) {
-        diag("run apres key(false)");
         m_pending.insert(id, *entry);
         emit confirmationNeeded(entry->id, entry->path, entry->arguments);
         return kConfirmationNeeded;
@@ -281,12 +271,9 @@ bool Launchers::confirm(const QString& id, bool accepted)
         emit failed(tr("Le raccourci a changé depuis la demande de confirmation."));
         return false;
     }
-    diag("confirm avant key(true)");
     const QByteArray poste = key(true);
-    diag("confirm apres key(true)");
     if (!poste.isEmpty())
         sign(shown, poste);
-    diag("confirm apres sign");
     return launch(shown);
 }
 
@@ -388,9 +375,7 @@ void Launchers::sign(const Entry& entry, const QByteArray& key)
 // paramètres en liste, sans interpréteur.
 bool Launchers::launch(const Entry& entry)
 {
-    diag("launch avant opensAsDocument");
     const bool document = opensAsDocument(entry.path);
-    diag(document ? "launch document" : "launch programme");
     if (document && !entry.arguments.isEmpty()) { // devenu document depuis la demande : rien ne part
         emit failed(documentRefusal(entry.path));
         return false;
@@ -398,7 +383,6 @@ bool Launchers::launch(const Entry& entry)
     const bool started =
         document ? QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(entry.path).absoluteFilePath()))
                  : QProcess::startDetached(entry.path, entry.arguments);
-    diag(started ? "launch parti" : "launch echec");
     if (!started)
         emit failed(tr("Impossible de lancer %1.").arg(entry.path));
     return started;
