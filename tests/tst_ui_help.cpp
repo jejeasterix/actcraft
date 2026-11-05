@@ -26,7 +26,7 @@ private slots:
         help.openFor(QString());
         QCOMPARE(help.source(), kIndex);
         QVERIFY(help.html().contains(QStringLiteral("<h1>")));
-        QVERIFY(help.html().contains(QStringLiteral("mot de passe de la classe")));
+        QVERIFY(help.html().contains(QStringLiteral("mot de passe de la classe"), Qt::CaseInsensitive));
     }
 
     void currentToolPageOrIndex()

@@ -7,8 +7,8 @@
 
 namespace actcraft::ui {
 
-// Modèle du lecteur d'aide hors ligne (D6-10) : pages embarquées (qrc:/actcraft/help/), liens internes suivis,
-// liens externes remis au QML (qui les ouvre par le navigateur du système). Aucun chargement réseau.
+// Modèle du lecteur d'aide hors ligne (D6-10) : pages embarquées (qrc:/actcraft/help/), liens internes
+// suivis, liens externes remis au QML (qui les ouvre par le navigateur du système). Aucun chargement réseau.
 class HelpViewer : public QObject
 {
     Q_OBJECT
