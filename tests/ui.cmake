@@ -95,7 +95,7 @@ actcraft_add_test(tst_ui_escape
     SOURCES tst_ui_escape.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 
-# Lot 5 (L5-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# Lot 5 (L5-T1) : tests des tâches nommées.
 # L5-T14
 actcraft_add_test(tst_ui_objectediting
     SOURCES tst_ui_objectediting.cpp
@@ -130,7 +130,7 @@ target_compile_definitions(tst_ui_import PRIVATE
     ACTCRAFT_CMAKE="${CMAKE_COMMAND}"
     ACTCRAFT_IMPORT_DATA="${PROJECT_SOURCE_DIR}/tests/data/import")
 
-# Lot 6 (L6-T1) : tests réservés (talons QSKIP), remplis par les tâches nommées.
+# Lot 6 (L6-T1) : tests des tâches nommées.
 # L6-T5
 actcraft_add_test(tst_ui_preferences
     SOURCES tst_ui_preferences.cpp
