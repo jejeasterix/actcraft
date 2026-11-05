@@ -70,6 +70,46 @@ std::conditional_t<std::is_const_v<Object>, const Outline, Outline>* penOf(Objec
     return nullptr;
 }
 
+template <typename T, typename Object>
+using FieldOf = std::conditional_t<std::is_const_v<Object>, const T, T>;
+
+// Champs de couleur de contour, d'épaisseur de contour et de couleur de remplissage selon le type d'objet
+// (même règle que penOf) ; nullptr : ne s'applique pas. Lecture et écriture passent par le même chemin.
+template <typename Object> FieldOf<std::uint32_t, Object>* outlineColorOf(Object& object) noexcept
+{
+    auto& variant = body(object);
+    if (auto* shape = std::get_if<Shape>(&variant); shape != nullptr && shape->kind != ShapeKind::Path) {
+        return &shape->outline;
+    }
+    if (auto* stroke = std::get_if<Stroke>(&variant)) {
+        return &stroke->color;
+    }
+    auto* pen = penOf(object);
+    return pen != nullptr ? &pen->color : nullptr;
+}
+
+template <typename Object> FieldOf<double, Object>* outlineWidthOf(Object& object) noexcept
+{
+    auto& variant = body(object);
+    if (auto* shape = std::get_if<Shape>(&variant); shape != nullptr && shape->kind != ShapeKind::Path) {
+        return &shape->outlineWidth;
+    }
+    if (auto* stroke = std::get_if<Stroke>(&variant)) {
+        return &stroke->baseWidth;
+    }
+    auto* pen = penOf(object);
+    return pen != nullptr ? &pen->width : nullptr;
+}
+
+template <typename Object> FieldOf<std::uint32_t, Object>* fillColorOf(Object& object) noexcept
+{
+    auto* shape = std::get_if<Shape>(&body(object));
+    if (shape == nullptr) {
+        return nullptr;
+    }
+    return shape->kind != ShapeKind::Path ? &shape->fill : &shape->brush.color;
+}
+
 template <typename T, typename Field> bool assign(Field& field, const PropertyValue& value)
 {
     const T* wanted = std::get_if<T>(&value);
@@ -92,7 +132,6 @@ bool write(PageObject& object, ObjectProperty property, const PropertyValue& val
     ObjectCommon& common = object.common;
     Shape* shape = std::get_if<Shape>(&body(object));
     const bool plainShape = shape != nullptr && shape->kind != ShapeKind::Path;
-    Stroke* stroke = std::get_if<Stroke>(&body(object));
     Outline* pen = penOf(object);
     switch (property) {
     case ObjectProperty::Name:
@@ -111,29 +150,20 @@ bool write(PageObject& object, ObjectProperty property, const PropertyValue& val
                       // SetObjectFlagCommand
     case ObjectProperty::OutlineStyle:
         return pen != nullptr && assign<PenStyle>(pen->style, value);
-    case ObjectProperty::OutlineColor:
-        if (plainShape) {
-            return assign<std::uint32_t>(shape->outline, value);
-        }
-        if (stroke != nullptr) {
-            return assign<std::uint32_t>(stroke->color, value);
-        }
-        return pen != nullptr && assign<std::uint32_t>(pen->color, value);
-    case ObjectProperty::OutlineWidth:
-        if (plainShape) {
-            return assign<double>(shape->outlineWidth, value);
-        }
-        if (stroke != nullptr) {
-            return assign<double>(stroke->baseWidth, value);
-        }
-        return pen != nullptr && assign<double>(pen->width, value);
+    case ObjectProperty::OutlineColor: {
+        auto* color = outlineColorOf(object);
+        return color != nullptr && assign<std::uint32_t>(*color, value);
+    }
+    case ObjectProperty::OutlineWidth: {
+        auto* width = outlineWidthOf(object);
+        return width != nullptr && assign<double>(*width, value);
+    }
     case ObjectProperty::FillStyle:
         return shape != nullptr && !plainShape && assign<FillKind>(shape->brush.kind, value);
-    case ObjectProperty::FillColor:
-        if (plainShape) {
-            return assign<std::uint32_t>(shape->fill, value);
-        }
-        return shape != nullptr && assign<std::uint32_t>(shape->brush.color, value);
+    case ObjectProperty::FillColor: {
+        auto* color = fillColorOf(object);
+        return color != nullptr && assign<std::uint32_t>(*color, value);
+    }
     case ObjectProperty::Left:
     case ObjectProperty::Top:
     case ObjectProperty::Width:
@@ -437,7 +467,6 @@ std::optional<PropertyValue> readProperty(const PageObject& object, ObjectProper
     const ObjectCommon& common = object.common;
     const Shape* shape = std::get_if<Shape>(&body(object));
     const bool plainShape = shape != nullptr && shape->kind != ShapeKind::Path;
-    const Stroke* stroke = std::get_if<Stroke>(&body(object));
     const Outline* pen = penOf(object);
     switch (property) {
     case ObjectProperty::Name:
@@ -462,25 +491,13 @@ std::optional<PropertyValue> readProperty(const PageObject& object, ObjectProper
         }
         return std::nullopt;
     case ObjectProperty::OutlineColor:
-        if (plainShape) {
-            return shape->outline;
-        }
-        if (stroke != nullptr) {
-            return stroke->color;
-        }
-        if (pen != nullptr) {
-            return pen->color;
+        if (const auto* color = outlineColorOf(object)) {
+            return *color;
         }
         return std::nullopt;
     case ObjectProperty::OutlineWidth:
-        if (plainShape) {
-            return shape->outlineWidth;
-        }
-        if (stroke != nullptr) {
-            return stroke->baseWidth;
-        }
-        if (pen != nullptr) {
-            return pen->width;
+        if (const auto* width = outlineWidthOf(object)) {
+            return *width;
         }
         return std::nullopt;
     case ObjectProperty::FillStyle:
@@ -489,11 +506,8 @@ std::optional<PropertyValue> readProperty(const PageObject& object, ObjectProper
         }
         return std::nullopt;
     case ObjectProperty::FillColor:
-        if (plainShape) {
-            return shape->fill;
-        }
-        if (shape != nullptr) {
-            return shape->brush.color;
+        if (const auto* color = fillColorOf(object)) {
+            return *color;
         }
         return std::nullopt;
     case ObjectProperty::Left:
