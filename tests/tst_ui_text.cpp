@@ -291,6 +291,14 @@ struct Harness
     {
         return plainOf(static_cast<std::size_t>(controller.currentIndex()), 0);
     }
+    // HTML enregistré du premier objet de la page affichée (vide s'il n'y en a pas).
+    QString htmlOfFirst() const
+    {
+        const core::Page& p = controller.document().page(static_cast<std::size_t>(controller.currentIndex()));
+        const auto* text =
+            p.objects.empty() ? nullptr : std::get_if<core::Text>(&core::body(p.objects.front()));
+        return text ? QString::fromStdString(text->html) : QString();
+    }
     qreal firstBlockTopMargin() const { return document()->begin().blockFormat().topMargin(); }
 };
 
@@ -471,13 +479,6 @@ private slots:
                              QStringLiteral("\" width=\"40\" height=\"40\">après</p>");
         Harness h;
         h.addHtml(html, {200, 200, 300, 60});
-        const auto storedHtml = [&h] {
-            const core::Page& page =
-                h.controller.document().page(static_cast<std::size_t>(h.controller.currentIndex()));
-            const auto* text =
-                page.objects.empty() ? nullptr : std::get_if<core::Text>(&core::body(page.objects.front()));
-            return text ? QString::fromStdString(text->html) : QString();
-        };
         const auto editorImages = [&h] {
             int images = 0;
             for (QTextBlock block = h.document()->begin(); block.isValid(); block = block.next()) {
@@ -493,14 +494,42 @@ private slots:
         QVERIFY(!h.document()->toHtml().contains(QLatin1String("data:")));
         QCOMPARE(h.editing.plainText(), QStringLiteral("avantaprès"));
         h.editing.commit();
-        QVERIFY(storedHtml().contains(image));
+        QVERIFY(h.htmlOfFirst().contains(image));
 
         QVERIFY(h.editing.beginAt({210, 210}, false));
         QCOMPARE(editorImages(), 0);
         h.typeChar(QLatin1Char('x'));
         h.editing.commit();
-        QVERIFY(!storedHtml().contains(QLatin1String("data:")));
+        QVERIFY(!h.htmlOfFirst().contains(QLatin1String("data:")));
         QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("avantaprèsx"));
+    }
+
+    // L6-C15 essai 2 : un texte réduit à une image `data:` (seule, ou entre des blancs) laisse l'éditeur
+    // vide. Sans frappe, il n'est jamais supprimé : cadre intact, il revient tel quel et sans étape ; cadre
+    // déplacé, il reste sur la page.
+    void textWithOnlyADataImageIsNotDeletedWithoutTyping()
+    {
+        const QString image =
+            QStringLiteral("<img src=\"data:image/png;base64,iVBORw0KGgo=\" width=\"40\" height=\"40\">");
+        const QStringList variants = {QStringLiteral("<p>") + image + QStringLiteral("</p>"),
+                                      QStringLiteral("<p>  ") + image + QStringLiteral(" </p><p> </p>")};
+        for (const QString& html : variants) {
+            Harness h;
+            h.addHtml(html, {200, 200, 300, 60});
+            QVERIFY(h.editing.beginAt({210, 210}, false));
+            QVERIFY(h.editing.plainText().trimmed().isEmpty());
+            h.editing.commit();
+            QCOMPARE(h.controller.shownObjectCount(), 1);
+            QCOMPARE(h.htmlOfFirst(), html);
+            h.controller.undo();
+            QCOMPARE(h.controller.shownObjectCount(), 0); // seule étape : l'ajout
+        }
+        Harness h;
+        h.addHtml(variants.first(), {200, 200, 300, 60});
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        h.editing.moveFrame({30, 0});
+        h.editing.commit();
+        QCOMPARE(h.controller.shownObjectCount(), 1);
     }
 
     // L6-C15 : la forme à deux arguments garde les images `data:`, pour les appelants dont le document ne
