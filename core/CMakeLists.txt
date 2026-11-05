@@ -61,3 +61,6 @@ actcraft_add_module(core
         src/hunspellengine.cpp
     DEPENDS
         Qt6::Core)
+
+# Orthographe (D6-9) : Hunspell, bibliothèque statique tierce, liée sans être exposée aux modules dépendants.
+target_link_libraries(actcraft_core PRIVATE hunspell)

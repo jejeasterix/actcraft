@@ -542,6 +542,8 @@ et, sur l'instance `dashboard`, `recents: fileActions.recents` ; `Dashboard.qml`
 et `root.commands` ; délégués `recent<n>`. `setting(section, clé, défaut)` : nom réel de `ProfileController` (L6-T5),
 `Q_INVOKABLE` ; le relire. Le nombre de pages se lit `documentController.pageCount`.
 
+**Amendement 11 (L6-T23, 2026-11-05).** Aucun lecteur de la miniature du fichier natif n'existe côté `ui/`. Fichiers élargis : `ui/include/actcraft/ui/recentdocuments.h`, `ui/src/recentdocuments.cpp`, `tests/tst_ui_recents.cpp` (ou le test de `RecentDocuments` existant), et `tests/tst_ui_shell.cpp` (test de câblage déjà ajouté). Chaque document récent expose sa vignette, lue de `thumbnails/page-1.png` dans l'archive hors du fil principal (même voie que les vignettes de L6-T20 : une lecture à la fois, aucune pendant un contact, fichier absent ou illisible → pas de vignette, sans erreur). `Dashboard.qml` l'affiche, et le nom seul reste quand elle manque.
+
 <a id="tache-l6-t24"></a>
 ### Tâche L6-T24 — Documents récents et résumé à l'enregistrement
 
@@ -871,6 +873,8 @@ fichier. Programme d'essai `launcher_probe` : écrit le fichier dont le chemin e
 
 **Amendement 2 (L6-T29).** m8 : le message signé s'écrit
 `QJsonDocument(QJsonArray{path, QJsonArray::fromStringList(arguments), toolTip}).toJson(QJsonDocument::Compact)`.
+
+**Amendement 10 (L6-T29, 2026-11-05).** Relecture : le refus des scripts ne lisait que le suffixe, et `openUrl` laisse Windows exécuter tout type associé. (a) Un chemin qui contient `"`, un caractère de contrôle ou l'un de `<>|?*` est refusé (`kFailed`) avant tout autre contrôle. (b) Pour un document ouvert par `openUrl`, les types que Windows exécute sont refusés comme `.bat` et `.cmd`, casse ignorée, après retrait des points et espaces finaux : `.bat .cmd .com .scr .pif .vbs .vbe .js .jse .wsf .wsh .hta .ps1 .psm1 .msi .msp .msc .cpl .reg .lnk .url .inf .scf`. Un `.lnk` est refusé parce que la boîte ne peut pas montrer la commande qu'il porte. (c) Un document ne prend aucun paramètre : la boîte n'en montre pas, et une entrée de document qui en porte est refusée. (d) Un identifiant en double dans le profil : seule la première entrée est gardée par `entries()`, comme par `run`.
 
 <a id="tache-l6-t30"></a>
 ### Tâche L6-T30 — Raccourcis vers des programmes : barre et onglet ; scénario S20
