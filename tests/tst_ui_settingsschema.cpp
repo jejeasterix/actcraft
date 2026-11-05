@@ -26,9 +26,30 @@ using actcraft::ui::SettingsSchema;
 
 namespace {
 
-// Clés QSettings du lot 7 (A19), reprises telles quelles par le schéma.
-const QStringList kLot7Keys{QStringLiteral("tools/ticker"), QStringLiteral("tools/calculator"),
-                            QStringLiteral("tools/webHome"), QStringLiteral("presentation/transition")};
+// Clés QSettings du lot 7 (A19), lues sur feat/livraison-complete-b, avec le type que leur lecteur relit.
+// `tools/ticker/message` (JSON du bandeau, TickerController) ne se règle pas par un champ : pas montré.
+struct Lot7Key
+{
+    const char* key;
+    const char* type;
+    QVariant defaultValue;
+};
+const QList<Lot7Key> kLot7Keys{
+    {"tools/webHome", "text", QString()},                                 // PresentationCommands
+    {"tools/calculator/mode", "int", 0},                                  // CalculatorController, 0 à 2
+    {"tools/calculator/program", "text", QString()},                      // CalculatorController
+    {"presentation/transition/global", "choice", QStringLiteral("none")}, // TransitionController
+    {"presentation/transition/duration", "int", 15},                      // dixièmes, 5 à 30
+};
+
+// Catalogue des effets du lot 7 (features/src/transitions.cpp) : « none », « random », puis 16 mouvements.
+const QStringList kTransitionEffects{
+    QStringLiteral("none"),        QStringLiteral("random"),       QStringLiteral("dissolve"),
+    QStringLiteral("corner-peel"), QStringLiteral("box-turn"),     QStringLiteral("card-flip"),
+    QStringLiteral("tiles-spin"),  QStringLiteral("fold-half"),    QStringLiteral("slide-right"),
+    QStringLiteral("strips-drop"), QStringLiteral("corner-swing"), QStringLiteral("spiral-out"),
+    QStringLiteral("turn-reveal"), QStringLiteral("drapes"),       QStringLiteral("star-iris"),
+    QStringLiteral("shards"),      QStringLiteral("sweep"),        QStringLiteral("funnel")};
 
 struct Fixture
 {
@@ -73,6 +94,16 @@ QString sectionOfKey(const SettingsSchema& schema, const QString& key)
             return id;
     }
     return {};
+}
+
+QStringList allKeys(const SettingsSchema& schema)
+{
+    QStringList keys;
+    for (const QString& id : sectionIds(schema)) {
+        for (const QVariant& entry : schema.entries(id))
+            keys << entry.toMap().value(QStringLiteral("key")).toString();
+    }
+    return keys;
 }
 
 QSet<QString> settingsKeys()
@@ -177,42 +208,83 @@ private slots:
         }
     }
 
-    // Le test qui distingue : la valeur passe par la clé du lot 7 elle-même, dans les deux sens, lue et
-    // écrite en direct dans QSettings (jamais par un aller-retour du schéma, qui passerait avec une clé
-    // dupliquée).
+    // Le test qui distingue : chaque réglage du lot 7 porte la clé que son lecteur relit, avec son type et
+    // ses bornes ; la valeur passe par QSettings en direct, lue comme le lot 7 la lit (groupe compris).
+    // Sous les clés de l'essai 1 (`tools/ticker`, `tools/calculator`, `presentation/transition` en booléen),
+    // la première boucle échoue.
     void lot7KeysReused()
     {
         Fixture f;
-        for (const QString& key : kLot7Keys) {
+        for (const Lot7Key& expected : kLot7Keys) {
+            const QString key = QString::fromLatin1(expected.key);
             const QString section = sectionOfKey(f.schema, key);
-            QVERIFY2(!section.isEmpty(), qPrintable(key));
+            QVERIFY2(!section.isEmpty(), expected.key);
             const QVariantMap entry = entryOf(f.schema, section, key);
             QCOMPARE(entry.value(QStringLiteral("store")).toString(),
                      QString::fromLatin1(SettingsSchema::kWorkstationStore));
-            QCOMPARE(entry.value(QStringLiteral("key")).toString(), key);
+            QCOMPARE(entry.value(QStringLiteral("type")).toString(), QString::fromLatin1(expected.type));
+            QCOMPARE(entry.value(QStringLiteral("defaultValue")), expected.defaultValue);
+            QCOMPARE(f.schema.value(section, key), expected.defaultValue); // rien d'écrit : le défaut
+        }
+        // Aucun réglage sur un groupe du lot 7 ni sur le JSON du bandeau.
+        for (const QString& key : allKeys(f.schema)) {
+            QVERIFY2(!key.startsWith(QLatin1String("tools/ticker")), qPrintable(key));
+            QVERIFY2(key != QLatin1String("tools/calculator"), qPrintable(key));
+            QVERIFY2(key != QLatin1String("presentation/transition"), qPrintable(key));
         }
 
-        // Écrit par le lot 7 : lu par le schéma.
-        const QString webHome = QStringLiteral("tools/webHome");
-        QSettings().setValue(webHome, QStringLiteral("https://exemple.org/"));
-        QCOMPARE(f.schema.value(sectionOfKey(f.schema, webHome), webHome).toString(),
-                 QStringLiteral("https://exemple.org/"));
+        const QString tools = sectionOfKey(f.schema, QStringLiteral("tools/calculator/mode"));
+        const QString effects = sectionOfKey(f.schema, QStringLiteral("presentation/transition/global"));
+        const QVariantMap mode = entryOf(f.schema, tools, QStringLiteral("tools/calculator/mode"));
+        QCOMPARE(mode.value(QStringLiteral("min")).toInt(), 0);
+        QCOMPARE(mode.value(QStringLiteral("max")).toInt(), 2);
+        const QVariantMap duration =
+            entryOf(f.schema, effects, QStringLiteral("presentation/transition/duration"));
+        QCOMPARE(duration.value(QStringLiteral("min")).toInt(), 5);
+        QCOMPARE(duration.value(QStringLiteral("max")).toInt(), 30);
+        QCOMPARE(entryOf(f.schema, effects, QStringLiteral("presentation/transition/global"))
+                     .value(QStringLiteral("choices"))
+                     .toStringList(),
+                 kTransitionEffects);
 
-        // Écrit par le schéma : lu par le lot 7, sous sa clé, sans autre clé créée.
-        const QString ticker = QStringLiteral("tools/ticker");
+        // Écrit par le lot 7 : lu par le schéma, au type du réglage.
+        QSettings().setValue(QStringLiteral("tools/webHome"), QStringLiteral("https://exemple.org/"));
+        QSettings().setValue(QStringLiteral("tools/calculator/mode"), 1);
+        QCOMPARE(f.schema.value(tools, QStringLiteral("tools/webHome")),
+                 QVariant(QStringLiteral("https://exemple.org/")));
+        QCOMPARE(f.schema.value(tools, QStringLiteral("tools/calculator/mode")), QVariant(1));
+
+        // Écrit par le schéma : lu par le lot 7, sous ses clés, bornes et choix du lot 7, sans autre clé.
         const QSet<QString> before = settingsKeys();
-        f.schema.setValue(sectionOfKey(f.schema, ticker), ticker, QStringLiteral("Bonjour"));
-        QCOMPARE(QSettings().value(ticker).toString(), QStringLiteral("Bonjour"));
+        f.schema.setValue(effects, QStringLiteral("presentation/transition/global"),
+                          QStringLiteral("dissolve"));
+        f.schema.setValue(effects, QStringLiteral("presentation/transition/global"),
+                          QStringLiteral("inconnu"));
+        f.schema.setValue(effects, QStringLiteral("presentation/transition/duration"), 99);
+        f.schema.setValue(tools, QStringLiteral("tools/calculator/mode"), 7);
+        f.schema.setValue(tools, QStringLiteral("tools/calculator/program"), QStringLiteral("/usr/bin/bc"));
+        QSettings settings;
+        settings.beginGroup(QStringLiteral("presentation/transition")); // comme TransitionController
+        QCOMPARE(settings.value(QStringLiteral("global")).toString(), QStringLiteral("dissolve"));
+        QCOMPARE(settings.value(QStringLiteral("duration")).toInt(), 30);
+        settings.endGroup();
+        QCOMPARE(settings.value(QStringLiteral("tools/calculator/mode")).toInt(), 2);
+        QCOMPARE(settings.value(QStringLiteral("tools/calculator/program")).toString(),
+                 QStringLiteral("/usr/bin/bc"));
         QSet<QString> added = settingsKeys();
         added.subtract(before);
-        QCOMPARE(added, QSet<QString>{ticker});
+        QCOMPARE(added, (QSet<QString>{QStringLiteral("presentation/transition/global"),
+                                       QStringLiteral("presentation/transition/duration"),
+                                       QStringLiteral("tools/calculator/program")}));
     }
 
     void profileOrWorkstationStore()
     {
         Fixture f;
         // Clés QSettings existantes : celles du lot 7, de Preferences et de NetworkSettings ; aucune neuve.
-        QSet<QString> existing(kLot7Keys.begin(), kLot7Keys.end());
+        QSet<QString> existing;
+        for (const Lot7Key& lot7 : kLot7Keys)
+            existing << QString::fromLatin1(lot7.key);
         existing << QString::fromLatin1(Preferences::kLanguage) << QString::fromLatin1(NetworkSettings::kHost)
                  << QString::fromLatin1(NetworkSettings::kPort)
                  << QString::fromLatin1(NetworkSettings::kUser);
@@ -266,6 +338,53 @@ private slots:
             QCOMPARE(entry.value(QStringLiteral("store")).toString(),
                      QString::fromLatin1(SettingsSchema::kProfileStore));
         }
+        // Haute qualité hors écriture et édition : vrai par défaut (le rendu courant de l'application).
+        QCOMPARE(entryOf(f.schema, section, keys.first()).value(QStringLiteral("defaultValue")),
+                 QVariant(true));
+        QCOMPARE(f.schema.value(section, keys.first()), QVariant(true));
+    }
+
+    // Règles d'ignorance de F-930, défauts du plan (L6-T33, SpellRules) : dans le profil, section `spelling`,
+    // clés que L6-T33 lira.
+    void spellingRulesDefaults()
+    {
+        Fixture f;
+        const QList<QPair<QString, bool>> rules{
+            {QStringLiteral("ignore-capitalized"), false}, {QStringLiteral("ignore-uppercase"), false},
+            {QStringLiteral("ignore-digits"), false},      {QStringLiteral("ignore-mixed-case"), false},
+            {QStringLiteral("ignore-addresses"), false},   {QStringLiteral("flag-repeated"), true}};
+        const QString section = QStringLiteral("spelling");
+        QCOMPARE(f.schema.entries(section).size(), rules.size());
+        for (const auto& [key, defaultValue] : rules) {
+            const QVariantMap entry = entryOf(f.schema, section, key);
+            QVERIFY2(!entry.isEmpty(), qPrintable(key));
+            QCOMPARE(entry.value(QStringLiteral("type")).toString(), QStringLiteral("bool"));
+            QCOMPARE(entry.value(QStringLiteral("store")).toString(),
+                     QString::fromLatin1(SettingsSchema::kProfileStore));
+            QCOMPARE(entry.value(QStringLiteral("defaultValue")), QVariant(defaultValue));
+            QCOMPARE(f.schema.value(section, key), QVariant(defaultValue));
+        }
+        f.schema.setValue(section, QStringLiteral("flag-repeated"), false);
+        QCOMPARE(f.profile.setting(section, QStringLiteral("flag-repeated"), true), QVariant(false));
+    }
+
+    // Dossier des ressources partagées : la clé que ResourceLibrary lit déjà (`ressources/partagees` du
+    // profil), même magasin.
+    void sharedResourcesFolder()
+    {
+        Fixture f;
+        const QString section = QStringLiteral("profile");
+        const QString key = QStringLiteral("partagees");
+        const QVariantMap entry = entryOf(f.schema, section, key);
+        QVERIFY(!entry.isEmpty());
+        QCOMPARE(entry.value(QStringLiteral("type")).toString(), QStringLiteral("text"));
+        QCOMPARE(entry.value(QStringLiteral("store")).toString(),
+                 QString::fromLatin1(SettingsSchema::kProfileStore));
+        const QString folder = f.dir.filePath(QStringLiteral("partage"));
+        f.schema.setValue(section, key, folder);
+        QCOMPARE(f.profile.setting(QStringLiteral("ressources"), key, QString()).toString(), folder);
+        QVERIFY(!f.profile.setting(section, key, {}).isValid());
+        QCOMPARE(f.schema.value(section, key).toString(), folder);
     }
 
     void autoGroupDefaultsOff()
