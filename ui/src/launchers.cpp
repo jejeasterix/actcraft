@@ -182,6 +182,12 @@ QVariantList Launchers::entries() const
     return out;
 }
 
+QString Launchers::localPath(const QUrl& url)
+{
+    Q_UNUSED(url)
+    return {}; // talon
+}
+
 QString Launchers::add(const QString& path, const QStringList& arguments, const QString& toolTip)
 {
     const QString program = path.trimmed();
