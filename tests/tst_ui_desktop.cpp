@@ -12,6 +12,7 @@
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QImage>
+#include <QKeySequence>
 #include <QPointer>
 #include <QQuickWindow>
 #include <QScreen>
@@ -209,6 +210,33 @@ QString placeOf(const QQuickItem* item, const QQuickWindow* window)
         .arg(item->isVisible())
         .arg(window->width())
         .arg(window->height());
+}
+
+// Ma1 : annotation ouverte, la fenêtre principale n'est plus que la palette. `before` : sa géométrie d'avant.
+void openAnnotationWithPaletteOnly(MainWindow& main, QRect& before)
+{
+    QQuickWindow* window = main.window();
+    QVERIFY(window);
+    DesktopController* desktop = desktopOf(main);
+    QVERIFY(desktop);
+    QVERIFY(main.waitReady());
+    before = window->geometry();
+    QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+    QVERIFY(waitDesktopReady(desktop));
+    QTRY_VERIFY(window->geometry().width() < before.width()); // la palette seule
+}
+
+// Ma1 : le panneau `shown` s'est ouvert ENTIER dans la fenêtre principale, l'annotation fermée et la fenêtre
+// revenue à sa géométrie d'avant l'annotation.
+void expectWholeInTheMainWindow(MainWindow& main, const QString& shown, const QRect& before)
+{
+    QQuickWindow* window = main.window();
+    QQuickItem* item = shownItemOf(main, shown);
+    QVERIFY2(item, qPrintable(shown));
+    QTRY_VERIFY2(item->isVisible(), qPrintable(shown + QStringLiteral(" jamais montré")));
+    QTRY_VERIFY2(shownWholeIn(item, window), qPrintable(placeOf(item, window)));
+    QVERIFY(!desktopOf(main)->isAnnotating());
+    QTRY_COMPARE(window->geometry(), before);
 }
 
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
@@ -1175,6 +1203,62 @@ private slots:
         // Comportement retenu : annotation fermée, fenêtre principale à sa géométrie d'avant l'annotation.
         QVERIFY(!desktop->isAnnotating());
         QTRY_COMPARE(window->geometry(), before);
+    }
+
+    // Ma1, essai 2 (tour 2 de relecture du lot 7) : la règle vit au niveau des commandes, plus dans la seule
+    // roue. Pendant l'annotation, la fenêtre principale n'est que la palette : toute commande qui ouvre un
+    // panneau de la fenêtre principale (posé dans presentation.layer ; drapeau « mainWindow » de
+    // commands.json) ferme d'abord l'annotation, son paperboard gardé ; la fenêtre reprend sa géométrie
+    // d'avant et le panneau s'y ouvre ENTIER, quel que soit le chemin. Ici, la commande directe. Mutant : la
+    // règle dans la seule roue (essai 1) ; le panneau s'ouvre rogné dans la fenêtre de la palette.
+    void mainWindowToolDuringAnnotationIsWhole_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("shown"); // racine du panneau, ou dialogue (fenêtre surgissante)
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice")
+            << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QStringLiteral("tickerDialog");
+        QTest::newRow("effets de page")
+            << QStringLiteral("view.page-effects") << QStringLiteral("effectsRoot");
+        QTest::newRow("equation") << QStringLiteral("insert.equation") << QStringLiteral("equationRoot");
+    }
+    void mainWindowToolDuringAnnotationIsWhole()
+    {
+        QFETCH(QString, command);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QVERIFY(main.run(command));
+        expectWholeInTheMainWindow(main, shown, before);
+    }
+
+    // Ma1, essai 2 : même règle par le raccourci clavier de la commande. Mutant : la règle dans la seule
+    // roue.
+    void mainWindowToolShortcutDuringAnnotationIsWhole_data()
+    {
+        QTest::addColumn<QString>("sequence");
+        QTest::addColumn<QString>("shown");
+        QTest::newRow("horloge") << QStringLiteral("Ctrl+Shift+U") << QStringLiteral("clockRoot");
+        QTest::newRow("message defilant") << QStringLiteral("Ctrl+Shift+T") << QStringLiteral("tickerDialog");
+    }
+    void mainWindowToolShortcutDuringAnnotationIsWhole()
+    {
+        QFETCH(QString, sequence);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QTest::keySequence(main.window(), QKeySequence(sequence));
+        expectWholeInTheMainWindow(main, shown, before);
     }
 
     // M2 (relecture du lot 7 ; plan 7b, L7-T30 ; F-640 : effets désactivés pendant l'annotation de bureau) :
