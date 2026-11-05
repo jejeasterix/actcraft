@@ -20,7 +20,8 @@ class TstCoreSpellcheck : public QObject
     QString m_dic;
     std::unique_ptr<SpellEngine> m_engine;
 
-    static void addText(Document& d, std::size_t page, ObjectId id, const char* html, Layer layer = Layer::Middle)
+    static void addText(Document& d, std::size_t page, ObjectId id, const char* html,
+                        Layer layer = Layer::Middle)
     {
         Text text;
         text.bounds = {10, 10, 300, 30};
@@ -84,7 +85,8 @@ private slots:
     void suggestsTheCorrection()
     {
         const auto suggestions = m_engine->suggest("mosieur");
-        QVERIFY(std::find(suggestions.begin(), suggestions.end(), std::string("monsieur")) != suggestions.end());
+        QVERIFY(std::find(suggestions.begin(), suggestions.end(), std::string("monsieur")) !=
+                suggestions.end());
     }
     void walksPagesFromTheFirst()
     {
@@ -161,8 +163,8 @@ private slots:
     void repeatedWordsFlagged()
     {
         const SpellRules defaults;
-        QVERIFY(!defaults.ignoreCapitalized && !defaults.ignoreUppercase && !defaults.ignoreDigits
-                && !defaults.ignoreMixedCase && !defaults.ignoreAddresses);
+        QVERIFY(!defaults.ignoreCapitalized && !defaults.ignoreUppercase && !defaults.ignoreDigits &&
+                !defaults.ignoreMixedCase && !defaults.ignoreAddresses);
         QVERIFY(defaults.flagRepeated);
         Document d;
         addText(d, 0, 1, "<p>voici le le chat</p>");
@@ -182,8 +184,8 @@ private slots:
         Document d;
         addText(d, 0, 1, "<p>Zorbo NASAA abc123 iPhonne joe@exemplee.fr https://exemplee.fr</p>");
         SpellRules all;
-        all.ignoreCapitalized = all.ignoreUppercase = all.ignoreDigits = all.ignoreMixedCase = all.ignoreAddresses
-            = true;
+        all.ignoreCapitalized = all.ignoreUppercase = all.ignoreDigits = all.ignoreMixedCase =
+            all.ignoreAddresses = true;
         SpellChecker none(*m_engine, all);
         QVERIFY(!none.next(d));
         // Par défaut, chacun est signalé.
@@ -230,10 +232,11 @@ private slots:
     void htmlTagsAreNotWords()
     {
         Document d;
-        addText(d, 0, 1,
-                "<html><head><style>p { color:red; fontt-size:12px }</style></head><body>"
-                "<p style=\"color:#ff0000; fontfamily:zzz\"><b>bonjour</b> <i><span style=\"font-size:12px\">"
-                "monsieur</span></i></p><p>bon<b>jour</b></p><p>chat&nbsp;&amp;&nbsp;chien</p></body></html>");
+        addText(
+            d, 0, 1,
+            "<html><head><style>p { color:red; fontt-size:12px }</style></head><body>"
+            "<p style=\"color:#ff0000; fontfamily:zzz\"><b>bonjour</b> <i><span style=\"font-size:12px\">"
+            "monsieur</span></i></p><p>bon<b>jour</b></p><p>chat&nbsp;&amp;&nbsp;chien</p></body></html>");
         SpellChecker checker(*m_engine, SpellRules{});
         const auto hit = checker.next(d);
         QVERIFY2(!hit, hit ? hit->word.c_str() : "");

@@ -1,9 +1,8 @@
 #include <actcraft/core/spellcheck.h>
 
-#include <hunspell.hxx>
-
 #include <QFileInfo>
 
+#include <hunspell.hxx>
 #include <memory>
 
 namespace actcraft::core {
@@ -28,7 +27,8 @@ private:
 std::unique_ptr<SpellEngine> makeHunspellEngine(const std::string& affPath, const std::string& dicPath)
 {
     // Hunspell ne signale pas un fichier absent : on le vérifie avant.
-    if (!QFileInfo(QString::fromStdString(affPath)).isFile() || !QFileInfo(QString::fromStdString(dicPath)).isFile()) {
+    if (!QFileInfo(QString::fromStdString(affPath)).isFile() ||
+        !QFileInfo(QString::fromStdString(dicPath)).isFile()) {
         return nullptr;
     }
     return std::make_unique<HunspellEngine>(affPath, dicPath);

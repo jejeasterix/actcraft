@@ -12,16 +12,18 @@
 
 namespace actcraft::core {
 
-// Règles d'ignorance (D5, F-930). Clés du profil, section « spelling » : ignore-capitalized, ignore-uppercase,
-// ignore-digits, ignore-mixed-case, ignore-addresses (défaut faux) ; flag-repeated (défaut vrai).
+// Règles d'ignorance (D5, F-930). Clés du profil, section « spelling » : ignore-capitalized,
+// ignore-uppercase, ignore-digits, ignore-mixed-case, ignore-addresses (défaut faux) ; flag-repeated (défaut
+// vrai).
 struct SpellRules
 {
     bool ignoreCapitalized = false; // « Paris » : initiale majuscule, le reste en minuscules
     bool ignoreUppercase = false;   // « NASA » : au moins deux lettres, toutes en majuscules
     bool ignoreDigits = false;      // « abc123 » : un chiffre dans le mot
-    bool ignoreMixedCase = false;   // « iPhone », « McDo » : une majuscule après la première lettre et une minuscule
-    bool ignoreAddresses = false;   // « a@b.fr », « https://… », « www.… »
-    bool flagRepeated = true;       // « le le » : le mot qui répète le précédent est signalé
+    bool ignoreMixedCase =
+        false; // « iPhone », « McDo » : une majuscule après la première lettre et une minuscule
+    bool ignoreAddresses = false; // « a@b.fr », « https://… », « www.… »
+    bool flagRepeated = true;     // « le le » : le mot qui répète le précédent est signalé
 };
 
 class SpellEngine
@@ -41,7 +43,8 @@ std::unique_ptr<SpellEngine> makeHunspellEngine(const std::string& affPath, cons
 // third_party/). Lire un fichier absent n'ajoute rien. Rend le nombre de mots ajoutés au moteur.
 std::size_t loadUserDictionary(SpellEngine& engine, const std::string& path);
 // « Ajouter au dictionnaire » : le mot entre dans le moteur et, s'il n'y est pas déjà, à la fin du fichier
-// (créé au besoin). Rend faux si le fichier ne peut pas être écrit (le moteur garde le mot) ou si le mot est vide.
+// (créé au besoin). Rend faux si le fichier ne peut pas être écrit (le moteur garde le mot) ou si le mot est
+// vide.
 bool addToUserDictionary(SpellEngine& engine, const std::string& path, const std::string& word);
 
 // Mot signalé. start et length sont en unités UTF-16 du texte brut du texte riche (balises retirées, entités
@@ -61,9 +64,9 @@ class SpellChecker
 public:
     SpellChecker(SpellEngine& engine, SpellRules rules);
 
-    // Premier mot à signaler à partir du curseur : pages depuis la première, objets texte dans l'ordre de la page
-    // (couches du fond vers le dessus). Rend le même mot tant que ni ignore(), ni ignoreAlways() n'avance le
-    // curseur ; std::nullopt à la fin du document.
+    // Premier mot à signaler à partir du curseur : pages depuis la première, objets texte dans l'ordre de la
+    // page (couches du fond vers le dessus). Rend le même mot tant que ni ignore(), ni ignoreAlways()
+    // n'avance le curseur ; std::nullopt à la fin du document.
     std::optional<SpellHit> next(const Document& document);
     // Passe le mot courant (celui que le dernier next() a rendu).
     void ignore();
