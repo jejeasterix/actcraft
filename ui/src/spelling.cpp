@@ -331,21 +331,8 @@ QRectF Spelling::highlightOf(const core::SpellHit& hit) const
         layout.setTextWidth(text->bounds.width);
         layout.documentLayout()->documentSize();
         QRectF local(0, 0, text->bounds.width, text->bounds.height);
-        // Les positions de SpellHit (texte brut de core) ne sont pas celles de QTextDocument (décalage
-        // constaté de deux unités sur un texte de l'éditeur) : le mot est cherché dans le texte du document,
-        // à l'occurrence la plus proche de la position annoncée.
-        const QString plain = layout.toPlainText();
-        const QString needle = QString::fromStdString(hit.word);
-        int from = static_cast<int>(hit.start);
-        qsizetype best = -1;
-        for (qsizetype at = plain.indexOf(needle); at >= 0; at = plain.indexOf(needle, at + 1)) {
-            if (best < 0 || std::abs(at - from) < std::abs(best - from)) {
-                best = at;
-            }
-        }
-        if (best >= 0) {
-            from = static_cast<int>(best);
-        }
+        const int from =
+            static_cast<int>(hit.start); // texte brut de core : mêmes positions que QTextDocument
         const QTextBlock block = layout.findBlock(from);
         const QTextLine line =
             block.isValid() ? block.layout()->lineForTextPosition(from - block.position()) : QTextLine();

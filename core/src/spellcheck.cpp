@@ -130,6 +130,13 @@ Plain extractPlain(const QString& html)
                 }
             }
         }
+        // Retour à la ligne du source HTML (entre les balises de QTextDocument::toHtml) : de l'espace, pas un
+        // saut de ligne du texte ; il ne décale pas les positions en début de bloc.
+        if ((c == QLatin1Char('\n') || c == QLatin1Char('\r')) &&
+            (plain.text.isEmpty() || plain.text.back() == QLatin1Char('\n'))) {
+            ++i;
+            continue;
+        }
         plain.push(c, i, i + 1);
         ++i;
     }

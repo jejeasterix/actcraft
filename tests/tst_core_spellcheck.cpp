@@ -235,11 +235,13 @@ private slots:
     {
         Document d;
         addText(d, 0, 1,
-                "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+                "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" "
+                "\"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
                 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
                 "p, li { white-space: pre-wrap; }\n"
                 "</style></head><body style=\" font-size:9pt;\">\n"
-                "<p style=\" margin-top:0px;\"><span style=\" font-size:14pt;\">bonjour mosieur</span></p></body></html>");
+                "<p style=\" margin-top:0px;\"><span style=\" font-size:14pt;\">bonjour "
+                "mosieur</span></p></body></html>");
         SpellChecker checker(*m_engine, SpellRules{});
         const auto hit = checker.next(d);
         QVERIFY(hit);

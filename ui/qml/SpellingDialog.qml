@@ -32,29 +32,31 @@ Item {
     }
 
     // Le mot, surligné sur la page (coordonnées de page → fenêtre).
-    Rectangle {
-        id: marker
-        objectName: "spellingHighlight"
-        parent: Overlay.overlay
-        readonly property rect box: appSpelling.highlight
-        readonly property point topLeft: root.view && appSpelling.running
-                                         ? (root.view.zoom + root.view.pan.x + root.view.pan.y >= 0
-                                            ? root.view.pageToScene(Qt.point(box.x, box.y)) : Qt.point(0, 0))
-                                         : Qt.point(0, 0)
-        readonly property point bottomRight: root.view && appSpelling.running
-                                             ? (root.view.zoom + root.view.pan.x + root.view.pan.y >= 0
-                                                ? root.view.pageToScene(Qt.point(box.x + box.width, box.y + box.height))
-                                                : Qt.point(0, 0))
-                                             : Qt.point(0, 0)
-        visible: appSpelling.running && box.width > 0 && popup.opened
-        x: topLeft.x - 2
-        y: topLeft.y - 2
-        width: bottomRight.x - topLeft.x + 4
-        height: bottomRight.y - topLeft.y + 4
-        radius: 3
-        color: "#66FFD54F"
-        border.width: 2
-        border.color: "#E0A800"
+    // Posé dans la surcouche seulement pendant qu'un mot est proposé : un élément de la surcouche, même
+    // invisible, gêne les contacts du stylet sur la page.
+    Loader {
+        active: appSpelling.running
+        sourceComponent: Rectangle {
+            id: marker
+            objectName: "spellingHighlight"
+            parent: Overlay.overlay
+            readonly property rect box: appSpelling.highlight
+            // zoom et défilement : dépendances de la conversion (pageToScene n'a pas de signal).
+            readonly property point topLeft: root.view.zoom + root.view.pan.x + root.view.pan.y >= 0
+                                             ? root.view.pageToScene(Qt.point(box.x, box.y)) : Qt.point(0, 0)
+            readonly property point bottomRight: root.view.zoom + root.view.pan.x + root.view.pan.y >= 0
+                                                 ? root.view.pageToScene(Qt.point(box.x + box.width, box.y + box.height))
+                                                 : Qt.point(0, 0)
+            visible: box.width > 0 && popup.opened
+            x: topLeft.x - 2
+            y: topLeft.y - 2
+            width: bottomRight.x - topLeft.x + 4
+            height: bottomRight.y - topLeft.y + 4
+            radius: 3
+            color: "#66FFD54F"
+            border.width: 2
+            border.color: "#E0A800"
+        }
     }
 
     Popup {
