@@ -7,6 +7,17 @@ import ActCraft.Ui
 // garde sa place dans la ligne de Main.qml (largeur `slotWidth`, nulle hors ancrage à droite) ; le panneau, lui, est
 // placé dans le repère de cette ligne et se déclare couverture d'entrée de la page. Seuls `x` et `opacity` s'animent.
 Item {
+    // Bouton d'icône de la barre de titre : 24 px, sans focus, icône 16 px.
+    component BarButton: ToolButton {
+        width: 24
+        height: 24
+        anchors.verticalCenter: parent.verticalCenter
+        focusPolicy: Qt.NoFocus
+        display: AbstractButton.IconOnly
+        icon.width: 16
+        icon.height: 16
+        icon.color: Theme.texte
+    }
     id: root
     objectName: "paletteFrame"
     default property alias content: holder.data
@@ -222,19 +233,11 @@ Item {
                 }
             }
 
-            ToolButton {
+            BarButton {
                 id: optionsButton
                 objectName: "paletteOptions"
                 x: Theme.espace1
-                width: 24
-                height: 24
-                anchors.verticalCenter: parent.verticalCenter
-                focusPolicy: Qt.NoFocus
-                display: AbstractButton.IconOnly
                 icon.source: root.commands ? root.commands.iconUrl("palette.float") : ""
-                icon.width: 16
-                icon.height: 16
-                icon.color: Theme.texte
                 onClicked: optionsMenu.popup(optionsButton, 0, optionsButton.height)
                 CommandMenu {
                     id: optionsMenu
@@ -242,37 +245,23 @@ Item {
                     spec: root.optionsSpec
                 }
             }
-            ToolButton {
+            BarButton {
                 id: pinButton
                 objectName: "palettePinButton"
                 anchors.right: parent.right
                 anchors.rightMargin: Theme.espace1
-                width: 24
-                height: 24
-                anchors.verticalCenter: parent.verticalCenter
-                focusPolicy: Qt.NoFocus
-                display: AbstractButton.IconOnly
                 checkable: false
                 checked: root.pinned
                 icon.source: root.commands ? root.commands.iconUrl(root.idPin) : ""
-                icon.width: 16
-                icon.height: 16
                 icon.color: root.pinned ? Theme.surfaceActive : Theme.texte
                 onClicked: root.commands.trigger(root.idPin)
             }
-            ToolButton {
+            BarButton {
                 id: collapseButton
                 objectName: "paletteCollapseButton"
                 anchors.right: pinButton.left
                 anchors.rightMargin: Theme.espace1
-                width: 24
-                height: 24
-                anchors.verticalCenter: parent.verticalCenter
-                focusPolicy: Qt.NoFocus
-                display: AbstractButton.IconOnly
                 icon.source: root.commands ? root.commands.iconUrl(root.idCollapse) : ""
-                icon.width: 16
-                icon.height: 16
                 icon.color: root.collapsed ? Theme.surfaceActive : Theme.texte
                 onClicked: root.commands.trigger(root.idCollapse)
             }
