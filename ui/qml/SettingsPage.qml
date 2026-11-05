@@ -24,10 +24,9 @@ Item {
     // Incrémentée à chaque changement des magasins : un éditeur relit sa valeur après une écriture, un
     // changement de profil ou « Revenir à l'origine » (le profil rechargé sous le même identifiant).
     property int revision: 0
+    // Aucune taille implicite : le StackLayout de ProfileEditor.qml donne la place (comme CommandsPage.qml,
+    // L6-T26), sans faire déborder les autres pages.
     visible: false
-    // La place que lui donne l'éditeur de profils (ProfileEditor.qml).
-    implicitWidth: 520
-    implicitHeight: 460
 
     SettingsSchema {
         id: schema
