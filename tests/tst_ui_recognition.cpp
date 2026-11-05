@@ -942,7 +942,7 @@ private slots:
 
     // Relecture du lot 7 (tour 2, point 2) : une commande pendant un soulèvement (réponse asynchrone d'une
     // reconnaissance → execute) ne purge pas les traits soulevés, absents de la page le temps du geste : un
-    // trait déplacé au lasso pendant le vol garde son heure. Le dépôt purge ensuite ce que la commande a retiré.
+    // trait déplacé au lasso pendant le vol garde son heure ; le dépôt purge ce que la commande a retiré.
     void commandDuringALiftKeepsTheLiftedArrival()
     {
         Writing w;
@@ -963,9 +963,9 @@ private slots:
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1}); // le trait déplacé
     }
 
-    // Relecture du lot 7 (tour 2, point 1) : la purge des arrivées tient compte d'une page ajoutée ou déplacée
-    // avant la page affichée. Pendant la diffusion, currentIndex() vaut encore l'indice d'avant (settle) : lu
-    // tel quel, il désignait la page voisine et purgeait à tort les traits de la page affichée.
+    // Relecture du lot 7 (tour 2, point 1) : la purge des arrivées tient compte d'une page ajoutée ou
+    // déplacée avant la page affichée. Pendant la diffusion, currentIndex() vaut encore l'indice d'avant
+    // (settle) : lu tel quel, il désignait la page voisine et purgeait à tort les traits de la page affichée.
     void pageEditsBeforeTheShownPageKeepItsArrivals()
     {
         Writing w;
@@ -981,17 +981,17 @@ private slots:
         QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 2);
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
 
-        // Page affichée déplacée devant la page vide : elle repasse à l'indice 0.
-        w.controller->execute(std::make_unique<core::MovePagesCommand>(std::vector<std::size_t>{1}, 0));
+        // Page vide déplacée après la page affichée : celle-ci repasse à l'indice 0.
+        w.controller->execute(std::make_unique<core::MovePagesCommand>(std::vector<std::size_t>{0}, 2));
         QCOMPARE(w.controller->currentIndex(), 0);
         QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 2);
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
     }
 
     // Relecture du lot 7 (tour 2, point 1) : la dernière page, affichée, supprimée avec un trait en attente.
-    // Pendant la diffusion, currentIndex() désigne encore la page retirée : lu tel quel, Document::page sortait
-    // de ses bornes (assert en debug, lecture hors bornes en release). Le trait de la page retirée est oublié,
-    // celui de la page restante garde son heure.
+    // Pendant la diffusion, currentIndex() désigne encore la page retirée : lu tel quel, Document::page
+    // sortait de ses bornes (assert en debug, lecture hors bornes en release). Le trait de la page retirée
+    // est oublié, celui de la page restante garde son heure.
     void removingTheShownLastPageForgetsOnlyItsArrivals()
     {
         Writing w;
