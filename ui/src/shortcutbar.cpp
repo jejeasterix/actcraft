@@ -198,31 +198,11 @@ bool ShortcutBar::insert(const QString& buttonId)
     std::optional<formats::ClipboardPayload> payload = formats::decodeClipboard(encoded);
     if (!payload || payload->objects.empty())
         return false;
-    // Centre de l'ensemble : union des emprises des objets qui en ont une (un groupe n'en a pas : ses
-    // membres).
-    bool any = false;
-    double left = 0, top = 0, right = 0, bottom = 0;
-    for (const core::PageObject& object : payload->objects) {
-        if (!core::hasExtent(object))
-            continue;
-        const core::RectF box = core::boundsOnPage(object);
-        if (!any) {
-            left = box.x;
-            top = box.y;
-            right = box.x + box.width;
-            bottom = box.y + box.height;
-            any = true;
-        } else {
-            left = std::min(left, box.x);
-            top = std::min(top, box.y);
-            right = std::max(right, box.x + box.width);
-            bottom = std::max(bottom, box.y + box.height);
-        }
-    }
+    const std::optional<core::PointF> center = core::centerOfExtents(payload->objects);
     const std::size_t index = static_cast<std::size_t>(m_document->currentIndex());
     const core::Page& page = m_document->document().page(index);
-    const double dx = any ? page.width / 2 - (left + right) / 2 : 0;
-    const double dy = any ? page.height / 2 - (top + bottom) / 2 : 0;
+    const double dx = center ? page.width / 2 - center->x : 0;
+    const double dy = center ? page.height / 2 - center->y : 0;
     std::vector<core::PageObject> prepared = core::preparePaste(payload->objects, dx, dy);
     m_document->execute(
         std::make_unique<PasteWithResources>(index, std::move(prepared), std::move(*payload)));
