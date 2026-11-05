@@ -71,7 +71,6 @@ private:
     // Sélection = `selection`, page affichée = `shown` (M-J : remontrée seulement si elle change) ; les
     // signaux de la page affichée émis pendant l'opération sont ignorés (m_working).
     void apply(const QList<int>& selection, int shown);
-    bool allows(const char* command) const;
     // La sélection reste dans les bornes et contient la page affichée (changement par une autre voie).
     void sync();
     void setSelection(const QList<int>& selection);

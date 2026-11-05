@@ -151,13 +151,6 @@ bool DocumentTabs::canSwitch() const
     return m_document && !m_document->isBusy();
 }
 
-// Amendement 12 (L6-T31) : le modèle refuse lui-même, une garde de la barre seule laisserait passer tout
-// autre QML.
-bool DocumentTabs::allows(const char* command) const
-{
-    return !m_commands || m_commands->allowsWhileLocked(QString::fromLatin1(command));
-}
-
 void DocumentTabs::emitRow(int row)
 {
     if (row >= 0 && row < rowCount()) {
@@ -184,7 +177,7 @@ void DocumentTabs::switchTo(int index, std::unique_ptr<ParkedSession> leaving)
 
 void DocumentTabs::newTab()
 {
-    if (!canSwitch() || !allows("file.new")) {
+    if (!canSwitch() || !Commands::allowsWhileLocked(m_commands.data(), "file.new")) {
         return;
     }
     const QSizeF size = m_document->pageSize();
@@ -226,7 +219,8 @@ bool DocumentTabs::isModifiedAt(int index) const
 
 bool DocumentTabs::requestClose(int index)
 {
-    if (!m_document || index < 0 || index >= rowCount() || !allows("file.close")) {
+    if (!m_document || index < 0 || index >= rowCount() ||
+        !Commands::allowsWhileLocked(m_commands.data(), "file.close")) {
         return false;
     }
     const ParkedSession* parked = m_tabs[static_cast<std::size_t>(index)].parked.get();
@@ -241,7 +235,8 @@ bool DocumentTabs::requestClose(int index)
 // Un document vide reste toujours ouvert : le dernier onglet fermé est remplacé par un vide.
 void DocumentTabs::closeWithoutSaving(int index)
 {
-    if (!m_document || index < 0 || index >= rowCount() || !allows("file.close")) {
+    if (!m_document || index < 0 || index >= rowCount() ||
+        !Commands::allowsWhileLocked(m_commands.data(), "file.close")) {
         return;
     }
     if (index != m_current) {
@@ -283,7 +278,8 @@ void DocumentTabs::closeWithoutSaving(int index)
 // première page copiée.
 bool DocumentTabs::copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)
 {
-    if (!canSwitch() || tabIndex < 0 || tabIndex >= rowCount() || !allows("page.paste")) {
+    if (!canSwitch() || tabIndex < 0 || tabIndex >= rowCount() ||
+        !Commands::allowsWhileLocked(m_commands.data(), "page.paste")) {
         return false;
     }
     const core::Document& source = m_document->document();
