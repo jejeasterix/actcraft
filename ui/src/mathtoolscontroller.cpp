@@ -2,8 +2,6 @@
 
 #include "presentationdocument.h"
 
-#include <actcraft/core/pagecache.h>
-
 #include <QQuickItem>
 #include <QSettings>
 #include <QTimer>

@@ -83,7 +83,8 @@ public:
     QQuickWindow* mainWindow() const noexcept;
     void setMainWindow(QQuickWindow* window);
     bool toolsShown() const noexcept;
-    // Registre suivi : avant toute commande « mainWindow », makeRoomForMainWindowTool (Ma1, H-M8).
+    // Registre suivi : à Commands::mainWindowNeeded (émis quand le panneau s'ouvre), makeRoomForMainWindowTool
+    // (Ma1, H-M8).
     Commands* commands() const noexcept;
     void setCommands(Commands* commands);
 
@@ -144,9 +145,10 @@ private:
     QRect paletteRect() const; // emprise de la palette à l'écran (avec la barre du haut), nulle sans palette
     void setToolsShown(bool shown);
     void onMainVisibilityChanged();
-    // Ma1 (tour 2 de relecture du lot 7) : avant toute commande qui ouvre un panneau de la fenêtre principale
-    // (CommandInfo::opensInMainWindow : horloge, dés, calculatrice, message défilant, effets de page, éditeur
-    // d'équation), quel que soit son chemin. Pendant l'annotation, cette fenêtre n'est que la palette
+    // Ma1 (tour 2 de relecture du lot 7) : demandée par un outil de la fenêtre principale (horloge, dés,
+    // calculatrice, message défilant, effets de page, éditeur d'équation) seulement quand son panneau s'ouvre
+    // (Commands::requestMainWindow) : un outil qui n'ouvre rien (calculatrice du système) ne la demande pas.
+    // Pendant l'annotation, cette fenêtre n'est que la palette
     // (keepMainInFront) : l'annotation se ferme (son paperboard est gardé) et la fenêtre reprend son état
     // d'avant (releaseMainFront) ; réduite par la roue, elle est rendue (restore, M5). Le panneau s'ouvre
     // alors entier. ÉCART À L'ORIGINAL (hypothèse H-M8, à revoir à la porte de clôture) : l'original montre
