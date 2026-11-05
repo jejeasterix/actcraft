@@ -1,13 +1,12 @@
 {
   "format": "actcraft-scenario/1",
   "name": "images-lentes",
-  "description": "L7-T43 : capture, contrôle de pixel et contrôle de bord juste après le pointillé des séparations de zones (image « data: » chargée hors du fil) ; avec --retard-images, chacune attend la fin des chargements.",
+  "description": "L7-T43 : capture et contrôle de bord juste après le pointillé des séparations de zones (image « data: » chargée hors du fil) ; avec --retard-images, chacun attend la fin des chargements. Le contrôle de pixel est prouvé par images-lentes-pixel.",
   "steps": [
     {"waitReady": true},
     {"command": "page.zones", "argument": "2x0"},
     {"waitReady": true},
     {"capture": "zones-lentes"},
-    {"checkPixel": "page-blanche", "at": [100, 100], "color": "#FFFFFF", "tolerance": 24},
     {"checkEdge": "separation-verticale", "from": [508, 300], "to": [516, 336], "minIntermediate": 1, "minInk": 0}
   ]
 }

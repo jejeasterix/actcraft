@@ -441,7 +441,19 @@ add_test(NAME tst_captures_images_lentes
 set_tests_properties(tst_captures_images_lentes PROPERTIES
     TIMEOUT 300
     ENVIRONMENT "${_bench_env_offscreen}"
-    PASS_REGULAR_EXPRESSION "CAPTURE [^\n]*OK.*PIXEL page-blanche OK.*BORD separation-verticale OK.*SCENARIO OK"
+    PASS_REGULAR_EXPRESSION "CAPTURE [^\n]*OK.*BORD separation-verticale OK.*SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# L7-T43 : le contrôle de pixel attend lui aussi les chargements ; placé avant toute capture, sur un point du
+# pointillé (blanc tant que l'image n'est pas chargée) : sans l'attente, il lirait la page sans séparation.
+add_test(NAME tst_captures_images_lentes_pixel
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes-pixel.json
+        --rendu logiciel --taille 1280x800 --retard-images 3000
+        --sortie ${CMAKE_BINARY_DIR}/captures-images-lentes-pixel)
+set_tests_properties(tst_captures_images_lentes_pixel PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "PIXEL pointille-vertical OK.*SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 # ... et le plafond de 10 s tient : un chargement de 15 s fait échouer la capture, pas lire une image à moitié
 # chargée (échec attendu : PASS_REGULAR_EXPRESSION sur la raison, le code de sortie est ignoré).
