@@ -135,7 +135,9 @@ bool opensAsDocument(const QString& path)
 // Lu au lancement seulement, après la confirmation. Vide : rien à lire, CreateProcess décide.
 QString programFile(const QString& path)
 {
-    const QString name = suffixOf(path).isEmpty() ? path + QLatin1String(".exe") : path;
+    QString name = path;
+    if (suffixOf(name).isEmpty())
+        name += QLatin1String(".exe");
     if (suffixOf(name).compare(QLatin1String("exe"), Qt::CaseInsensitive) != 0)
         return {};
     if (QFileInfo(name).isFile())

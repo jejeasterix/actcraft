@@ -805,7 +805,7 @@ void TstUiLaunchers::windowsImageHeader()
     };
     QByteArray image(0x100, '\0');
     image.replace(0, 2, "MZ");
-    image[0x3C] = char(0x80);
+    image[0x3C] = '\x80'; // e_lfanew = 0x80
     image.replace(0x80, 4, QByteArray("PE\0\0", 4));
     const QString pe = write(QStringLiteral("image.exe"), image);
     QVERIFY(!pe.isEmpty());
