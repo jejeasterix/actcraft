@@ -83,8 +83,8 @@ public:
     QQuickWindow* mainWindow() const noexcept;
     void setMainWindow(QQuickWindow* window);
     bool toolsShown() const noexcept;
-    // Registre suivi : à Commands::mainWindowNeeded (émis quand le panneau s'ouvre), makeRoomForMainWindowTool
-    // (Ma1, H-M8).
+    // Registre suivi : à Commands::mainWindowNeeded (émis quand le panneau s'ouvre),
+    // makeRoomForMainWindowTool (Ma1, H-M8).
     Commands* commands() const noexcept;
     void setCommands(Commands* commands);
 
