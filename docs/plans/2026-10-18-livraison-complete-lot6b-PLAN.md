@@ -872,6 +872,8 @@ fichier. Programme d'essai `launcher_probe` : écrit le fichier dont le chemin e
 **Amendement 2 (L6-T29).** m8 : le message signé s'écrit
 `QJsonDocument(QJsonArray{path, QJsonArray::fromStringList(arguments), toolTip}).toJson(QJsonDocument::Compact)`.
 
+**Amendement 10 (L6-T29, 2026-11-05).** Relecture : le refus des scripts ne lisait que le suffixe, et `openUrl` laisse Windows exécuter tout type associé. (a) Un chemin qui contient `"`, un caractère de contrôle ou l'un de `<>|?*` est refusé (`kFailed`) avant tout autre contrôle. (b) Pour un document ouvert par `openUrl`, les types que Windows exécute sont refusés comme `.bat` et `.cmd`, casse ignorée, après retrait des points et espaces finaux : `.bat .cmd .com .scr .pif .vbs .vbe .js .jse .wsf .wsh .hta .ps1 .psm1 .msi .msp .msc .cpl .reg .lnk .url .inf .scf`. Un `.lnk` est refusé parce que la boîte ne peut pas montrer la commande qu'il porte. (c) Un document ne prend aucun paramètre : la boîte n'en montre pas, et une entrée de document qui en porte est refusée. (d) Un identifiant en double dans le profil : seule la première entrée est gardée par `entries()`, comme par `run`.
+
 <a id="tache-l6-t30"></a>
 ### Tâche L6-T30 — Raccourcis vers des programmes : barre et onglet ; scénario S20
 
