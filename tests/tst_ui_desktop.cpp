@@ -26,6 +26,10 @@
 #include <QVariantMap>
 #include <QtTest>
 
+#ifdef Q_OS_WIN
+#include "calculatorcontroller.h" // après les en-têtes Qt : Q_OS_WIN y est défini
+#endif
+
 #include <cstddef>
 #include <vector>
 
@@ -1293,6 +1297,42 @@ private slots:
         QVERIFY(panel);
         QVERIFY(!panel->isVisible());
     }
+
+#ifdef Q_OS_WIN
+    // Ma1, essai 3 : le vrai chemin de la calculatrice du système (Windows, réglage tools/calculator/mode à
+    // 1). Annotation ouverte, tool.calculator lance le programme par le lanceur injecté, ne montre aucun
+    // panneau et garde l'annotation et la palette seule. Mutant : requestMainWindow avant le `if
+    // (calculatorController.open())` de CalculatorPanel.qml (annotation fermée pour rien). Ne tourne pas sur
+    // le Mac : preuves-windows.yml.
+    void systemCalculatorDuringAnnotationKeepsTheAnnotation()
+    {
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        auto* calc =
+            main.window()->findChild<actcraft::ui::CalculatorController*>(QStringLiteral("calculator"));
+        QVERIFY(calc);
+        QStringList launched;
+        calc->setLauncher([&launched](const QString& program) {
+            launched.append(program);
+            return true;
+        });
+        calc->setMode(1);
+        const QRect palette = main.window()->geometry();
+        QVERIFY(main.run(QStringLiteral("tool.calculator")));
+        QCOMPARE(launched, QStringList{QStringLiteral("calc.exe")});
+        QVERIFY(desktop->isAnnotating());
+        QCOMPARE(main.window()->geometry(), palette);
+        QQuickItem* panel = main.item(QStringLiteral("calculatorRoot"));
+        QVERIFY(panel);
+        QVERIFY(!panel->isVisible());
+    }
+#endif
 
     // Ma1, essai 3 (mineur du tour 2) : equation.edit ouvre le même panneau (equationRoot) que
     // insert.equation, et se déclenche pendant l'annotation (trigger d'un scénario). Équation connue : le

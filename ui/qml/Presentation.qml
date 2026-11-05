@@ -3,7 +3,7 @@ import ActCraft.Ui
 
 // Racine des fonctions du lot 7 : une racine par fonction (contrôleur, surcouche ou panneau, gestionnaires de
 // commandes). Une surcouche qui prend l'entrée se déclare couverture : pageArea.view.addInputCover(<item>).
-// Seul le parent est posé ici : chaque racine décide de sa géométrie. Après L7-S8, ce fichier ne change plus.
+// Seul le parent est posé ici : chaque racine décide de sa géométrie. Une fonction du lot 7 ajoute sa racine ici, à la suite des autres.
 // Racine QtObject et non Item : la propriété `layer` figée par le socle est une propriété FINAL de Item. Les racines
 // sont déclarées dans `data` et posées par `parent:` ; jamais enfants visuels de cette racine.
 QtObject {

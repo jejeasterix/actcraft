@@ -74,7 +74,7 @@ class TransitionWatch : public QObject
 public:
     explicit TransitionWatch(QObject* transition) : m_transition(transition)
     {
-        m_valid = transition != nullptr &&
+        m_valid = transition != nullptr && transition->property("playing").isValid() &&
                   connect(transition, SIGNAL(phaseChanged()), this, SLOT(notePhase())) &&
                   connect(transition, SIGNAL(playedChanged()), this, SLOT(notePlayed()));
     }
@@ -748,6 +748,9 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         waitFor([&effects] { return !effects->playing(); }, kPageShownTimeoutMs);
         if (const QString error = pageEffectEndCheck(plan, effects->playing()); !error.isEmpty()) {
             invalidReasons << error;
+            // Effet jamais fini : terminé ici, il ne reste pas en surcouche pour le scénario suivant.
+            QMetaObject::invokeMethod(m_window->findChild<QObject*>(QStringLiteral("transition")),
+                                      "finished");
         }
     }
     if (!commands.empty()) {
@@ -1206,17 +1209,27 @@ BenchResult Runner::run(QQuickWindow* window)
             }
         }
         // L7-T38 (S23) : message défilant en boucle, vitesse maximale, démarré sans fenêtre d'édition.
-        QObject* ticker = nullptr;
-        if (plan.tickerRuns) {
-            ticker = m_window->findChild<QObject*>(QStringLiteral("ticker"));
-            if (ticker == nullptr || !ticker->setProperty("loop", true) ||
-                !ticker->setProperty("speed", 10) ||
-                !ticker->setProperty("text",
-                                     QStringLiteral("Banc de fluidité : message défilant en boucle")) ||
-                !QMetaObject::invokeMethod(ticker, "start") || !ticker->property("running").toBool()) {
-                result.invalidReasons << QStringLiteral("error: ticker not running before %1").arg(plan.name);
-                break;
+        // À toute sortie de ce passage (break compris, démarrage refusé aussi) : arrêté, puis boucle, vitesse
+        // et texte d'avant rétablis ; TickerController::stop() ne remet aucun des trois.
+        QObject* const ticker =
+            plan.tickerRuns ? m_window->findChild<QObject*>(QStringLiteral("ticker")) : nullptr;
+        const QVariant loopBefore = ticker ? ticker->property("loop") : QVariant();
+        const QVariant speedBefore = ticker ? ticker->property("speed") : QVariant();
+        const QVariant textBefore = ticker ? ticker->property("text") : QVariant();
+        const auto restoreTicker = qScopeGuard([ticker, loopBefore, speedBefore, textBefore] {
+            if (ticker != nullptr) {
+                QMetaObject::invokeMethod(ticker, "stop");
+                ticker->setProperty("loop", loopBefore);
+                ticker->setProperty("speed", speedBefore);
+                ticker->setProperty("text", textBefore);
             }
+        });
+        if (plan.tickerRuns &&
+            (ticker == nullptr || !ticker->setProperty("loop", true) || !ticker->setProperty("speed", 10) ||
+             !ticker->setProperty("text", QStringLiteral("Banc de fluidité : message défilant en boucle")) ||
+             !QMetaObject::invokeMethod(ticker, "start") || !ticker->property("running").toBool())) {
+            result.invalidReasons << QStringLiteral("error: ticker not running before %1").arg(plan.name);
+            break;
         }
         // L7-T38 : effet et durée d'avant le scénario, rétablis à toute sortie de ce passage (break compris,
         // mesure interrompue) ; teardownCommands remet aussi « none ».
@@ -1331,7 +1344,6 @@ BenchResult Runner::run(QQuickWindow* window)
             if (motion == nullptr || !motion->property("running").toBool()) {
                 result.invalidReasons << QStringLiteral("error: ticker not moving in %1").arg(plan.name);
             }
-            QMetaObject::invokeMethod(ticker, "stop");
         }
         for (const auto& [command, argument] : plan.teardownCommands) { // L4-T29 : panneau refermé
             if (!runWindowCommand(m_window, command, argument)) {

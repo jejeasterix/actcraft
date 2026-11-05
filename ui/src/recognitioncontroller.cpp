@@ -11,6 +11,7 @@
 #include <cmath>
 #include <memory>
 #include <optional>
+#include <set>
 #include <utility>
 #include <variant>
 
@@ -185,6 +186,7 @@ void RecognitionController::setDocumentController(DocumentController* controller
         return;
     }
     disconnect(m_replacedConnection);
+    disconnect(m_liftingConnection);
     if (m_document && m_observer > 0) {
         m_document->removeChangeObserver(m_observer);
     }
@@ -197,6 +199,10 @@ void RecognitionController::setDocumentController(DocumentController* controller
         // remplit.
         m_replacedConnection = connect(controller, &DocumentController::documentReplaced, this,
                                        &RecognitionController::resetSession);
+        // Fin d'un soulèvement : un trait gommé en entier ne laisse aucun changement au dépôt
+        // (core::changesAfterLift ne rend pas le retrait d'un objet soulevé), donc rien n'est diffusé.
+        m_liftingConnection = connect(controller, &DocumentController::liftingChanged, this,
+                                      &RecognitionController::forgetArrivalsOffTheDocument);
         m_observer = controller->addChangeObserver(
             [this](const core::Changes& applied, DocumentController::ChangeOrigin origin) {
                 onChanges(applied, origin);
@@ -510,6 +516,27 @@ void RecognitionController::forgetPending(const std::vector<core::ObjectId>& con
     }
 }
 
+// Par identifiant, sur le document entier : pendant la diffusion des changements, currentIndex() vaut encore
+// l'indice d'avant (DocumentController::settle), qui désigne une autre page, ou aucune, après un ajout, un
+// déplacement ou un retrait de page. Pendant un soulèvement, les traits soulevés sont hors du document le
+// temps du geste : rien n'est purgé, le dépôt (Drop, puis liftingChanged) le fera.
+void RecognitionController::forgetArrivalsOffTheDocument()
+{
+    if (m_arrivedAt.empty() || !m_document || m_document->isLifting()) {
+        return;
+    }
+    const core::Document& document = m_document->document();
+    std::set<core::ObjectId> present;
+    for (std::size_t i = 0; i < document.pageCount() && present.size() < m_arrivedAt.size(); ++i) {
+        for (const core::PageObject& object : document.page(i).objects) {
+            if (m_arrivedAt.contains(object.common.id)) {
+                present.insert(object.common.id);
+            }
+        }
+    }
+    std::erase_if(m_arrivedAt, [&present](const auto& arrival) { return !present.contains(arrival.first); });
+}
+
 void RecognitionController::onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin)
 {
     // Un Annuler (ou Rétablir) pendant le délai abandonne les traits en attente : une conversion poussée
@@ -518,6 +545,12 @@ void RecognitionController::onChanges(const core::Changes& applied, DocumentCont
         origin == DocumentController::ChangeOrigin::Redo) {
         resetSession();
         return;
+    }
+    // Un trait retiré du document (gomme au dépôt, commande) sort de la table des arrivées ; pas pendant un
+    // soulèvement (voir forgetArrivalsOffTheDocument).
+    if (origin == DocumentController::ChangeOrigin::Command ||
+        origin == DocumentController::ChangeOrigin::Drop) {
+        forgetArrivalsOffTheDocument();
     }
     if (origin != DocumentController::ChangeOrigin::Stroke || (!m_shapeMode && !m_handwritingMode) ||
         !m_document) {

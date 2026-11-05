@@ -3,8 +3,6 @@
 #include <actcraft/features/spotlight.h>
 
 #include <algorithm>
-#include <cmath>
-#include <iterator>
 
 namespace actcraft::features {
 

@@ -29,13 +29,11 @@ DocumentController* controllerOf(const MainWindow& main)
                          : nullptr;
 }
 
-#ifdef Q_OS_WIN // seul appel : le lancement de la calculatrice du système, sous Windows
 CalculatorController* calculatorOf(const MainWindow& main)
 {
     return main.window() ? main.window()->findChild<CalculatorController*>(QStringLiteral("calculator"))
                          : nullptr;
 }
-#endif
 
 const core::Page& shown(const DocumentController& controller)
 {
@@ -326,6 +324,30 @@ private slots:
         controller->undo();
         QCOMPARE(shown(*controller).objects.size(), before);
         QVERIFY(!controller->canUndo()); // une seule étape
+    }
+
+    // Sans document où écrire, la poignée du résultat est inactive (garde `enabled: canWrite`) : pas de
+    // glisser, comme pour le bouton. Document rendu, elle redevient active. Mutant : garde retirée, poignée
+    // toujours active.
+    void resultDragIsDisabledWithoutDocument()
+    {
+        MainWindow main;
+        CalculatorController* calc = calculatorOf(main);
+        DocumentController* document = controllerOf(main);
+        QVERIFY(calc != nullptr && document != nullptr);
+        QVERIFY(openCalculator(main) != nullptr);
+        QObject* drag =
+            main.window()->contentItem()->findChild<QObject*>(QStringLiteral("calculatorResultDrag"));
+        QVERIFY(drag != nullptr);
+        QVERIFY(calc->canWrite());
+        QCOMPARE(drag->property("enabled").toBool(), true);
+
+        calc->setDocumentController(nullptr);
+        QVERIFY(!calc->canWrite());
+        QCOMPARE(drag->property("enabled").toBool(), false);
+
+        calc->setDocumentController(document);
+        QCOMPARE(drag->property("enabled").toBool(), true);
     }
 
     void calculatorBlocksTheStylus_data() { presentationharness::addPointerRows(); }

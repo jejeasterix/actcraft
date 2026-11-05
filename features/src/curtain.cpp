@@ -3,8 +3,6 @@
 #include <actcraft/features/curtain.h>
 
 #include <algorithm>
-#include <cmath>
-#include <iterator>
 
 namespace actcraft::features {
 

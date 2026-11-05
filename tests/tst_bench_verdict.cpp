@@ -211,6 +211,16 @@ private:
     QObject* m_motion = nullptr;
 };
 
+// L7-T43 : « transition » sans la propriété playing, avec les deux signaux que le banc écoute.
+class PlayinglessTransition : public QObject
+{
+    Q_OBJECT
+
+signals:
+    void phaseChanged();
+    void playedChanged();
+};
+
 class TstBenchVerdict : public QObject
 {
     Q_OBJECT
@@ -308,6 +318,66 @@ private slots:
             qPrintable(reasons));
         QVERIFY2(r.invalidReasons.contains(QStringLiteral("error: ticker not moving in message-defilant")),
                  qPrintable(reasons));
+    }
+
+    // L7-T43 : le message défilant démarré par le banc est arrêté même quand le scénario sort avant la
+    // mesure (réglage refusé), et boucle, vitesse et texte d'avant sont rétablis : ceux du banc ne restent
+    // pas pour le scénario suivant (TickerController::stop() ne les remet pas).
+    void tickerIsStoppedWhenTheScenarioBreaks()
+    {
+        ScenarioPlan plan = tickerScenario(ScenarioSet::Court);
+        plan.setupCommands.emplace_back(QStringLiteral("banc.commande-inconnue"), QVariant());
+        BenchOptions options;
+        options.scenarioSet = ScenarioSet::Court;
+        options.plans = {plan};
+        Runner runner(options); // avant le moteur QML : survit à la fenêtre (runner.h)
+        QQmlApplicationEngine engine;
+        StartupOptions startup;
+        startup.generatedPage = true;
+        QQuickWindow* const window = loadMainWindow(engine, startup);
+        QVERIFY(window);
+        QObject* const ticker = window->findChild<QObject*>(QStringLiteral("ticker"));
+        QVERIFY(ticker);
+        // Réglages de l'utilisateur, distincts de ceux du banc (boucle, vitesse 10, texte du banc).
+        QVERIFY(ticker->setProperty("loop", false));
+        QVERIFY(ticker->setProperty("speed", 3));
+        QVERIFY(ticker->setProperty("text", QStringLiteral("Message de la classe")));
+        const BenchResult r = runner.run(window);
+        const QString reasons = r.invalidReasons.join(QStringLiteral(" ; "));
+        QVERIFY2(r.invalidReasons.contains(
+                     QStringLiteral("error: command banc.commande-inconnue refused before message-defilant")),
+                 qPrintable(reasons));
+        QVERIFY2(!ticker->property("running").toBool(),
+                 "le message défile encore après la sortie du scénario");
+        QCOMPARE(ticker->property("loop").toBool(), false);
+        QCOMPARE(ticker->property("speed").toInt(), 3);
+        QCOMPARE(ticker->property("text").toString(), QStringLiteral("Message de la classe"));
+    }
+
+    // L7-T43 : une « transition » sans propriété playing (lue par son nom) rend la mesure invalide, comme une
+    // transition absente ; la lecture de playing() ne la tient pas pour « au repos ».
+    void transitionWithoutPlayingIsInvalid()
+    {
+        ScenarioPlan plan = effectsScenario(ScenarioSet::Court);
+        plan.inputs.erase(plan.inputs.begin() + 2, plan.inputs.end());
+        BenchOptions options;
+        options.scenarioSet = ScenarioSet::Court;
+        options.plans = {plan};
+        Runner runner(options); // avant le moteur QML : survit à la fenêtre (runner.h)
+        QQmlApplicationEngine engine;
+        StartupOptions startup;
+        startup.generatedPage = true;
+        QQuickWindow* const window = loadMainWindow(engine, startup);
+        QVERIFY(window);
+        QObject* const real = window->findChild<QObject*>(QStringLiteral("transition"));
+        QVERIFY(real);
+        real->setObjectName(QStringLiteral("transitionReelle"));
+        PlayinglessTransition fake;
+        fake.setObjectName(QStringLiteral("transition"));
+        fake.setParent(window);
+        const BenchResult r = runner.run(window);
+        QVERIFY2(r.invalidReasons.contains(QStringLiteral("error: page transition missing in effets-page")),
+                 qPrintable(r.invalidReasons.join(QStringLiteral(" ; "))));
     }
 
     void goodRunIsWithinBudget()

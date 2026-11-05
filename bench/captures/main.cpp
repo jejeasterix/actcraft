@@ -156,6 +156,9 @@ int main(int argc, char* argv[])
 
     std::unique_ptr<SlowNetworkFactory> slowImages; // avant le moteur, donc détruit après lui
     const QString delay = valueAfter(args, QStringLiteral("--retard-images"));
+    if (args.contains(QStringLiteral("--retard-images")) && delay.isEmpty()) {
+        return invalid(QStringLiteral("--retard-images attend un délai de 1 à 60000 ms"));
+    }
     if (!delay.isEmpty()) {
         bool okDelay = false;
         const int delayMs = delay.toInt(&okDelay);
