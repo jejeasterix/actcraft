@@ -143,6 +143,7 @@ Item {
                 anchors.right: hideMark.visible ? hideMark.left : parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 text: model.name
+                textFormat: Text.PlainText // nom venu du fichier ouvert : aucune balise interprétée, rien de chargé
                 color: row.textColor
                 font.pixelSize: Theme.taillePolice
                 font.bold: row.isLayer

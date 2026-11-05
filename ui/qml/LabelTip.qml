@@ -114,6 +114,7 @@ Item {
             objectName: "labelTipText"
             anchors.centerIn: parent
             text: tips.text
+            textFormat: Text.PlainText // légende du fichier ouvert : aucune balise interprétée, rien de chargé
             color: tips.color
             font.pointSize: tips.pointSize
             font.family: tips.fontFamily.length > 0 ? tips.fontFamily : Qt.application.font.family
