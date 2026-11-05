@@ -15,22 +15,34 @@ Item {
     property PageView view: null
     property var profile: null
     property var preferences: null
-    // Sections du poste : `platforms` vide vaut toutes les plateformes.
+    // Sections du poste (`platforms` vide : toutes) qui ont un réglage ; le réseau est édité par NetworkPage.
     readonly property var shownSections: schema.sections.filter(function (section) {
-        return section.platforms.length === 0 || section.platforms.indexOf(Qt.platform.os) >= 0
+        const onThisPlatform = section.platforms.length === 0 || section.platforms.indexOf(Qt.platform.os) >= 0
+        return onThisPlatform && (section.id === "network" || schema.entries(section.id).length > 0)
     })
     property string currentSection: shownSections.length > 0 ? shownSections[0].id : ""
-    // Les éditeurs sont recréés quand le profil courant change, pas à chaque écriture d'un réglage.
-    readonly property string profileId: root.profile ? root.profile.currentId : ""
+    // Incrémentée à chaque changement des magasins : un éditeur relit sa valeur après une écriture, un
+    // changement de profil ou « Revenir à l'origine » (le profil rechargé sous le même identifiant).
+    property int revision: 0
     visible: false
-    implicitWidth: 760
-    implicitHeight: 480
+    // La place que lui donne l'éditeur de profils (ProfileEditor.qml).
+    implicitWidth: 520
+    implicitHeight: 460
 
     SettingsSchema {
         id: schema
         objectName: "settingsSchema"
         profile: root.profile
         preferences: root.preferences
+    }
+
+    Connections {
+        target: root.profile
+        function onProfileChanged() { root.revision++ }
+    }
+    Connections {
+        target: root.preferences
+        function onChanged() { root.revision++ }
     }
 
     Component.onCompleted: {
@@ -46,7 +58,7 @@ Item {
 
         ListView {
             objectName: "settingsSections"
-            Layout.preferredWidth: 200
+            Layout.preferredWidth: Math.min(200, root.width / 3)
             Layout.fillHeight: true
             clip: true
             model: root.shownSections
@@ -91,8 +103,7 @@ Item {
                         // Chaque réglage porte sa section : un délégué ne relit jamais la section suivante.
                         model: {
                             const section = root.currentSection
-                            const profileId = root.profileId // dépendance : recréés au changement de profil
-                            if (section === "" || profileId === undefined)
+                            if (section === "")
                                 return []
                             return schema.entries(section).map(function (entry) {
                                 return Object.assign({ section: section }, entry)
@@ -101,7 +112,10 @@ Item {
                         delegate: RowLayout {
                             id: row
                             required property var modelData
-                            readonly property var current: schema.value(row.modelData.section, row.modelData.key)
+                            readonly property var current: {
+                                const revision = root.revision // dépendance : relu à chaque changement
+                                return schema.value(row.modelData.section, row.modelData.key)
+                            }
                             Layout.fillWidth: true
                             spacing: 12
 
@@ -111,6 +125,8 @@ Item {
                                 Layout.fillWidth: true
                             }
                             Loader {
+                                // Un champ de texte prend au plus la moitié de la ligne : le libellé reste lisible.
+                                Layout.preferredWidth: row.modelData.type === "text" ? Math.min(260, entriesView.availableWidth / 2) : -1
                                 sourceComponent: row.modelData.type === "bool" ? boolEditor
                                                  : row.modelData.type === "int" ? intEditor
                                                  : row.modelData.type === "choice" ? choiceEditor : textEditor
@@ -138,7 +154,7 @@ Item {
                                     id: choiceEditor
                                     ComboBox {
                                         objectName: "setting-" + row.modelData.key
-                                        model: row.modelData.choices
+                                        model: row.modelData.choiceLabels
                                         currentIndex: row.modelData.choices.indexOf(row.current)
                                         onActivated: function (index) {
                                             schema.setValue(row.modelData.section, row.modelData.key,
@@ -150,20 +166,16 @@ Item {
                                     id: textEditor
                                     TextField {
                                         objectName: "setting-" + row.modelData.key
-                                        implicitWidth: 260
                                         text: row.current
-                                        onEditingFinished: schema.setValue(row.modelData.section, row.modelData.key, text)
+                                        // Un simple passage du focus n'écrit rien (aucune clé du poste créée vide).
+                                        onEditingFinished: {
+                                            if (text !== row.current)
+                                                schema.setValue(row.modelData.section, row.modelData.key, text)
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-
-                    Label {
-                        visible: entryRepeater.count === 0
-                        text: qsTr("Cette section n'a pas encore de réglage.")
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
                     }
                 }
             }

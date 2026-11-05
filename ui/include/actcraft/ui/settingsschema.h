@@ -38,7 +38,8 @@ public:
     void setPreferences(Preferences* preferences);
 
     QVariantList sections() const;
-    // [{key, label, type, defaultValue, min, max, choices, store}] ; type : bool, int, text, choice
+    // [{key, label, type, defaultValue, min, max, choices, choiceLabels, store}] ; type : bool, int, text,
+    // choice ; `choices` : valeurs écrites, `choiceLabels` : libellés montrés, dans le même ordre.
     Q_INVOKABLE QVariantList entries(const QString& section) const;
     // Valeur du magasin du réglage, son défaut s'il n'y en a pas (ou si le magasin manque).
     Q_INVOKABLE QVariant value(const QString& section, const QString& key) const;
@@ -48,7 +49,6 @@ public:
 signals:
     void profileChanged();
     void preferencesChanged();
-    void settingChanged(const QString& section, const QString& key);
 
 private:
     QPointer<ProfileController> m_profile;
