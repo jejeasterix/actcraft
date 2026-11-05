@@ -110,6 +110,11 @@ int main(int argc, char* argv[])
     QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
+    // Racine « Mes ressources » d'essai (mode test : jamais le dossier réel du poste) vidée à chaque
+    // lancement, pour que le scénario `ressources` se rejoue sans nettoyage à la main.
+    QDir(QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
+             .filePath(QStringLiteral("ActCraft/Ressources")))
+        .removeRecursively();
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
