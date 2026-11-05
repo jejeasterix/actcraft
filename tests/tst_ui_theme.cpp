@@ -33,10 +33,11 @@ const char* const kIcons[] = {
     // Lot 4 (L4-T19) : les cinq icônes des navigateurs.
     "nav-ressources", "nav-objets", "nav-notes", "nav-proprietes", "nav-actions",
     // Lot 6 (L6-T1) : 26 icônes à nous.
-    "palette-gauche", "palette-droite", "palette-haut", "palette-bas", "palette-flottante", "palette-reduire", "palette-reduire-tout",
-    "palette-epingler", "couleurs-plus", "pipette", "nav-objets-masque", "nav-objets-verrou", "notes-page", "profil",
-    "profils", "conception", "accueil", "recents", "ressources-miennes", "ressources-partagees", "ressources-autre",
-    "tampon", "classe-verrou", "orthographe", "aide-sommaire", "programme"};
+    "palette-gauche", "palette-droite", "palette-haut", "palette-bas", "palette-flottante", "palette-reduire",
+    "palette-reduire-tout", "palette-epingler", "couleurs-plus", "pipette", "nav-objets-masque",
+    "nav-objets-verrou", "notes-page", "profil", "profils", "conception", "accueil", "recents",
+    "ressources-miennes", "ressources-partagees", "ressources-autre", "tampon", "classe-verrou",
+    "orthographe", "aide-sommaire", "programme"};
 
 // Luminance relative de WCAG 2.1 (composantes sRGB linéarisées).
 double relativeLuminance(const QColor& color)
