@@ -20,6 +20,16 @@ using ResourceObserver = std::function<void(const QUrl&, const QVariant&)>;
 // en forme gardés.
 QString safeTextHtml(const QString& html, const ResourceObserver& observer);
 
+// Images `data:` : gardées par la forme à deux arguments (document qui ne décode aucune image), ou retirées.
+// L'éditeur QML des notes les retire : sa TextArea riche les décode et choisit le décodeur sur le contenu,
+// pas sur le type déclaré ; un SVG y lirait les images qu'il référence.
+enum class DataImages
+{
+    Keep,
+    Drop
+};
+QString safeTextHtml(const QString& html, const ResourceObserver& observer, DataImages dataImages);
+
 // Document isolé (marge nulle) : toute ressource reçoit une valeur vide ; images ni lues ni dessinées.
 std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer);
 

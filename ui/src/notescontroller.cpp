@@ -24,10 +24,11 @@ bool visibleText(const QString& html)
 }
 
 // Texte donné à l'éditeur QML : sa TextArea riche chargerait elle-même feuilles et images. Il reçoit le HTML
-// assaini (texte et mise en forme gardés) ; la page garde les notes reçues tant que personne n'écrit.
+// assaini (texte et mise en forme gardés), sans aucune image, data: raster comprises (essai 2 : la TextArea
+// décode les data: sur leur contenu) ; la page garde les notes reçues tant que personne n'écrit.
 QString shownHtml(const QString& notes)
 {
-    return notes.isEmpty() ? QString() : safeTextHtml(notes, {});
+    return notes.isEmpty() ? QString() : safeTextHtml(notes, {}, DataImages::Drop);
 }
 
 } // namespace

@@ -225,6 +225,12 @@ std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer)
 // retirées.
 QString safeTextHtml(const QString& html, const ResourceObserver& observer)
 {
+    return safeTextHtml(html, observer, DataImages::Keep);
+}
+
+// Même assainissement ; `Drop` retire aussi les images `data:` (éditeur des notes, ui/src/isolatedtext.h).
+QString safeTextHtml(const QString& html, const ResourceObserver& observer, DataImages dataImages)
+{
     AnalysisDocument document(observer);
     document.setHtml(html);
     cleanFrames(document.rootFrame());
@@ -255,7 +261,8 @@ QString safeTextHtml(const QString& html, const ResourceObserver& observer)
                 continue;
             }
             QTextCharFormat format = fragment.charFormat();
-            if (format.isImageFormat() && !isDataUrl(format.toImageFormat().name())) {
+            if (format.isImageFormat() &&
+                (dataImages == DataImages::Drop || !isDataUrl(format.toImageFormat().name()))) {
                 images.push_back({fragment.position(), fragment.length()});
                 continue;
             }
