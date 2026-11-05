@@ -6,6 +6,7 @@
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -20,6 +21,7 @@
 #include <QUuid>
 #include <QtTest>
 
+#include <cstdio>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -650,13 +652,22 @@ void TstUiLaunchers::changedSinceRequestRunsNothing()
 // alors que le disque dirait « document », et n'est refusé qu'au lancement.
 void TstUiLaunchers::argumentsNeedANamedProgram()
 {
+    const auto diag = [](const char* step) {
+        std::fprintf(stderr, "DIAG test %s %lld\n", step,
+                     static_cast<long long>(QDateTime::currentMSecsSinceEpoch()));
+        std::fflush(stderr);
+    };
+    diag("debut");
     const QStringList arguments{QStringLiteral("/p")};
     putForeign(QStringLiteral("unc"), QStringLiteral(R"(\\hote\partage\x.txt)"), arguments, QString());
     putForeign(QStringLiteral("absent"), m_dir->filePath(QStringLiteral("absent.txt")), arguments, QString());
+    diag("avant unc");
     expectRefused(QStringLiteral("unc"));
+    diag("apres unc");
     if (QTest::currentTestFailed())
         return;
     expectRefused(QStringLiteral("absent"));
+    diag("apres absent");
     if (QTest::currentTestFailed())
         return;
 
@@ -665,7 +676,9 @@ void TstUiLaunchers::argumentsNeedANamedProgram()
     QCOMPARE(m_launchers->run(QStringLiteral("sans-suffixe")), Launchers::kConfirmationNeeded);
     QCOMPARE(asked.count(), 1);
     QSignalSpy failed(m_launchers.get(), &Launchers::failed);
+    diag("avant confirm");
     QVERIFY(!m_launchers->confirm(QStringLiteral("sans-suffixe"), true));
+    diag("apres confirm");
     QCOMPARE(failed.count(), 1);
 }
 
