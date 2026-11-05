@@ -3,12 +3,20 @@
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/labeltips.h>
 
+#include <QFont>
+#include <QFontMetricsF>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
 #include <QSignalSpy>
 #include <QTest>
+#include <QtQml/qqmlextensionplugin.h>
 
 #include <memory>
 #include <string>
 #include <utility>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
 
@@ -122,6 +130,35 @@ private slots:
         QVERIFY(f.tips.isVisible());
         f.document.undo();
         QVERIFY(!f.tips.isVisible());
+    }
+
+    // Bloquant (relecture du lot 6) : la légende vient du fichier ouvert ; la bulle (LabelTip.qml) la montre
+    // en texte brut. En AutoText, « <b>x</b> » serait du texte stylé, large d'un seul « x » (et une balise
+    // <img> chargerait son image au survol).
+    void tipShowsTheLabelAsPlainText()
+    {
+        Fixture f;
+        const QString label = QStringLiteral("<b>x</b>");
+        f.add(shape(label.toStdString()));
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.loadFromModule("ActCraft.Ui", "LabelTip");
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> tip(component.createWithInitialProperties(
+            {{QStringLiteral("documentController"), QVariant::fromValue(&f.document)}}));
+        QVERIFY(tip);
+        auto* tips = tip->findChild<ui::LabelTips*>();
+        QVERIFY(tips);
+        tips->hoverAt(QPointF(200, 150));
+        QVERIFY(tips->isVisible());
+        auto* text = tip->findChild<QQuickItem*>(QStringLiteral("labelTipText"));
+        QVERIFY(text);
+        QCOMPARE(text->property("text").toString(), label);
+        const QFontMetricsF metrics(text->property("font").value<QFont>());
+        QVERIFY2(text->implicitWidth() >= 0.9 * metrics.horizontalAdvance(label),
+                 qPrintable(QStringLiteral("largeur %1, attendu %2")
+                                .arg(text->implicitWidth())
+                                .arg(metrics.horizontalAdvance(label))));
     }
 };
 

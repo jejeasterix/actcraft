@@ -1,3 +1,5 @@
+#include "isolatedtext.h"
+
 #include <actcraft/ui/spelling.h>
 
 #include <QAbstractTextDocumentLayout>
@@ -325,8 +327,8 @@ QRectF Spelling::highlightOf(const core::SpellHit& hit) const
         if (text == nullptr) {
             return {};
         }
-        QTextDocument layout;
-        layout.setDocumentMargin(0);
+        const std::unique_ptr<QTextDocument> isolated = isolatedTextDocument({}); // Bloquant 5, marge nulle
+        QTextDocument& layout = *isolated;
         layout.setHtml(QString::fromStdString(text->html));
         layout.setTextWidth(text->bounds.width);
         layout.documentLayout()->documentSize();

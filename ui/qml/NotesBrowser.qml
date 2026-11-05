@@ -43,6 +43,7 @@ Item {
             id: editor
             objectName: "notesEditor"
             property bool loading: false
+            // Notes de la page reçues assainies (NotesController, Bloquant 5) : sans ressource externe à charger.
             function load() {
                 if (editor.text === appNotes.html)
                     return

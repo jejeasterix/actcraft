@@ -43,6 +43,7 @@ Item {
                         anchors.left: parent.left
                         anchors.leftMargin: 8
                         text: row.modelData.label
+                        textFormat: Text.PlainText // libellé d'un profil importé : texte brut
                         font.bold: row.modelData.id === root.profile.currentId
                     }
                     HoverHandler { id: hover }

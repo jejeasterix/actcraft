@@ -14,6 +14,8 @@ namespace actcraft::ui {
 // Notes de la page affichée (F-830) : texte riche (HTML) lu dans la page courante et écrit par
 // core::SetPageNotesCommand. La frappe continue se fusionne en une étape (SetPageNotesCommand::kMergeWindow).
 // Écrire sans `commands`, sous le verrou des commandes ou pendant le rechargement d'une page ne change rien.
+// `html` est le texte de l'éditeur : les notes lues dans la page y arrivent assainies (Bloquant 5, aucune
+// ressource externe), la page les garde telles quelles tant que personne n'écrit.
 class NotesController : public QObject
 {
     Q_OBJECT
@@ -57,7 +59,8 @@ private:
 
     QPointer<DocumentController> m_document;
     QPointer<Commands> m_commands;
-    QString m_html;
+    QString m_html;  // texte de l'éditeur (notes de la page assainies, ou frappe)
+    QString m_notes; // notes de la page, telles que lues ou écrites
     bool m_hasNotes = false;
     bool m_editable = false;
     bool m_contactActive = false;
