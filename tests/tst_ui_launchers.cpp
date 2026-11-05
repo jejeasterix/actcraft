@@ -93,6 +93,7 @@ private slots:
     void formatCharactersRefused();
     void bareNameOnlyOffWindows();
     void colonAndSeparatorRefused();
+    void fakeExeRefusedBeforeStart();
 
 private:
     QString witness(const QString& name = QStringLiteral("lance.txt")) const
@@ -754,6 +755,41 @@ void TstUiLaunchers::colonAndSeparatorRefused()
             return;
         expectRefused(QStringLiteral("piege-%1").arg(i));
     }
+}
+
+// L6-C17 : sous Windows, CreateProcess sur un .exe qui n'est pas une image de programme peut ouvrir une boîte
+// système et ne rend la main qu'une fois qu'on y répond (300 s sous ctest, interface gelée). Exécutable sur le
+// disque, un tel .exe est refusé au lancement, avant tout démarrage : le message le dit, pas « Impossible de
+// lancer ». Hors Windows, un en-tête MZ suivi de « PE\0\0 » passe ce contrôle et seul le démarrage échoue.
+void TstUiLaunchers::fakeExeRefusedBeforeStart()
+{
+    const QString fake = document(QStringLiteral("image.exe"));
+    QVERIFY(QFile::setPermissions(fake, QFile::permissions(fake) | QFileDevice::ExeOwner));
+    QVERIFY(QFileInfo(fake).isExecutable());
+    putForeign(QStringLiteral("faux"), fake, {QStringLiteral("/p")}, QString());
+    QCOMPARE(m_launchers->run(QStringLiteral("faux")), Launchers::kConfirmationNeeded);
+    QSignalSpy failed(m_launchers.get(), &Launchers::failed);
+    QVERIFY(!m_launchers->confirm(QStringLiteral("faux"), true));
+    QCOMPARE(failed.count(), 1);
+    QCOMPARE(failed.at(0).at(0).toString(),
+             Launchers::tr("Ce .exe n'est pas un programme Windows : %1").arg(fake));
+#ifndef Q_OS_WIN
+    QByteArray header(0x80, '\0');
+    header.replace(0, 2, "MZ");
+    header[0x3C] = 0x40;
+    header.replace(0x40, 4, QByteArray("PE\0\0", 4));
+    const QString image = m_dir->filePath(QStringLiteral("entete.exe"));
+    QFile file(image);
+    QVERIFY(file.open(QIODevice::WriteOnly) && file.write(header) == header.size());
+    file.close();
+    QVERIFY(QFile::setPermissions(image, QFile::permissions(image) | QFileDevice::ExeOwner));
+    putForeign(QStringLiteral("entete"), image, {QStringLiteral("/p")}, QString());
+    QCOMPARE(m_launchers->run(QStringLiteral("entete")), Launchers::kConfirmationNeeded);
+    failed.clear();
+    QVERIFY(!m_launchers->confirm(QStringLiteral("entete"), true));
+    QCOMPARE(failed.count(), 1);
+    QCOMPARE(failed.at(0).at(0).toString(), Launchers::tr("Impossible de lancer %1.").arg(image));
+#endif
 }
 
 QTEST_MAIN(TstUiLaunchers)
