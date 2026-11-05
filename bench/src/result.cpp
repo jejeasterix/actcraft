@@ -270,6 +270,11 @@ bool hasRunError(const BenchResult& result)
                        [](const QString& reason) { return reason.startsWith(QLatin1String("error:")); });
 }
 
+QString sequenceMismatchReason(const QString& plan)
+{
+    return QStringLiteral("sequence-mismatch in %1").arg(plan);
+}
+
 bool contentCheckOk(const BenchResult& result)
 {
     if (result.contentChecks.empty() || result.pageFlash > 0) {

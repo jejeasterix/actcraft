@@ -796,7 +796,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
 
     const auto received = m_recorder->received();
     if (!sequenceMatchesPlan(inputs, received)) {
-        invalidReasons << QStringLiteral("sequence-mismatch in %1").arg(plan.name);
+        invalidReasons << sequenceMismatchReason(plan.name);
     }
     const bool hasMeasured =
         std::any_of(inputs.begin(), inputs.end(), [](const PlannedInput& in) { return in.measured; });
