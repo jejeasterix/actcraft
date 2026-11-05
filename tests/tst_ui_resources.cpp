@@ -528,6 +528,31 @@ private slots:
         QVERIFY(!QFile::exists(QDir(f.mine).filePath(QStringLiteral("Ressource1.actcraft"))));
     }
 
+    void diskEditsRefusedWhileLocked()
+    {
+        Fixture f;
+        const QString image = QDir(f.mine).filePath(QStringLiteral("photo.png"));
+        QVERIFY(writeImage(image, "PNG"));
+        const QString folder = QDir(f.mine).filePath(QStringLiteral("dossier"));
+        QVERIFY(QDir().mkpath(folder));
+        f.library.openFolder(f.mine);
+        f.commands.setLocked(true);
+        QVERIFY(!f.library.rename(image, QStringLiteral("autre")));
+        QVERIFY(QFile::exists(image));
+        QVERIFY(!f.library.rename(folder, QStringLiteral("autre")));
+        QVERIFY(QFileInfo(folder).isDir());
+        QVERIFY(!f.library.remove(image));
+        QVERIFY(QFile::exists(image));
+        QVERIFY(!f.library.remove(folder));
+        QVERIFY(QFileInfo(folder).isDir());
+        QVERIFY(!f.library.createFolder(QStringLiteral("neuf")));
+        QVERIFY(!QFileInfo::exists(QDir(f.mine).filePath(QStringLiteral("neuf"))));
+        f.commands.setLocked(false); // déverrouillé : de nouveau permis
+        QVERIFY(f.library.createFolder(QStringLiteral("neuf")));
+        QVERIFY(f.library.rename(image, QStringLiteral("autre")));
+        QVERIFY(f.library.remove(folder));
+    }
+
     void refusedWithoutCommands()
     {
         Fixture f;

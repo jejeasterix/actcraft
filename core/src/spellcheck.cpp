@@ -432,9 +432,19 @@ std::unique_ptr<UndoCommand> SpellChecker::replace(const Document& document, con
         }
         const int from = plain.begin[hit.start];
         const int to = plain.end[hit.start + hit.length - 1];
+        // Balises de l'intérieur du mot (« <b>mo</b>sieur ») : gardées après le remplaçant ; sans elles, une
+        // balise fermante disparaît et la mise en forme déborde sur la suite du paragraphe.
+        QString inner;
+        for (std::size_t i = hit.start; i + 1 < hit.start + hit.length; ++i) {
+            const int gap = plain.end[i];
+            if (plain.begin[i + 1] > gap) {
+                inner += html.mid(gap, plain.begin[i + 1] - gap);
+            }
+        }
         Text edited = *text;
         edited.html =
-            (html.left(from) + escapeHtml(QString::fromStdString(replacement)) + html.mid(to)).toStdString();
+            (html.left(from) + escapeHtml(QString::fromStdString(replacement)) + inner + html.mid(to))
+                .toStdString();
         edited.runs.clear(); // lignes lues de l'ancien texte : périmées
         edited.firstBaseline.reset();
         return std::make_unique<SetTextCommand>(static_cast<std::size_t>(hit.page), hit.object,

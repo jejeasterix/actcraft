@@ -420,6 +420,14 @@ bool SetPagePropertiesCommand::mergeWith(const UndoCommand& other)
     if (next == nullptr || next->m_page != m_page || next->m_property != m_property) {
         return false;
     }
+    // Un pas refusé (largeur ou hauteur ≤ 0) reste une étape à part : fusionné, il laisserait une valeur
+    // refusée dans l'étape et Refaire ne rendrait pas la dernière valeur acceptée.
+    if (next->m_property == PageProperty::Width || next->m_property == PageProperty::Height) {
+        const double* size = std::get_if<double>(&next->m_value);
+        if (size == nullptr || !positive(*size)) {
+            return false;
+        }
+    }
     m_value = next->m_value;
     return true;
 }

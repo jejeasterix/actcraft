@@ -16,6 +16,7 @@
 #include <actcraft/ui/propertymodel.h>
 #include <actcraft/ui/resourcelibrary.h>
 #include <actcraft/ui/shortcutbar.h>
+#include <actcraft/ui/spelling.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QDir>
@@ -131,6 +132,14 @@ core::PageObject strokeObject()
     core::Stroke stroke;
     stroke.points = {{10, 10}, {60, 40}, {120, 30}};
     return core::PageObject{stroke};
+}
+
+core::PageObject textObject(const char* html)
+{
+    core::Text text;
+    text.html = html;
+    text.bounds = core::RectF{100, 100, 400, 80};
+    return core::PageObject{text};
 }
 
 // Délégués d'une vue : enfants visuels, pas enfants QObject de la fenêtre.
@@ -676,6 +685,22 @@ void TstUiClassroomlock::everyLot6ControllerRefuses()
     pages.copySelection();
     QCOMPARE(pagesDocument.pageCount(), 2);
     QVERIFY(pages.canPaste());
+    // Amendement 12 : la boîte d'orthographe, ouverte avant le verrou, appelle le contrôleur sans passer par
+    // le registre ; il refuse lui-même « Ajouter au dictionnaire », « Remplacer » et « Remplacer tout ».
+    ui::DocumentController spellDocument;
+    spellDocument.newDocument(1024, 768);
+    addObject(spellDocument, textObject("<p>Un motr et un motr</p>"), core::Layer::Middle);
+    const std::string spellHtml =
+        std::get<core::Text>(core::body(spellDocument.document().page(0).objects.at(0))).html;
+    ui::Spelling spelling;
+    QVERIFY(spelling.setProperty("commands",
+                                 QVariant::fromValue(f.commands.get()))); // câblage de SpellingDialog.qml
+    spelling.setDocument(&spellDocument);
+    spelling.setDictionaryFolder(f.dir.filePath(QStringLiteral("dico")));
+    const QString userWords = f.dir.filePath(QStringLiteral("mots.txt"));
+    spelling.setUserDictionaryPath(userWords);
+    spelling.start();
+    QCOMPARE(spelling.word(), QStringLiteral("motr"));
 
     QVERIFY(f.createAndLock());
     const auto pageCountAfter = [&pages, &pagesDocument](const char* gesture) {
@@ -694,6 +719,13 @@ void TstUiClassroomlock::everyLot6ControllerRefuses()
     QVERIFY(bar.addSelection().isEmpty());
     QVERIFY(!library.insert(image, QPointF(300, 300)));
     QVERIFY(library.addSelection().isEmpty());
+    spelling.replace(QStringLiteral("mot"));
+    spelling.replaceAll(QStringLiteral("mot"));
+    spelling.addToDictionary();
+    QCOMPARE(std::get<core::Text>(core::body(spellDocument.document().page(0).objects.at(0))).html,
+             spellHtml);
+    QFile written(userWords);
+    QVERIFY(!written.open(QIODevice::ReadOnly) || !written.readAll().contains("motr"));
     QTest::qWait(300); // aucune insertion différée
 
     const core::Page& page = document.document().page(0);
@@ -709,6 +741,12 @@ void TstUiClassroomlock::everyLot6ControllerRefuses()
         ++steps;
     }
     QCOMPARE(steps, 3); // les trois ajouts, rien d'autre
+    steps = 0;
+    while (spellDocument.canUndo()) {
+        spellDocument.undo();
+        ++steps;
+    }
+    QCOMPARE(steps, 1); // l'ajout du texte, aucun remplacement
 }
 
 void TstUiClassroomlock::hashingOffTheMainThread()

@@ -72,6 +72,7 @@ private slots:
     void cleanup();
 
     void addShowsThePath();
+    void fileUrlBecomesALocalPath();
     void runStartsTheProgram();
     void signedOnThisWorkstation();
     void foreignSignatureAsksFirst();
@@ -253,6 +254,18 @@ void TstUiLaunchers::addShowsThePath()
     // Sans chemin, rien n'est créé.
     QVERIFY(m_launchers->add(QStringLiteral("  "), {}, QString()).isEmpty());
     QCOMPARE(m_launchers->entries().size(), 1);
+}
+
+// Le sélecteur de fichier rend une URL : le C++ la convertit (jamais de retrait de « file:// » à la main).
+void TstUiLaunchers::fileUrlBecomesALocalPath()
+{
+    QCOMPARE(Launchers::localPath(QUrl(QStringLiteral("file:///Users/essai/Mon%20appli.app"))),
+             QStringLiteral("/Users/essai/Mon appli.app"));
+    QCOMPARE(Launchers::localPath(QUrl::fromLocalFile(m_probe)), m_probe);
+#ifdef Q_OS_WIN
+    QCOMPARE(Launchers::localPath(QUrl(QStringLiteral("file:///C:/x.exe"))), QStringLiteral("C:/x.exe"));
+#endif
+    QVERIFY(Launchers::localPath(QUrl()).isEmpty());
 }
 
 void TstUiLaunchers::runStartsTheProgram()

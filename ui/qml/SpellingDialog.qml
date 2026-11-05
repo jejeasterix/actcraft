@@ -26,6 +26,7 @@ Item {
     Spelling {
         id: appSpelling
         objectName: "appSpelling"
+        commands: root.commands
         document: root.documentController
         profile: root.profile
         contactActive: root.profile ? root.profile.contactActive : false
@@ -41,12 +42,16 @@ Item {
             objectName: "spellingHighlight"
             parent: Overlay.overlay
             readonly property rect box: appSpelling.highlight
-            // zoom et défilement : dépendances de la conversion (pageToScene n'a pas de signal).
-            readonly property point topLeft: root.view.zoom + root.view.pan.x + root.view.pan.y >= 0
-                                             ? root.view.pageToScene(Qt.point(box.x, box.y)) : Qt.point(0, 0)
-            readonly property point bottomRight: root.view.zoom + root.view.pan.x + root.view.pan.y >= 0
-                                                 ? root.view.pageToScene(Qt.point(box.x + box.width, box.y + box.height))
-                                                 : Qt.point(0, 0)
+            // zoom et défilement : dépendances de la conversion (pageToScene n'a pas de signal), lues sans
+            // condition (le défilement est négatif dès que la page déborde).
+            readonly property point topLeft: {
+                void (root.view.zoom + root.view.pan.x + root.view.pan.y)
+                return root.view.pageToScene(Qt.point(box.x, box.y))
+            }
+            readonly property point bottomRight: {
+                void (root.view.zoom + root.view.pan.x + root.view.pan.y)
+                return root.view.pageToScene(Qt.point(box.x + box.width, box.y + box.height))
+            }
             visible: box.width > 0 && popup.opened
             x: topLeft.x - 2
             y: topLeft.y - 2
@@ -79,6 +84,9 @@ Item {
         }
         contentItem: ColumnLayout {
             spacing: 8
+            // Échap est aussi le raccourci de tool.select : la boîte ouverte le garde pour elle.
+            Keys.onShortcutOverride: event => { event.accepted = event.key === Qt.Key_Escape }
+            Keys.onEscapePressed: popup.close()
             Label {
                 objectName: "spellingTitle"
                 Layout.fillWidth: true
@@ -91,6 +99,7 @@ Item {
                 Layout.fillWidth: true
                 visible: !appSpelling.finished
                 text: appSpelling.word
+                textFormat: Text.PlainText // mot du fichier ouvert
                 font.bold: true
                 font.pixelSize: Theme.taillePoliceTitre
                 color: "#FF6B6B"
@@ -152,6 +161,15 @@ Item {
         }
     }
 
+    // Verrou de classe posé : la boîte se ferme (le contrôleur refuse déjà lui-même).
+    Connections {
+        target: root.commands
+        function onStateChanged() {
+            if (root.commands.locked)
+                popup.close()
+        }
+    }
+
     Connections {
         target: appSpelling
         function onStateChanged() {
@@ -163,7 +181,6 @@ Item {
         }
     }
 
-    Shortcut { sequence: "Escape"; enabled: popup.opened; onActivated: popup.close() }
     Shortcut { sequence: "Alt+I"; enabled: popup.opened && appSpelling.running; onActivated: appSpelling.ignore() }
     Shortcut { sequence: "Alt+T"; enabled: popup.opened && appSpelling.running; onActivated: appSpelling.ignoreAlways() }
     Shortcut { sequence: "Alt+A"; enabled: popup.opened && appSpelling.running; onActivated: appSpelling.addToDictionary() }

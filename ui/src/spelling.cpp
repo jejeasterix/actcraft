@@ -67,6 +67,20 @@ void Spelling::setProfile(ProfileController* profile)
     emit wiringChanged();
 }
 
+void Spelling::setCommands(Commands* commands)
+{
+    if (m_commands == commands) {
+        return;
+    }
+    m_commands = commands;
+    emit wiringChanged();
+}
+
+bool Spelling::mayWrite() const
+{
+    return m_commands && !m_commands->isLocked();
+}
+
 QString Spelling::userDictionaryPath() const
 {
     return m_userDictionaryPath.isEmpty() ? appDataFile() : m_userDictionaryPath;
@@ -151,7 +165,7 @@ bool Spelling::prepare()
     return true;
 }
 
-void Spelling::start()
+void Spelling::resetState()
 {
     m_hit.reset();
     m_finished = false;
@@ -159,6 +173,11 @@ void Spelling::start()
     m_pendingPage = -1;
     m_suggestions.clear();
     m_highlight = QRectF();
+}
+
+void Spelling::start()
+{
+    resetState();
     if (!m_document || !prepare()) {
         emit stateChanged();
         return;
@@ -236,7 +255,7 @@ void Spelling::ignoreAlways()
 
 void Spelling::addToDictionary()
 {
-    if (!m_hit || !m_engine) {
+    if (!m_hit || !m_engine || !mayWrite()) {
         return;
     }
     core::addToUserDictionary(*m_engine, userDictionaryPath().toStdString(), m_hit->word);
@@ -259,7 +278,7 @@ bool Spelling::replaceCurrent(const QString& replacement)
 
 void Spelling::replace(const QString& replacement)
 {
-    if (!m_hit) {
+    if (!m_hit || !m_checker || !mayWrite()) {
         return;
     }
     if (!replaceCurrent(replacement)) {
@@ -270,7 +289,7 @@ void Spelling::replace(const QString& replacement)
 
 void Spelling::replaceAll(const QString& replacement)
 {
-    if (!m_hit || !m_engine || !m_document) {
+    if (!m_hit || !m_engine || !m_checker || !m_document || !mayWrite()) {
         return;
     }
     const QString target = word().toLower();
@@ -302,12 +321,7 @@ void Spelling::replaceAll(const QString& replacement)
 
 void Spelling::close()
 {
-    m_hit.reset();
-    m_finished = false;
-    m_message.clear();
-    m_pendingPage = -1;
-    m_suggestions.clear();
-    m_highlight = QRectF();
+    resetState();
     emit stateChanged();
 }
 
