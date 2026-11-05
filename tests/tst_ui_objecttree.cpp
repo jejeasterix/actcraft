@@ -23,7 +23,13 @@
 #include <actcraft/ui/objecttree.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QFont>
+#include <QFontMetricsF>
 #include <QQmlApplicationEngine>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
+#include <QQuickWindow>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QtQml/qqmlextensionplugin.h>
@@ -101,6 +107,21 @@ bool layersSorted(const ui::DocumentController& controller)
     return std::is_sorted(
         objects.begin(), objects.end(),
         [](const core::PageObject& a, const core::PageObject& b) { return a.common.layer < b.common.layer; });
+}
+
+// Élément de texte (Text, Label) sous `item` qui montre `text`, ou nullptr.
+QQuickItem* textItemShowing(QQuickItem* item, const QString& text)
+{
+    if (item->metaObject()->indexOfProperty("textFormat") >= 0 && item->property("text").toString() == text) {
+        return item;
+    }
+    const QList<QQuickItem*> children = item->childItems();
+    for (QQuickItem* child : children) {
+        if (QQuickItem* found = textItemShowing(child, text)) {
+            return found;
+        }
+    }
+    return nullptr;
 }
 
 core::PageObject shapeAt(double x)
@@ -851,6 +872,39 @@ private slots:
         QCoreApplication::processEvents();
         QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), true);
         QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::SelectedRole).toBool(), false);
+    }
+
+    // Bloquant (relecture du lot 6) : le nom d'un objet vient du fichier ouvert ; sa ligne
+    // (ObjectBrowser.qml) le montre en texte brut. En AutoText, « <b>x</b> » serait du texte stylé, large
+    // d'un seul « x » (et une balise <img> chargerait son image dès l'affichage du navigateur).
+    void rowShowsTheNameAsPlainText()
+    {
+        ui::DocumentController document;
+        const QString name = QStringLiteral("<b>x</b>");
+        core::PageObject named = shapeAt(100);
+        named.common.name = name.toStdString();
+        QVERIFY(addObject(document, std::move(named), core::Layer::Middle) != 0);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.loadFromModule("ActCraft.Ui", "ObjectBrowser");
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QQuickWindow window;
+        window.resize(320, 480);
+        std::unique_ptr<QObject> browser(component.createWithInitialProperties(
+            {{QStringLiteral("documentController"), QVariant::fromValue(&document)}}));
+        auto* item = qobject_cast<QQuickItem*>(browser.get());
+        QVERIFY(item);
+        item->setParentItem(window.contentItem());
+        item->setSize(QSizeF(320, 480));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QQuickItem* label = nullptr;
+        QTRY_VERIFY((label = textItemShowing(item, name)) != nullptr);
+        const QFontMetricsF metrics(label->property("font").value<QFont>());
+        QVERIFY2(label->implicitWidth() >= 0.9 * metrics.horizontalAdvance(name),
+                 qPrintable(QStringLiteral("largeur %1, attendu %2")
+                                .arg(label->implicitWidth())
+                                .arg(metrics.horizontalAdvance(name))));
     }
 };
 

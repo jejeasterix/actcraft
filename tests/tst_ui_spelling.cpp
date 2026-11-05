@@ -4,8 +4,13 @@
 #include <actcraft/ui/spelling.h>
 
 #include <QFile>
+#include <QList>
+#include <QStringList>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTextDocument>
+#include <QUrl>
+#include <QVariant>
 
 #include <memory>
 
@@ -52,6 +57,33 @@ class TstUiSpelling : public QObject
     {
         return std::get<core::Text>(core::body(c.document().page(1).objects[0])).html;
     }
+
+    // Bloquant 5 : toute demande de ressource qui échappe au document isolé. Un QTextDocument sans
+    // fournisseur propre consulte le fournisseur par défaut avant de lire le fichier
+    // (QTextDocument::resource) ; le document isolé (ui/src/textediting.cpp, AnalysisDocument) a le sien et
+    // n'y passe jamais.
+    struct ResourceSpy
+    {
+        QList<QUrl> requests;
+        ResourceSpy()
+        {
+            QTextDocument::setDefaultResourceProvider([this](const QUrl& url) {
+                requests.append(url);
+                return QVariant();
+            });
+        }
+        ~ResourceSpy() { QTextDocument::setDefaultResourceProvider({}); }
+        ResourceSpy(const ResourceSpy&) = delete;
+        ResourceSpy& operator=(const ResourceSpy&) = delete;
+        QByteArray seen() const
+        {
+            QStringList urls;
+            for (const QUrl& url : requests) {
+                urls.append(url.toString());
+            }
+            return urls.join(QLatin1Char(' ')).toUtf8();
+        }
+    };
 
 private slots:
     void initTestCase() { QVERIFY(m_dir.isValid()); }
@@ -116,6 +148,24 @@ private slots:
         s->spelling.ignoreAlways();
         QVERIFY(s->spelling.finished());
         QVERIFY(htmlOfPage2(s->controller).find("mosieur") != std::string::npos);
+    }
+
+    // Bloquant (relecture du lot 6) : le cadre du mot (highlightOf) se mesure sans rien charger, même quand
+    // le texte du fichier porte une image locale.
+    void highlightLoadsNoResource()
+    {
+        ResourceSpy spy;
+        auto s = std::make_unique<Session>();
+        core::Document d;
+        addText(d, 0, 1, "<p>bonjour mosieur <img src=\"file:///actcraft-absent/i.png\"></p>");
+        s->controller.replaceDocument(std::move(d), QUrl(), QString());
+        s->spelling.setDocument(&s->controller);
+        s->spelling.setDictionaryFolder(m_dir.filePath(QStringLiteral("dico")));
+        s->spelling.setUserDictionaryPath(m_dir.filePath(QStringLiteral("f.txt")));
+        s->spelling.start();
+        QCOMPARE(s->spelling.word(), QStringLiteral("mosieur"));
+        QVERIFY(s->spelling.highlight().width() > 0);
+        QVERIFY2(spy.requests.isEmpty(), spy.seen().constData());
     }
 };
 
