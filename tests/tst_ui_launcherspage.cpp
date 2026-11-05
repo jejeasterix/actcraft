@@ -249,7 +249,7 @@ private slots:
     }
 
     // Le sélecteur de fichier rend une URL : la page la passe à Launchers::localPath (jamais de retrait de
-    // « file:// » à la main : un « %20 » resterait, et « C:/ » perdrait sa lettre).
+    // « file:// » à la main : un « %25 » resterait, et « C:/ » perdrait sa lettre).
     void fileDialogGoesThroughLocalPath()
     {
         Shell s;
@@ -259,7 +259,7 @@ private slots:
         QObject* dialog = tab->findChild<QObject*>(QStringLiteral("launcherFileDialog"));
         QObject* pathField = tab->findChild<QObject*>(QStringLiteral("launcherPathField"));
         QVERIFY(dialog && pathField);
-        const QString path = m_work.filePath(QStringLiteral("mon programme.app"));
+        const QString path = m_work.filePath(QStringLiteral("50% programme.app"));
         QFile program(path);
         QVERIFY(program.open(QIODevice::WriteOnly)); // le sélecteur refuse un fichier absent
         program.close();
