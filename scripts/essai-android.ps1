@@ -87,6 +87,7 @@ foreach ($f in 0.25, 0.5, 0.75) {
 Write-Output 'accueil : ouvert au démarrage'
 $accueil = @{ X = [int]($largeur * 0.08); Y = [int]($hauteur * 0.5) }
 $null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
+if ($LASTEXITCODE -ne 0) { Echec 'toucher de l''accueil refusé' }
 Start-Sleep -Seconds 2
 $avant = Capture 'avant'
 foreach ($f in 0.25, 0.5, 0.75) {
@@ -98,12 +99,14 @@ Write-Output 'palette : visible au bord droit'
 
 # Rectangles entiers : un rendu défectueux (émulateur à GPU logiciel SwiftShader, voir docs/verifications) ne dessine
 # que la moitié de chaque rectangle, en triangle. Ces pixels tombent dans la moitié qui manquerait (tablette 2560 × 1600).
-# Pastille : sous la barre de titre de la palette (L6-T7), 40 × 40 pixels en (2352, 500) ; tests/tst_ui_shell.cpp
-# (s3StartupDashboardClosedByTheScriptTap) lit ce point et le rejoue hors écran.
+# Pastille : point étalonné sur l'émulateur au lot 5 (0,26 H = 416 px, barre d'état comprise), décalé du seul
+# déplacement de la pastille dans la fenêtre depuis : +76 points (+152 px) = barre de titre de la palette (28, L6-T7)
+# + deuxième rangée du groupe « commandes » (48, profile.choose et mode.design). Même place dans la pastille quelle
+# que soit la barre d'état ; tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) le rejoue hors écran.
 $coins = @(
     @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.765); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
     @{ Nom = 'fond de palette, bas-gauche'; X = $largeur - 192; Y = [int]($hauteur * 0.72); Attendu = $fondPalette; Tol = 16 },
-    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.33); Attendu = @(229, 57, 53); Tol = 40 }
+    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.355); Attendu = @(229, 57, 53); Tol = 40 }
 )
 foreach ($coin in $coins) {
     $lu = Pixel $avant $coin.X $coin.Y
@@ -120,6 +123,7 @@ $x0 = [int]($largeur * 0.30); $x1 = [int]($largeur * 0.55); $xm = [int](($x0 + $
 $blanc = Pixel $avant $xm $y
 if (-not (Proche $blanc @(255, 255, 255) 12)) { Echec "page non blanche avant le trait (lu $($blanc -join ' '))" }
 $null = Adb 30 shell input swipe $x0 $y $x1 $y 600
+if ($LASTEXITCODE -ne 0) { Echec 'glissement du doigt refusé' }
 Start-Sleep -Seconds 2
 $apres = Capture 'apres'
 $trait = Pixel $apres $xm $y
