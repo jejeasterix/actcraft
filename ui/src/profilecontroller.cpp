@@ -159,9 +159,10 @@ bool ProfileController::activate(const QString& id)
         return false;
     }
     // Aucun accès disque pendant un contact (lecture du profil et de la disposition comprises) : le choix est
-    // reporté au relâché ; reprendre le profil courant annule le report.
+    // reporté au relâché, la dernière demande l'emporte. Activer le profil courant se garde aussi : « revenir
+    // à l'origine » le recharge depuis le disque.
     if (m_contactActive) {
-        m_pendingActivation = id == m_profile.id ? QString() : id;
+        m_pendingActivation = id;
         return true;
     }
     m_pendingActivation.clear();

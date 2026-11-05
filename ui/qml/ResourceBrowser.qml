@@ -54,6 +54,16 @@ Item {
     // Le tampon se coupe seul : navigateur masqué, élément choisi disparu, classe verrouillée.
     onVisibleChanged: if (!root.visible) root.setStamping(false)
     onSelectedPathChanged: if (root.selectedPath === "") root.setStamping(false)
+    // Liste relue : l'élément choisi n'existe plus (renommé, dossier supprimé) -> plus de cible.
+    Connections {
+        target: appResources
+        function onModelReset() {
+            if (root.selectedPath !== "" && !appResources.hasItem(root.selectedPath)) {
+                root.selectedPath = ""
+                root.setStamping(false)
+            }
+        }
+    }
     Connections {
         target: root.commands
         function onStateChanged() {
@@ -402,12 +412,15 @@ Item {
         MenuItem {
             text: qsTr("Renommer…")
             enabled: root.selectedFolder !== ""
-            onTriggered: root.commands.trigger("resources.rename")
+            onTriggered: {
+                root.selectedPath = "" // la cible est le dossier, pas l'élément choisi avant
+                root.commands.trigger("resources.rename")
+            }
         }
         MenuItem {
             text: qsTr("Supprimer")
             enabled: root.selectedFolder !== ""
-onTriggered: root.commands.trigger("resources.delete", root.selectedFolder)
+            onTriggered: root.commands.trigger("resources.delete", root.selectedFolder)
         }
     }
     Menu {

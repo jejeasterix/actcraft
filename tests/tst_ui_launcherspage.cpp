@@ -260,6 +260,9 @@ private slots:
         QObject* pathField = tab->findChild<QObject*>(QStringLiteral("launcherPathField"));
         QVERIFY(dialog && pathField);
         const QString path = m_work.filePath(QStringLiteral("mon programme.app"));
+        QFile program(path);
+        QVERIFY(program.open(QIODevice::WriteOnly)); // le sélecteur refuse un fichier absent
+        program.close();
         QVERIFY(dialog->setProperty("selectedFile", QUrl::fromLocalFile(path)));
         QVERIFY(QMetaObject::invokeMethod(dialog, "accepted"));
         QCOMPARE(pathField->property("text").toString(), path);
@@ -306,7 +309,7 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(library, "setOtherFolder", Q_ARG(QUrl, QUrl::fromLocalFile(dir.path()))));
         QTRY_COMPARE(library->property("itemCount").toInt(), 1);
         browser->setProperty("selectedPath", photo);
-        QVERIFY(QMetaObject::invokeMethod(browser, "setStamping", Q_ARG(bool, true)));
+        QVERIFY(QMetaObject::invokeMethod(browser, "setStamping", Q_ARG(QVariant, true)));
         QVERIFY(browser->property("stamping").toBool());
         bool renamed = false;
         QVERIFY(QMetaObject::invokeMethod(library, "rename", Q_RETURN_ARG(bool, renamed),
