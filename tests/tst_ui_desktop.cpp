@@ -142,6 +142,74 @@ QQuickWindow* wheelWindow()
     return windowNamed(QStringLiteral("desktopToolsWheel"));
 }
 
+// Roue ouverte (repliée) : déploie l'icône, ouvre l'anneau qui porte `command`, puis clique cette entrée.
+bool clickRingEntry(DesktopController* desktop, QQuickWindow* wheel, const QString& command)
+{
+    QVariantList entries;
+    if (!QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
+                                   Q_ARG(double, 110.0), Q_ARG(double, 205.0))) {
+        return false;
+    }
+    int ringIndex = -1;
+    for (qsizetype i = 0; i < entries.size(); ++i) {
+        for (const QVariant& inner : entries[i].toMap().value(QStringLiteral("ring")).toList()) {
+            if (inner.toMap().value(QStringLiteral("command")).toString() == command) {
+                ringIndex = static_cast<int>(i);
+            }
+        }
+    }
+    const auto click = [wheel](const QString& name) {
+        const auto find = [wheel, &name] {
+            return presentationharness::findItem(wheel->contentItem(), name);
+        };
+        return QTest::qWaitFor([&find] { return find() != nullptr; }) &&
+               QMetaObject::invokeMethod(find(), "click");
+    };
+    return ringIndex >= 0 && click(QStringLiteral("desktopWheelIcon")) &&
+           click(QStringLiteral("desktopWheelRing_%1").arg(ringIndex)) &&
+           click(QStringLiteral("desktopWheelEntry_") + command);
+}
+
+// Ce qu'un outil montre : la racine de son panneau, ou l'élément visuel de sa fenêtre surgissante (dialogue
+// du message défilant). Cherché dans l'arbre de la fenêtre principale seulement.
+QQuickItem* shownItemOf(const MainWindow& main, const QString& name)
+{
+    QObject* object = main.window() ? main.window()->findChild<QObject*>(name) : nullptr;
+    if (auto* item = qobject_cast<QQuickItem*>(object)) {
+        return item;
+    }
+    auto* content = object ? object->property("contentItem").value<QQuickItem*>() : nullptr;
+    return content ? content->parentItem() : nullptr;
+}
+
+// Ma1 : affiché ENTIER dans sa fenêtre, à une taille non nulle. isVisible() seul ne verrait ni un panneau
+// rogné ni un panneau hors de la fenêtre.
+bool shownWholeIn(const QQuickItem* item, const QQuickWindow* window)
+{
+    if (!item || !window || !item->isVisible() || item->window() != window || item->width() <= 0 ||
+        item->height() <= 0) {
+        return false;
+    }
+    const QRectF inScene = item->mapRectToScene(QRectF(0, 0, item->width(), item->height()));
+    return QRectF(QPointF(0, 0), QSizeF(window->size())).contains(inScene);
+}
+
+QString placeOf(const QQuickItem* item, const QQuickWindow* window)
+{
+    if (!item || !window) {
+        return QStringLiteral("élément ou fenêtre absent");
+    }
+    const QRectF r = item->mapRectToScene(QRectF(0, 0, item->width(), item->height()));
+    return QStringLiteral("élément (%1, %2, %3 x %4) visible=%5 ; fenêtre %6 x %7")
+        .arg(r.x())
+        .arg(r.y())
+        .arg(r.width())
+        .arg(r.height())
+        .arg(item->isVisible())
+        .arg(window->width())
+        .arg(window->height());
+}
+
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
 class TstUiDesktop : public QObject
 {
@@ -1038,31 +1106,7 @@ private slots:
         QVERIFY(wheel);
         QTRY_VERIFY(wheel->isVisible());
         QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
-        // L'anneau qui porte la commande.
-        QVariantList entries;
-        QVERIFY(QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
-                                          Q_ARG(double, 110.0), Q_ARG(double, 205.0)));
-        int ringIndex = -1;
-        for (qsizetype i = 0; i < entries.size(); ++i) {
-            for (const QVariant& inner : entries[i].toMap().value(QStringLiteral("ring")).toList()) {
-                if (inner.toMap().value(QStringLiteral("command")).toString() == command) {
-                    ringIndex = static_cast<int>(i);
-                }
-            }
-        }
-        QVERIFY2(ringIndex >= 0, qPrintable(command));
-        const auto entry = [wheel](const QString& name) {
-            return presentationharness::findItem(wheel->contentItem(), name);
-        };
-        QQuickItem* icon = entry(QStringLiteral("desktopWheelIcon"));
-        QVERIFY(icon);
-        QVERIFY(QMetaObject::invokeMethod(icon, "click"));
-        const QString ringName = QStringLiteral("desktopWheelRing_%1").arg(ringIndex);
-        QTRY_VERIFY(entry(ringName));
-        QVERIFY(QMetaObject::invokeMethod(entry(ringName), "click"));
-        const QString entryName = QStringLiteral("desktopWheelEntry_") + command;
-        QTRY_VERIFY2(entry(entryName), qPrintable(entryName));
-        QVERIFY(QMetaObject::invokeMethod(entry(entryName), "click"));
+        QVERIFY2(clickRingEntry(desktop, wheel, command), qPrintable(command));
         QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
         QVERIFY(main.window()->isVisible());
         QVERIFY(!desktop->property("toolsShown").toBool());
@@ -1072,6 +1116,53 @@ private slots:
             QTRY_VERIFY(root->isVisible());
             QCOMPARE(root->window(), main.window());
         }
+    }
+
+    // Ma1 (tour 2 de relecture du lot 7) : M8 pendant l'annotation du bureau. La fenêtre principale n'y est
+    // que la palette (keepMainInFront, décision « seule la palette reste devant ») : un outil de l'anneau «
+    // Autres outils », élément de cette fenêtre (H-M8), y serait rogné ou hors champ. L'entrée ferme d'abord
+    // l'annotation (comme desktop.annotate : son paperboard est gardé) ; la fenêtre principale reprend son
+    // état d'avant l'annotation (chemin M5), puis l'outil s'y ouvre ENTIER. Mutant : l'entrée fait seulement
+    // desktop.restore (showNormal à l'emprise de la palette) ; isVisible() du panneau resterait vrai.
+    void wheelToolDuringAnnotationIsWholeInTheMainWindow_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("shown"); // racine du panneau, ou dialogue (fenêtre surgissante)
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice")
+            << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QStringLiteral("tickerDialog");
+    }
+    void wheelToolDuringAnnotationIsWholeInTheMainWindow()
+    {
+        QFETCH(QString, command);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QQuickWindow* window = main.window();
+        QVERIFY(window);
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.waitReady());
+        const QRect before = window->geometry();
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QTRY_VERIFY(window->geometry().width() < before.width()); // la palette seule
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        QTRY_COMPARE(window->visibility(), QWindow::Minimized);
+        QVERIFY2(clickRingEntry(desktop, wheel, command), qPrintable(command));
+        QTRY_VERIFY(window->visibility() != QWindow::Minimized);
+        QVERIFY(window->isVisible());
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        QQuickItem* item = shownItemOf(main, shown);
+        QVERIFY2(item, qPrintable(shown));
+        QTRY_VERIFY2(shownWholeIn(item, window), qPrintable(placeOf(item, window)));
+        // Comportement retenu : annotation fermée, fenêtre principale à sa géométrie d'avant l'annotation.
+        QVERIFY(!desktop->isAnnotating());
+        QTRY_COMPARE(window->geometry(), before);
     }
 
     // M2 (relecture du lot 7 ; plan 7b, L7-T30 ; F-640 : effets désactivés pendant l'annotation de bureau) :
