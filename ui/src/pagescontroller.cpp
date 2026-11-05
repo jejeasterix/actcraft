@@ -59,6 +59,27 @@ void settleEditing(DocumentController& controller)
 
 PagesController::PagesController(QObject* parent) : QObject(parent) {}
 
+Commands* PagesController::commands() const noexcept
+{
+    return m_commands.data();
+}
+
+void PagesController::setCommands(Commands* commands)
+{
+    if (m_commands == commands) {
+        return;
+    }
+    m_commands = commands;
+    emit wiringChanged();
+}
+
+// Amendement 12 (L6-T31) : le contrôleur refuse lui-même ; le navigateur l'appelle sans passer par le
+// registre.
+bool PagesController::allows(const char* command) const
+{
+    return !m_commands || m_commands->allowsWhileLocked(QString::fromLatin1(command));
+}
+
 DocumentController* PagesController::documentController() const noexcept
 {
     return m_controller.data();
@@ -273,7 +294,7 @@ void PagesController::copySelection()
 // pages et le presse-papiers recevrait la page sans le texte en cours.
 void PagesController::cutSelection()
 {
-    if (!m_controller || m_selection.size() >= m_controller->pageCount()) {
+    if (!m_controller || m_selection.size() >= m_controller->pageCount() || !allows("page.cut")) {
         return; // couper toutes les pages est refusé, comme supprimer
     }
     settleEditing(*m_controller);
@@ -300,7 +321,7 @@ void PagesController::insertCopies(std::size_t index, const std::vector<core::Pa
 
 void PagesController::paste()
 {
-    if (!m_controller || m_clipboard.pages.empty()) {
+    if (!m_controller || m_clipboard.pages.empty() || !allows("page.paste")) {
         return;
     }
     settleEditing(*m_controller);
@@ -310,7 +331,7 @@ void PagesController::paste()
 
 void PagesController::duplicateSelection()
 {
-    if (!m_controller) {
+    if (!m_controller || !allows("page.duplicate")) {
         return;
     }
     settleEditing(*m_controller);
@@ -319,7 +340,7 @@ void PagesController::duplicateSelection()
 
 void PagesController::deleteSelection()
 {
-    if (!m_controller || m_selection.size() >= m_controller->pageCount()) {
+    if (!m_controller || m_selection.size() >= m_controller->pageCount() || !allows("page.delete")) {
         return; // la dernière page ne se supprime pas
     }
     settleEditing(*m_controller);

@@ -646,6 +646,10 @@ QString propertyText(const QVariant& value)
     if (!value.isValid()) {
         return QStringLiteral("<absente>");
     }
+    // Pointeur d'objet nul : « <nul> », distinct d'un objet posé (L6-T31 : câblage lu par un scénario).
+    if (value.metaType().flags().testFlag(QMetaType::PointerToQObject) && !value.value<QObject*>()) {
+        return QStringLiteral("<nul>");
+    }
     switch (value.typeId()) {
     case QMetaType::Bool:
         return value.toBool() ? QStringLiteral("true") : QStringLiteral("false");
@@ -981,6 +985,10 @@ bool UiScenarioPlayer::typeText(const UiStep& step, QStringList& report)
 {
     m_window->requestActivate();
     const bool active = QTest::qWaitForWindowActive(m_window, kActivateTimeoutMs);
+    // Amendement 12 (L6-T31) : le texte saisi dans un champ en mode mot de passe n'est jamais écrit en clair.
+    const QQuickItem* focused = m_window->activeFocusItem();
+    const QVariant echo = focused ? focused->property("echoMode") : QVariant();
+    const bool secret = echo.isValid() && echo.toInt() != 0; // TextInput.Normal
     bool accepted = true;
     for (const QChar c : step.value) {
         const QString text(c);
@@ -993,7 +1001,8 @@ bool UiScenarioPlayer::typeText(const UiStep& step, QStringList& report)
     }
     QCoreApplication::processEvents();
     report << QStringLiteral("TEXTE %1 %2%3")
-                  .arg(step.value, accepted ? QStringLiteral("OK") : QStringLiteral("ECHEC"),
+                  .arg(secret ? QStringLiteral("******") : step.value,
+                       accepted ? QStringLiteral("OK") : QStringLiteral("ECHEC"),
                        accepted || active ? QString() : QStringLiteral(" (fenêtre inactive)"));
     return accepted;
 }
