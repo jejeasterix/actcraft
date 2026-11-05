@@ -1,9 +1,11 @@
 #include <actcraft/ui/profilecontroller.h>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QRegularExpression>
+#include <QSaveFile>
 #include <QStandardPaths>
 #include <QUrl>
 #include <QVariantMap>
@@ -57,6 +59,13 @@ bool validId(const QString& id)
 {
     static const QRegularExpression pattern(QStringLiteral("^[a-z0-9-]+$"));
     return pattern.match(id).hasMatch();
+}
+
+// Disposition propre au profil (onglet Commandes) ; vide sans dossier utilisateur.
+QString layoutPath(const actions::ProfileStore& store, const QString& id)
+{
+    const QString dir = store.directory(id);
+    return dir.isEmpty() ? QString() : dir + QStringLiteral("/layout.json");
 }
 
 bool validColor(const QString& color)
@@ -191,10 +200,26 @@ void ProfileController::applyLayoutDir(const QString& id)
     if (!m_commands) {
         return;
     }
-    const QString dir = id.isEmpty() ? QString() : m_store.directory(id);
+    const QString path = id.isEmpty() ? QString() : layoutPath(m_store, id);
     // Sans disposition propre au profil : celle des ressources (Commands lit alors le seul fichier fourni).
-    m_commands->setProfileDir(
-        !dir.isEmpty() && QFileInfo::exists(dir + QStringLiteral("/layout.json")) ? dir : QString());
+    m_commands->setProfileDir(!path.isEmpty() && QFileInfo::exists(path) ? m_store.directory(id) : QString());
+}
+
+bool ProfileController::writeLayout(const QString& id, const QByteArray& json)
+{
+    const QString path = layoutPath(m_store, id);
+    QSaveFile file(path);
+    if (path.isEmpty() || !QDir().mkpath(m_store.directory(id)) || !file.open(QIODevice::WriteOnly) ||
+        file.write(json) != json.size() || !file.commit()) {
+        emit failed(tr("Disposition non enregistrée : %1").arg(path.isEmpty() ? id : path));
+        return false;
+    }
+    if (id == m_profile.id) {
+        applyLayoutDir(id); // Commands relit (setProfileDir, puis reload)
+        emit profileLayoutChanged();
+    }
+    emit listChanged(); // « modifié » d'un profil fourni
+    return true;
 }
 
 void ProfileController::saveNow()
@@ -333,6 +358,7 @@ void ProfileController::resetCurrent()
     m_dirty = false;
     m_departed.remove(id);
     activate(id);
+    emit profileLayoutChanged(); // ProfileStore::reset a retiré le dossier du profil, layout.json compris
 }
 
 void ProfileController::importFrom(const QVariant& source)
@@ -436,10 +462,13 @@ QVariantList ProfileController::profiles() const
         QString error;
         const std::optional<actions::Profile> p = m_store.load(id, error);
         const bool builtin = m_store.isBuiltin(id);
+        // Modifié : copie <id>.json (réglages) ou layout.json propre au profil (onglet Commandes, amendement
+        // 9).
+        const bool modified = m_store.hasUserCopy(id) || QFileInfo::exists(layoutPath(m_store, id));
         out.append(QVariantMap{{QStringLiteral("id"), id},
                                {QStringLiteral("label"), p ? p->label : id},
                                {QStringLiteral("builtin"), builtin},
-                               {QStringLiteral("modified"), builtin && m_store.hasUserCopy(id)}});
+                               {QStringLiteral("modified"), builtin && modified}});
     }
     return out;
 }
