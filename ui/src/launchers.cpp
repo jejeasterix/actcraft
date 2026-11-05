@@ -10,6 +10,7 @@
 #include <QMessageAuthenticationCode>
 #include <QProcess>
 #include <QRandomGenerator>
+#include <QSet>
 #include <QUrl>
 #include <QUuid>
 
@@ -37,15 +38,44 @@ bool sameBytes(const QByteArray& a, const QByteArray& b)
     return diff == 0;
 }
 
-// cmd.exe interpréterait le fichier et ses paramètres. Windows retire du nom les points et espaces finaux.
-bool interpretedByShell(const QString& path)
+// Un guillemet, un caractère de contrôle (NUL et tabulation compris) ou l'un de <>|?* déplace la fin du nom
+// de programme dans la ligne de commande de Windows, que Qt ne protège pas : le suffixe lu ici ne serait plus
+// celui qui part, et des paramètres non montrés suivraient.
+bool unsafePath(const QString& path)
 {
+    for (const QChar ch : path) {
+        if (ch.category() == QChar::Other_Control || QLatin1String("\"<>|?*").contains(ch))
+            return true;
+    }
+    return false;
+}
+
+// Types que Windows exécute : cmd.exe interpréterait un .bat ou un .cmd et ses paramètres, openUrl
+// (ShellExecute) lance tout type associé, et un .lnk porte une commande que la boîte ne peut pas montrer.
+// Lu sur la chaîne seule : aucun accès disque avant la confirmation. Windows retire du nom les points et
+// espaces finaux.
+bool executedType(const QString& path)
+{
+    static const QStringList kTypes =
+        QStringLiteral(
+            "bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc cpl reg lnk url inf scf")
+            .split(QLatin1Char(' '));
     QString name = path;
     while (name.endsWith(QLatin1Char('.')) || name.endsWith(QLatin1Char(' ')))
         name.chop(1);
-    const QString suffix = QFileInfo(name).suffix();
-    return suffix.compare(QLatin1String("bat"), Qt::CaseInsensitive) == 0 ||
-           suffix.compare(QLatin1String("cmd"), Qt::CaseInsensitive) == 0;
+    return kTypes.contains(QFileInfo(name).suffix(), Qt::CaseInsensitive);
+}
+
+// Le critère de launch() : un document s'ouvre par openUrl, qui ne transmet aucun paramètre.
+bool opensAsDocument(const QString& path)
+{
+    const QFileInfo info(path);
+    return info.exists() && !(info.isFile() && info.isExecutable());
+}
+
+QString documentRefusal(const QString& path)
+{
+    return Launchers::tr("Un document ne prend pas de paramètres : %1").arg(path);
 }
 
 QString idOf(const QJsonArray& items, qsizetype index)
@@ -143,8 +173,19 @@ int Launchers::run(const QString& id)
         emit failed(tr("Raccourci introuvable."));
         return kFailed;
     }
-    if (interpretedByShell(entry->path)) {
-        emit failed(tr("Un fichier .bat ou .cmd ne se lance pas depuis un raccourci : %1").arg(entry->path));
+    // Refus avant toute confirmation, la garde du chemin d'abord : les contrôles suivants lisent ce chemin.
+    if (unsafePath(entry->path)) {
+        emit failed(
+            tr("Chemin refusé : il contient un guillemet, un caractère de contrôle ou l'un de < > | ? *."));
+        return kFailed;
+    }
+    if (executedType(entry->path)) {
+        emit failed(tr("Ce type de fichier ne se lance pas depuis un raccourci : %1").arg(entry->path));
+        return kFailed;
+    }
+    // Le disque n'est lu que pour une entrée qui porte des paramètres.
+    if (!entry->arguments.isEmpty() && opensAsDocument(entry->path)) {
+        emit failed(documentRefusal(entry->path));
         return kFailed;
     }
     if (!trusted(*entry, key(false))) {
@@ -199,11 +240,16 @@ void Launchers::store(const QJsonArray& items)
 QList<Launchers::Entry> Launchers::readEntries() const
 {
     QList<Entry> out;
+    QSet<QString> seen;
     const QJsonArray items = storedItems();
     for (qsizetype i = 0; i < items.size(); ++i) {
         const QJsonObject item = items.at(i).toObject();
         Entry entry;
         entry.id = item.value(kId).toString();
+        // Identifiant en double : seule sa première occurrence compte, celle que sign() signe.
+        if (seen.contains(entry.id))
+            continue;
+        seen.insert(entry.id);
         entry.path = item.value(kPath).toString();
         if (entry.id.isEmpty() || entry.path.isEmpty())
             continue;
@@ -268,10 +314,14 @@ void Launchers::sign(const Entry& entry, const QByteArray& key)
 // paramètres en liste, sans interpréteur.
 bool Launchers::launch(const Entry& entry)
 {
-    const QFileInfo info(entry.path);
-    const bool document = info.exists() && !(info.isFile() && info.isExecutable());
-    const bool started = document ? QDesktopServices::openUrl(QUrl::fromLocalFile(info.absoluteFilePath()))
-                                  : QProcess::startDetached(entry.path, entry.arguments);
+    const bool document = opensAsDocument(entry.path);
+    if (document && !entry.arguments.isEmpty()) { // devenu document depuis la demande : rien ne part
+        emit failed(documentRefusal(entry.path));
+        return false;
+    }
+    const bool started =
+        document ? QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(entry.path).absoluteFilePath()))
+                 : QProcess::startDetached(entry.path, entry.arguments);
     if (!started)
         emit failed(tr("Impossible de lancer %1.").arg(entry.path));
     return started;

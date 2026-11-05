@@ -479,10 +479,10 @@ void TstUiLaunchers::batAndCmdRefused()
 }
 
 // Amendement 10 (a), le test qui distingue : le suffixe seul se contournait. `"C:\scripts\sauve.bat"` (copié
-// depuis l'Explorateur) se lit `bat"`, `t.bat<TAB>x` se lit `bat\tx`, `n.bat<NUL>.exe` se lit `exe` alors que la
-// ligne de commande de Windows s'arrête au NUL : chacun partirait par cmd.exe avec ses paramètres, et un guillemet
-// glisse dans la ligne des paramètres que la boîte ne montre pas. Sans la garde, venus d'un autre poste, ils
-// demanderaient confirmation au lieu d'être refusés.
+// depuis l'Explorateur) se lit `bat"`, `t.bat<TAB>x` se lit `bat\tx`, `n.bat<NUL>.exe` se lit `exe` alors que
+// la ligne de commande de Windows s'arrête au NUL : chacun partirait par cmd.exe avec ses paramètres, et un
+// guillemet glisse dans la ligne des paramètres que la boîte ne montre pas. Sans la garde, venus d'un autre
+// poste, ils demanderaient confirmation au lieu d'être refusés.
 void TstUiLaunchers::unsafePathRefused()
 {
     const QStringList arguments{QStringLiteral("&"), QStringLiteral("calc")};
@@ -492,7 +492,8 @@ void TstUiLaunchers::unsafePathRefused()
          QStringLiteral(R"("C:\Windows\System32\msiexec.exe" /i http://x/y.msi /qn)")},
         {QStringLiteral("tabulation"), QStringLiteral("C:/essai/t.bat\tx")},
         {QStringLiteral("nul"), QStringLiteral("C:/essai/n.bat") + QChar(u'\0') + QStringLiteral(".exe")},
-        {QStringLiteral("suppression"), QStringLiteral("C:/essai/d.bat") + QChar(u'\x7f') + QStringLiteral(".exe")},
+        {QStringLiteral("suppression"),
+         QStringLiteral("C:/essai/d.bat") + QChar(u'\x7f') + QStringLiteral(".exe")},
         {QStringLiteral("inferieur"), QStringLiteral("C:/essai/a<b.exe")},
         {QStringLiteral("superieur"), QStringLiteral("C:/essai/a>b.exe")},
         {QStringLiteral("barre"), QStringLiteral("C:/essai/a|b.exe")},
@@ -502,7 +503,8 @@ void TstUiLaunchers::unsafePathRefused()
     for (const auto& [id, path] : paths)
         putForeign(id, path, arguments, QString());
     // Signé sur ce poste, il est refusé de même : la garde précède la confiance.
-    const QString signedId = m_launchers->add(paths.constFirst().second, arguments, QStringLiteral("Sauvegarde"));
+    const QString signedId =
+        m_launchers->add(paths.constFirst().second, arguments, QStringLiteral("Sauvegarde"));
     QVERIFY(!signedId.isEmpty());
     expectRefused(signedId);
     for (const auto& [id, path] : paths) {
@@ -513,15 +515,17 @@ void TstUiLaunchers::unsafePathRefused()
 }
 
 // Amendement 10 (b) : openUrl laisse Windows exécuter tout type associé (scripts, application HTML, raccourci
-// dont la boîte ne peut pas montrer la commande). Ces types sont refusés avant toute confirmation, casse ignorée,
-// après retrait des points et espaces finaux ; un document ordinaire demande seulement confirmation.
+// dont la boîte ne peut pas montrer la commande). Ces types sont refusés avant toute confirmation, casse
+// ignorée, après retrait des points et espaces finaux ; un document ordinaire demande seulement confirmation.
 void TstUiLaunchers::executableDocumentsRefused()
 {
-    QStringList names{QStringLiteral("script.vbs"), QStringLiteral("page.HTA"), QStringLiteral("raccourci.lnk"),
-                      QStringLiteral("script.ps1."), QStringLiteral("adresse.Url ")};
-    const QStringList types = QStringLiteral("bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc "
-                                             "cpl reg lnk url inf scf")
-                                  .split(QLatin1Char(' '));
+    QStringList names{QStringLiteral("script.vbs"), QStringLiteral("page.HTA"),
+                      QStringLiteral("raccourci.lnk"), QStringLiteral("script.ps1."),
+                      QStringLiteral("adresse.Url ")};
+    const QStringList types =
+        QStringLiteral("bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc "
+                       "cpl reg lnk url inf scf")
+            .split(QLatin1Char(' '));
     for (const QString& type : types)
         names << QStringLiteral("type.") + type;
     QStringList ids;
@@ -545,8 +549,9 @@ void TstUiLaunchers::executableDocumentsRefused()
     QVERIFY(!m_launchers->confirm(QStringLiteral("notes"), false));
 }
 
-// Amendement 10 (c) : openUrl ne transmet aucun paramètre. Un document qui en porte est refusé avant la demande,
-// pour que la boîte ne montre jamais ce qui ne partira pas ; sans paramètre, il demande confirmation.
+// Amendement 10 (c) : openUrl ne transmet aucun paramètre. Un document qui en porte est refusé avant la
+// demande, pour que la boîte ne montre jamais ce qui ne partira pas ; sans paramètre, il demande
+// confirmation.
 void TstUiLaunchers::documentTakesNoArguments()
 {
     const QString notes = document(QStringLiteral("notes.txt"));
@@ -567,8 +572,8 @@ void TstUiLaunchers::documentTakesNoArguments()
     QVERIFY(!m_launchers->confirm(QStringLiteral("sans"), false));
 }
 
-// Amendement 10 (d) : un identifiant en double (profil retouché ou réimporté) ne montre que la première entrée,
-// celle que run lance : l'info-bulle d'une seconde entrée ne couvre pas le lancement de la première.
+// Amendement 10 (d) : un identifiant en double (profil retouché ou réimporté) ne montre que la première
+// entrée, celle que run lance : l'info-bulle d'une seconde entrée ne couvre pas le lancement de la première.
 void TstUiLaunchers::duplicateIdKeepsFirst()
 {
     const QString id = QStringLiteral("double");

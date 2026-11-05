@@ -23,7 +23,10 @@ namespace actcraft::ui {
 // ne vérifie pas (profil d'un autre poste, chemin, paramètres ou info-bulle modifiés à la main, trousseau
 // absent) demande une confirmation avant tout lancement ; acceptée, le raccourci est signé à nouveau.
 // Lancement sans interpréteur : QProcess::startDetached(programme, paramètres en liste) pour un exécutable,
-// QDesktopServices::openUrl pour un fichier ; .bat et .cmd refusés (cmd.exe les interpréterait).
+// QDesktopServices::openUrl pour un fichier. Refusés par run() avant toute confirmation : un chemin qui
+// contient un guillemet, un caractère de contrôle ou l'un de <>|?* ; les types que Windows exécute (.bat,
+// .cmd, scripts, .lnk…) ; un document qui porte des paramètres. Un identifiant en double : la première entrée
+// seule compte.
 class Launchers : public QObject
 {
     Q_OBJECT
