@@ -6,12 +6,15 @@
 #include <QDir>
 #include <QFile>
 #include <QGuiApplication>
+#include <QNetworkAccessManager>
 #include <QQmlApplicationEngine>
+#include <QQmlNetworkAccessManagerFactory>
 #include <QQuickWindow>
 #include <QScreen>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QThread>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -44,12 +47,49 @@ QString valueAfter(const QStringList& args, const QString& name)
     return index >= 0 && index + 1 < args.size() ? args.at(index + 1) : QString();
 }
 
+// --retard-images (L7-T40) : injection de lenteur, jamais une synchronisation. Le lecteur d'images de Qt
+// Quick charge hors du fil principal ce qui n'est ni un fichier ni une ressource, URL « data: » comprises (le
+// pointillé des séparations de zones), par le gestionnaire réseau que lui fabrique le moteur. Chaque requête
+// attend ici, dans le fil du lecteur : une étape qui lit des pixels sans attendre la fin des chargements
+// échoue à coup sûr.
+class SlowNetworkAccessManager : public QNetworkAccessManager
+{
+public:
+    SlowNetworkAccessManager(unsigned long delayMs, QObject* parent)
+        : QNetworkAccessManager(parent), m_delayMs(delayMs)
+    {}
+
+protected:
+    QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,
+                                 QIODevice* outgoingData) override
+    {
+        QThread::msleep(m_delayMs);
+        return QNetworkAccessManager::createRequest(op, request, outgoingData);
+    }
+
+private:
+    unsigned long m_delayMs;
+};
+
+class SlowNetworkFactory : public QQmlNetworkAccessManagerFactory
+{
+public:
+    explicit SlowNetworkFactory(unsigned long delayMs) : m_delayMs(delayMs) {}
+    QNetworkAccessManager* create(QObject* parent) override
+    {
+        return new SlowNetworkAccessManager(m_delayMs, parent);
+    }
+
+private:
+    unsigned long m_delayMs;
+};
+
 } // namespace
 
 // Captures et scénarios d'interface (DA8). Dernière ligne et code : SCENARIO OK (0), SCENARIO EN ECHEC (1),
 // SCENARIO INVALIDE (2 : arguments, fichier, interface).
 //   actcraft-captures --scenario <fichier.json> [--rendu auto|d3d11|logiciel] [--sortie <dossier>]
-//                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]…
+//                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]… [--retard-images <ms>]
 int main(int argc, char* argv[])
 {
     // DA8 : dialogues Qt Quick non natifs forcés (un dialogue natif ne reçoit pas d'événements postés).
@@ -114,9 +154,23 @@ int main(int argc, char* argv[])
         }
     }
 
+    std::unique_ptr<SlowNetworkFactory> slowImages; // avant le moteur, donc détruit après lui
+    const QString delay = valueAfter(args, QStringLiteral("--retard-images"));
+    if (!delay.isEmpty()) {
+        bool okDelay = false;
+        const int delayMs = delay.toInt(&okDelay);
+        if (!okDelay || delayMs < 1 || delayMs > 60000) {
+            return invalid(QStringLiteral("--retard-images attend un délai de 1 à 60000 ms"));
+        }
+        slowImages = std::make_unique<SlowNetworkFactory>(static_cast<unsigned long>(delayMs));
+    }
+
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde le stylet synthétique.
     std::unique_ptr<UiScenarioPlayer> player;
     QQmlApplicationEngine engine;
+    if (slowImages) {
+        engine.setNetworkAccessManagerFactory(slowImages.get());
+    }
     QQuickWindow* window = loadMainWindow(engine, parseStartupOptions(args)); // --sans-cache compris
     if (!window) {
         return invalid(QStringLiteral("interface non chargée"));

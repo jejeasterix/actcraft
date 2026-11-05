@@ -420,6 +420,18 @@ set_tests_properties(tst_captures_page_allongee_zones PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# L7-T40 : même scénario, images chargées hors du fil retardées de 3 s chacune. Rend déterministe la course de
+# l'instabilité : des pixels lus pendant le chargement du pointillé des séparations (BORD ... intermédiaires 0).
+add_test(NAME tst_captures_page_allongee_zones_lent
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/page-allongee-zones.json
+        --rendu logiciel --taille 1280x800 --retard-images 3000
+        --sortie ${CMAKE_BINARY_DIR}/captures-page-allongee-zones-lent)
+set_tests_properties(tst_captures_page_allongee_zones_lent PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 add_test(NAME tst_captures_texte_vertical
     COMMAND $<TARGET_FILE:actcraft-captures>
         --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/texte-vertical.json
