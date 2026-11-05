@@ -1333,8 +1333,8 @@ private slots:
         }
     }
 
-    // L6-T23 : l'accueil reste fermé sans `showDashboard` ; les récents du poste sont liés aux préférences, au
-    // résumé et au menu Fichier ; le mandataire réseau est instancié au démarrage.
+    // L6-T23 : l'accueil reste fermé sans `showDashboard` ; les récents du poste sont liés aux préférences,
+    // au résumé et au menu Fichier ; le mandataire réseau est instancié au démarrage.
     void lot6DashboardAndRecentsWiring()
     {
         Shell s;
