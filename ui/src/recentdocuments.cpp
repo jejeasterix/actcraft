@@ -1,13 +1,128 @@
 #include <actcraft/core/document.h>
+#include <actcraft/formats/nativefile.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/recentdocuments.h>
 
+#include <QCoreApplication>
+#include <QFile>
 #include <QFileInfo>
+#include <QFutureWatcher>
+#include <QThread>
+#include <QtConcurrent>
+
+#include <algorithm>
 
 namespace actcraft::ui {
 
-RecentDocuments::RecentDocuments(QObject* parent) : QObject(parent) {}
+namespace {
+
+struct ThumbnailJob
+{
+    QString url;
+    qint64 stamp = 0;
+    QString dataUrl; // vide : pas de vignette
+    bool offMainThread = false;
+};
+
+// Lit `thumbnails/page-1.png` de l'archive locale ; tout échec donne une vignette vide.
+ThumbnailJob readThumbnail(const QString& url, qint64 stamp)
+{
+    ThumbnailJob job;
+    job.url = url;
+    job.stamp = stamp;
+    job.offMainThread = QThread::currentThread() != QCoreApplication::instance()->thread();
+    QFile file(QUrl(url).toLocalFile());
+    if (!file.open(QIODevice::ReadOnly)) {
+        return job;
+    }
+    const formats::DecodeResult decoded = formats::decodeActcraft(file.readAll());
+    if (decoded.ok && !decoded.thumbnails.empty() && !decoded.thumbnails.front().isEmpty()) {
+        job.dataUrl = QStringLiteral("data:image/png;base64,") +
+                      QString::fromLatin1(decoded.thumbnails.front().toBase64());
+    }
+    return job;
+}
+
+} // namespace
+
+RecentDocuments::RecentDocuments(QObject* parent) : QObject(parent)
+{
+    m_pool.setMaxThreadCount(1);
+}
+
+RecentDocuments::~RecentDocuments()
+{
+    m_pool.waitForDone();
+}
+
+qint64 RecentDocuments::stampOf(const QUrl& url)
+{
+    if (!url.isLocalFile()) {
+        return 0;
+    }
+    const QFileInfo info(url.toLocalFile());
+    return info.exists() ? (info.lastModified().toMSecsSinceEpoch() ^ (info.size() << 1)) | 1 : 0;
+}
+
+void RecentDocuments::setContactActive(bool active)
+{
+    if (m_contactActive == active) {
+        return;
+    }
+    m_contactActive = active;
+    emit contactActiveChanged();
+    pumpThumbnails(); // relâché : les demandes gardées partent
+}
+
+// Met en file les entrées locales sans vignette à jour ; la lecture part hors contact (pumpThumbnails).
+void RecentDocuments::requestThumbnails()
+{
+    for (const QString& text : std::as_const(m_urls)) {
+        const qint64 stamp = stampOf(QUrl(text));
+        if (stamp == 0) {
+            continue;
+        }
+        const auto known = m_thumbnails.constFind(text);
+        if ((known != m_thumbnails.cend() && known->stamp == stamp) || text == m_thumbnailLoading ||
+            std::find(m_thumbnailQueue.begin(), m_thumbnailQueue.end(), text) != m_thumbnailQueue.end()) {
+            continue;
+        }
+        m_thumbnailQueue.push_back(text);
+    }
+    pumpThumbnails();
+}
+
+// Patron de PageThumbnails::pump : une lecture en vol au plus, la suivante part à son retour, et seulement
+// hors contact.
+void RecentDocuments::pumpThumbnails()
+{
+    if (m_thumbnailInFlight || m_contactActive || m_thumbnailQueue.empty()) {
+        return;
+    }
+    const QString text = m_thumbnailQueue.front();
+    m_thumbnailQueue.pop_front();
+    const qint64 stamp = stampOf(QUrl(text));
+    if (stamp == 0) {
+        pumpThumbnails();
+        return;
+    }
+    m_thumbnailInFlight = true;
+    m_thumbnailLoading = text;
+    auto* watcher = new QFutureWatcher<ThumbnailJob>(this);
+    connect(watcher, &QFutureWatcher<ThumbnailJob>::finished, this, [this, watcher] {
+        const ThumbnailJob job = watcher->result();
+        watcher->deleteLater();
+        m_thumbnailInFlight = false;
+        m_thumbnailLoading.clear();
+        m_thumbnails.insert(job.url, Thumbnail{job.stamp, job.dataUrl});
+        ++m_thumbnailsRead;
+        m_lastReadOffMainThread = job.offMainThread;
+        emit changed();
+        pumpThumbnails();
+    });
+    watcher->setFuture(QtConcurrent::run(&m_pool, [text, stamp] { return readThumbnail(text, stamp); }));
+}
 
 void RecentDocuments::setPreferences(Preferences* preferences)
 {
@@ -39,6 +154,7 @@ void RecentDocuments::reload()
     while (m_urls.size() > kMax) {
         m_urls.removeLast();
     }
+    requestThumbnails();
 }
 
 void RecentDocuments::persist()
@@ -68,7 +184,8 @@ QVariantList RecentDocuments::entries() const
         }
         list.append(QVariantMap{{QStringLiteral("url"), url},
                                 {QStringLiteral("name"), url.fileName()},
-                                {QStringLiteral("when"), when}});
+                                {QStringLiteral("when"), when},
+                                {QStringLiteral("thumbnail"), m_thumbnails.value(text).dataUrl}});
     }
     return list;
 }
@@ -91,6 +208,7 @@ void RecentDocuments::note(const QUrl& url)
     }
     persist();
     emit changed();
+    requestThumbnails();
 }
 
 void RecentDocuments::clear()

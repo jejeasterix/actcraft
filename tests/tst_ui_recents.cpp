@@ -1,11 +1,14 @@
 // L6-T24 : documents récents du poste et résumé à l'enregistrement. Dossiers temporaires seulement.
 #include <actcraft/core/document.h>
+#include <actcraft/formats/nativefile.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/recentdocuments.h>
 
+#include <QBuffer>
 #include <QFile>
+#include <QImage>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -22,6 +25,34 @@ QUrl touch(const QTemporaryDir& dir, const QString& name)
     }
     file.write("x");
     return QUrl::fromLocalFile(file.fileName());
+}
+
+// Archive d'une page, avec ou sans miniature `thumbnails/page-1.png`.
+QUrl archive(const QTemporaryDir& dir, const QString& name, bool withThumbnail)
+{
+    std::vector<QByteArray> thumbnails;
+    if (withThumbnail) {
+        QImage image(8, 6, QImage::Format_RGB32);
+        image.fill(Qt::red);
+        QByteArray png;
+        QBuffer buffer(&png);
+        buffer.open(QIODevice::WriteOnly);
+        image.save(&buffer, "PNG");
+        thumbnails.push_back(png);
+    }
+    const core::Document document(std::vector<core::Page>(1));
+    const QByteArray bytes = formats::encodeActcraft(document, thumbnails);
+    QFile file(dir.filePath(name));
+    if (bytes.isEmpty() || !file.open(QIODevice::WriteOnly)) {
+        return {};
+    }
+    file.write(bytes);
+    return QUrl::fromLocalFile(file.fileName());
+}
+
+QString thumbnailOf(const ui::RecentDocuments& list, int row)
+{
+    return list.entries().value(row).toMap().value(QStringLiteral("thumbnail")).toString();
 }
 
 QStringList names(const ui::RecentDocuments& list)
@@ -75,6 +106,51 @@ private slots:
         list.note(QUrl::fromLocalFile(dir.filePath(QStringLiteral("absent.actcraft"))));
         QCOMPARE(names(list), (QStringList{"kept.actcraft"}));
         QCOMPARE(list.count(), 1);
+    }
+
+    // L6-T23 (amendement 11) : la vignette est la page 1 de l'archive, lue hors du fil principal.
+    void thumbnailReadOffMainThread()
+    {
+        QTemporaryDir dir;
+        ui::RecentDocuments list;
+        list.note(archive(dir, QStringLiteral("a.actcraft"), true));
+        QVERIFY(QTest::qWaitFor([&] { return !thumbnailOf(list, 0).isEmpty(); }, 5000));
+        QVERIFY(thumbnailOf(list, 0).startsWith(QStringLiteral("data:image/png;base64,")));
+        const QImage image =
+            QImage::fromData(QByteArray::fromBase64(thumbnailOf(list, 0).mid(22).toLatin1()), "PNG");
+        QCOMPARE(image.size(), QSize(8, 6));
+        QCOMPARE(list.thumbnailsRead(), 1);
+        QVERIFY(list.lastReadOffMainThread());
+    }
+
+    void archiveWithoutThumbnailHasNone()
+    {
+        QTemporaryDir dir;
+        ui::RecentDocuments list;
+        list.note(archive(dir, QStringLiteral("sans.actcraft"), false));
+        list.note(touch(dir, QStringLiteral("illisible.actcraft"))); // pas une archive
+        QVERIFY(QTest::qWaitFor([&] { return list.thumbnailsRead() == 2; }, 5000));
+        QCOMPARE(list.count(), 2);
+        QVERIFY(thumbnailOf(list, 0).isEmpty());
+        QVERIFY(thumbnailOf(list, 1).isEmpty());
+        // Lues une fois : une nouvelle demande ne relit pas.
+        list.note(QUrl::fromLocalFile(dir.filePath(QStringLiteral("sans.actcraft"))));
+        QTest::qWait(100);
+        QCOMPARE(list.thumbnailsRead(), 2);
+    }
+
+    void noReadDuringContact()
+    {
+        QTemporaryDir dir;
+        ui::RecentDocuments list;
+        list.setContactActive(true);
+        list.note(archive(dir, QStringLiteral("a.actcraft"), true));
+        QTest::qWait(300);
+        QCOMPARE(list.thumbnailsRead(), 0);
+        QVERIFY(thumbnailOf(list, 0).isEmpty());
+        list.setContactActive(false); // relâché : la lecture part
+        QVERIFY(QTest::qWaitFor([&] { return !thumbnailOf(list, 0).isEmpty(); }, 5000));
+        QCOMPARE(list.thumbnailsRead(), 1);
     }
 
     void contentUrlsKept()
