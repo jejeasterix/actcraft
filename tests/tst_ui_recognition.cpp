@@ -3,8 +3,10 @@
 #include "support/presentationharness.h"
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/pageedits.h>
 #include <actcraft/features/handwriting.h>
 #include <actcraft/features/recognitionsession.h>
 #include <actcraft/ui/commands.h>
@@ -905,9 +907,9 @@ private slots:
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1});
     }
 
-    // Relecture du lot 7 (tour 2) : un trait gommé (soulevé puis remplacé par ses morceaux) ou retiré par une
-    // commande sort de la table des arrivées, qui ne garde que les traits encore sur la page. Avant : il y
-    // restait jusqu'à Annuler ou un changement de mode.
+    // Relecture du lot 7 (tour 2) : un trait gommé (soulevé, puis déposé avec la commande qui le retire) ou
+    // retiré par une commande sort de la table des arrivées, qui ne garde que les traits encore au document.
+    // Avant : il y restait jusqu'à Annuler ou un changement de mode. Un trait déplacé (remis tel quel) reste.
     void erasedStrokeLeavesTheArrivalTable()
     {
         Writing w;
@@ -917,18 +919,93 @@ private slots:
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
         const core::ObjectId first = shownObjects(*w.controller)[0].common.id;
         const core::ObjectId second = shownObjects(*w.controller)[1].common.id;
+        const auto shown = static_cast<std::size_t>(w.controller->currentIndex());
 
-        // Gomme : le trait est soulevé, puis déposé en deux morceaux de nouveaux identifiants.
-        const std::vector<core::PageObject> lifted = w.controller->liftObjects({first});
-        QCOMPARE(lifted.size(), std::size_t{1});
+        // Déplacé : soulevé puis remis tel quel, toujours suivi.
+        QCOMPARE(w.controller->liftObjects({first}).size(), std::size_t{1});
         w.controller->dropLifted(nullptr);
-        // Remis tel quel (déplacement) : toujours suivi.
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
 
+        // Gommé : soulevé, puis déposé avec la commande qui le retire (origine Drop) : oublié.
+        QCOMPARE(w.controller->liftObjects({first}).size(), std::size_t{1});
+        w.controller->dropLifted(
+            std::make_unique<core::RemoveObjectsCommand>(shown, std::vector<core::ObjectId>{first}));
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 1);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1});
+
         // Retiré par une commande : oublié.
+        w.controller->execute(
+            std::make_unique<core::RemoveObjectsCommand>(shown, std::vector<core::ObjectId>{second}));
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 0);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{0});
+    }
+
+    // Relecture du lot 7 (tour 2, point 2) : une commande pendant un soulèvement (réponse asynchrone d'une
+    // reconnaissance → execute) ne purge pas les traits soulevés, absents de la page le temps du geste : un
+    // trait déplacé au lasso pendant le vol garde son heure. Le dépôt purge ensuite ce que la commande a retiré.
+    void commandDuringALiftKeepsTheLiftedArrival()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}}));
+        w.controller->commitStroke(strokeThrough(scribblePoints()));
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+        const core::ObjectId first = shownObjects(*w.controller)[0].common.id;
+        const core::ObjectId second = shownObjects(*w.controller)[1].common.id;
+
+        QCOMPARE(w.controller->liftObjects({first}).size(), std::size_t{1});
         w.controller->execute(std::make_unique<core::RemoveObjectsCommand>(
             static_cast<std::size_t>(w.controller->currentIndex()), std::vector<core::ObjectId>{second}));
+        QVERIFY(w.controller->isLifting());
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+        w.controller->dropLifted(nullptr);
         QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 1);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1}); // le trait déplacé
+    }
+
+    // Relecture du lot 7 (tour 2, point 1) : la purge des arrivées tient compte d'une page ajoutée ou déplacée
+    // avant la page affichée. Pendant la diffusion, currentIndex() vaut encore l'indice d'avant (settle) : lu
+    // tel quel, il désignait la page voisine et purgeait à tort les traits de la page affichée.
+    void pageEditsBeforeTheShownPageKeepItsArrivals()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}}));
+        w.controller->commitStroke(strokeThrough(scribblePoints()));
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+        const QSizeF size = w.controller->pageSize();
+
+        // Page ajoutée devant : la page affichée passe à l'indice 1.
+        w.controller->execute(std::make_unique<core::AddPageCommand>(0, size.width(), size.height()));
+        QCOMPARE(w.controller->currentIndex(), 1);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 2);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+
+        // Page affichée déplacée devant la page vide : elle repasse à l'indice 0.
+        w.controller->execute(std::make_unique<core::MovePagesCommand>(std::vector<std::size_t>{1}, 0));
+        QCOMPARE(w.controller->currentIndex(), 0);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 2);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+    }
+
+    // Relecture du lot 7 (tour 2, point 1) : la dernière page, affichée, supprimée avec un trait en attente.
+    // Pendant la diffusion, currentIndex() désigne encore la page retirée : lu tel quel, Document::page sortait
+    // de ses bornes (assert en debug, lecture hors bornes en release). Le trait de la page retirée est oublié,
+    // celui de la page restante garde son heure.
+    void removingTheShownLastPageForgetsOnlyItsArrivals()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}}));
+        w.controller->commitStroke(strokeThrough(scribblePoints())); // page 0, reste au document
+        const QSizeF size = w.controller->pageSize();
+        w.controller->execute(std::make_unique<core::AddPageCommand>(1, size.width(), size.height()));
+        w.controller->showPage(1);
+        QCOMPARE(w.controller->currentIndex(), 1);
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310))); // page 1, en attente
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+
+        w.controller->execute(std::make_unique<core::RemovePagesCommand>(std::vector<std::size_t>{1}));
+        QCOMPARE(w.controller->currentIndex(), 0);
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1});
     }
 
