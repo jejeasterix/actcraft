@@ -29,19 +29,6 @@ constexpr double kEquationPoints = 24; // nouvelles équations : la taille par d
 constexpr double kMeasureZoom = 100;   // QPicture borne son dessin au pixel entier : 0,01 px de page
 constexpr QSizeF kFallbackSize(200, 60);
 
-// Ajoute actcraft-cursor aux classes de la racine : en mode Editor, son surlignage couvre la boîte entière de
-// la mise en page.
-void markWhole(core::EquationNode& root)
-{
-    for (auto& [name, value] : root.attributes) {
-        if (name == "class") {
-            value += value.empty() ? "actcraft-cursor" : " actcraft-cursor";
-            return;
-        }
-    }
-    root.attributes.emplace_back("class", "actcraft-cursor");
-}
-
 // Remplace un objet de la page sous son identifiant, au même rang (core::ReplaceObjectsCommand tire des
 // identifiants neufs et ignore celui de l'ajout : elle ne convient pas à la réédition). Changes : un
 // ObjectChanged, zone = emprise avant ∪ emprise après. Objet absent : rien ne change.
@@ -175,7 +162,7 @@ QSizeF EquationController::naturalSize(const std::string& mathml, double pointSi
     if (!root) {
         return {};
     }
-    markWhole(*root);
+    core::addClassToken(*root, core::kCursorClass);
     core::Equation probe;
     probe.mathml = core::toMathml(*root);
     probe.pointSize = pointSize;

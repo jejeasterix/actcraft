@@ -76,20 +76,6 @@ QLatin1StringView placeholderClass()
     return QLatin1StringView(kPlaceholderClass.data(), qsizetype(kPlaceholderClass.size()));
 }
 
-// Jetons d'une liste class, séparés par des blancs ASCII.
-std::vector<std::string> classTokens(const std::string& value)
-{
-    constexpr std::string_view blanks = " \t\n\r\f";
-    std::vector<std::string> tokens;
-    for (std::size_t at = value.find_first_not_of(blanks); at != std::string::npos;
-         at = value.find_first_not_of(blanks, at)) {
-        const std::size_t end = std::min(value.find_first_of(blanks, at), value.size());
-        tokens.push_back(value.substr(at, end - at));
-        at = end;
-    }
-    return tokens;
-}
-
 // Retire la marque de case vide de la liste class : ce seul jeton, les autres classes restant séparées d'un
 // blanc, et l'attribut disparaissant s'il n'en reste aucune. Faux, sans rien changer, si la marque n'y est
 // pas.
@@ -470,6 +456,71 @@ std::optional<EquationNode> parseMathml(const std::string& mathml, QString& erro
 std::string toMathml(const EquationNode& root)
 {
     return Writer().write(root);
+}
+
+std::vector<std::string> classTokens(const std::string& value)
+{
+    constexpr std::string_view blanks = " \t\n\r\f";
+    std::vector<std::string> tokens;
+    for (std::size_t at = value.find_first_not_of(blanks); at != std::string::npos;
+         at = value.find_first_not_of(blanks, at)) {
+        const std::size_t end = std::min(value.find_first_of(blanks, at), value.size());
+        tokens.push_back(value.substr(at, end - at));
+        at = end;
+    }
+    return tokens;
+}
+
+bool hasClassToken(const EquationNode& node, std::string_view token)
+{
+    for (const auto& [name, value] : node.attributes) {
+        if (name != "class")
+            continue;
+        const std::vector<std::string> tokens = classTokens(value);
+        if (std::find(tokens.begin(), tokens.end(), token) != tokens.end())
+            return true;
+    }
+    return false;
+}
+
+void addClassToken(EquationNode& node, std::string_view token)
+{
+    for (auto& [name, value] : node.attributes) {
+        if (name == "class") {
+            if (!value.empty())
+                value += ' ';
+            value += token;
+            return;
+        }
+    }
+    node.attributes.emplace_back("class", std::string(token));
+}
+
+void removeClassToken(EquationNode& node, std::string_view token)
+{
+    auto& attributes = node.attributes;
+    for (auto it = attributes.begin(); it != attributes.end();) {
+        std::vector<std::string> tokens;
+        if (it->first == "class")
+            tokens = classTokens(it->second);
+        const auto mark = std::find(tokens.begin(), tokens.end(), token);
+        if (mark == tokens.end()) {
+            ++it;
+            continue;
+        }
+        tokens.erase(std::remove(tokens.begin(), tokens.end(), token), tokens.end());
+        if (tokens.empty()) {
+            it = attributes.erase(it);
+            continue;
+        }
+        std::string rest = tokens.front();
+        for (std::size_t i = 1; i < tokens.size(); ++i) {
+            rest += ' ';
+            rest += tokens[i];
+        }
+        it->second = std::move(rest);
+        ++it;
+    }
 }
 
 } // namespace actcraft::core

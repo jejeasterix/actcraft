@@ -54,38 +54,11 @@ constexpr double kFenceMargin = 0.05;
 constexpr std::size_t kCacheEntries = 64; // couples (texte, taille) gardés par fil
 constexpr double kDefaultPoints = 24;     // taille d'une équation sans taille valide
 
-constexpr std::string_view kCursorClass = "actcraft-cursor";
-
 struct Context
 {
     QFont font;    // famille et style, à kReferencePixels
     double baseEm; // taille de base, pixels
 };
-
-bool hasClass(const core::EquationNode& node, std::string_view token)
-{
-    for (const auto& [name, value] : node.attributes) {
-        if (name != "class") {
-            continue;
-        }
-        std::size_t at = 0;
-        while (at < value.size()) {
-            const std::size_t begin = value.find_first_not_of(" \t\r\n", at);
-            if (begin == std::string::npos) {
-                break;
-            }
-            std::size_t end = value.find_first_of(" \t\r\n", begin);
-            if (end == std::string::npos) {
-                end = value.size();
-            }
-            if (std::string_view(value).substr(begin, end - begin) == token) {
-                return true;
-            }
-            at = end;
-        }
-    }
-    return false;
-}
 
 bool oneOf(const std::string& text, std::initializer_list<std::string_view> set)
 {
@@ -383,7 +356,7 @@ EquationBox limits(const Context& ctx, const core::EquationNode& baseNode,
 EquationBox cell(const Context& ctx, const core::EquationNode& node, double em)
 {
     EquationBox box = node.kind == Kind::TableCell ? row(ctx, node.children, em) : layoutNode(ctx, node, em);
-    box.cursor = box.cursor || hasClass(node, kCursorClass);
+    box.cursor = box.cursor || core::hasClassToken(node, core::kCursorClass);
     return box;
 }
 
@@ -451,7 +424,7 @@ EquationBox table(const Context& ctx, const core::EquationNode& node, double em)
         EquationBox line;
         line.width = width;
         line.baseline = top + tops[i] + ascents[i];
-        line.cursor = hasClass(*rowNodes[i], kCursorClass);
+        line.cursor = core::hasClassToken(*rowNodes[i], core::kCursorClass);
         for (std::size_t j = 0; j < cells[i].size(); ++j) {
             EquationBox& c = cells[i][j];
             c.x = left[j] + (columns[j] - c.width) / 2;
@@ -529,7 +502,7 @@ EquationBox layoutNode(const Context& ctx, const core::EquationNode& node, doubl
         box = row(ctx, c, em);
         break;
     }
-    box.cursor = box.cursor || hasClass(node, kCursorClass);
+    box.cursor = box.cursor || core::hasClassToken(node, core::kCursorClass);
     return box;
 }
 
