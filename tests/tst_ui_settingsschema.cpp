@@ -4,8 +4,10 @@
 #include <actcraft/ui/profilecontroller.h>
 #include <actcraft/ui/settingsschema.h>
 
+#include <QJSValue>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QQuickItem>
 #include <QRegularExpression>
 #include <QSet>
 #include <QSettings>
@@ -104,6 +106,31 @@ QStringList allKeys(const SettingsSchema& schema)
             keys << entry.toMap().value(QStringLiteral("key")).toString();
     }
     return keys;
+}
+
+std::unique_ptr<QObject> createSettingsPage(QQmlEngine& engine, Fixture& f)
+{
+    QQmlComponent component(&engine);
+    component.loadFromModule("ActCraft.Ui", "SettingsPage");
+    if (!component.isReady()) {
+        qWarning().noquote() << component.errorString();
+        return {};
+    }
+    return std::unique_ptr<QObject>(component.createWithInitialProperties(
+        {{QStringLiteral("profile"), QVariant::fromValue(&f.profile)},
+         {QStringLiteral("preferences"), QVariant::fromValue(&f.preferences)}}));
+}
+
+// Éléments visuels, délégués de Repeater et contenus de Loader compris.
+QQuickItem* findItem(QQuickItem* item, const QString& name)
+{
+    if (item->objectName() == name)
+        return item;
+    for (QQuickItem* child : item->childItems()) {
+        if (QQuickItem* found = findItem(child, name))
+            return found;
+    }
+    return nullptr;
 }
 
 QSet<QString> settingsKeys()
@@ -448,6 +475,75 @@ private slots:
         QVERIFY(schema);
         QCOMPARE(schema->profile(), &f.profile);
         QCOMPARE(schema->preferences(), &f.preferences);
+    }
+
+    // « Revenir à l'origine » (ProfileController::resetCurrent : store().reset puis activate du même
+    // identifiant) recharge le profil sans changer de profil : l'éditeur relit sa valeur. Sans relecture,
+    // la case garde 25 alors que le profil vaut 10.
+    void editorsRereadAfterReset()
+    {
+        Fixture f;
+        QQmlEngine engine;
+        const std::unique_ptr<QObject> page = createSettingsPage(engine, f);
+        QVERIFY(page);
+        page->setProperty("currentSection", QStringLiteral("objects"));
+        QQuickItem* spin =
+            findItem(qobject_cast<QQuickItem*>(page.get()), QStringLiteral("setting-centering-tolerance"));
+        QVERIFY(spin);
+        QCOMPARE(spin->property("value").toInt(), 10);
+
+        // Écrit hors de l'éditeur (autre schéma, même profil) : relu.
+        f.schema.setValue(QStringLiteral("objects"), QStringLiteral("centering-tolerance"), 25);
+        QCOMPARE(spin->property("value").toInt(), 25);
+
+        f.profile.saveNow();
+        const QString id = f.profile.property("currentId").toString();
+        QString error;
+        QVERIFY2(f.profile.store().reset(id, error), qPrintable(error));
+        QVERIFY(f.profile.activate(id));
+        QCOMPARE(f.profile.property("currentId").toString(), id);
+        QCOMPARE(f.schema.value(QStringLiteral("objects"), QStringLiteral("centering-tolerance")).toInt(),
+                 10);
+        QCOMPARE(spin->property("value").toInt(), 10);
+    }
+
+    // Une section sans réglage n'est pas montrée (langue avant L6-T36, enregistrements et multimédia avant le
+    // lot 8) ; une section qui en a un l'est. Le réseau suit sa plateforme (sectionsOfIncludedFunctionsOnly).
+    void emptySectionsHidden()
+    {
+        Fixture f;
+        QQmlEngine engine;
+        const std::unique_ptr<QObject> page = createSettingsPage(engine, f);
+        QVERIFY(page);
+        QVariant shown = page->property("shownSections");
+        if (shown.metaType() == QMetaType::fromType<QJSValue>())
+            shown = shown.value<QJSValue>().toVariant();
+        QStringList ids;
+        for (const QVariant& section : shown.toList())
+            ids << section.toMap().value(QStringLiteral("id")).toString();
+        QVERIFY(ids.contains(QStringLiteral("spelling")));
+        for (const QString& id : sectionIds(f.schema)) {
+            if (id != QLatin1String("network"))
+                QVERIFY2(ids.contains(id) == !f.schema.entries(id).isEmpty(), qPrintable(id));
+        }
+    }
+
+    // Un passage du focus sans saisie n'écrit rien : aucune clé du poste créée vide.
+    void textEditorWritesOnlyAChange()
+    {
+        Fixture f;
+        QQmlEngine engine;
+        const std::unique_ptr<QObject> page = createSettingsPage(engine, f);
+        QVERIFY(page);
+        const QString key = QStringLiteral("tools/webHome");
+        page->setProperty("currentSection", sectionOfKey(f.schema, key));
+        QQuickItem* field = findItem(qobject_cast<QQuickItem*>(page.get()), QStringLiteral("setting-") + key);
+        QVERIFY(field);
+        QVERIFY(QMetaObject::invokeMethod(field, "editingFinished"));
+        QVERIFY(!QSettings().contains(key));
+        field->setProperty("text", QStringLiteral("https://exemple.org/"));
+        QVERIFY(QMetaObject::invokeMethod(field, "editingFinished"));
+        QCOMPARE(QSettings().value(key).toString(), QStringLiteral("https://exemple.org/"));
     }
 
 private:
