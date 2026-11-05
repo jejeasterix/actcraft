@@ -1,3 +1,5 @@
+#include "nearestside.h"
+
 #include <actcraft/features/spotlight.h>
 
 #include <algorithm>
@@ -68,25 +70,23 @@ bool Spotlight::press(QPointF point)
         return false;
 
     const QRectF f = m_frame;
-    const bool alongX = point.x() >= f.left() - kRimMargin && point.x() <= f.right() + kRimMargin;
-    const bool alongY = point.y() >= f.top() - kRimMargin && point.y() <= f.bottom() + kRimMargin;
-    struct Candidate
-    {
-        Grab grab;
-        double distance;
-    };
-    const double none = kRimMargin + 1;
-    const Candidate candidates[] = {
-        {Grab::Left, alongY ? std::abs(point.x() - f.left()) : none},
-        {Grab::Right, alongY ? std::abs(point.x() - f.right()) : none},
-        {Grab::Top, alongX ? std::abs(point.y() - f.top()) : none},
-        {Grab::Bottom, alongX ? std::abs(point.y() - f.bottom()) : none},
-    };
-    const auto best =
-        std::min_element(std::begin(candidates), std::end(candidates),
-                         [](const Candidate& a, const Candidate& b) { return a.distance < b.distance; });
-    if (best->distance <= kRimMargin) {
-        m_grab = best->grab;
+    const std::optional<Side> side = nearestSide(point, f.left(), f.top(), f.right(), f.bottom(), kRimMargin,
+                                                 {Side::Left, Side::Right, Side::Top, Side::Bottom});
+    if (side) {
+        switch (*side) {
+        case Side::Left:
+            m_grab = Grab::Left;
+            break;
+        case Side::Right:
+            m_grab = Grab::Right;
+            break;
+        case Side::Top:
+            m_grab = Grab::Top;
+            break;
+        case Side::Bottom:
+            m_grab = Grab::Bottom;
+            break;
+        }
     } else {
         // Décision : pour un cache plein comme pour un spot, le pourtour l'emporte sur l'intérieur (il est
         // testé d'abord) ; l'intérieur d'un cache plein ne déplace que hors de la bande du pourtour.
