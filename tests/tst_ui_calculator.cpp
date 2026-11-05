@@ -326,8 +326,9 @@ private slots:
         QVERIFY(!controller->canUndo()); // une seule étape
     }
 
-    // Sans document où écrire, la poignée du résultat est inactive (garde `enabled: canWrite`) : pas de glisser,
-    // comme pour le bouton. Document rendu, elle redevient active. Mutant : garde retirée, poignée toujours active.
+    // Sans document où écrire, la poignée du résultat est inactive (garde `enabled: canWrite`) : pas de
+    // glisser, comme pour le bouton. Document rendu, elle redevient active. Mutant : garde retirée, poignée
+    // toujours active.
     void resultDragIsDisabledWithoutDocument()
     {
         MainWindow main;
@@ -335,7 +336,8 @@ private slots:
         DocumentController* document = controllerOf(main);
         QVERIFY(calc != nullptr && document != nullptr);
         QVERIFY(openCalculator(main) != nullptr);
-        QObject* drag = main.window()->contentItem()->findChild<QObject*>(QStringLiteral("calculatorResultDrag"));
+        QObject* drag =
+            main.window()->contentItem()->findChild<QObject*>(QStringLiteral("calculatorResultDrag"));
         QVERIFY(drag != nullptr);
         QVERIFY(calc->canWrite());
         QCOMPARE(drag->property("enabled").toBool(), true);
