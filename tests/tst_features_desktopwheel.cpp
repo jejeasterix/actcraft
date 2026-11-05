@@ -40,6 +40,29 @@ private slots:
         };
         check(wheel);
     }
+
+    // Mineur du tour 2 de relecture du lot 7 : le drapeau « s'ouvre dans la fenêtre principale » est porté
+    // par l'entrée, plus recopié dans DesktopController. Toute entrée de l'anneau « Autres outils » (panneaux
+    // de la fenêtre principale) le porte : une entrée ajoutée sans lui rouvrirait M8. Ailleurs, aucune : la
+    // caméra et le clavier agissent sur le bureau, que la fenêtre principale rendue couvrirait. Mutant :
+    // drapeau oublié sur une entrée de l'anneau.
+    void otherToolsOpenInTheMainWindow()
+    {
+        int flagged = 0;
+        int ringSize = 0;
+        for (const WheelEntry& entry : defaultWheel()) {
+            QVERIFY2(!entry.opensInTheMainWindow, qPrintable(entry.label));
+            const bool otherTools = entry.label == QStringLiteral("Autres outils");
+            for (const WheelEntry& inner : entry.ring) {
+                QVERIFY(inner.ring.empty());
+                QVERIFY2(inner.opensInTheMainWindow == otherTools, qPrintable(inner.command));
+                flagged += inner.opensInTheMainWindow ? 1 : 0;
+            }
+            ringSize += otherTools ? static_cast<int>(entry.ring.size()) : 0;
+        }
+        QVERIFY(ringSize > 0);
+        QCOMPARE(flagged, ringSize);
+    }
 };
 
 QTEST_GUILESS_MAIN(TstFeaturesDesktopWheel)

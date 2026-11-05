@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <numbers>
+#include <utility>
 
 namespace actcraft::features {
 
@@ -22,24 +23,23 @@ std::vector<QPointF> wheelPositions(int count, double radius)
 std::vector<WheelEntry> defaultWheel()
 {
     auto command = [](const char* id, const QString& label) {
-        return WheelEntry{QString::fromLatin1(id), label, {}};
+        return WheelEntry{QString::fromLatin1(id), label, {}, false};
+    };
+    auto ring = [](const QString& label, std::vector<WheelEntry> entries) {
+        return WheelEntry{QString(), label, std::move(entries), false};
     };
     return {
         command("desktop.restore", QStringLiteral("Revenir à ActCraft")),
-        WheelEntry{QString(),
-                   QStringLiteral("Caméra"),
-                   {command("tool.camera-area", QStringLiteral("Zone")),
-                    command("tool.camera-polygon", QStringLiteral("Point par point")),
-                    command("tool.camera-freehand", QStringLiteral("Main levée")),
-                    command("tool.camera-window", QStringLiteral("Fenêtre")),
-                    command("tool.camera-screen", QStringLiteral("Écran entier"))}},
+        ring(QStringLiteral("Caméra"), {command("tool.camera-area", QStringLiteral("Zone")),
+                                        command("tool.camera-polygon", QStringLiteral("Point par point")),
+                                        command("tool.camera-freehand", QStringLiteral("Main levée")),
+                                        command("tool.camera-window", QStringLiteral("Fenêtre")),
+                                        command("tool.camera-screen", QStringLiteral("Écran entier"))}),
         command("tool.keyboard", QStringLiteral("Clavier à l'écran")),
-        WheelEntry{QString(),
-                   QStringLiteral("Autres outils"),
-                   {command("tool.ticker", QStringLiteral("Message défilant")),
-                    command("tool.clock", QStringLiteral("Horloge")),
-                    command("tool.calculator", QStringLiteral("Calculatrice")),
-                    command("tool.dice", QStringLiteral("Dés"))}},
+        ring(QStringLiteral("Autres outils"), {command("tool.ticker", QStringLiteral("Message défilant")),
+                                               command("tool.clock", QStringLiteral("Horloge")),
+                                               command("tool.calculator", QStringLiteral("Calculatrice")),
+                                               command("tool.dice", QStringLiteral("Dés"))}),
     };
 }
 
