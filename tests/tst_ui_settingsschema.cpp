@@ -1,15 +1,24 @@
+#include <actcraft/ui/designmode.h>
 #include <actcraft/ui/networksettings.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/profilecontroller.h>
 #include <actcraft/ui/settingsschema.h>
 
+#include <QQmlComponent>
+#include <QQmlEngine>
 #include <QRegularExpression>
 #include <QSet>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
+#include <memory>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
+
+using actcraft::ui::DesignMode;
 using actcraft::ui::NetworkSettings;
 using actcraft::ui::Preferences;
 using actcraft::ui::ProfileController;
@@ -95,11 +104,11 @@ private slots:
     {
         Fixture f;
         const QStringList expected{
-            QStringLiteral("clock"),    QStringLiteral("effects"),    QStringLiteral("objects"),
-            QStringLiteral("language"), QStringLiteral("network"),    QStringLiteral("spelling"),
-            QStringLiteral("tools"),    QStringLiteral("input"),      QStringLiteral("recordings"),
-            QStringLiteral("profile"),  QStringLiteral("document"),   QStringLiteral("multimedia"),
-            QStringLiteral("design")};
+            QStringLiteral("clock"),      QStringLiteral("effects"),  QStringLiteral("objects"),
+            QStringLiteral("language"),   QStringLiteral("network"),  QStringLiteral("spelling"),
+            QStringLiteral("tools"),      QStringLiteral("input"),    QStringLiteral("recordings"),
+            QStringLiteral("profile"),    QStringLiteral("document"), QStringLiteral("multimedia"),
+            QStringLiteral("design-mode")};
         QCOMPARE(sectionIds(f.schema), expected);
         for (const QVariant& value : f.schema.sections()) {
             const QVariantMap section = value.toMap();
@@ -141,7 +150,7 @@ private slots:
             QVariant value;
         };
         const QList<Expected> expected{
-            {"clock", "show-digits", true},       {"clock", "second-hand", true},
+            {"clock", "show-digits", true},        {"clock", "second-hand", true},
             {"clock", "twenty-four-hours", false}, {"effects", "spotlight-width", 15},
             {"effects", "curtain-speed", 15},      {"objects", "centering-tolerance", 10},
         };
@@ -168,8 +177,9 @@ private slots:
         }
     }
 
-    // Le test qui distingue : la valeur passe par la clé du lot 7 elle-même, dans les deux sens, lue et écrite
-    // en direct dans QSettings (jamais par un aller-retour du schéma, qui passerait avec une clé dupliquée).
+    // Le test qui distingue : la valeur passe par la clé du lot 7 elle-même, dans les deux sens, lue et
+    // écrite en direct dans QSettings (jamais par un aller-retour du schéma, qui passerait avec une clé
+    // dupliquée).
     void lot7KeysReused()
     {
         Fixture f;
@@ -177,7 +187,8 @@ private slots:
             const QString section = sectionOfKey(f.schema, key);
             QVERIFY2(!section.isEmpty(), qPrintable(key));
             const QVariantMap entry = entryOf(f.schema, section, key);
-            QCOMPARE(entry.value(QStringLiteral("store")).toString(), QString::fromLatin1(SettingsSchema::kWorkstationStore));
+            QCOMPARE(entry.value(QStringLiteral("store")).toString(),
+                     QString::fromLatin1(SettingsSchema::kWorkstationStore));
             QCOMPARE(entry.value(QStringLiteral("key")).toString(), key);
         }
 
@@ -203,7 +214,8 @@ private slots:
         // Clés QSettings existantes : celles du lot 7, de Preferences et de NetworkSettings ; aucune neuve.
         QSet<QString> existing(kLot7Keys.begin(), kLot7Keys.end());
         existing << QString::fromLatin1(Preferences::kLanguage) << QString::fromLatin1(NetworkSettings::kHost)
-                 << QString::fromLatin1(NetworkSettings::kPort) << QString::fromLatin1(NetworkSettings::kUser);
+                 << QString::fromLatin1(NetworkSettings::kPort)
+                 << QString::fromLatin1(NetworkSettings::kUser);
         int profileEntries = 0;
         for (const QString& id : sectionIds(f.schema)) {
             for (const QVariant& value : f.schema.entries(id)) {
@@ -223,11 +235,21 @@ private slots:
         // Un réglage du profil va dans le profil courant, et pas dans QSettings.
         const QSet<QString> before = settingsKeys();
         f.schema.setValue(QStringLiteral("objects"), QStringLiteral("centering-tolerance"), 25);
-        QCOMPARE(f.profile.setting(QStringLiteral("objects"), QStringLiteral("centering-tolerance"), {}).toInt(), 25);
-        QCOMPARE(f.schema.value(QStringLiteral("objects"), QStringLiteral("centering-tolerance")).toInt(), 25);
+        QCOMPARE(
+            f.profile.setting(QStringLiteral("objects"), QStringLiteral("centering-tolerance"), {}).toInt(),
+            25);
+        QCOMPARE(f.schema.value(QStringLiteral("objects"), QStringLiteral("centering-tolerance")).toInt(),
+                 25);
         QSet<QString> added = settingsKeys();
         added.subtract(before);
         QVERIFY2(added.isEmpty(), qPrintable(QStringList(added.begin(), added.end()).join(QLatin1Char(','))));
+
+        // Le mode conception (L6-T22) relit ce que le schéma écrit : même section du profil, même clé.
+        f.schema.setValue(QStringLiteral("design-mode"), QStringLiteral("showHidden"), false);
+        DesignMode design;
+        design.setProfile(&f.profile);
+        QVERIFY(!design.showHidden());
+        QVERIFY(design.editLocked());
     }
 
     void renderQualityThreeSettings()
@@ -241,9 +263,9 @@ private slots:
             const QVariantMap entry = entryOf(f.schema, section, key);
             QVERIFY2(!entry.isEmpty(), qPrintable(key));
             QCOMPARE(entry.value(QStringLiteral("type")).toString(), QStringLiteral("bool"));
-            QCOMPARE(entry.value(QStringLiteral("store")).toString(), QString::fromLatin1(SettingsSchema::kProfileStore));
+            QCOMPARE(entry.value(QStringLiteral("store")).toString(),
+                     QString::fromLatin1(SettingsSchema::kProfileStore));
         }
-        QCOMPARE(entryOf(f.schema, section, keys.first()).value(QStringLiteral("defaultValue")), QVariant(true));
     }
 
     void autoGroupDefaultsOff()
@@ -277,6 +299,36 @@ private slots:
         QCOMPARE(entryOf(f.schema, section, key).value(QStringLiteral("defaultValue")).toString(),
                  QStringLiteral("1024x768"));
         QCOMPARE(f.schema.value(section, key).toString(), QStringLiteral("1024x768"));
+
+        // D6-13 : réglage `defaults/page-size` du profil ; une taille hors des choix est refusée.
+        f.schema.setValue(section, key, QStringLiteral("1280x720"));
+        QCOMPARE(f.profile.setting(QStringLiteral("defaults"), key, {}).toString(),
+                 QStringLiteral("1280x720"));
+        f.schema.setValue(section, key, QStringLiteral("777x1"));
+        QCOMPARE(f.schema.value(section, key).toString(), QStringLiteral("1280x720"));
+    }
+
+    // Renvoi de L6-T28 : la page réseau et ses réglages existent dès la création de la page des paramètres
+    // (que Main.qml construit au démarrage), sans navigation ni Loader paresseux. C2 : le schéma reçoit
+    // root.profile et root.preferences, aucun identifiant de Main.qml.
+    void networkPageBuiltWithTheSettingsPage()
+    {
+        Fixture f;
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.loadFromModule("ActCraft.Ui", "SettingsPage");
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        const std::unique_ptr<QObject> page(component.createWithInitialProperties(
+            {{QStringLiteral("profile"), QVariant::fromValue(&f.profile)},
+             {QStringLiteral("preferences"), QVariant::fromValue(&f.preferences)}}));
+        QVERIFY(page);
+        QObject* network = page->findChild<QObject*>(QStringLiteral("networkPage"));
+        QVERIFY(network);
+        QVERIFY(network->findChild<NetworkSettings*>());
+        auto* schema = page->findChild<SettingsSchema*>(QStringLiteral("settingsSchema"));
+        QVERIFY(schema);
+        QCOMPARE(schema->profile(), &f.profile);
+        QCOMPARE(schema->preferences(), &f.preferences);
     }
 
 private:

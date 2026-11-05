@@ -12,8 +12,8 @@
 
 namespace actcraft::ui {
 
-// Onglet paramètres de l'éditeur de profils (F-930, F-935) : sections des fonctions incluses, réglages décrits en
-// données à nous. Magasin de chaque réglage :
+// Onglet paramètres de l'éditeur de profils (F-930, F-935) : sections des fonctions incluses, réglages
+// décrits en données à nous. Magasin de chaque réglage :
 // - `profile` : ProfileController::setting(section, clé), dans le profil courant ;
 // - `workstation` : la clé QSettings que son propriétaire emploie déjà (lot 7, Preferences, NetworkSettings),
 //   reprise telle quelle et lue par Preferences::value : le schéma n'en crée aucune.
@@ -48,7 +48,7 @@ public:
 signals:
     void profileChanged();
     void preferencesChanged();
-    void valueChanged(const QString& section, const QString& key);
+    void settingChanged(const QString& section, const QString& key);
 
 private:
     QPointer<ProfileController> m_profile;
