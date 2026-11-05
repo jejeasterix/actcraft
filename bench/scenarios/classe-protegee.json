@@ -4,6 +4,8 @@
   "description": "S19 (L6-T31) : mode classe protégé. Premier verrouillage : création du mot de passe d'essai (deux saisies) ; commandes verrouillables grisées ; mauvais mot de passe refusé ; bon mot de passe accepté ; verrou gardé à la relance. Chaque saisie est suivie d'une attente (calcul hors du fil principal).",
   "steps": [
     { "waitReady": true },
+    { "expect": "appTabs.commands", "value": "<non textuel : actcraft::ui::Commands*>" },
+    { "expect": "appPages.commands", "value": "<non textuel : actcraft::ui::Commands*>" },
     { "expect": "appClassroom.hasPassword", "value": false },
     { "command": "classroom.lock" },
     { "waitFor": "classroomLockDialog.opened", "value": true },

@@ -297,9 +297,12 @@ Item {
                         if (!area.scrolled)
                             root.pages.click(area.pressedIndex, 0)
                     } else if (area.dragging) {
-                        // Déposées sur un onglet, les pages y sont copiées ; ailleurs, la sélection est déplacée.
-                        const copied = dropProxy.Drag.active && dropProxy.Drag.drop() === Qt.CopyAction
-                        if (!copied)
+                        // Déposées sur un onglet, les pages y sont copiées, ou rien s'il refuse (verrou, échec) ;
+                        // ailleurs, la sélection est déplacée. L'onglet affiché ne prend pas le dépôt (cible nulle).
+                        const overTab = dropProxy.Drag.active && dropProxy.Drag.target !== null
+                        if (dropProxy.Drag.active)
+                            dropProxy.Drag.drop()
+                        if (!overTab)
                             root.pages.moveSelection(area.before)
                     } else if (area.deferred) {
                         root.pages.click(area.pressedIndex, 0)

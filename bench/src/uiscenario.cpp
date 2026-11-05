@@ -646,6 +646,10 @@ QString propertyText(const QVariant& value)
     if (!value.isValid()) {
         return QStringLiteral("<absente>");
     }
+    // Pointeur d'objet nul : « <nul> », distinct d'un objet posé (L6-T31 : câblage lu par un scénario).
+    if (value.metaType().flags().testFlag(QMetaType::PointerToQObject) && !value.value<QObject*>()) {
+        return QStringLiteral("<nul>");
+    }
     switch (value.typeId()) {
     case QMetaType::Bool:
         return value.toBool() ? QStringLiteral("true") : QStringLiteral("false");

@@ -10,6 +10,7 @@
 #include <actcraft/ui/notescontroller.h>
 #include <actcraft/ui/objecttree.h>
 #include <actcraft/ui/pagescontroller.h>
+#include <actcraft/ui/pagethumbnails.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/profilecontroller.h>
 #include <actcraft/ui/propertymodel.h>
@@ -523,6 +524,71 @@ void TstUiClassroomlock::qmlCannotBypass()
     QVERIFY(
         click(item("documentTabClose0"), Qt::LeftButton)); // hors du verrou, « × » ferme l'onglet non modifié
     QCOMPARE(tabs.rowCount(), 2);
+
+    // Contre-relecture : un dépôt de pages sur un onglet qui refuse (verrou) ne retombe pas sur un
+    // déplacement de la sélection dans le document affiché.
+    ui::DocumentController shown;
+    shown.newDocument(800, 600);
+    ui::DocumentTabs shownTabs;
+    QVERIFY(shownTabs.setProperty("commands", QVariant::fromValue(f.commands.get())));
+    shownTabs.setDocument(&shown);
+    shownTabs.newTab(); // l'onglet 0 devient inactif : il reçoit le dépôt
+    ui::PagesController shownPages;
+    QVERIFY(shownPages.setProperty("commands", QVariant::fromValue(f.commands.get())));
+    shownPages.setDocumentController(&shown);
+    shownPages.insertBlank(true);
+    shownPages.insertBlank(true);
+    QCOMPARE(shown.pageCount(), 3);
+    QVERIFY(addObject(shown, shapeAt(100), core::Layer::Middle) != 0); // marque la première page
+    ui::PageThumbnails thumbnails;
+    QVERIFY(thumbnails.setProperty("documentController", QVariant::fromValue(&shown)));
+    QVERIFY(thumbnails.setProperty("active", true));
+    QQmlComponent navComponent(&engine);
+    navComponent.setData(
+        "import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\n"
+        "Window {\n"
+        "  id: w; width: 600; height: 700; visible: true\n"
+        "  required property DocumentTabs tabs\n"
+        "  required property Commands commands\n"
+        "  required property Pages pages\n"
+        "  required property DocumentController documentController\n"
+        "  required property PageThumbnails thumbnails\n"
+        "  DocumentTabBar { tabs: w.tabs; commands: w.commands\n"
+        "    anchors.left: parent.left; anchors.right: parent.right }\n"
+        "  PageNavigator { y: 80; width: 220; height: 600; thumbnails: w.thumbnails\n"
+        "    pages: w.pages; documentController: w.documentController; commands: w.commands }\n"
+        "}",
+        QUrl(QStringLiteral("qrc:/tst_ui_classroomlock/NavWindow.qml")));
+    std::unique_ptr<QObject> navRoot(navComponent.createWithInitialProperties(
+        {{QStringLiteral("tabs"), QVariant::fromValue(&shownTabs)},
+         {QStringLiteral("commands"), QVariant::fromValue(f.commands.get())},
+         {QStringLiteral("pages"), QVariant::fromValue(&shownPages)},
+         {QStringLiteral("documentController"), QVariant::fromValue(&shown)},
+         {QStringLiteral("thumbnails"), QVariant::fromValue(&thumbnails)}}));
+    QVERIFY2(navRoot, qPrintable(navComponent.errorString()));
+    auto* navWindow = qobject_cast<QQuickWindow*>(navRoot.get());
+    QVERIFY(navWindow);
+    navWindow->requestActivate();
+    QVERIFY(QTest::qWaitForWindowActive(navWindow));
+    const auto navItem = [navWindow](const char* name) { return itemNamed(navWindow->contentItem(), name); };
+    QTRY_VERIFY(navItem("pageThumb2") && navItem("documentTab0") && navItem("pageThumb2")->height() > 0);
+    const auto centre = [](QQuickItem* target) {
+        return target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint();
+    };
+    const QPoint from = centre(navItem("pageThumb2"));
+    const QPoint to = centre(navItem("documentTab0"));
+    QVERIFY(f.lock->lock());
+    QTest::mousePress(navWindow, Qt::LeftButton, {}, from);
+    for (int step = 1; step <= 10; ++step) {
+        QTest::mouseMove(navWindow, from + (to - from) * step / 10);
+        QCoreApplication::processEvents();
+    }
+    QTest::mouseRelease(navWindow, Qt::LeftButton, {}, to);
+    QCoreApplication::processEvents();
+    QCOMPARE(shown.pageCount(), 3);
+    QCOMPARE(static_cast<int>(shown.document().page(0).objects.size()), 1); // ordre des pages inchangé
+    QVERIFY(!shownTabs.isModifiedAt(0));                                    // aucune page reçue
+    QVERIFY(f.unlock(kPassword));
 }
 
 // Amendement 1 : Commands::setEnabled compare à l'état propre (isOwnEnabled), pas à isEnabled, qui voit à
