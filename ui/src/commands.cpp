@@ -394,7 +394,9 @@ bool Commands::isEnabled(const QString& id) const
 
 void Commands::setEnabled(const QString& id, bool enabled)
 {
-    if (!m_registry.find(id) || m_registry.isEnabled(id) == enabled) {
+    // L'état propre, pas isEnabled() : celui-ci voit à travers le verrou ; une commande désactivée pendant
+    // le verrou resterait sinon active à sa levée (amendement 1).
+    if (!m_registry.find(id) || m_registry.isOwnEnabled(id) == enabled) {
         return;
     }
     m_registry.setEnabled(id, enabled);
@@ -427,6 +429,20 @@ void Commands::setLocked(bool locked)
 bool Commands::isLocked() const noexcept
 {
     return m_registry.isLocked();
+}
+
+int Commands::lockedCount() const
+{
+    if (!m_registry.isLocked()) {
+        return 0;
+    }
+    int count = 0;
+    for (const QString& id : m_registry.ids()) {
+        if (isAvailable(id) && m_registry.find(id)->lockable) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 } // namespace actcraft::ui

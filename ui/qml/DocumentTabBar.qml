@@ -7,7 +7,8 @@ import ActCraft.Ui
 // Le nom de l'onglet affiché est en gras ; un astérisque suit le titre d'un document modifié (le modèle ne le
 // porte pas). Le titre vient d'un fichier : texte brut, jamais interprété comme du balisage. Un onglet n'est
 // activé ni fermé pendant une lecture ou une écriture : le modèle refuse sans erreur. Déposer des pages sur un
-// onglet inactif les y copie (F-011, voir PageNavigator). Ctrl+Alt+N ouvre un onglet neuf.
+// onglet inactif les y copie (F-011, voir PageNavigator). Ctrl+Alt+N et « + » ouvrent un onglet neuf si le registre
+// le permet (file.new, verrouillable : le registre décide, verrou de classe compris, pas une garde QML).
 Item {
     id: root
     objectName: "documentTabBar"
@@ -34,10 +35,15 @@ Item {
         saveChanges.open()
     }
 
+    function newTab() {
+        if (root.commands.isEnabled("file.new"))
+            root.tabs.newTab()
+    }
+
     Shortcut {
         sequence: "Ctrl+Alt+N"
         context: Qt.ApplicationShortcut
-        onActivated: root.tabs.newTab()
+        onActivated: root.newTab()
     }
 
     Connections {
@@ -210,7 +216,7 @@ Item {
         }
         MouseArea {
             anchors.fill: parent
-            onClicked: root.tabs.newTab()
+            onClicked: root.newTab()
         }
     }
 }
