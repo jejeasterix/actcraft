@@ -7,6 +7,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
+#include <QImage>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlApplicationEngine>
@@ -16,6 +17,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QUrl>
 #include <QUuid>
 #include <QtQml/qqmlextensionplugin.h>
 
@@ -244,6 +246,77 @@ private slots:
         QVERIFY(remove);
         QVERIFY(QMetaObject::invokeMethod(remove, "clicked"));
         QTRY_COMPARE(bar->property("launcherCount").toInt(), 0);
+    }
+
+    // Le sélecteur de fichier rend une URL : la page la passe à Launchers::localPath (jamais de retrait de
+    // « file:// » à la main : un « %25 » resterait, et « C:/ » perdrait sa lettre).
+    void fileDialogGoesThroughLocalPath()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* tab = page(s, true);
+        QVERIFY(tab);
+        QObject* dialog = tab->findChild<QObject*>(QStringLiteral("launcherFileDialog"));
+        QObject* pathField = tab->findChild<QObject*>(QStringLiteral("launcherPathField"));
+        QVERIFY(dialog && pathField);
+        const QString path = m_work.filePath(QStringLiteral("50% programme.app"));
+        QFile program(path);
+        QVERIFY(program.open(QIODevice::WriteOnly)); // le sélecteur refuse un fichier absent
+        program.close();
+        QVERIFY(dialog->setProperty("selectedFile", QUrl::fromLocalFile(path)));
+        QVERIFY(QMetaObject::invokeMethod(dialog, "accepted"));
+        QCOMPARE(pathField->property("text").toString(), path);
+    }
+
+    // Menu des dossiers : « Renommer… » vise le dossier, même si un élément était choisi avant.
+    void folderMenuRenamesTheFolder()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString folder = dir.filePath(QStringLiteral("B"));
+        QVERIFY(QDir().mkpath(folder));
+        const QString photo = dir.filePath(QStringLiteral("photo.png"));
+        QVERIFY(QImage(8, 8, QImage::Format_RGB32).save(photo, "PNG"));
+        QObject* browser = named(s, "resourceBrowser");
+        QObject* menu = named(s, "folderMenu");
+        QObject* dialog = named(s, "nameDialog");
+        QVERIFY(browser && menu && dialog);
+        browser->setProperty("selectedPath", photo);
+        browser->setProperty("selectedFolder", folder);
+        QQuickItem* item = nullptr;
+        QVERIFY(QMetaObject::invokeMethod(menu, "itemAt", Q_RETURN_ARG(QQuickItem*, item), Q_ARG(int, 1)));
+        QVERIFY(item);
+        QCOMPARE(item->property("text").toString(), QStringLiteral("Renommer…"));
+        QVERIFY(QMetaObject::invokeMethod(item, "triggered"));
+        QCOMPARE(dialog->property("mode").toString(), QStringLiteral("rename"));
+        QCOMPARE(dialog->property("target").toString(), folder);
+    }
+
+    // Le tampon se coupe quand l'élément choisi est renommé (il n'existe plus sous ce chemin).
+    void stampStopsWhenTheChosenItemVanishes()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString photo = dir.filePath(QStringLiteral("photo.png"));
+        QVERIFY(QImage(8, 8, QImage::Format_RGB32).save(photo, "PNG"));
+        QObject* browser = named(s, "resourceBrowser");
+        QObject* library = named(s, "appResources");
+        QVERIFY(browser && library);
+        QVERIFY(QMetaObject::invokeMethod(library, "setOtherFolder",
+                                          Q_ARG(QUrl, QUrl::fromLocalFile(dir.path()))));
+        QTRY_COMPARE(library->property("itemCount").toInt(), 1);
+        browser->setProperty("selectedPath", photo);
+        QVERIFY(QMetaObject::invokeMethod(browser, "setStamping", Q_ARG(QVariant, true)));
+        QVERIFY(browser->property("stamping").toBool());
+        bool renamed = false;
+        QVERIFY(QMetaObject::invokeMethod(library, "rename", Q_RETURN_ARG(bool, renamed),
+                                          Q_ARG(QString, photo), Q_ARG(QString, QStringLiteral("autre"))));
+        QVERIFY(renamed);
+        QTRY_VERIFY(!browser->property("stamping").toBool());
     }
 
     // E3 : bouton d'édition en bas de la barre, caché si la palette est réduite ou la barre masquée.

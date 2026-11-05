@@ -149,7 +149,7 @@ Item {
         id: fileDialog
         objectName: "launcherFileDialog"
         title: qsTr("Choisir un programme ou un document")
-        onAccepted: pathField.text = selectedFile.toString().replace(/^file:\/\//, "")
+        onAccepted: pathField.text = launchers.localPath(selectedFile)
     }
 
     // Boîtes : une seule confirmation, une seule fenêtre de refus, dans la page de Main seulement.

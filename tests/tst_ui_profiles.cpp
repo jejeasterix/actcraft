@@ -5,6 +5,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -159,6 +160,61 @@ private slots:
         QCOMPARE(controller.currentId(), id);
         QVERIFY(!QFile::exists(layout));
         QVERIFY(!modified());
+    }
+    // L6-T5 : aucun accès disque pendant un contact. Activer un autre profil alors ne lit rien (ni profil,
+    // ni disposition) : le choix est reporté au relâché.
+    void activateDuringContactIsPostponed()
+    {
+        QTemporaryDir root;
+        ui::Commands commands;
+        ui::ProfileController controller(actions::ProfileStore(root.filePath(QStringLiteral("profiles")),
+                                                               QStringLiteral(":/actcraft/actions/profiles"),
+                                                               ui::ProfileController::builtinOrder()),
+                                         nullptr, &commands);
+        controller.start();
+        const QString left = controller.currentId();
+        const QString other = QStringLiteral("en-classe");
+        QVERIFY(left != other);
+        QSignalSpy changed(&controller, &ui::ProfileController::profileChanged);
+        controller.setContactActive(true);
+        QVERIFY(controller.activate(other));
+        QCOMPARE(controller.currentId(), left); // rien n'a été lu ni appliqué
+        QCOMPARE(changed.count(), 0);
+        controller.setContactActive(false);
+        QCOMPARE(controller.currentId(), other);
+        QVERIFY(changed.count() >= 1);
+        // La dernière demande l'emporte : reprendre le profil d'avant pendant un contact.
+        controller.setContactActive(true);
+        QVERIFY(controller.activate(left));
+        controller.setContactActive(false);
+        QCOMPARE(controller.currentId(), left);
+    }
+
+    // « Revenir à l'origine » pendant un contact : le rechargement du profil courant est reporté, jamais
+    // jeté. Sinon la mémoire garde les réglages personnels et l'enregistrement suivant les réécrit.
+    void resetDuringContactIsReloadedAtRelease()
+    {
+        QTemporaryDir root;
+        ui::Commands commands;
+        ui::ProfileController controller(actions::ProfileStore(root.filePath(QStringLiteral("profiles")),
+                                                               QStringLiteral(":/actcraft/actions/profiles"),
+                                                               ui::ProfileController::builtinOrder()),
+                                         nullptr, &commands);
+        controller.start();
+        const QString id = controller.currentId();
+        const QString original = controller.paletteDock();
+        controller.setPaletteDock(original == QStringLiteral("left") ? QStringLiteral("right")
+                                                                     : QStringLiteral("left"));
+        controller.saveNow();
+        QVERIFY(controller.store().hasUserCopy(id));
+        controller.setContactActive(true);
+        commands.trigger(QStringLiteral("profile.reset"));
+        QVERIFY(!controller.store().hasUserCopy(id));
+        controller.setContactActive(false);
+        QCOMPARE(controller.currentId(), id);
+        QCOMPARE(controller.paletteDock(), original);
+        controller.saveNow();
+        QVERIFY(!controller.store().hasUserCopy(id));
     }
 };
 

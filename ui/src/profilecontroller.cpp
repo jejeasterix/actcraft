@@ -158,11 +158,16 @@ bool ProfileController::activate(const QString& id)
         emit failed(tr("Identifiant de profil refusé : « %1 »").arg(id));
         return false;
     }
-    // Le profil quitté garde sa dernière modification : écrite tout de suite, mais jamais pendant un contact
-    // (mise de côté jusqu'au relâché).
-    if (!m_contactActive) {
-        saveNow();
+    // Aucun accès disque pendant un contact (lecture du profil et de la disposition comprises) : le choix est
+    // reporté au relâché, la dernière demande l'emporte. Activer le profil courant se garde aussi : « revenir
+    // à l'origine » le recharge depuis le disque.
+    if (m_contactActive) {
+        m_pendingActivation = id;
+        return true;
     }
+    m_pendingActivation.clear();
+    // Le profil quitté garde sa dernière modification, écrite tout de suite.
+    saveNow();
     // Version la plus récente : le profil courant s'il reste modifié, un profil mis de côté, sinon le disque.
     QString error;
     std::optional<actions::Profile> loaded;
@@ -723,8 +728,13 @@ void ProfileController::setContactActive(bool active)
     m_contactActive = active;
     if (active) {
         m_saveTimer.stop(); // aucune écriture pendant un contact
-    } else if (hasPendingWrite()) {
-        m_saveTimer.start(); // le relâché relance l'attente entière
+    } else {
+        if (!m_pendingActivation.isEmpty()) {
+            activate(std::exchange(m_pendingActivation, QString()));
+        }
+        if (hasPendingWrite()) {
+            m_saveTimer.start(); // le relâché relance l'attente entière
+        }
     }
     emit contactActiveChanged();
 }
