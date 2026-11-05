@@ -970,14 +970,17 @@ void Runner::checkPageFlash(BenchResult& out, ui::DocumentController& document)
             const int before = swaps;
             const QString command =
                 document.currentIndex() == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous");
+            m_fixed->setDecodeHeldForTesting(m_options.holdDecodeForTests); // fumée seulement (L6-C11)
             if (!runWindowCommand(m_window, command) ||
                 !waitFor([&swaps, before] { return swaps > before; }, 5000)) {
+                m_fixed->setDecodeHeldForTesting(false);
                 out.invalidReasons << QStringLiteral("error: page flash check: %1 not shown").arg(command);
                 failed = true;
                 break;
             }
             const bool decoding = !m_fixed->isReady();
             const QColor color = witness(m_window->grabWindow());
+            m_fixed->setDecodeHeldForTesting(false);
             if (decoding) {
                 ++kept;
                 if (!expected.isValid() || !color.isValid() ||
