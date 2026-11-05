@@ -794,6 +794,28 @@ private slots:
         QVERIFY(!recorder->swapNs().empty());
     }
 
+    // L6-C11 : en release hors écran, le décodage d'une page finit avant l'image suivante ; le contrôle de
+    // flash relève alors page-flash-unverified, qui n'est pas une erreur du parcours. La démonstration et ses
+    // contrôles de contenu se jouent quand même (sinon content-check-failed s'y ajoute à tort).
+    void onlyAnErrorSkipsTheDemo()
+    {
+        BenchResult r;
+        QVERIFY(!hasRunError(r));
+        r.invalidReasons << QStringLiteral("page-flash-unverified");
+        QVERIFY(!hasRunError(r));
+        r.invalidReasons << QStringLiteral("error: demo cache not ready at start");
+        QVERIFY(hasRunError(r));
+    }
+
+    // Relecture L6-C11 : une séquence d'entrées ratée reste une erreur du parcours ; la démonstration
+    // (jusqu'à ~45 s d'attentes bornées) est sautée comme avant hasRunError.
+    void sequenceMismatchSkipsTheDemo()
+    {
+        BenchResult r;
+        r.invalidReasons << sequenceMismatchReason(QStringLiteral("stroke"));
+        QVERIFY(hasRunError(r));
+    }
+
     // Chemin réel (Runner::run → runDemo) à 1366 × 768 (Dell 3510) : la démonstration recentre la vue sur ses
     // points contrôlés. Si runDemo se contentait de setZoom(1.0), la vue garderait le centre laissé par le
     // défilement (400 %, haut à gauche) et la sonde du témoin de trait sortirait de la fenêtre (« hors-image

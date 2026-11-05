@@ -796,7 +796,7 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
 
     const auto received = m_recorder->received();
     if (!sequenceMatchesPlan(inputs, received)) {
-        invalidReasons << QStringLiteral("sequence-mismatch in %1").arg(plan.name);
+        invalidReasons << sequenceMismatchReason(plan.name);
     }
     const bool hasMeasured =
         std::any_of(inputs.begin(), inputs.end(), [](const PlannedInput& in) { return in.measured; });
@@ -970,14 +970,17 @@ void Runner::checkPageFlash(BenchResult& out, ui::DocumentController& document)
             const int before = swaps;
             const QString command =
                 document.currentIndex() == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous");
+            m_fixed->setDecodeHeldForTesting(m_options.holdDecodeForTests); // fumée seulement (L6-C11)
             if (!runWindowCommand(m_window, command) ||
                 !waitFor([&swaps, before] { return swaps > before; }, 5000)) {
+                m_fixed->setDecodeHeldForTesting(false);
                 out.invalidReasons << QStringLiteral("error: page flash check: %1 not shown").arg(command);
                 failed = true;
                 break;
             }
             const bool decoding = !m_fixed->isReady();
             const QColor color = witness(m_window->grabWindow());
+            m_fixed->setDecodeHeldForTesting(false);
             if (decoding) {
                 ++kept;
                 if (!expected.isValid() || !color.isValid() ||
@@ -1050,6 +1053,7 @@ BenchResult Runner::run(QQuickWindow* window)
     m_thumbnails = m_window->findChild<ui::PageThumbnails*>(QStringLiteral("appThumbnails"));
     result.graphicsApi = apiName(m_window->rendererInterface()->graphicsApi());
     result.cache = m_view->cacheEnabled();
+    result.decodeHeldForTests = m_options.holdDecodeForTests;
     // Médiane d'un rendu continu : contrôle de cohérence de la période de référence (applyVerdict).
     result.refresh.measuredMedianNs = warmUp(2000 / durationDivisor(m_options.scenarioSet));
     const std::int64_t refreshPeriodNs = result.refresh.referenceNs;
@@ -1235,7 +1239,7 @@ BenchResult Runner::run(QQuickWindow* window)
             checkPageFlash(result, *document);
         }
     }
-    if (result.invalidReasons.isEmpty()) { // à ce stade, seules des erreurs y figurent
+    if (!hasRunError(result)) {
         runDemo(result);
     }
     result.renderLoop = m_recorder->renderLoop();

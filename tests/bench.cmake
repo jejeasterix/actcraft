@@ -51,12 +51,14 @@ actcraft_add_test(tst_bench_content
     LIBS ActCraft::bench)
 
 # Fumée du banc (décision 33) : sans actcraft_add_test pour le lancement, qui construit son propre exécutable.
+# Relecture L6-C11 : la fumée retient le décodage (--retenir-decodage), jamais valide pour la mesure : code 2
+# (MESURE INVALIDE) partout. tst_bench_result vérifie la mécanique : en release, decode-held-for-testing est la
+# seule raison d'invalidité ; en debug, build-not-release s'y ajoute.
+set(_bench_smoke_expected "2")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(_bench_smoke_expected "2")
-    set(_bench_smoke_valid 0)
+    set(_bench_smoke_release 0)
 else()
-    set(_bench_smoke_expected "0,1")
-    set(_bench_smoke_valid 1)
+    set(_bench_smoke_release 1)
 endif()
 set(_bench_smoke_json ${CMAKE_BINARY_DIR}/bench-smoke.json)
 
@@ -84,7 +86,7 @@ set_tests_properties(tst_bench_smoke PROPERTIES
 actcraft_add_test(tst_bench_result
     SOURCES tst_bench_result.cpp
     LIBS Qt6::Core)
-target_compile_definitions(tst_bench_result PRIVATE ACTCRAFT_EXPECT_VALID=${_bench_smoke_valid})
+target_compile_definitions(tst_bench_result PRIVATE ACTCRAFT_SMOKE_RELEASE=${_bench_smoke_release})
 set_tests_properties(tst_bench_result PROPERTIES
     FIXTURES_REQUIRED bench_smoke_json
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;ACTCRAFT_BENCH_SMOKE_JSON=${_bench_smoke_json}")
