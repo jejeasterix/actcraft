@@ -154,6 +154,7 @@ Item {
 
     // Boîtes : une seule confirmation, une seule fenêtre de refus, dans la page de Main seulement.
     Loader {
+        id: dialogsHost
         active: !root.embedded
         sourceComponent: Item {
             id: dialogs
@@ -243,7 +244,7 @@ Item {
     }
 
     function dialogsLoader() {
-        return root.children[root.children.length - 1].item
+        return dialogsHost.item
     }
 
     Connections {
