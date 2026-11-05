@@ -291,6 +291,14 @@ struct Harness
     {
         return plainOf(static_cast<std::size_t>(controller.currentIndex()), 0);
     }
+    // HTML enregistré du premier objet de la page affichée (vide s'il n'y en a pas).
+    QString htmlOfFirst() const
+    {
+        const core::Page& p = controller.document().page(static_cast<std::size_t>(controller.currentIndex()));
+        const auto* text =
+            p.objects.empty() ? nullptr : std::get_if<core::Text>(&core::body(p.objects.front()));
+        return text ? QString::fromStdString(text->html) : QString();
+    }
     qreal firstBlockTopMargin() const { return document()->begin().blockFormat().topMargin(); }
 };
 
@@ -452,6 +460,125 @@ private slots:
         // Q4a2-m7 : mots témoins distincts (« visible » contenait déjà le « b » d'avant).
         QVERIFY(plain.contains(QStringLiteral("cellule")));
         QVERIFY(plain.contains(QStringLiteral("fond")));
+    }
+
+    // L6-C15 : le document de l'éditeur est celui du TextEdit Qt Quick, qui décode les images (sans
+    // NoImageHandler) et choisit le décodeur sur le contenu : une image `data:` SVG du fichier y lirait les
+    // images qu'elle référence. Aucune n'y entre ; le texte autour reste. Texte rendu sans modification :
+    // l'objet revient tel quel, image comprise ; modifié, il est enregistré sans elle.
+    void editorDecodesNoDataImageFromTheFile()
+    {
+        const QByteArray svg =
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" "
+            "xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"40\" height=\"40\">"
+            "<image xlink:href=\"file://serveur/partage/x.png\" width=\"40\" height=\"40\"/>"
+            "</svg>";
+        const QString image =
+            QStringLiteral("data:image/svg+xml;base64,") + QString::fromLatin1(svg.toBase64());
+        const QString html = QStringLiteral("<p>avant<img src=\"") + image +
+                             QStringLiteral("\" width=\"40\" height=\"40\">après</p>");
+        Harness h;
+        h.addHtml(html, {200, 200, 300, 60});
+        const auto editorImages = [&h] {
+            int images = 0;
+            for (QTextBlock block = h.document()->begin(); block.isValid(); block = block.next()) {
+                for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                    images += it.fragment().charFormat().isImageFormat() ? 1 : 0;
+                }
+            }
+            return images;
+        };
+
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        QCOMPARE(editorImages(), 0);
+        QVERIFY(!h.document()->toHtml().contains(QLatin1String("data:")));
+        QCOMPARE(h.editing.plainText(), QStringLiteral("avantaprès"));
+        h.editing.commit();
+        QVERIFY(h.htmlOfFirst().contains(image));
+
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        QCOMPARE(editorImages(), 0);
+        h.typeChar(QLatin1Char('x'));
+        h.editing.commit();
+        QVERIFY(!h.htmlOfFirst().contains(QLatin1String("data:")));
+        QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("avantaprèsx"));
+    }
+
+    // L6-C15 essai 2 : un texte réduit à une image `data:` (seule, ou entre des blancs) laisse l'éditeur
+    // vide. Sans frappe, il n'est jamais supprimé : cadre intact, il revient tel quel et sans étape ; cadre
+    // déplacé, il reste sur la page.
+    void textWithOnlyADataImageIsNotDeletedWithoutTyping()
+    {
+        const QString image =
+            QStringLiteral("<img src=\"data:image/png;base64,iVBORw0KGgo=\" width=\"40\" height=\"40\">");
+        const QStringList variants = {QStringLiteral("<p>") + image + QStringLiteral("</p>"),
+                                      QStringLiteral("<p>  ") + image + QStringLiteral(" </p><p> </p>")};
+        for (const QString& html : variants) {
+            Harness h;
+            h.addHtml(html, {200, 200, 300, 60});
+            QVERIFY(h.editing.beginAt({210, 210}, false));
+            QVERIFY(h.editing.plainText().trimmed().isEmpty());
+            h.editing.commit();
+            QCOMPARE(h.controller.shownObjectCount(), 1);
+            QCOMPARE(h.htmlOfFirst(), html);
+            h.controller.undo();
+            QCOMPARE(h.controller.shownObjectCount(), 0); // seule étape : l'ajout
+        }
+        Harness h;
+        h.addHtml(variants.first(), {200, 200, 300, 60});
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        h.editing.moveFrame({30, 0});
+        h.editing.commit();
+        QCOMPARE(h.controller.shownObjectCount(), 1);
+        QCOMPARE(h.htmlOfFirst(), variants.first());
+    }
+
+    // L6-C15 essai 2 : cadre déplacé ou élargi sans frappe : l'objet garde son HTML d'origine, image `data:`
+    // comprise ; seule l'emprise change, en une étape que l'annulation défait.
+    void frameChangeWithoutTypingKeepsTheOriginalHtml()
+    {
+        const QString html = QStringLiteral(
+            "<p>avant<img src=\"data:image/png;base64,iVBORw0KGgo=\" width=\"40\" height=\"40\">après</p>");
+        const auto boundsOfFirst = [](const Harness& h) {
+            const core::Page& p =
+                h.controller.document().page(static_cast<std::size_t>(h.controller.currentIndex()));
+            const auto* text = std::get_if<core::Text>(&core::body(p.objects.front()));
+            return text ? text->bounds : core::RectF{};
+        };
+        for (const bool widen : {false, true}) {
+            Harness h;
+            h.addHtml(html, {200, 200, 300, 60});
+            QVERIFY(h.editing.beginAt({210, 210}, false));
+            if (widen) {
+                h.editing.setFrameWidth(360);
+            } else {
+                h.editing.moveFrame({30, 0});
+            }
+            h.editing.commit();
+            QCOMPARE(h.controller.shownObjectCount(), 1);
+            QCOMPARE(h.htmlOfFirst(), html);
+            QCOMPARE(boundsOfFirst(h).x, widen ? 200.0 : 230.0);
+            QCOMPARE(boundsOfFirst(h).width, widen ? 360.0 : 300.0);
+            h.controller.undo();
+            QCOMPARE(h.htmlOfFirst(), html);
+            QCOMPARE(boundsOfFirst(h).x, 200.0);
+            QCOMPARE(boundsOfFirst(h).width, 300.0);
+        }
+    }
+
+    // L6-C15 : la forme à deux arguments garde les images `data:`, pour les appelants dont le document ne
+    // décode aucune image (mesure de la ligne de base à l'ouverture, validation de l'éditeur), comme le
+    // peintre garde leur place. Les autres images restent retirées.
+    void safeTextHtmlKeepsDataImagesWithTwoArguments()
+    {
+        const QString data = QStringLiteral("data:image/png;base64,iVBORw0KGgo=");
+        const QString safe =
+            ui::safeTextHtml(QStringLiteral("<p>a<img src=\"") + data +
+                                 QStringLiteral("\" width=\"10\" height=\"10\">b<img "
+                                                "src=\"file://hote/x.png\" width=\"10\">c</p>"),
+                             {});
+        QVERIFY(safe.contains(data));
+        QVERIFY(!safe.contains(QLatin1String("hote/")));
     }
 
     // Enregistrer pendant l'édition (editAboutToApply) : le fichier relu contient le texte frappé.
