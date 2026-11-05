@@ -500,9 +500,11 @@ private slots:
         ticker->setLoop(false);
         QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(3 * pass + 3000));
         const qint64 took = clock.elapsed();
-        // Cadencé par XAnimator sur le fil de rendu, pas d'horloge injectable : du tiers au triple du
-        // passage. Un arrêt immédiat (300 ms) resterait sous la borne basse.
-        QVERIFY2(took >= pass / 3 && took <= 3 * pass,
+        // Cadencé par XAnimator sur le fil de rendu, dont l'horloge n'est pas injectable (setClock ne mesure
+        // que la pause) : borne basse au tiers (un arrêt immédiat, 300 ms, resterait dessous), borne haute à
+        // 7/4 du passage. Un passage de plus coûterait 2 * pass - 300 ms, au-dessus dès que pass > 1200 ms.
+        QVERIFY2(pass > 1200, qPrintable(QString::number(pass)));
+        QVERIFY2(took >= pass / 3 && took <= pass * 7 / 4,
                  qPrintable(QStringLiteral("%1 ms pour un passage de %2 ms").arg(took).arg(pass)));
     }
 
@@ -534,10 +536,10 @@ private slots:
         QVERIFY(newPass > oldPass + 2000);
         QTRY_VERIFY_WITH_TIMEOUT(!ticker->running(), static_cast<int>(3 * newPass + 3000));
         const qint64 took = clock.elapsed();
-        // Cadencé par XAnimator sur le fil de rendu, pas d'horloge injectable : borne haute au triple du
-        // passage nouveau. La borne basse reste à mi-chemin entre l'ancien passage et le nouveau : seul ce
+        // Cadencé par XAnimator sur le fil de rendu, dont l'horloge n'est pas injectable : borne haute à 7/4
+        // du passage nouveau. La borne basse reste à mi-chemin entre l'ancien passage et le nouveau : seul ce
         // seuil distingue une sortie à la nouvelle largeur d'une sortie à l'ancienne.
-        QVERIFY2(took >= (oldPass + newPass) / 2 && took <= 3 * newPass,
+        QVERIFY2(took >= (oldPass + newPass) / 2 && took <= newPass * 7 / 4,
                  qPrintable(QStringLiteral("%1 ms pour un passage de %2 ms (%3 avant)")
                                 .arg(took)
                                 .arg(newPass)
