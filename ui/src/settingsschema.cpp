@@ -109,7 +109,7 @@ QString translated(const char* text)
 }
 
 // Sections de F-930 des fonctions incluses (aucune section du vote). `network` : Windows seulement, éditée
-// par NetworkPage (L6-T28) ; `language` (L6-T36), `recordings` et `multimedia` (lot 8) : déclarées sans
+// par NetworkPage (L6-T28) ; `recordings` et `multimedia` (lot 8) : déclarées sans
 // réglage, masquées par SettingsPage.qml tant que leurs tâches ne les remplissent pas.
 const QList<Section>& sectionTable()
 {
@@ -178,6 +178,11 @@ const QList<Entry>& entryTable()
         integer("effects", "presentation/transition/duration",
                 QT_TRANSLATE_NOOP("SettingsSchema", "Durée de l'effet (dixièmes de seconde)"), 15, 5, 30,
                 kWorkstation),
+        // Langue (L6-T36) : clé de Preferences, appliquée au redémarrage ; défaut : la langue du système.
+        choice("language", "workstation/language", QT_TRANSLATE_NOOP("SettingsSchema", "Langue de l'interface"),
+               {{"", QT_TRANSLATE_NOOP("SettingsSchema", "Langue du système")},
+                {"fr", QT_TRANSLATE_NOOP("SettingsSchema", "Français")}},
+               kWorkstation),
         // Objets de la page.
         integer("objects", "centering-tolerance",
                 QT_TRANSLATE_NOOP("SettingsSchema", "Tolérance de centrage (pixels)"), 10, 0, 100),

@@ -352,8 +352,15 @@ qt_add_resources(actcraft_ui "ui_dictionaries"
     PREFIX "/actcraft"
     FILES ${ACTCRAFT_DICT_DIR}/fr.aff ${ACTCRAFT_DICT_DIR}/fr.dic)
 
-# Lot 6 : aide embarquée et traductions (talons, L6-T35 et L6-T36).
+# Lot 6 : aide embarquée (L6-T35).
 qt_add_resources(actcraft_ui "ui_lot6_data"
     PREFIX "/actcraft"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}
-    FILES help/index.html i18n/actcraft_fr.ts)
+    FILES help/index.html)
+
+# Traductions (D6-11, L6-T36) : le .ts (produit par lupdate, cible update_translations) devient un .qm dans les
+# ressources, sous /actcraft/i18n. Français livré : traduction identité.
+find_package(Qt6 6.12 REQUIRED COMPONENTS LinguistTools)
+qt_add_translations(actcraft_ui
+    TS_FILES i18n/actcraft_fr.ts
+    RESOURCE_PREFIX /actcraft/i18n)

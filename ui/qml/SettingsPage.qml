@@ -44,10 +44,27 @@ Item {
         function onChanged() { root.revision++ }
     }
 
+    // Langue (L6-T36) : le réglage s'applique au redémarrage ; un changement montre le message, rien n'est rechargé.
+    Language {
+        id: language
+        objectName: "language"
+        preferences: root.preferences
+    }
+
+    Label {
+        objectName: "restartMessage"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 8
+        visible: language.restartPending
+        wrapMode: Text.WordWrap
+        text: qsTr("La langue choisie sera appliquée au prochain démarrage d'ActCraft.")
+    }
+
     Component.onCompleted: {
-        // Talon L6 : rempli par L6-T36 (réglage de la langue).
         if (root.commands)
-            root.commands.setHandler("settings.language", function () { console.info("settings.language") })
+            root.commands.setHandler("settings.language", function (code) { language.change(code ? String(code) : "") })
     }
 
     RowLayout {

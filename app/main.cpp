@@ -2,6 +2,8 @@
 #include "startup.h"
 
 #include <actcraft/formats/urlio.h>
+#include <actcraft/ui/language.h>
+#include <actcraft/ui/preferences.h>
 #include <actcraft/ui/viewtransform.h>
 
 #include <QGuiApplication>
@@ -42,6 +44,13 @@ int main(int argc, char* argv[])
         return 2;
     }
     applyRenderBackend(backend);
+
+    // Langue (D6-11) : traducteur installé avant le chargement du QML. Le Preferences de la fenêtre est une
+    // instance QML ; celui-ci, temporaire, lit les mêmes réglages (QSettings par défaut).
+    {
+        actcraft::ui::Preferences preferences;
+        actcraft::ui::Language::install(app, preferences);
+    }
 
     QQmlApplicationEngine engine;
     QObject::connect(

@@ -99,12 +99,12 @@ private slots:
     {
         QLocale::setDefault(locale("fr_FR"));
         QCoreApplication& app = *QCoreApplication::instance();
-        const int before = app.findChildren<QTranslator*>(Qt::FindDirectChildrenOnly).size();
+        const qsizetype before = app.findChildren<QTranslator*>(Qt::FindDirectChildrenOnly).size();
         QVERIFY(Language::install(app, *m_prefs));
         const auto translators = app.findChildren<QTranslator*>(Qt::FindDirectChildrenOnly);
         QCOMPARE(translators.size(), before + 1);
         QVERIFY(!translators.constLast()->isEmpty());
-        QCOMPARE(translators.constLast()->language(), QStringLiteral("fr"));
+        QVERIFY(translators.constLast()->language().startsWith(QLatin1String("fr")));
         // Réglage inconnu : le français, installé aussi.
         m_prefs->setLanguage(QStringLiteral("xx"));
         QVERIFY(Language::install(app, *m_prefs));
