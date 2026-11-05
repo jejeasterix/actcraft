@@ -38,6 +38,14 @@ Item {
 
     Keys.onEscapePressed: root.close()
 
+    // Aucune lecture de vignette pendant un contact sur la page.
+    Binding {
+        target: root.recents
+        property: "contactActive"
+        value: root.view ? root.view.contactActive : false
+        when: root.recents !== null
+    }
+
     MouseArea {
         anchors.fill: parent
         onClicked: root.close()
@@ -143,9 +151,22 @@ Item {
                         radius: Theme.rayon
                         color: area.containsMouse ? Theme.surfaceSurvol : Theme.surface
                         border.color: Theme.contour
+                        Image {
+                            objectName: "recentThumbnail" + cell.index
+                            visible: status === Image.Ready
+                            anchors.top: parent.top
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.topMargin: Theme.espace2
+                            width: parent.width - 2 * Theme.espace2
+                            height: 70
+                            fillMode: Image.PreserveAspectFit
+                            source: cell.modelData.thumbnail
+                        }
                         Column {
-                            anchors.centerIn: parent
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: Theme.espace2
                             width: parent.width - 2 * Theme.espace3
+                            anchors.horizontalCenter: parent.horizontalCenter
                             spacing: Theme.espace2
                             Label {
                                 width: parent.width
