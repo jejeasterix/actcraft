@@ -235,6 +235,7 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 Tâche : L6-T23 — tableau d'accueil — depuis 2026-11-05
 Tâche : L6-T31 — mode classe protégé — depuis 2026-11-05
 Tâche : L6-T33 — orthographe II, vérificateur — depuis 2026-11-05
+Tâche : L6-T30 — raccourcis vers des programmes, interface — depuis 2026-11-05
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -281,6 +282,7 @@ Tâche : L6-T33 — orthographe II, vérificateur — depuis 2026-11-05
 | L6-T27 | terminée | 2/3 | 6765d848 → merge 42008ed9 | rejoué : 207/207, 0 avertissement, `tst_ui_settingsschema` 17 PASS, `tst_ui_profileeditor` 7 ; essai 2 : clés réelles du lot 7 (lues sur `feat/livraison-complete-b`), sections orthographe et profil, relecture après réinitialisation, page sans taille implicite ; supposé (PC, F-930) : haute qualité vraie par défaut ; `tools/ticker/message` non montré ; hors périmètre (porte de fin) : 12 réglages du profil sans lecteur |
 | L6-T31 | en cours | 2/3 | `.worktrees/livraison-complete--L6-T31` | V13 ; `concepteur-critique` ; essai 1 rejoué vert (207/207) ; essai 2 : 2 majeurs de revue (`relecture-L6-T31.md`), amendement 12 (voies hors registre, écho du banc) |
 | L6-T33 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T33` | V13 ; `implementeur-tdd` sonnet ; clés des règles fixées par L6-T27 (section `spelling`) |
+| L6-T30 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T30` | V13 ; `implementeur-tdd` sonnet ; amendement 13 : S20 sous Windows seulement (code 77 ailleurs), preuve S20 sur le PC |
 | L6-T32 | terminée | 1/3 | 8be10ff0 → merge 8bee7289 | rejoué : 207/207, 0 avertissement, `tst_core_spellcheck` lié à Hunspell (talon `SKIP` pour L6-T33) ; Hunspell 1.7.2 (MPL 1.1) et Grammalecte 7.7 (MPL 2.0), sommes SHA-256 au commit ; Android : CI de la PR de fin de lot (pas de NDK sur le Mac) ; PC : MSVC, installateur « Hunspell », `NOMS OK` |
 | L6-T19 | terminée | 2/3 | 69996590 → merge c9cf519d | fragment de ressource (chemin du presse-papiers, document neuf d'une page) ; essai 2 : majeur traité (`clearDanglingTargets` : action `OnObject` hors sélection remise à 0, `danglingActionTargetIsCleared` rouge sous mutation) et 4 mineurs ; rejeu : 207/207, 0 avertissement, `tst_formats_fragment` 9 fonctions `PASS`. Pour 3.8 : refus d'une ressource absente filtré sur le texte des avertissements « ressource … » (`nativejson.cpp:1957-1974`), le contrôle propre passerait par `forEachCitedKey` (privé à `clipboard.cpp`) ; `Resource::unknownKeys` perdu (comme le presse-papiers). Pour L6-T20 : `prepareInsertion` rend de vrais identifiants, `PasteObjectsCommand` attend des numéros provisoires |
 
