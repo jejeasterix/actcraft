@@ -1198,6 +1198,11 @@ du QML, `app/main.cpp` crée un `ui::Preferences` temporaire (même `QSettings` 
 pas du QML ; les lectures `-Lire "appPreferences.language=fr"` et `expect appPreferences.language` gardent
 l'`objectName`.
 
+> **Amendement 14 (orchestrateur, 2026-11-05) — L6-T36 et L6-T34.**
+> (a) L6-T36 peut toucher `ui/include/actcraft/ui/settingsschema.h`, `ui/src/settingsschema.cpp` et `tests/tst_ui_settingsschema.cpp`, pour la seule section `language` : un réglage `language` de type choix (traductions livrées), défaut « système ». Les tests existants restent verts.
+> (b) L6-T34 : le dictionnaire de l'utilisateur a un chemin fixe, `<AppDataLocation>/dictionnaire-utilisateur.txt`, sans clé de profil ni réglage montré.
+> (c) V14 se joue L6-T34 ‖ L6-T35, puis L6-T36 (dépendance de la table).
+
 <a id="tache-l6-t37"></a>
 ### Tâche L6-T37 — Contrôle du lot
 
