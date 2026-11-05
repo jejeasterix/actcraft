@@ -1203,6 +1203,8 @@ l'`objectName`.
 > (b) L6-T34 : le dictionnaire de l'utilisateur a un chemin fixe, `<AppDataLocation>/dictionnaire-utilisateur.txt`, sans clé de profil ni réglage montré.
 > (c) V14 se joue L6-T34 ‖ L6-T35, puis L6-T36 (dépendance de la table).
 
+> **Amendement 15 (orchestrateur, 2026-11-05) — L6-T34.** L6-T34 peut toucher `core/src/spellcheck.cpp` et `tests/tst_core_spellcheck.cpp` pour corriger le décalage de `SpellHit.start` sur un texte de l'éditeur (unités UTF-16 du texte brut, comme l'en-tête le promet), puis retirer son contournement dans `Spelling::highlightOf`.
+
 <a id="tache-l6-t37"></a>
 ### Tâche L6-T37 — Contrôle du lot
 
