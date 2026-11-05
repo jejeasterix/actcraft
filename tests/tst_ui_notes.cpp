@@ -3,10 +3,17 @@
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/notescontroller.h>
 
+#include <QByteArray>
+#include <QList>
 #include <QSignalSpy>
+#include <QStringList>
 #include <QTest>
+#include <QTextDocument>
+#include <QUrl>
+#include <QVariant>
 
 #include <memory>
+#include <string>
 #include <utility>
 
 using namespace actcraft;
@@ -16,6 +23,42 @@ class TstUiNotes : public QObject
     Q_OBJECT
 
 private:
+    // Bloquant 5 : toute demande de ressource qui échappe au document isolé. Un QTextDocument sans
+    // fournisseur propre consulte le fournisseur par défaut avant de lire le fichier
+    // (QTextDocument::resource) ; le document isolé (ui/src/textediting.cpp, AnalysisDocument) a le sien et
+    // n'y passe jamais.
+    struct ResourceSpy
+    {
+        QList<QUrl> requests;
+        ResourceSpy()
+        {
+            QTextDocument::setDefaultResourceProvider([this](const QUrl& url) {
+                requests.append(url);
+                return QVariant();
+            });
+        }
+        ~ResourceSpy() { QTextDocument::setDefaultResourceProvider({}); }
+        ResourceSpy(const ResourceSpy&) = delete;
+        ResourceSpy& operator=(const ResourceSpy&) = delete;
+        QByteArray seen() const
+        {
+            QStringList urls;
+            for (const QUrl& url : requests) {
+                urls.append(url.toString());
+            }
+            return urls.join(QLatin1Char(' ')).toUtf8();
+        }
+    };
+
+    // Notes d'un fichier reçu : feuille importée, images locale et distante, lien.
+    static std::string hostileNotes()
+    {
+        return "<style>@import url(file:///actcraft-absent/s.css);</style>"
+               "<p><b>Gras</b> texte <img src=\"file:///actcraft-absent/i.png\">"
+               "<img src=\"http://actcraft.invalid/i.png\"> <a "
+               "href=\"http://actcraft.invalid/\">lien</a></p>";
+    }
+
     // Document de deux pages ; sans notes. Page 1 affichée.
     struct Fixture
     {
@@ -133,6 +176,41 @@ private slots:
         f.document.undo();
         QVERIFY(!f.document.canUndo());
         QCOMPARE(f.notes.html(), QString());
+    }
+
+    // Bloquant (relecture du lot 6) : relire la page (refresh) et écrire (setHtml) ne chargent rien.
+    void openedNotesLoadNoResource()
+    {
+        ResourceSpy spy;
+        Fixture f;
+        f.document.execute(std::make_unique<core::SetPageNotesCommand>(0, hostileNotes()));
+        QVERIFY2(spy.requests.isEmpty(), spy.seen().constData());
+        QVERIFY(f.notes.hasNotes());
+        f.notes.setHtml(QString::fromStdString(hostileNotes()) + QStringLiteral("<p>x</p>"));
+        QVERIFY2(spy.requests.isEmpty(), spy.seen().constData());
+        QVERIFY(f.document.canUndo());
+    }
+
+    // L'éditeur QML (TextArea riche) chargerait lui-même les ressources : il ne reçoit que du HTML assaini,
+    // texte et mise en forme gardés ; le document garde les notes reçues tant que personne n'écrit.
+    void displayedNotesAreSanitized()
+    {
+        Fixture f;
+        f.document.execute(std::make_unique<core::SetPageNotesCommand>(0, hostileNotes()));
+        const QString shown = f.notes.html();
+        QVERIFY(shown.contains(QLatin1String("Gras")));
+        QVERIFY(shown.contains(QLatin1String("texte")));
+        QVERIFY(shown.contains(QLatin1String("lien")));
+        QVERIFY2(shown.contains(QLatin1String("font-weight:700")), qPrintable(shown));
+        QVERIFY2(!shown.contains(QLatin1String("actcraft-absent")), qPrintable(shown));
+        QVERIFY2(!shown.contains(QLatin1String("actcraft.invalid")), qPrintable(shown));
+        QVERIFY2(!shown.contains(QLatin1String("@import")), qPrintable(shown));
+        QVERIFY2(!shown.contains(QLatin1String("<img")), qPrintable(shown));
+        QCOMPARE(f.document.document().page(0).notes, hostileNotes());
+        QVERIFY(f.notes.hasNotes());
+        // Le texte montré, rendu tel quel par l'éditeur, n'est pas une frappe.
+        f.notes.setHtml(shown);
+        QCOMPARE(f.document.document().page(0).notes, hostileNotes());
     }
 };
 
