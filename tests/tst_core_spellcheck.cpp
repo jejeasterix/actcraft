@@ -3,6 +3,7 @@
 #include <actcraft/core/textedits.h>
 #include <actcraft/core/undo.h>
 
+#include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -228,6 +229,38 @@ private slots:
         // Le mot n'est plus à sa place : rien.
         Document other;
         QVERIFY(checker.replace(other, *hit, "monsieur") == nullptr);
+    }
+    // M2 : un mot à cheval sur deux mises en forme ; le remplacement garde les balises de l'intérieur du mot,
+    // aucune balise fermante ne disparaît et la suite du paragraphe garde sa mise en forme.
+    void replaceAcrossTagsKeepsTheTags()
+    {
+        Document d;
+        addText(d, 0, 1, "<p><b>mo</b>sieur la dame</p>");
+        SpellChecker checker(*m_engine, SpellRules{});
+        const auto hit = checker.next(d);
+        QVERIFY(hit);
+        QCOMPARE(hit->word, std::string("mosieur"));
+        auto command = checker.replace(d, *hit, "monsieur");
+        QVERIFY(command != nullptr);
+        UndoStack stack;
+        stack.push(d, std::move(command));
+        QCOMPARE(htmlOf(d, 0, 0), std::string("<p><b>monsieur</b> la dame</p>"));
+        QVERIFY(!checker.next(d));
+    }
+    // M1 : dictionnaire dans un dossier accentué (profil « C:\Users\Hélène » sous Windows) : il se charge, un
+    // mot juste n'est pas signalé. Le cas Windows réel se prouve sur le PC.
+    void dictionaryInAnAccentedFolderLoads()
+    {
+        const QString folder = m_dir.filePath(QStringLiteral("Hélène/dictionnaires"));
+        QVERIFY(QDir().mkpath(folder));
+        const QString aff = folder + QStringLiteral("/fr.aff");
+        const QString dic = folder + QStringLiteral("/fr.dic");
+        QVERIFY(QFile::copy(m_aff, aff));
+        QVERIFY(QFile::copy(m_dic, dic));
+        const std::unique_ptr<SpellEngine> engine = makeHunspellEngine(aff.toStdString(), dic.toStdString());
+        QVERIFY(engine != nullptr);
+        QVERIFY(engine->isCorrect("bonjour"));
+        QVERIFY(!engine->isCorrect("mosieur"));
     }
     // Amendement 15 : le HTML de l'éditeur (QTextDocument::toHtml) porte des retours à la ligne entre ses
     // balises ; ils ne comptent pas dans les positions (« mosieur » commence à 8, comme dans QTextDocument).
