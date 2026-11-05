@@ -1,10 +1,84 @@
+#include <actcraft/ui/helpviewer.h>
+
+#include <QFile>
+#include <QSignalSpy>
 #include <QtTest>
+
+using actcraft::ui::HelpViewer;
+
+namespace {
+const QUrl kIndex(QStringLiteral("qrc:/actcraft/help/index.html"));
+
+QString indexText()
+{
+    QFile file(QStringLiteral(":/actcraft/help/index.html"));
+    return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+}
+} // namespace
 
 class TstUiHelp : public QObject
 {
     Q_OBJECT
 private slots:
-    void reserved() { QSKIP("Talon L6 : rempli par L6-T35."); }
+    void indexLoads()
+    {
+        HelpViewer help;
+        help.openFor(QString());
+        QCOMPARE(help.source(), kIndex);
+        QVERIFY(help.html().contains(QStringLiteral("<h1>")));
+        QVERIFY(help.html().contains(QStringLiteral("mot de passe de la classe")));
+    }
+
+    void currentToolPageOrIndex()
+    {
+        HelpViewer help;
+        help.openFor(QStringLiteral("tool.pen")); // aucune page d'outil au lot 6 : l'index
+        QCOMPARE(help.source(), kIndex);
+        help.openFor(QStringLiteral("pen"));
+        QCOMPARE(help.source(), kIndex);
+        QVERIFY(!help.html().isEmpty());
+    }
+
+    void noNetworkUrl()
+    {
+        HelpViewer help;
+        help.openFor(QString());
+        QSignalSpy external(&help, &HelpViewer::externalLink);
+        QSignalSpy changed(&help, &HelpViewer::sourceChanged);
+        help.follow(QUrl(QStringLiteral("https://example.org/page")));
+        help.follow(QUrl(QStringLiteral("http://example.org/page")));
+        QCOMPARE(help.source(), kIndex);
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(external.count(), 2);
+        QCOMPARE(external.at(0).at(0).toUrl(), QUrl(QStringLiteral("https://example.org/page")));
+    }
+
+    void internalLinkFollows()
+    {
+        HelpViewer help;
+        help.openFor(QString());
+        QSignalSpy external(&help, &HelpViewer::externalLink);
+        const QUrl anchor(QStringLiteral("qrc:/actcraft/help/index.html#mot-de-passe-oublie"));
+        help.follow(anchor);
+        QCOMPARE(help.source(), anchor);
+        QVERIFY(!help.html().isEmpty());
+        // lien relatif à la page courante
+        help.follow(QUrl(QStringLiteral("index.html#sommaire")));
+        QCOMPARE(help.source(), QUrl(QStringLiteral("qrc:/actcraft/help/index.html#sommaire")));
+        // page absente : la page courante reste affichée
+        const QUrl before = help.source();
+        help.follow(QUrl(QStringLiteral("qrc:/actcraft/help/inexistante.html")));
+        QCOMPARE(help.source(), before);
+        QCOMPARE(external.count(), 0);
+    }
+
+    void textsAreOurs()
+    {
+        const QString text = indexText();
+        QVERIFY(!text.isEmpty());
+        for (const char* banned : {"ActivInspire", "Promethean", "ExpressPoll"})
+            QVERIFY2(!text.contains(QLatin1String(banned), Qt::CaseInsensitive), banned);
+    }
 };
 
 QTEST_MAIN(TstUiHelp)
