@@ -266,7 +266,8 @@ QString apiName(QSGRendererInterface::GraphicsApi api)
 
 bool hasRunError(const BenchResult& result)
 {
-    return !result.invalidReasons.isEmpty();
+    return std::any_of(result.invalidReasons.cbegin(), result.invalidReasons.cend(),
+                       [](const QString& reason) { return reason.startsWith(QLatin1String("error:")); });
 }
 
 bool contentCheckOk(const BenchResult& result)
