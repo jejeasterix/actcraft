@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 
 using namespace actcraft;
 using ui::Launchers;
@@ -80,6 +81,11 @@ private slots:
     void confirmationShowsPathAndArguments();
     void signatureIsUnambiguous();
     void batAndCmdRefused();
+    void unsafePathRefused();
+    void executableDocumentsRefused();
+    void documentTakesNoArguments();
+    void duplicateIdKeepsFirst();
+    void changedSinceRequestRunsNothing();
 
 private:
     QString witness(const QString& name = QStringLiteral("lance.txt")) const
@@ -147,6 +153,29 @@ private:
             {QStringLiteral("trusted"), true},
         });
         writeEntries(entries);
+    }
+    // Fichier qui existe et ne s'exécute pas : le lancement l'ouvrirait par QDesktopServices::openUrl.
+    QString document(const QString& name) const
+    {
+        const QString path = m_dir->filePath(name);
+        QFile file(path);
+        if (file.open(QIODevice::WriteOnly))
+            file.write("essai");
+        return path;
+    }
+    // Refusé avant toute confirmation : run rend kFailed avec un message, et une acceptation ne lance rien.
+    void expectRefused(const QString& id)
+    {
+        QVERIFY(!id.isEmpty()); // sinon « introuvable » passerait pour un refus
+        QSignalSpy failed(m_launchers.get(), &Launchers::failed);
+        QSignalSpy asked(m_launchers.get(), &Launchers::confirmationNeeded);
+        const int result = m_launchers->run(id);
+        QVERIFY2(result == Launchers::kFailed,
+                 qPrintable(QStringLiteral("%1 : run rend %2").arg(id).arg(result)));
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(!failed.at(0).at(0).toString().isEmpty());
+        QCOMPARE(asked.count(), 0);
+        QVERIFY(!m_launchers->confirm(id, true));
     }
 
     QString m_probe;
@@ -447,6 +476,139 @@ void TstUiLaunchers::batAndCmdRefused()
         QCOMPARE(asked.count(), 0);
         QVERIFY(!m_launchers->confirm(id, true));
     }
+}
+
+// Amendement 10 (a), le test qui distingue : le suffixe seul se contournait. `"C:\scripts\sauve.bat"` (copié
+// depuis l'Explorateur) se lit `bat"`, `t.bat<TAB>x` se lit `bat\tx`, `n.bat<NUL>.exe` se lit `exe` alors que la
+// ligne de commande de Windows s'arrête au NUL : chacun partirait par cmd.exe avec ses paramètres, et un guillemet
+// glisse dans la ligne des paramètres que la boîte ne montre pas. Sans la garde, venus d'un autre poste, ils
+// demanderaient confirmation au lieu d'être refusés.
+void TstUiLaunchers::unsafePathRefused()
+{
+    const QStringList arguments{QStringLiteral("&"), QStringLiteral("calc")};
+    const QList<std::pair<QString, QString>> paths{
+        {QStringLiteral("guillemets"), QStringLiteral(R"("C:\scripts\sauve.bat")")},
+        {QStringLiteral("parametres-caches"),
+         QStringLiteral(R"("C:\Windows\System32\msiexec.exe" /i http://x/y.msi /qn)")},
+        {QStringLiteral("tabulation"), QStringLiteral("C:/essai/t.bat\tx")},
+        {QStringLiteral("nul"), QStringLiteral("C:/essai/n.bat") + QChar(u'\0') + QStringLiteral(".exe")},
+        {QStringLiteral("suppression"), QStringLiteral("C:/essai/d.bat") + QChar(u'\x7f') + QStringLiteral(".exe")},
+        {QStringLiteral("inferieur"), QStringLiteral("C:/essai/a<b.exe")},
+        {QStringLiteral("superieur"), QStringLiteral("C:/essai/a>b.exe")},
+        {QStringLiteral("barre"), QStringLiteral("C:/essai/a|b.exe")},
+        {QStringLiteral("question"), QStringLiteral("C:/essai/a?.exe")},
+        {QStringLiteral("etoile"), QStringLiteral("C:/essai/*.exe")},
+    };
+    for (const auto& [id, path] : paths)
+        putForeign(id, path, arguments, QString());
+    // Signé sur ce poste, il est refusé de même : la garde précède la confiance.
+    const QString signedId = m_launchers->add(paths.constFirst().second, arguments, QStringLiteral("Sauvegarde"));
+    QVERIFY(!signedId.isEmpty());
+    expectRefused(signedId);
+    for (const auto& [id, path] : paths) {
+        if (QTest::currentTestFailed())
+            return;
+        expectRefused(id);
+    }
+}
+
+// Amendement 10 (b) : openUrl laisse Windows exécuter tout type associé (scripts, application HTML, raccourci
+// dont la boîte ne peut pas montrer la commande). Ces types sont refusés avant toute confirmation, casse ignorée,
+// après retrait des points et espaces finaux ; un document ordinaire demande seulement confirmation.
+void TstUiLaunchers::executableDocumentsRefused()
+{
+    QStringList names{QStringLiteral("script.vbs"), QStringLiteral("page.HTA"), QStringLiteral("raccourci.lnk"),
+                      QStringLiteral("script.ps1."), QStringLiteral("adresse.Url ")};
+    const QStringList types = QStringLiteral("bat cmd com scr pif vbs vbe js jse wsf wsh hta ps1 psm1 msi msp msc "
+                                             "cpl reg lnk url inf scf")
+                                  .split(QLatin1Char(' '));
+    for (const QString& type : types)
+        names << QStringLiteral("type.") + type;
+    QStringList ids;
+    for (const QString& name : std::as_const(names)) {
+        ids << QStringLiteral("document %1").arg(name);
+        putForeign(ids.constLast(), document(name), {}, QString());
+    }
+    ids << m_launchers->add(document(QStringLiteral("signe.vbs")), {}, QStringLiteral("Signé"));
+    for (const QString& id : std::as_const(ids)) {
+        if (QTest::currentTestFailed())
+            return;
+        expectRefused(id);
+    }
+    if (QTest::currentTestFailed())
+        return;
+
+    putForeign(QStringLiteral("notes"), document(QStringLiteral("notes.txt")), {}, QString());
+    QSignalSpy asked(m_launchers.get(), &Launchers::confirmationNeeded);
+    QCOMPARE(m_launchers->run(QStringLiteral("notes")), Launchers::kConfirmationNeeded);
+    QCOMPARE(asked.count(), 1);
+    QVERIFY(!m_launchers->confirm(QStringLiteral("notes"), false));
+}
+
+// Amendement 10 (c) : openUrl ne transmet aucun paramètre. Un document qui en porte est refusé avant la demande,
+// pour que la boîte ne montre jamais ce qui ne partira pas ; sans paramètre, il demande confirmation.
+void TstUiLaunchers::documentTakesNoArguments()
+{
+    const QString notes = document(QStringLiteral("notes.txt"));
+    putForeign(QStringLiteral("avec"), notes, {QStringLiteral("/p")}, QString());
+    expectRefused(QStringLiteral("avec"));
+    if (QTest::currentTestFailed())
+        return;
+    expectRefused(m_launchers->add(notes, {QStringLiteral("/p")}, QStringLiteral("Notes")));
+    if (QTest::currentTestFailed())
+        return;
+
+    putForeign(QStringLiteral("sans"), notes, {}, QString());
+    QSignalSpy asked(m_launchers.get(), &Launchers::confirmationNeeded);
+    QCOMPARE(m_launchers->run(QStringLiteral("sans")), Launchers::kConfirmationNeeded);
+    QCOMPARE(asked.count(), 1);
+    QCOMPARE(asked.at(0).at(1).toString(), notes);
+    QVERIFY(asked.at(0).at(2).toStringList().isEmpty());
+    QVERIFY(!m_launchers->confirm(QStringLiteral("sans"), false));
+}
+
+// Amendement 10 (d) : un identifiant en double (profil retouché ou réimporté) ne montre que la première entrée,
+// celle que run lance : l'info-bulle d'une seconde entrée ne couvre pas le lancement de la première.
+void TstUiLaunchers::duplicateIdKeepsFirst()
+{
+    const QString id = QStringLiteral("double");
+    const QString first = witness(QStringLiteral("premier.txt"));
+    const QString second = witness(QStringLiteral("second.txt"));
+    putForeign(id, m_probe, {first}, QStringLiteral("Premier"));
+    putForeign(id, m_probe, {second}, QStringLiteral("Calculatrice"));
+    QCOMPARE(storedEntries().size(), 2);
+    QCOMPARE(m_launchers->entries().size(), 1);
+    QCOMPARE(entryAt(0).value(QStringLiteral("toolTip")).toString(), QStringLiteral("Premier"));
+    QCOMPARE(entryAt(0).value(QStringLiteral("arguments")).toStringList(), QStringList{first});
+
+    QSignalSpy asked(m_launchers.get(), &Launchers::confirmationNeeded);
+    QCOMPARE(m_launchers->run(id), Launchers::kConfirmationNeeded);
+    QCOMPARE(asked.count(), 1);
+    QCOMPARE(asked.at(0).at(2).toStringList(), QStringList{first});
+    QVERIFY(m_launchers->confirm(id, true));
+    QTRY_COMPARE_WITH_TIMEOUT(readFile(first), QByteArrayLiteral("lance"), kLaunchWaitMs);
+    QVERIFY(!QFile::exists(second));
+    // Signée à nouveau (avec trousseau), la première seule : la seconde reste écartée.
+    QCOMPARE(m_launchers->entries().size(), 1);
+    QCOMPARE(entryAt(0).value(QStringLiteral("trusted")).toBool(), SecretStore::available());
+}
+
+// Garde de confirm : ce qui part est ce qui a été montré. Retouché entre la demande et l'acceptation, le
+// raccourci ne part ni sous la forme montrée ni sous la nouvelle.
+void TstUiLaunchers::changedSinceRequestRunsNothing()
+{
+    const QString id = QStringLiteral("etranger");
+    putForeign(id, m_probe, {witness()}, QStringLiteral("Étranger"));
+    QCOMPARE(m_launchers->run(id), Launchers::kConfirmationNeeded);
+    const QString other = witness(QStringLiteral("autre.txt"));
+    editStored(id, QStringLiteral("arguments"), QJsonArray{other});
+    QSignalSpy failed(m_launchers.get(), &Launchers::failed);
+    QVERIFY(!m_launchers->confirm(id, true));
+    QCOMPARE(failed.count(), 1);
+    QVERIFY(stayedQuiet(witness()));
+    QVERIFY(!QFile::exists(other));
+    // La demande est consommée : une seconde acceptation ne lance rien.
+    QVERIFY(!m_launchers->confirm(id, true));
 }
 
 QTEST_MAIN(TstUiLaunchers)
