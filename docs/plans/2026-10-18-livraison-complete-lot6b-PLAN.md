@@ -915,6 +915,8 @@ de L6-T29 se lie de même à `root.<propriété>`) ; gestionnaires `launcher.*` 
 ni `appProfile` ni `appCommands`. Les lectures `launcherButton0.toolTip` et `shortcutBar.launcherCount` gardent
 l'`objectName`.
 
+**Amendement 13 (L6-T30, 2026-11-05).** Les commandes `launcher.*` n'existent que sous Windows, et le trousseau aussi : S20 ne peut passer que sous Windows. Fichiers élargis : `bench/captures/main.cpp`, `tests/bench.cmake`. Un scénario peut déclarer `"platforms": ["windows"]` ; ailleurs, le lanceur de captures écrit `SCENARIO HORS PLATEFORME` et sort avec le code 77, et les scénarios de la boucle du lot 6 (`tests/bench.cmake`) prennent `SKIP_RETURN_CODE 77`, comme `tst_flipchart_miniatures_samples`. `raccourcis-programmes.json` le déclare. Sur le Mac, `tst_captures_raccourcis_programmes` est donc « Skipped » (N inchangé) ; la preuve S20 se fait par `captures.ps1` sur le PC. Les parties QML qui ne dépendent pas de Windows (onglet d'édition, boîte de confirmation) se prouvent sur le Mac par un test QML.
+
 <a id="tache-l6-t31"></a>
 ### Tâche L6-T31 — Mode classe protégé (F-298) ; scénario S19
 
