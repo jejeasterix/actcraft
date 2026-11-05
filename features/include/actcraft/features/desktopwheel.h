@@ -16,12 +16,6 @@ struct WheelEntry
     QString command; // vide pour un anneau secondaire
     QString label;
     std::vector<WheelEntry> ring;
-    // Outil qui s'ouvre dans la fenêtre principale (panneaux de l'horloge, des dés et de la calculatrice,
-    // message défilant et son dialogue) : l'entrée la rend d'abord, sinon il s'ouvrirait dans la fenêtre
-    // réduite, invisible. ÉCART À L'ORIGINAL (hypothèse H-M8, à revoir à la porte de clôture) : l'original
-    // montre ces outils sur le bureau, sa fenêtre restant cachée ; les y montrer demanderait une fenêtre
-    // propre à chacun.
-    bool opensInTheMainWindow = false;
 };
 
 std::vector<WheelEntry> defaultWheel();

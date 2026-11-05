@@ -182,6 +182,7 @@ bool CommandRegistry::loadDeclarations(const QByteArray& json, QString& error)
             return false;
         }
         info.argumentOptional = o.value(QStringLiteral("optional")).toBool(false);
+        info.opensInMainWindow = o.value(QStringLiteral("mainWindow")).toBool(false);
         if (info.argumentOptional && info.argument == ArgumentKind::None) {
             error = where + QStringLiteral(" : argument facultatif sans argument déclaré");
             return false;

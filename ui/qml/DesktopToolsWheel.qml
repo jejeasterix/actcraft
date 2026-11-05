@@ -44,7 +44,7 @@ Window {
         }
     }
 
-    // entry : {command, restoresMain, …} (DesktopController::wheelEntries).
+    // entry : {command, …} (DesktopController::wheelEntries).
     function trigger(entry) {
         if (!entry || entry.command === "") {
             return
@@ -53,17 +53,8 @@ Window {
         if (!root.commands) {
             return
         }
-        // Écart à l'original (H-M8, voir features::WheelEntry::opensInTheMainWindow) : un outil de la fenêtre
-        // principale la rend d'abord, sinon il s'ouvrirait dans la fenêtre réduite, invisible. Pendant
-        // l'annotation, cette fenêtre n'est que la palette (seule la palette reste devant) : l'annotation se
-        // ferme d'abord (son paperboard est gardé), et desktop.restore rend l'état d'avant l'annotation (M5),
-        // assez grand pour l'outil (Ma1).
-        if (entry.restoresMain) {
-            if (root.controller && root.controller.annotating) {
-                root.commands.trigger("desktop.annotate")
-            }
-            root.commands.trigger("desktop.restore")
-        }
+        // Un outil de la fenêtre principale la rend lui-même (DesktopController::makeRoomForMainWindowTool,
+        // H-M8), par ce chemin comme par tous les autres.
         root.commands.trigger(entry.command)
     }
 

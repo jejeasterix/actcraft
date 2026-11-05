@@ -401,6 +401,25 @@ private slots:
             error));
         QVERIFY2(error.contains(QStringLiteral("facultatif")), qPrintable(error));
     }
+
+    // Ma1 (tour 2 de relecture du lot 7) : « mainWindow » déclare une commande qui ouvre un panneau de la
+    // fenêtre principale ; absente, faux. Le fichier par défaut la pose sur l'horloge. Mutant : clé non lue.
+    void mainWindowFlag()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY2(r.loadDeclarations(R"({"format":"actcraft-commands/1","commands":[
+            {"id":"tool.clock","label":"Horloge","mainWindow":true},
+            {"id":"tool.pen","label":"Stylo"}]})",
+                                    error),
+                 qPrintable(error));
+        QVERIFY(r.find(QStringLiteral("tool.clock"))->opensInMainWindow);
+        QVERIFY(!r.find(QStringLiteral("tool.pen"))->opensInMainWindow);
+        CommandRegistry defaults;
+        QVERIFY2(defaults.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        QVERIFY(defaults.find(QStringLiteral("tool.clock"))->opensInMainWindow);
+        QVERIFY(!defaults.find(QStringLiteral("tool.pen"))->opensInMainWindow);
+    }
 };
 
 QTEST_GUILESS_MAIN(TstActionsRegistry)

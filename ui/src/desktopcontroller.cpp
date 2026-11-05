@@ -330,6 +330,36 @@ bool DesktopController::toolsShown() const noexcept
     return m_toolsShown;
 }
 
+Commands* DesktopController::commands() const noexcept
+{
+    return m_commands.data();
+}
+
+void DesktopController::setCommands(Commands* commands)
+{
+    if (m_commands == commands) {
+        return;
+    }
+    if (m_commands) {
+        m_commands->disconnect(this);
+    }
+    m_commands = commands;
+    if (m_commands) {
+        connect(m_commands, &Commands::mainWindowNeeded, this, &DesktopController::makeRoomForMainWindowTool);
+    }
+    emit commandsChanged();
+}
+
+void DesktopController::makeRoomForMainWindowTool()
+{
+    if (m_annotating) {
+        setAnnotating(false); // roue ouverte : releaseMainFront prépare le retour de restore
+    }
+    if (m_toolsShown) {
+        restore();
+    }
+}
+
 void DesktopController::setToolsShown(bool shown)
 {
     if (m_toolsShown == shown) {
@@ -478,7 +508,6 @@ QVariantList DesktopController::wheelEntries(double radius, double ringRadius) c
             entry.insert(QStringLiteral("label"), entries[i].label);
             entry.insert(QStringLiteral("x"), positions[i].x());
             entry.insert(QStringLiteral("y"), positions[i].y());
-            entry.insert(QStringLiteral("restoresMain"), entries[i].opensInTheMainWindow); // H-M8
             entry.insert(QStringLiteral("ring"), self(entries[i].ring, ringR, ringR, self));
             list.push_back(entry);
         }

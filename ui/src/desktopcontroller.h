@@ -1,5 +1,6 @@
 #pragma once
 
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QImage>
@@ -57,6 +58,7 @@ class DesktopController : public QObject
     Q_PROPERTY(bool liveDesktopBackground READ liveDesktopBackground NOTIFY liveDesktopBackgroundChanged)
     Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
     Q_PROPERTY(bool toolsShown READ toolsShown NOTIFY toolsShownChanged)
+    Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY commandsChanged)
 
 public:
     // Image du bureau ; par défaut, l'écran principal (QScreen::grabWindow). Les tests en injectent une.
@@ -81,6 +83,9 @@ public:
     QQuickWindow* mainWindow() const noexcept;
     void setMainWindow(QQuickWindow* window);
     bool toolsShown() const noexcept;
+    // Registre suivi : avant toute commande « mainWindow », makeRoomForMainWindowTool (Ma1, H-M8).
+    Commands* commands() const noexcept;
+    void setCommands(Commands* commands);
 
     void setCaptureSource(CaptureSource source);
     // La source en place (par défaut, celle de production) : un test l'enveloppe pour la mesurer (M4).
@@ -111,6 +116,7 @@ public:
 
 signals:
     void mainWindowChanged();
+    void commandsChanged();
     void toolsShownChanged();
     void annotatingChanged();
     void passThroughChanged();
@@ -138,6 +144,16 @@ private:
     QRect paletteRect() const; // emprise de la palette à l'écran (avec la barre du haut), nulle sans palette
     void setToolsShown(bool shown);
     void onMainVisibilityChanged();
+    // Ma1 (tour 2 de relecture du lot 7) : avant toute commande qui ouvre un panneau de la fenêtre principale
+    // (CommandInfo::opensInMainWindow : horloge, dés, calculatrice, message défilant, effets de page, éditeur
+    // d'équation), quel que soit son chemin. Pendant l'annotation, cette fenêtre n'est que la palette
+    // (keepMainInFront) : l'annotation se ferme (son paperboard est gardé) et la fenêtre reprend son état
+    // d'avant (releaseMainFront) ; réduite par la roue, elle est rendue (restore, M5). Le panneau s'ouvre
+    // alors entier. ÉCART À L'ORIGINAL (hypothèse H-M8, à revoir à la porte de clôture) : l'original montre
+    // ces outils sur le bureau, sa fenêtre restant cachée, et choisir l'un d'eux ne ferme pas l'annotation ;
+    // ici, ce sont des éléments de la fenêtre principale : les montrer sur le bureau demanderait une fenêtre
+    // propre à chacun.
+    void makeRoomForMainWindowTool();
 
     DocumentController* m_desktop = nullptr; // enfant : vit autant que le contrôleur
     QPointer<DocumentController> m_open;
@@ -147,6 +163,7 @@ private:
     bool m_passThrough = false;
     bool m_live = false;
     QPointer<QQuickWindow> m_main;
+    QPointer<Commands> m_commands;
     bool m_toolsShown = false;
     // Fenêtre principale avant l'annotation : visibilité, géométrie normale et drapeaux, rendus à la
     // fermeture.

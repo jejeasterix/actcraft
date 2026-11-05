@@ -24,6 +24,7 @@ Item {
         id: desktopController
         objectName: "desktopController"
         openDocument: root.documentController
+        commands: root.commands // Ma1 : rend la fenêtre principale avant un outil qui s'y ouvre
         windowComponent: annotationWindow
         // Fenêtre principale : réduite par desktop.tools, gardée devant l'annotation.
         mainWindow: root.pageArea ? root.pageArea.Window.window : null

@@ -83,6 +83,10 @@ signals:
     void layoutChanged();
     void stateChanged();
     void triggered(const QString& id, const QVariant& argument);
+    // Juste avant le gestionnaire d'une commande « mainWindow » (CommandInfo::opensInMainWindow), quel que
+    // soit le chemin (menu, palette, raccourci, roue, trigger direct) : la fenêtre principale doit être
+    // rendue.
+    void mainWindowNeeded(const QString& id);
 
 private:
     // Éléments d'un menu : `submenus` nul = pas de sous-menu possible (sous-menu lui-même, menu contextuel).

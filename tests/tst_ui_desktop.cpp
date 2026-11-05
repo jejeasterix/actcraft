@@ -986,9 +986,12 @@ private slots:
     // M4 (relecture du lot 7) : la capture n'endort pas le fil principal. La commande rend la main aussitôt,
     // nos fenêtres masquées ; la saisie vient après le délai, puis le fond est posé et les fenêtres
     // reviennent ; une seconde demande pendant ce temps est refusée. La source de production est enveloppée,
-    // pas remplacée : elle tourne sur le fil principal et sa durée y est mesurée, bien sous le délai de 250
-    // ms (mineur du tour 2 : remplacée, un sommeil remis dans grabPrimaryScreen, lieu du défaut M4, passait).
-    // Mutants : saisie dans la commande même ; QThread::msleep(250) remis dans grabPrimaryScreen.
+    // pas remplacée (mineur du tour 2 : remplacée, un sommeil remis dans grabPrimaryScreen passait). Deux
+    // durées du fil principal sont mesurées, chacune sous le délai de 250 ms qu'un sommeil du défaut M4
+    // dépasse : la commande (captureBackground, hideOurWindows : mineur de la relecture de l'essai 1) et la
+    // fin de la capture, de l'entrée dans la source à backgroundCaptured (grabPrimaryScreen,
+    // showOurWindows). Mutants : saisie dans la commande même ; QThread::msleep(250) remis dans
+    // grabPrimaryScreen, puis dans hideOurWindows.
     void captureDoesNotBlockTheMainThread()
     {
         MainWindow main;
@@ -1000,17 +1003,21 @@ private slots:
         const DesktopController::CaptureSource screen = desktop->captureSource();
         QVERIFY(screen);
         int calls = 0;
-        qint64 screenMs = -1;
-        desktop->setCaptureSource([&calls, &screen, &screenMs] {
+        QElapsedTimer finishing;
+        desktop->setCaptureSource([&calls, &screen, &finishing] {
             ++calls;
-            QElapsedTimer clock;
-            clock.start();
+            finishing.start();
             static_cast<void>(screen()); // l'image d'un écran hors écran ne sert pas : seule sa durée compte
-            screenMs = clock.elapsed();
             return fakeDesktop();
         });
+        qint64 finishMs = -1;
+        connect(desktop, &DesktopController::backgroundCaptured, this,
+                [&finishing, &finishMs] { finishMs = finishing.elapsed(); });
         QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
+        QElapsedTimer running;
+        running.start();
         QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        const qint64 runMs = running.elapsed();
         QCOMPARE(calls, 0);
         QVERIFY(!main.window()->isVisible());
         QVERIFY(shownPage(*open).background.image.empty());
@@ -1019,8 +1026,9 @@ private slots:
         QCOMPARE(finished.count(), 1);
         QVERIFY(finished.first().at(0).toBool());
         QCOMPARE(calls, 1);
-        // La saisie de production n'endort pas le fil principal : moitié du délai d'affichage au plus.
-        QVERIFY2(screenMs >= 0 && screenMs < 125, qPrintable(QString::number(screenMs)));
+        // Ni la commande ni la fin de la capture n'endorment le fil principal (sous le délai de 250 ms).
+        QVERIFY2(runMs < 200, qPrintable(QStringLiteral("commande : %1 ms").arg(runMs)));
+        QVERIFY2(finishMs >= 0 && finishMs < 200, qPrintable(QStringLiteral("fin : %1 ms").arg(finishMs)));
         QVERIFY(main.window()->isVisible());
         QVERIFY(!shownPage(*open).background.image.empty());
     }
