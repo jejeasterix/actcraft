@@ -1592,17 +1592,24 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return true;
     }
     case UiStepKind::WaitReady: {
-        // L6-C11 : prêt = page et cache prêts ET une image rendue depuis l'étape. Les dispositions de Qt
-        // Quick (palette ancrée, panneau ouvert) ne s'appliquent qu'au polissage d'une image ; en release,
-        // page et cache sont souvent déjà prêts et le stylet suivant visait une disposition jamais affichée.
-        // Une fenêtre non exposée ne rend pas d'image : page et cache seuls.
-        int swaps = 0;
-        const auto counter =
-            QObject::connect(m_window, &QQuickWindow::frameSwapped, m_window, [&swaps] { ++swaps; });
+        // L6-C11 : prêt = page et cache prêts ET une synchronisation commencée depuis l'étape. Les
+        // dispositions de Qt Quick (palette ancrée, panneau ouvert) ne s'appliquent qu'au polissage, juste
+        // avant la synchronisation d'une image ; en release, page et cache sont souvent déjà prêts et le
+        // stylet suivant visait une disposition jamais polie. beforeSynchronizing plutôt que frameSwapped :
+        // le fil principal (le nôtre) est bloqué pendant toute synchronisation, donc celle vue après la
+        // connexion suit un polissage postérieur à l'étape, même en boucle threadée ; un frameSwapped peut
+        // venir d'une image déjà en vol. Compteur partagé et connexion directe (fil de rendu), comme
+        // watchEventLoop : rien n'écrit sur la pile après le retour. Une fenêtre non exposée ne rend pas
+        // d'image : page et cache seuls.
+        auto synced = std::make_shared<std::atomic<bool>>(false);
+        const QMetaObject::Connection connection = QObject::connect(
+            m_window, &QQuickWindow::beforeSynchronizing, m_window, [synced] { synced->store(true); },
+            Qt::DirectConnection);
         m_window->update();
-        const bool ok = waitUntil(
-            [this, &swaps] { return (swaps > 0 || !m_window->isExposed()) && isReady(); }, kReadyTimeoutMs);
-        QObject::disconnect(counter);
+        const bool ok =
+            waitUntil([this, &synced] { return (synced->load() || !m_window->isExposed()) && isReady(); },
+                      kReadyTimeoutMs);
+        QObject::disconnect(connection);
         report << (ok ? QStringLiteral("PRET OK")
                       : QStringLiteral("PRET ECHEC (page, cache ou image pas prêts après 10 s)"));
         return ok;

@@ -34,6 +34,9 @@ void applyVerdict(BenchResult& r, const Budget& b)
         r.machine.buildType != QLatin1String("Release")) {
         addReason(r, QStringLiteral("build-not-release"));
     }
+    if (r.decodeHeldForTests) {
+        addReason(r, QStringLiteral("decode-held-for-testing")); // fumée : la sonde de flash est forcée
+    }
     // Rendu matériel : synchronisation verticale attendue, mémoire graphique lisible (décision 26). Le rendu
     // logiciel est informatif (N1-3) : ni l'une ni l'autre.
     const bool hardware = !r.scenarios.empty() && r.graphicsApi != QLatin1String("software");

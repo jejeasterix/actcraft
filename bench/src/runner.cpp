@@ -1053,6 +1053,7 @@ BenchResult Runner::run(QQuickWindow* window)
     m_thumbnails = m_window->findChild<ui::PageThumbnails*>(QStringLiteral("appThumbnails"));
     result.graphicsApi = apiName(m_window->rendererInterface()->graphicsApi());
     result.cache = m_view->cacheEnabled();
+    result.decodeHeldForTests = m_options.holdDecodeForTests;
     // Médiane d'un rendu continu : contrôle de cohérence de la période de référence (applyVerdict).
     result.refresh.measuredMedianNs = warmUp(2000 / durationDivisor(m_options.scenarioSet));
     const std::int64_t refreshPeriodNs = result.refresh.referenceNs;

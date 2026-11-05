@@ -177,6 +177,7 @@ struct BenchResult
     QString renderLoop;
     QString gpuName;
     bool cache = true;
+    bool decodeHeldForTests = false; // --retenir-decodage (L6-C11) : jamais valide pour la mesure
     QString scenarioSet;
     QString windowMode;
     QSize windowSize;

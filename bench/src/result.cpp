@@ -272,7 +272,7 @@ bool hasRunError(const BenchResult& result)
 
 QString sequenceMismatchReason(const QString& plan)
 {
-    return QStringLiteral("sequence-mismatch in %1").arg(plan);
+    return QStringLiteral("error: sequence-mismatch in %1").arg(plan);
 }
 
 bool contentCheckOk(const BenchResult& result)
@@ -361,6 +361,7 @@ QJsonObject toJson(const BenchResult& r)
         {"started_at", r.startedAt.toString(Qt::ISODate)},
         {"graphics_api", r.graphicsApi},
         {"cache", r.cache},
+        {"decode_held_for_testing", r.decodeHeldForTests},
         {"valid_for_measurement", r.valid},
         {"within_budget", r.withinBudget},
         {"informative", r.informative},
