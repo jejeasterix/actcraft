@@ -200,6 +200,11 @@ actcraft_add_test(tst_ui_network
 actcraft_add_test(tst_ui_launchers
     SOURCES tst_ui_launchers.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+# L6-T30
+actcraft_add_test(tst_ui_launcherspage
+    SOURCES tst_ui_launcherspage.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+add_dependencies(tst_ui_launcherspage launcher_probe)
 # L6-T31
 actcraft_add_test(tst_ui_classroomlock
     SOURCES tst_ui_classroomlock.cpp
