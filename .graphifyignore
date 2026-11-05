@@ -10,3 +10,4 @@ bench/results/
 
 # Code tiers vendu.
 third_party/
+build-mac/
