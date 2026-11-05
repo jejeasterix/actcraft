@@ -42,7 +42,8 @@ QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions
 {
     engine.setInitialProperties({{QStringLiteral("cacheEnabled"), options.cacheEnabled},
                                  {QStringLiteral("generatedPage"), options.generatedPage},
-                                 {QStringLiteral("profileRoot"), options.profileRoot}});
+                                 {QStringLiteral("profileRoot"), options.profileRoot},
+                                 {QStringLiteral("showDashboard"), options.showDashboard}});
     engine.loadFromModule("ActCraft.Ui", "Main");
     if (engine.rootObjects().isEmpty()) {
         return nullptr;
