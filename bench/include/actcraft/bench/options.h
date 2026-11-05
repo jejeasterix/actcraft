@@ -19,6 +19,9 @@ struct BenchOptions
     bool fullScreen = true;   // --taille plein-ecran (défaut) | LxH
     QSize windowSize;
     QString capturesDir; // --captures : PNG écrits seulement si non vide
+    // --retenir-decodage (L6-C11, test de fumée seulement) : la sonde de flash retient le décodage de la page
+    // suivante jusqu'à sa capture, pour être exercée même quand il finit avant l'image (release hors écran).
+    bool holdDecodeForTests = false;
 };
 
 bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& error);

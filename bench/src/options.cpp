@@ -75,6 +75,8 @@ bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& erro
             }
         } else if (option == QLatin1String("--sans-cache")) {
             out.cacheEnabled = false;
+        } else if (option == QLatin1String("--retenir-decodage")) {
+            out.holdDecodeForTests = true;
         } else if (option == QLatin1String("--taille")) {
             QString v;
             if (!value(v)) {

@@ -264,6 +264,17 @@ QString apiName(QSGRendererInterface::GraphicsApi api)
     }
 }
 
+bool hasRunError(const BenchResult& result)
+{
+    return std::any_of(result.invalidReasons.cbegin(), result.invalidReasons.cend(),
+                       [](const QString& reason) { return reason.startsWith(QLatin1String("error:")); });
+}
+
+QString sequenceMismatchReason(const QString& plan)
+{
+    return QStringLiteral("error: sequence-mismatch in %1").arg(plan);
+}
+
 bool contentCheckOk(const BenchResult& result)
 {
     if (result.contentChecks.empty() || result.pageFlash > 0) {
@@ -350,6 +361,7 @@ QJsonObject toJson(const BenchResult& r)
         {"started_at", r.startedAt.toString(Qt::ISODate)},
         {"graphics_api", r.graphicsApi},
         {"cache", r.cache},
+        {"decode_held_for_testing", r.decodeHeldForTests},
         {"valid_for_measurement", r.valid},
         {"within_budget", r.withinBudget},
         {"informative", r.informative},

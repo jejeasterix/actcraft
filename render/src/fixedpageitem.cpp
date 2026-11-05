@@ -122,6 +122,7 @@ void FixedPageItem::restart(Decode decode, Scope scope)
         }
         ++m_decodeCount;
         m_decodingInputs = decodeInputs(page());
+        m_heldDecodeDone = false; // un décodage retenu et fini est remplacé par celui-ci
         m_images.generate(page(), &document());
     }
     emit objectCountChanged();
@@ -427,8 +428,21 @@ void FixedPageItem::rescaleRasterNodes(const core::Page& page, const RenderConte
     }
 }
 
+void FixedPageItem::setDecodeHeldForTesting(bool held)
+{
+    m_decodeHeld = held;
+    if (!held && m_heldDecodeDone) {
+        m_heldDecodeDone = false;
+        onImagesReady();
+    }
+}
+
 void FixedPageItem::onImagesReady()
 {
+    if (m_decodeHeld) {
+        m_heldDecodeDone = true;
+        return;
+    }
     m_rebuild = true;
     m_ready = true;
     emit readyChanged();

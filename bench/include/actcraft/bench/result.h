@@ -177,6 +177,7 @@ struct BenchResult
     QString renderLoop;
     QString gpuName;
     bool cache = true;
+    bool decodeHeldForTests = false; // --retenir-decodage (L6-C11) : jamais valide pour la mesure
     QString scenarioSet;
     QString windowMode;
     QSize windowSize;
@@ -205,6 +206,11 @@ struct BenchResult
 };
 
 QString apiName(QSGRendererInterface::GraphicsApi api);
+// L6-C11 : une erreur du parcours (« error: … ») ; seule elle saute la démonstration et ses contrôles de
+// contenu. Une raison d'invalidité relevée avant (page-flash-unverified) ne les supprime pas.
+bool hasRunError(const BenchResult& result);
+// Séquence d'entrées reçue autre que celle du plan : une erreur du parcours (la démonstration est sautée).
+QString sequenceMismatchReason(const QString& plan);
 // Au moins un contrôle, et tous réussis.
 bool contentCheckOk(const BenchResult& result);
 QJsonObject toJson(const BenchResult& result);
