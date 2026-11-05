@@ -454,6 +454,70 @@ private slots:
         QVERIFY(plain.contains(QStringLiteral("fond")));
     }
 
+    // L6-C15 : le document de l'éditeur est celui du TextEdit Qt Quick, qui décode les images (sans
+    // NoImageHandler) et choisit le décodeur sur le contenu : une image `data:` SVG du fichier y lirait les
+    // images qu'elle référence. Aucune n'y entre ; le texte autour reste. Texte rendu sans modification :
+    // l'objet revient tel quel, image comprise ; modifié, il est enregistré sans elle.
+    void editorDecodesNoDataImageFromTheFile()
+    {
+        const QByteArray svg =
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" "
+            "xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"40\" height=\"40\">"
+            "<image xlink:href=\"file://serveur/partage/x.png\" width=\"40\" height=\"40\"/>"
+            "</svg>";
+        const QString image =
+            QStringLiteral("data:image/svg+xml;base64,") + QString::fromLatin1(svg.toBase64());
+        const QString html = QStringLiteral("<p>avant<img src=\"") + image +
+                             QStringLiteral("\" width=\"40\" height=\"40\">après</p>");
+        Harness h;
+        h.addHtml(html, {200, 200, 300, 60});
+        const auto storedHtml = [&h] {
+            const core::Page& page =
+                h.controller.document().page(static_cast<std::size_t>(h.controller.currentIndex()));
+            const auto* text =
+                page.objects.empty() ? nullptr : std::get_if<core::Text>(&core::body(page.objects.front()));
+            return text ? QString::fromStdString(text->html) : QString();
+        };
+        const auto editorImages = [&h] {
+            int images = 0;
+            for (QTextBlock block = h.document()->begin(); block.isValid(); block = block.next()) {
+                for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                    images += it.fragment().charFormat().isImageFormat() ? 1 : 0;
+                }
+            }
+            return images;
+        };
+
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        QCOMPARE(editorImages(), 0);
+        QVERIFY(!h.document()->toHtml().contains(QLatin1String("data:")));
+        QCOMPARE(h.editing.plainText(), QStringLiteral("avantaprès"));
+        h.editing.commit();
+        QVERIFY(storedHtml().contains(image));
+
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        QCOMPARE(editorImages(), 0);
+        h.typeChar(QLatin1Char('x'));
+        h.editing.commit();
+        QVERIFY(!storedHtml().contains(QLatin1String("data:")));
+        QCOMPARE(h.htmlPlainOfFirst(), QStringLiteral("avantaprèsx"));
+    }
+
+    // L6-C15 : la forme à deux arguments garde les images `data:`, pour les appelants dont le document ne
+    // décode aucune image (mesure de la ligne de base à l'ouverture, validation de l'éditeur), comme le
+    // peintre garde leur place. Les autres images restent retirées.
+    void safeTextHtmlKeepsDataImagesWithTwoArguments()
+    {
+        const QString data = QStringLiteral("data:image/png;base64,iVBORw0KGgo=");
+        const QString safe =
+            ui::safeTextHtml(QStringLiteral("<p>a<img src=\"") + data +
+                                 QStringLiteral("\" width=\"10\" height=\"10\">b<img "
+                                                "src=\"file://hote/x.png\" width=\"10\">c</p>"),
+                             {});
+        QVERIFY(safe.contains(data));
+        QVERIFY(!safe.contains(QLatin1String("hote/")));
+    }
+
     // Enregistrer pendant l'édition (editAboutToApply) : le fichier relu contient le texte frappé.
     void saveDuringEditCommitsFirst()
     {
