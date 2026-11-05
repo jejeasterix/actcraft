@@ -432,6 +432,37 @@ set_tests_properties(tst_captures_page_allongee_zones_lent PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# L7-T43 : capture, contrôle de pixel et contrôle de bord attendent la fin des chargements (3 s retardées) ...
+add_test(NAME tst_captures_images_lentes
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes.json
+        --rendu logiciel --taille 1280x800 --retard-images 3000
+        --sortie ${CMAKE_BINARY_DIR}/captures-images-lentes)
+set_tests_properties(tst_captures_images_lentes PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "CAPTURE [^\n]*OK.*PIXEL page-blanche OK.*BORD separation-verticale OK.*SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# ... et le plafond de 10 s tient : un chargement de 15 s fait échouer la capture, pas lire une image à moitié
+# chargée (échec attendu : PASS_REGULAR_EXPRESSION sur la raison, le code de sortie est ignoré).
+add_test(NAME tst_captures_images_lentes_plafond
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes.json
+        --rendu logiciel --taille 1280x800 --retard-images 15000
+        --sortie ${CMAKE_BINARY_DIR}/captures-images-lentes-plafond)
+set_tests_properties(tst_captures_images_lentes_plafond PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "CAPTURE [^\n]*ECHEC \\(image encore en chargement après 10000 ms\\)")
+# L7-T43 : --retard-images sans valeur est refusé (il était ignoré sans erreur).
+add_test(NAME tst_captures_retard_images_sans_valeur
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes.json
+        --rendu logiciel --taille 1280x800 --retard-images)
+set_tests_properties(tst_captures_retard_images_sans_valeur PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "--retard-images attend un délai de 1 à 60000 ms")
 add_test(NAME tst_captures_texte_vertical
     COMMAND $<TARGET_FILE:actcraft-captures>
         --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/texte-vertical.json
