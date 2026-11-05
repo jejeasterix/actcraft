@@ -343,6 +343,15 @@ qt_add_resources(actcraft_ui "ui_notices"
     PREFIX "/actcraft"
     FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md)
 
+# Orthographe (D6-9) : dictionnaire français (Grammalecte, MPL 2.0), copié au premier usage dans un dossier lisible
+# par Hunspell (qui lit des chemins de fichiers).
+set(ACTCRAFT_DICT_DIR ${PROJECT_SOURCE_DIR}/third_party/dictionaries/fr)
+set_source_files_properties(${ACTCRAFT_DICT_DIR}/fr.aff PROPERTIES QT_RESOURCE_ALIAS dictionaries/fr.aff)
+set_source_files_properties(${ACTCRAFT_DICT_DIR}/fr.dic PROPERTIES QT_RESOURCE_ALIAS dictionaries/fr.dic)
+qt_add_resources(actcraft_ui "ui_dictionaries"
+    PREFIX "/actcraft"
+    FILES ${ACTCRAFT_DICT_DIR}/fr.aff ${ACTCRAFT_DICT_DIR}/fr.dic)
+
 # Lot 6 : aide embarquée et traductions (talons, L6-T35 et L6-T36).
 qt_add_resources(actcraft_ui "ui_lot6_data"
     PREFIX "/actcraft"
