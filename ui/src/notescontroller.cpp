@@ -1,3 +1,5 @@
+#include "isolatedtext.h"
+
 #include <actcraft/core/notesedits.h>
 #include <actcraft/ui/notescontroller.h>
 
@@ -12,11 +14,20 @@ namespace actcraft::ui {
 
 namespace {
 
+// Bloquant 5 : les notes viennent du fichier ouvert ; elles se lisent dans le document isolé, qui ne charge
+// rien.
 bool visibleText(const QString& html)
 {
-    QTextDocument text;
-    text.setHtml(html);
-    return !text.toPlainText().trimmed().isEmpty();
+    const std::unique_ptr<QTextDocument> text = isolatedTextDocument({});
+    text->setHtml(html);
+    return !text->toPlainText().trimmed().isEmpty();
+}
+
+// Texte donné à l'éditeur QML : sa TextArea riche chargerait elle-même feuilles et images. Il reçoit le HTML
+// assaini (texte et mise en forme gardés) ; la page garde les notes reçues tant que personne n'écrit.
+QString shownHtml(const QString& notes)
+{
+    return notes.isEmpty() ? QString() : safeTextHtml(notes, {});
 }
 
 } // namespace
@@ -82,7 +93,9 @@ void NotesController::setHtml(const QString& html)
     if (m_loading || html == m_html || !m_editable || !m_document) {
         return;
     }
+    // Texte de l'éditeur lui-même : il le montre déjà, il ne se réassainit pas (le curseur ne bouge pas).
     m_html = html;
+    m_notes = html;
     m_hasNotes = visibleText(html);
     m_document->execute(
         std::make_unique<core::SetPageNotesCommand>(m_document->currentIndex(), html.toStdString()));
@@ -128,11 +141,12 @@ void NotesController::refresh()
         notes = QString::fromStdString(
             m_document->document().page(static_cast<std::size_t>(m_document->currentIndex())).notes);
     }
-    if (notes == m_html) {
+    if (notes == m_notes) {
         return;
     }
     m_loading = true;
-    m_html = notes;
+    m_notes = notes;
+    m_html = shownHtml(notes);
     m_hasNotes = visibleText(notes);
     emit htmlChanged();
     m_loading = false;

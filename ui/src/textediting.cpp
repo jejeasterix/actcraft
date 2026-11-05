@@ -1,3 +1,5 @@
+#include "isolatedtext.h"
+
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
@@ -41,11 +43,6 @@
 #include <vector>
 
 namespace actcraft::ui {
-
-using ResourceObserver = std::function<void(const QUrl&, const QVariant&)>;
-
-QString safeTextHtml(const QString& html, const ResourceObserver& observer);
-std::unique_ptr<QTextDocument> isolatedTextDocument(ResourceObserver observer);
 
 namespace {
 
