@@ -477,10 +477,24 @@ private slots:
                                  sy < 0 ? after.bottom() : after.top());
         QVERIFY2((fixedAfter - fixedBefore).manhattanLength() < 0.5, "coin opposé fixe");
 
-        // Tiré très loin vers l'extérieur : borné à la couche.
+        // Tiré très loin vers l'extérieur : borné à la couche. Précondition (calcul de ClockPanel) : le
+        // glissé demande plus que la place, la place est sous maxScale ; sinon le volet ne discrimine pas.
         const QPointF grip2 = centreOf(grip);
         const QPointF far =
             layer->mapToScene(QPointF(sx < 0 ? 0 : layer->width() - 1, sy < 0 ? 0 : layer->height() - 1));
+        const QPointF pulled = far - grip2;
+        const qreal w0 = after.width();
+        const qreal h0 = after.height();
+        const qreal raw = 1 + (sx * pulled.x() * w0 + sy * pulled.y() * h0) / (w0 * w0 + h0 * h0);
+        const qreal roomX = sx < 0 ? after.right() : layer->width() - after.left();
+        const qreal roomY = sy < 0 ? after.bottom() : layer->height() - after.top();
+        const qreal fit = qMin(roomX / w0, roomY / h0);
+        const qreal maxScale = panel->property("maxScale").toReal();
+        QVERIFY2(raw > fit + 0.01 && fit < maxScale - 0.01,
+                 qPrintable(QStringLiteral("glissé %1, place %2, plafond %3 : le test ne discriminerait pas")
+                                .arg(raw)
+                                .arg(fit)
+                                .arg(maxScale)));
         presentationharness::strokeAt(main.window(), Pointer::Mouse, grip2, far);
         after = QRectF(panel->position(), panel->size());
         QVERIFY2(after.left() >= -0.5 && after.top() >= -0.5 && after.right() <= layer->width() + 0.5 &&
