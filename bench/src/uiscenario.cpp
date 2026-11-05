@@ -1592,9 +1592,19 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return true;
     }
     case UiStepKind::WaitReady: {
-        const bool ok = waitUntil([this] { return isReady(); }, kReadyTimeoutMs);
+        // L6-C11 : prêt = page et cache prêts ET une image rendue depuis l'étape. Les dispositions de Qt
+        // Quick (palette ancrée, panneau ouvert) ne s'appliquent qu'au polissage d'une image ; en release,
+        // page et cache sont souvent déjà prêts et le stylet suivant visait une disposition jamais affichée.
+        // Une fenêtre non exposée ne rend pas d'image : page et cache seuls.
+        int swaps = 0;
+        const auto counter =
+            QObject::connect(m_window, &QQuickWindow::frameSwapped, m_window, [&swaps] { ++swaps; });
+        m_window->update();
+        const bool ok = waitUntil(
+            [this, &swaps] { return (swaps > 0 || !m_window->isExposed()) && isReady(); }, kReadyTimeoutMs);
+        QObject::disconnect(counter);
         report << (ok ? QStringLiteral("PRET OK")
-                      : QStringLiteral("PRET ECHEC (page ou cache pas prêts après 10 s)"));
+                      : QStringLiteral("PRET ECHEC (page, cache ou image pas prêts après 10 s)"));
         return ok;
     }
     case UiStepKind::Capture: {
