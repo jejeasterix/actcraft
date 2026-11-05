@@ -246,8 +246,8 @@ void TstUiLaunchers::signedOnThisWorkstation()
         // Clé de 32 octets créée au premier usage, rangée dans le trousseau, jamais dans le profil.
         QVERIFY(key.has_value());
         QCOMPARE(key->size(), qsizetype(Launchers::kKeyBytes));
-        const QByteArray stored = QByteArray::fromBase64(
-            storedEntry(id).value(QStringLiteral("signature")).toString().toLatin1());
+        const QByteArray stored =
+            QByteArray::fromBase64(storedEntry(id).value(QStringLiteral("signature")).toString().toLatin1());
         QCOMPARE(stored, Launchers::signatureOf(m_probe, arguments, QStringLiteral("Essai"), *key));
         const QByteArray json = actions::profileToJson(m_profile->profile());
         QVERIFY(!json.contains(key->toBase64()));
@@ -258,8 +258,7 @@ void TstUiLaunchers::signedOnThisWorkstation()
 
     // Redémarrage : un nouvel objet sur le même poste fait toujours confiance, la clé est gardée.
     Launchers restarted(m_profile.get(), keyName());
-    QCOMPARE(entryOf(restarted, 0).value(QStringLiteral("trusted")).toBool(),
-             SecretStore::available());
+    QCOMPARE(entryOf(restarted, 0).value(QStringLiteral("trusted")).toBool(), SecretStore::available());
     QSignalSpy asked(&restarted, &Launchers::confirmationNeeded);
     QCOMPARE(restarted.run(id),
              SecretStore::available() ? Launchers::kStarted : Launchers::kConfirmationNeeded);
@@ -325,9 +324,9 @@ void TstUiLaunchers::acceptedForeignIsResigned()
         QCOMPARE(asked.count(), 0);
         QTRY_COMPARE_WITH_TIMEOUT(readFile(witness()), QByteArrayLiteral("lance"), kLaunchWaitMs);
         const QByteArray key = SecretStore::read(keyName()).value_or(QByteArray());
-        QCOMPARE(QByteArray::fromBase64(
-                     storedEntry(id).value(QStringLiteral("signature")).toString().toLatin1()),
-                 Launchers::signatureOf(m_probe, arguments, QStringLiteral("Étranger"), key));
+        QCOMPARE(
+            QByteArray::fromBase64(storedEntry(id).value(QStringLiteral("signature")).toString().toLatin1()),
+            Launchers::signatureOf(m_probe, arguments, QStringLiteral("Étranger"), key));
     } else {
         // Sans trousseau, rien pour signer : la demande revient.
         QCOMPARE(again, Launchers::kConfirmationNeeded);
@@ -412,13 +411,13 @@ void TstUiLaunchers::signatureIsUnambiguous()
     const QByteArray moved = Launchers::signatureOf(QStringLiteral("a"), {QStringLiteral("b")}, none, key);
     QCOMPARE(split.size(), 32);
     QVERIFY(split != moved);
-    QVERIFY(Launchers::signatureOf(QStringLiteral("a"), {QStringLiteral("b c")}, none, key)
-            != Launchers::signatureOf(QStringLiteral("a"), {QStringLiteral("b"), QStringLiteral("c")}, none,
-                                      key));
-    QVERIFY(Launchers::signatureOf(QStringLiteral("a"), {QStringLiteral("b")}, none, key)
-            != Launchers::signatureOf(QStringLiteral("a"), {}, QStringLiteral("b"), key));
-    QVERIFY(Launchers::signatureOf(QStringLiteral("a"), {}, none, key)
-            != Launchers::signatureOf(QStringLiteral("a"), {}, none, randomKey()));
+    QVERIFY(
+        Launchers::signatureOf(QStringLiteral("a"), {QStringLiteral("b c")}, none, key) !=
+        Launchers::signatureOf(QStringLiteral("a"), {QStringLiteral("b"), QStringLiteral("c")}, none, key));
+    QVERIFY(Launchers::signatureOf(QStringLiteral("a"), {QStringLiteral("b")}, none, key) !=
+            Launchers::signatureOf(QStringLiteral("a"), {}, QStringLiteral("b"), key));
+    QVERIFY(Launchers::signatureOf(QStringLiteral("a"), {}, none, key) !=
+            Launchers::signatureOf(QStringLiteral("a"), {}, none, randomKey()));
 
     // Message exact des amendements 1 et 2 : JSON compact [chemin, [paramètres], info-bulle].
     QCOMPARE(split, QMessageAuthenticationCode::hash(QByteArrayLiteral(R"(["a b",[],""])"), key,

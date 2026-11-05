@@ -4,6 +4,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QJsonArray>
 #include <QObject>
 #include <QPointer>
 #include <QString>
@@ -11,14 +12,16 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
+#include <optional>
+
 namespace actcraft::ui {
 
 // Raccourcis vers des programmes ou des fichiers (F-920, N1-A6). Gardés dans le profil (Profile::launchers :
 // { "entries": [{id, path, arguments, toolTip, signature}] }), donc transportables, et signés par HMAC-SHA256
 // avec une clé de 32 octets propre au poste, créée au premier usage et rangée dans le trousseau (SecretStore,
-// L6-T28). La confiance n'est jamais lue du profil : elle est recalculée à chaque lecture. Une signature qui ne
-// vérifie pas (profil d'un autre poste, chemin, paramètres ou info-bulle modifiés à la main, trousseau absent)
-// demande une confirmation avant tout lancement ; acceptée, le raccourci est signé à nouveau.
+// L6-T28). La confiance n'est jamais lue du profil : elle est recalculée à chaque lecture. Une signature qui
+// ne vérifie pas (profil d'un autre poste, chemin, paramètres ou info-bulle modifiés à la main, trousseau
+// absent) demande une confirmation avant tout lancement ; acceptée, le raccourci est signé à nouveau.
 // Lancement sans interpréteur : QProcess::startDetached(programme, paramètres en liste) pour un exécutable,
 // QDesktopServices::openUrl pour un fichier ; .bat et .cmd refusés (cmd.exe les interpréterait).
 class Launchers : public QObject
@@ -74,10 +77,13 @@ private:
         QByteArray signature;
     };
 
+    QJsonArray storedItems() const;
+    void store(const QJsonArray& items); // dans le profil, puis touch()
     QList<Entry> readEntries() const;
+    std::optional<Entry> find(const QString& id) const;
     QByteArray key(bool create) const; // vide : trousseau indisponible ou clé absente sans création
-    bool trusted(const Entry& entry, const QByteArray& key) const;
-    bool sign(const QString& id, const QByteArray& key);
+    static bool trusted(const Entry& entry, const QByteArray& key);
+    void sign(const Entry& entry, const QByteArray& key);
     bool launch(const Entry& entry);
 
     QPointer<ProfileController> m_profile;
