@@ -1,7 +1,9 @@
-// Talon L6 : rempli par L6-T35.
 import QtQuick
+import QtQuick.Controls
 import ActCraft.Ui
 
+// Lecteur d'aide hors ligne (D6-10) : F1 (help.contents) ouvre la page de l'outil courant, sinon l'index.
+// Aucun moteur web, aucun chargement réseau : le modèle ne suit que les pages embarquées.
 Item {
     id: root
     objectName: "helpViewer"
@@ -13,8 +15,51 @@ Item {
     property var preferences: null
     visible: false
 
+    HelpViewerModel {
+        id: help
+        onExternalLink: link => Qt.openUrlExternally(link)
+    }
+
+    function open() {
+        help.openFor(root.tools ? root.tools.currentTool : "")
+        root.visible = true
+    }
+
+    function close() {
+        root.visible = false
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "white"
+        border.color: "#888888"
+
+        ScrollView {
+            anchors.fill: parent
+            anchors.margins: 12
+            TextArea {
+                objectName: "helpText"
+                readOnly: true
+                wrapMode: TextEdit.Wrap
+                textFormat: TextEdit.RichText
+                text: help.html
+                onLinkActivated: link => help.follow(link)
+            }
+        }
+        Button {
+            objectName: "helpClose"
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 6
+            text: qsTr("Fermer")
+            onClicked: root.close()
+        }
+    }
+
+    Keys.onEscapePressed: root.close()
+
     Component.onCompleted: {
-        // Talon L6 : rempli par L6-T35.
-        root.commands.setHandler("help.contents", function () { console.info("help.contents") })
+        if (root.commands)
+            root.commands.setHandler("help.contents", function () { root.open() })
     }
 }
