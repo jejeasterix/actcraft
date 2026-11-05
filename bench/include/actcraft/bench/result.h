@@ -205,6 +205,9 @@ struct BenchResult
 };
 
 QString apiName(QSGRendererInterface::GraphicsApi api);
+// L6-C11 : une erreur du parcours (« error: … ») ; seule elle saute la démonstration et ses contrôles de
+// contenu. Une raison d'invalidité relevée avant (page-flash-unverified) ne les supprime pas.
+bool hasRunError(const BenchResult& result);
 // Au moins un contrôle, et tous réussis.
 bool contentCheckOk(const BenchResult& result);
 QJsonObject toJson(const BenchResult& result);

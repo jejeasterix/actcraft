@@ -1235,7 +1235,7 @@ BenchResult Runner::run(QQuickWindow* window)
             checkPageFlash(result, *document);
         }
     }
-    if (result.invalidReasons.isEmpty()) { // à ce stade, seules des erreurs y figurent
+    if (!hasRunError(result)) {
         runDemo(result);
     }
     result.renderLoop = m_recorder->renderLoop();

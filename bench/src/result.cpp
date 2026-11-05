@@ -264,6 +264,11 @@ QString apiName(QSGRendererInterface::GraphicsApi api)
     }
 }
 
+bool hasRunError(const BenchResult& result)
+{
+    return !result.invalidReasons.isEmpty();
+}
+
 bool contentCheckOk(const BenchResult& result)
 {
     if (result.contentChecks.empty() || result.pageFlash > 0) {
