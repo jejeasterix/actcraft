@@ -183,12 +183,38 @@ private slots:
         controller.setContactActive(false);
         QCOMPARE(controller.currentId(), other);
         QVERIFY(changed.count() >= 1);
-        // Revenir sur le profil courant pendant un contact annule le report.
+        // La dernière demande l'emporte : reprendre le profil d'avant pendant un contact.
         controller.setContactActive(true);
         QVERIFY(controller.activate(left));
-        QVERIFY(controller.activate(other));
         controller.setContactActive(false);
-        QCOMPARE(controller.currentId(), other);
+        QCOMPARE(controller.currentId(), left);
+    }
+
+    // « Revenir à l'origine » pendant un contact : le rechargement du profil courant est reporté, jamais
+    // jeté. Sinon la mémoire garde les réglages personnels et l'enregistrement suivant les réécrit.
+    void resetDuringContactIsReloadedAtRelease()
+    {
+        QTemporaryDir root;
+        ui::Commands commands;
+        ui::ProfileController controller(actions::ProfileStore(root.filePath(QStringLiteral("profiles")),
+                                                               QStringLiteral(":/actcraft/actions/profiles"),
+                                                               ui::ProfileController::builtinOrder()),
+                                         nullptr, &commands);
+        controller.start();
+        const QString id = controller.currentId();
+        const QString original = controller.paletteDock();
+        controller.setPaletteDock(original == QStringLiteral("left") ? QStringLiteral("right")
+                                                                      : QStringLiteral("left"));
+        controller.saveNow();
+        QVERIFY(controller.store().hasUserCopy(id));
+        controller.setContactActive(true);
+        commands.trigger(QStringLiteral("profile.reset"));
+        QVERIFY(!controller.store().hasUserCopy(id));
+        controller.setContactActive(false);
+        QCOMPARE(controller.currentId(), id);
+        QCOMPARE(controller.paletteDock(), original);
+        controller.saveNow();
+        QVERIFY(!controller.store().hasUserCopy(id));
     }
 };
 
