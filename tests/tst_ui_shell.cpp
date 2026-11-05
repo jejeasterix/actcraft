@@ -1333,6 +1333,36 @@ private slots:
         }
     }
 
+    // L6-T23 : l'accueil reste fermé sans `showDashboard` ; les récents du poste sont liés aux préférences, au
+    // résumé et au menu Fichier ; le mandataire réseau est instancié au démarrage.
+    void lot6DashboardAndRecentsWiring()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* dashboard = s.window->findChild<QObject*>(QStringLiteral("dashboard"));
+        QVERIFY(dashboard);
+        QCOMPARE(dashboard->property("visible").toBool(), false);
+        QObject* prefs = s.window->findChild<QObject*>(QStringLiteral("appPreferences"));
+        QObject* actions = s.window->findChild<QObject*>(QStringLiteral("fileActions"));
+        QObject* recents = s.window->findChild<QObject*>(QStringLiteral("appRecents"));
+        QVERIFY(prefs && actions && recents);
+        QCOMPARE(actions->property("preferences").value<QObject*>(), prefs);
+        QCOMPARE(recents->property("preferences").value<QObject*>(), prefs);
+        QCOMPARE(dashboard->property("recents").value<QObject*>(), recents);
+        QObject* summary = s.window->findChild<QObject*>(QStringLiteral("saveSummaryDialog"));
+        QVERIFY(summary);
+        QCOMPARE(summary->property("recents").value<QObject*>(), recents);
+        QVERIFY(s.window->findChild<QObject*>(QStringLiteral("appNetwork")));
+        bool fileMenuLinked = false;
+        for (QObject* o : s.window->findChildren<QObject*>()) {
+            if (o->property("isCommandMenu").toBool() &&
+                o->property("spec").toMap().value(QStringLiteral("id")).toString() == QLatin1String("file")) {
+                fileMenuLinked = o->property("recents").value<QObject*>() == recents;
+            }
+        }
+        QVERIFY(fileMenuLinked);
+    }
+
     void everyLot6CommandHasAHandler()
     {
         Shell s;
