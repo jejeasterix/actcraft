@@ -134,6 +134,7 @@ signals:
     void alternativesChanged();
 
 private:
+    void forgetArrivalsOffThePage();
     void onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin);
     void resetSession();
     void forgetPending(const std::vector<core::ObjectId>& converted);
@@ -166,8 +167,9 @@ private:
     QString m_status;
     std::uint64_t m_epoch = 0;     // session remise à zéro : les reconnaissances en vol sont abandonnées
     std::uint64_t m_threadGen = 0; // fil recréé : ses réponses en vol sont abandonnées
-    std::map<core::ObjectId, std::int64_t> m_arrivedAt; // instant d'arrivée de chaque trait tracé depuis la
-                                                        // dernière remise à zéro, tant qu'il reste un trait
+    // Instant d'arrivée de chaque trait tracé depuis la dernière remise à zéro, tant qu'il est sur la page
+    // (retiré par la gomme ou une commande, il en sort ; voir forgetArrivalsOffThePage).
+    std::map<core::ObjectId, std::int64_t> m_arrivedAt;
     features::HandwritingThread::Factory m_factory;
     QStringList m_readings; // lectures du dernier texte, la première est celle du texte posé
     int m_current = 0;      // lecture actuellement dans le texte

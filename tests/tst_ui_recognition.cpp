@@ -4,6 +4,7 @@
 
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/objectedits.h>
 #include <actcraft/features/handwriting.h>
 #include <actcraft/features/recognitionsession.h>
 #include <actcraft/ui/commands.h>
@@ -900,6 +901,33 @@ private slots:
 
         w.recognition->convertToShape();
         QCOMPARE(countOf(*w.controller, core::ObjectKind::Shape), 1);
+        QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 1);
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1});
+    }
+
+    // Relecture du lot 7 (tour 2) : un trait gommé (soulevé puis remplacé par ses morceaux) ou retiré par une
+    // commande sort de la table des arrivées, qui ne garde que les traits encore sur la page. Avant : il y
+    // restait jusqu'à Annuler ou un changement de mode.
+    void erasedStrokeLeavesTheArrivalTable()
+    {
+        Writing w;
+        QVERIFY(w.open({{QStringLiteral("un")}}));
+        w.controller->commitStroke(strokeThrough(scribblePoints()));
+        w.controller->commitStroke(strokeThrough(inkLine(300, 300, 500, 310)));
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+        const core::ObjectId first = shownObjects(*w.controller)[0].common.id;
+        const core::ObjectId second = shownObjects(*w.controller)[1].common.id;
+
+        // Gomme : le trait est soulevé, puis déposé en deux morceaux de nouveaux identifiants.
+        const std::vector<core::PageObject> lifted = w.controller->liftObjects({first});
+        QCOMPARE(lifted.size(), std::size_t{1});
+        w.controller->dropLifted(nullptr);
+        // Remis tel quel (déplacement) : toujours suivi.
+        QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{2});
+
+        // Retiré par une commande : oublié.
+        w.controller->execute(std::make_unique<core::RemoveObjectsCommand>(
+            static_cast<std::size_t>(w.controller->currentIndex()), std::vector<core::ObjectId>{second}));
         QCOMPARE(countOf(*w.controller, core::ObjectKind::Stroke), 1);
         QCOMPARE(w.recognition->trackedArrivalsForTest(), std::size_t{1});
     }

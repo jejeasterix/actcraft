@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -510,6 +511,17 @@ void RecognitionController::forgetPending(const std::vector<core::ObjectId>& con
     }
 }
 
+void RecognitionController::forgetArrivalsOffThePage()
+{
+    if (m_arrivedAt.empty()) {
+        return;
+    }
+    const core::Page* page = DocumentInsertions(*m_document).shownPage();
+    for (auto it = m_arrivedAt.begin(); it != m_arrivedAt.end();) {
+        it = page && objectOf(*page, it->first) ? std::next(it) : m_arrivedAt.erase(it);
+    }
+}
+
 void RecognitionController::onChanges(const core::Changes& applied, DocumentController::ChangeOrigin origin)
 {
     // Un Annuler (ou Rétablir) pendant le délai abandonne les traits en attente : une conversion poussée
@@ -518,6 +530,12 @@ void RecognitionController::onChanges(const core::Changes& applied, DocumentCont
         origin == DocumentController::ChangeOrigin::Redo) {
         resetSession();
         return;
+    }
+    // Un trait retiré de la page (gomme au dépôt, commande) sort de la table des arrivées. Pendant un
+    // soulèvement (Lift) les traits sont absents le temps du geste : on ne purge pas.
+    if (m_document && (origin == DocumentController::ChangeOrigin::Command ||
+                       origin == DocumentController::ChangeOrigin::Drop)) {
+        forgetArrivalsOffThePage();
     }
     if (origin != DocumentController::ChangeOrigin::Stroke || (!m_shapeMode && !m_handwritingMode) ||
         !m_document) {
