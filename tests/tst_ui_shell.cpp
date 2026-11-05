@@ -1435,7 +1435,17 @@ private slots:
         }
         QVERIFY2(near(pixel(int(largeur * 0.765), int(hauteur * 0.87)), QColor(255, 255, 255), 12), "page");
         QVERIFY2(near(pixel(largeur - 192, int(hauteur * 0.72)), palette, 16), "fond de palette");
-        QVERIFY2(near(pixel(largeur - 178, int(hauteur * 0.26)), QColor(229, 57, 53), 40), "pastille rouge");
+        // La pastille rouge suit la palette sous sa barre de titre (L6-T7) : point lu dans le script.
+        const QRegularExpressionMatch swatch =
+            QRegularExpression(
+                QStringLiteral(R"re('pastille rouge, coin bas-droit'; X = \$largeur - ([0-9]+); )re"
+                               R"re(Y = \[int\]\(\$hauteur \* ([0-9.]+)\))re"))
+                .match(script);
+        QVERIFY2(swatch.hasMatch(), "point de la pastille rouge introuvable dans essai-android.ps1");
+        QVERIFY2(
+            near(pixel(largeur - swatch.captured(1).toInt(), int(hauteur * swatch.captured(2).toDouble())),
+                 QColor(229, 57, 53), 40),
+            "pastille rouge");
     }
 
     void everyLot6CommandHasAHandler()

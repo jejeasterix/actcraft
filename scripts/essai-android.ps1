@@ -1,5 +1,6 @@
 # Essai de l'APK sur un émulateur déjà démarré (scénario S3) : installation, lancement, processus vivant après 10 s,
-# palette visible sur la capture, trait d'un doigt visible sur la capture suivante.
+# accueil ouvert au démarrage puis fermé d'un toucher, palette visible sur la capture, trait d'un doigt visible sur la
+# capture suivante.
 # Usage : pwsh -NoProfile -File ./scripts/essai-android.ps1 -Apk <fichier.apk> [-Sortie <dossier>]
 # adb doit être dans le PATH (dev-env-android.ps1, ou l'émulateur de la CI). Captures sous -Sortie (.tmp/android).
 # Émulateur : -gpu host en local ; -gpu lavapipe sur un exécuteur sans GPU (CI) — SwiftShader rend faux (voir
@@ -64,13 +65,30 @@ $fatals += @(Get-Content $journal | Where-Object { $_ -match "Process: $([regex]
 if ($fatals.Count -gt 0) { Echec "plantage dans logcat : $($fatals[0])" }
 Write-Output "logcat : aucun $filtre pour $paquet (pid $processus)"
 
-$avant = Capture 'avant'
-$taille = ("$(& $python -I scripts/lire-pixel.py $avant --taille)".Trim()).Split(' ')
+$ecranAccueil = Capture 'accueil'
+$taille = ("$(& $python -I scripts/lire-pixel.py $ecranAccueil --taille)".Trim()).Split(' ')
 $largeur = [int]$taille[0]; $hauteur = [int]$taille[1]
 Write-Output "écran : $largeur × $hauteur, $("$(Adb 30 shell wm density)".Trim())"
 # Les points de contrôle de la palette (décalages en pixels depuis le bord droit) sont calés sur l'appareil
 # pixel_tablet (2560 × 1600, packaging/android/versions.env, aussi celui de la CI) : un autre écran est refusé.
 if ($largeur -ne 2560 -or $hauteur -ne 1600) { Echec "écran $largeur × $hauteur : 2560 × 1600 attendu (profil pixel_tablet)" }
+
+# Accueil au démarrage (L6-T23, plan 6b : « fenêtre d'accueil devant la fenêtre principale au démarrage ») : son voile
+# (#80000000) assombrit la palette de moitié. On le vérifie aux points de contrôle de la palette, puis on le ferme
+# comme un utilisateur, d'un toucher sur le voile à gauche de la carte (880 points de large, centrée) ; les contrôles
+# suivants restent ceux d'avant l'accueil. tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) lit
+# `$accueil` et rejoue ce toucher hors écran.
+$voile = @($fondPalette | ForEach-Object { [int][math]::Floor($_ / 2) })
+foreach ($f in 0.25, 0.5, 0.75) {
+    $y = [int]($hauteur * $f)
+    $lu = Pixel $ecranAccueil ($largeur - 3) $y
+    if (-not (Proche $lu $voile 16)) { Echec "accueil absent au démarrage, y = $y (lu $($lu -join ' '), attendu $($voile -join ' '))" }
+}
+Write-Output 'accueil : ouvert au démarrage'
+$accueil = @{ X = [int]($largeur * 0.08); Y = [int]($hauteur * 0.5) }
+$null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
+Start-Sleep -Seconds 2
+$avant = Capture 'avant'
 foreach ($f in 0.25, 0.5, 0.75) {
     $y = [int]($hauteur * $f)
     $lu = Pixel $avant ($largeur - 3) $y
@@ -80,10 +98,12 @@ Write-Output 'palette : visible au bord droit'
 
 # Rectangles entiers : un rendu défectueux (émulateur à GPU logiciel SwiftShader, voir docs/verifications) ne dessine
 # que la moitié de chaque rectangle, en triangle. Ces pixels tombent dans la moitié qui manquerait (tablette 2560 × 1600).
+# Pastille : sous la barre de titre de la palette (L6-T7), 40 × 40 pixels en (2352, 500) ; tests/tst_ui_shell.cpp
+# (s3StartupDashboardClosedByTheScriptTap) lit ce point et le rejoue hors écran.
 $coins = @(
     @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.765); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
     @{ Nom = 'fond de palette, bas-gauche'; X = $largeur - 192; Y = [int]($hauteur * 0.72); Attendu = $fondPalette; Tol = 16 },
-    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.26); Attendu = @(229, 57, 53); Tol = 40 }
+    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.33); Attendu = @(229, 57, 53); Tol = 40 }
 )
 foreach ($coin in $coins) {
     $lu = Pixel $avant $coin.X $coin.Y
