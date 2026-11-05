@@ -271,6 +271,16 @@ actions::Profile& ProfileController::editProfile()
     return m_profile;
 }
 
+// Pose un booléen du profil ; sans effet s'il ne change pas, sinon marque le profil modifié.
+void ProfileController::assignFlag(bool& field, bool value)
+{
+    if (field == value) {
+        return;
+    }
+    field = value;
+    touch();
+}
+
 void ProfileController::touch()
 {
     emit profileChanged();
@@ -530,11 +540,7 @@ bool ProfileController::paletteCollapsed() const
 
 void ProfileController::setPaletteCollapsed(bool on)
 {
-    if (m_profile.palette.collapsed == on) {
-        return;
-    }
-    m_profile.palette.collapsed = on;
-    touch();
+    assignFlag(m_profile.palette.collapsed, on);
 }
 
 bool ProfileController::shortcutsHidden() const
@@ -544,11 +550,7 @@ bool ProfileController::shortcutsHidden() const
 
 void ProfileController::setShortcutsHidden(bool on)
 {
-    if (m_profile.palette.shortcutsHidden == on) {
-        return;
-    }
-    m_profile.palette.shortcutsHidden = on;
-    touch();
+    assignFlag(m_profile.palette.shortcutsHidden, on);
 }
 
 bool ProfileController::palettePinned() const
@@ -558,11 +560,7 @@ bool ProfileController::palettePinned() const
 
 void ProfileController::setPalettePinned(bool on)
 {
-    if (m_profile.palette.pinned == on) {
-        return;
-    }
-    m_profile.palette.pinned = on;
-    touch();
+    assignFlag(m_profile.palette.pinned, on);
 }
 
 int ProfileController::swatches() const
@@ -586,11 +584,7 @@ bool ProfileController::browsersVisible() const
 
 void ProfileController::setBrowsersVisible(bool on)
 {
-    if (m_profile.browsers.visible == on) {
-        return;
-    }
-    m_profile.browsers.visible = on;
-    touch();
+    assignFlag(m_profile.browsers.visible, on);
 }
 
 bool ProfileController::browsersPinned() const
@@ -600,11 +594,7 @@ bool ProfileController::browsersPinned() const
 
 void ProfileController::setBrowsersPinned(bool on)
 {
-    if (m_profile.browsers.pinned == on) {
-        return;
-    }
-    m_profile.browsers.pinned = on;
-    touch();
+    assignFlag(m_profile.browsers.pinned, on);
 }
 
 QString ProfileController::browsersSide() const
@@ -708,11 +698,7 @@ bool ProfileController::trashVisible() const
 
 void ProfileController::setTrashVisible(bool on)
 {
-    if (m_profile.trashVisible == on) {
-        return;
-    }
-    m_profile.trashVisible = on;
-    touch();
+    assignFlag(m_profile.trashVisible, on);
 }
 
 bool ProfileController::contactActive() const noexcept

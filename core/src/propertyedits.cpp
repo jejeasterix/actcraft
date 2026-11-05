@@ -1,10 +1,10 @@
+#include "validpage.h"
+
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/propertyedits.h>
-
-#include "validpage.h"
 
 #include <cmath>
 #include <numbers>
