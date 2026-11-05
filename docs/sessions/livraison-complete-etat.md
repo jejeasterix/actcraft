@@ -235,6 +235,7 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 Tâche : L6-T31 — mode classe protégé — depuis 2026-11-05
 Tâche : L6-T30 — raccourcis vers des programmes, interface — depuis 2026-11-05
 Tâche : L6-T35 — V14 — depuis 2026-11-05
+Tâche : L6-T34 — V14 — depuis 2026-11-05
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
