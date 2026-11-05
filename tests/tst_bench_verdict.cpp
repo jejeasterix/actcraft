@@ -342,7 +342,8 @@ private slots:
         QVERIFY2(r.invalidReasons.contains(
                      QStringLiteral("error: command banc.commande-inconnue refused before message-defilant")),
                  qPrintable(reasons));
-        QVERIFY2(!ticker->property("running").toBool(), "le message défile encore après la sortie du scénario");
+        QVERIFY2(!ticker->property("running").toBool(),
+                 "le message défile encore après la sortie du scénario");
     }
 
     // L7-T43 : une « transition » sans propriété playing (lue par son nom) rend la mesure invalide, comme une
