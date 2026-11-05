@@ -117,6 +117,7 @@ Window {
         id: appPages
         objectName: "appPages"
         documentController: appDocument
+        commands: appCommands // amendement 12 : gestes du navigateur refusés sous verrou
     }
     TextEditing {
         id: appText
@@ -154,6 +155,7 @@ Window {
         objectName: "appTabs"
         document: appDocument
         view: pageArea.view
+        commands: appCommands // amendement 12 : onglets refusés sous verrou
     }
     FileExchange {
         id: appExchange
