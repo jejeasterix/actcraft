@@ -158,6 +158,9 @@ private:
     MainState m_mainState;
     // M5 : état de la fenêtre principale à rendre au retour de la roue (plein écran, maximisée ou normale).
     QWindow::Visibility m_wheelReturn = QWindow::Windowed;
+    // Ma1 : géométrie normale d'avant l'annotation, fermée roue ouverte. Posée sur la fenêtre réduite, elle
+    // peut être ignorée (plateforme offscreen) : restore() la pose après showNormal.
+    QRect m_wheelReturnGeometry;
     bool m_hidingForCapture = false; // fenêtre masquée pour la saisie : ce n'est pas une fermeture
     struct HiddenWindow
     {

@@ -162,21 +162,6 @@ private:
 // minuterie, jamais par un sommeil du fil principal (M4).
 constexpr int kHiddenWindowsSettleMs = 250;
 
-// Outils de la roue qui s'ouvrent dans la fenêtre principale : panneaux de l'horloge, des dés et de la
-// calculatrice, message défilant et son dialogue. ÉCART À L'ORIGINAL (hypothèse H-M8, à revoir à la porte de
-// clôture) : l'original montre ces outils sur le bureau, sa fenêtre restant cachée. Ici, ce sont des éléments
-// de la fenêtre principale, invisibles tant qu'elle est réduite par la roue : l'entrée la rend d'abord
-// (desktop.restore), puis lance l'outil. Les montrer sur le bureau demanderait une fenêtre propre à chacun.
-bool opensInTheMainWindow(const QString& command)
-{
-    for (const char* id : {"tool.ticker", "tool.clock", "tool.calculator", "tool.dice"}) {
-        if (command == QLatin1String(id)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 QByteArray pngOf(const QImage& image)
 {
     QByteArray bytes;
@@ -365,6 +350,7 @@ void DesktopController::showTools()
         const QWindow::Visibility visibility = m_main->visibility();
         const bool full = visibility == QWindow::FullScreen || visibility == QWindow::Maximized;
         m_wheelReturn = !m_annotating && full ? visibility : QWindow::Windowed;
+        m_wheelReturnGeometry = QRect();
     }
     setToolsShown(true);
     m_main->showMinimized();
@@ -372,8 +358,11 @@ void DesktopController::showTools()
 
 void DesktopController::restore()
 {
-    const QWindow::Visibility back = m_toolsShown && !m_annotating ? m_wheelReturn : QWindow::Windowed;
+    const bool fromWheel = m_toolsShown && !m_annotating;
+    const QWindow::Visibility back = fromWheel ? m_wheelReturn : QWindow::Windowed;
+    const QRect geometry = fromWheel ? m_wheelReturnGeometry : QRect();
     m_wheelReturn = QWindow::Windowed;
+    m_wheelReturnGeometry = QRect();
     setToolsShown(false);
     if (m_main) {
         if (back == QWindow::FullScreen) {
@@ -382,6 +371,9 @@ void DesktopController::restore()
             m_main->showMaximized();
         } else {
             m_main->showNormal();
+            if (geometry.isValid()) {
+                m_main->setGeometry(geometry); // Ma1 : pas l'emprise de la palette
+            }
         }
         m_main->requestActivate();
     }
@@ -399,6 +391,7 @@ void DesktopController::onMainVisibilityChanged()
     if (visibility == QWindow::Windowed || visibility == QWindow::Maximized ||
         visibility == QWindow::FullScreen) {
         m_wheelReturn = QWindow::Windowed;
+        m_wheelReturnGeometry = QRect();
         setToolsShown(false);
         keepMainInFront();
     }
@@ -459,8 +452,9 @@ void DesktopController::releaseMainFront()
     m_main->setGeometry(state.geometry);
     if (m_toolsShown) {
         // Fenêtre réduite par la roue : elle ne revient pas d'elle-même ; restore() rendra l'état d'avant
-        // l'annotation (M5).
+        // l'annotation (M5), à sa géométrie normale (Ma1).
         m_wheelReturn = state.visibility;
+        m_wheelReturnGeometry = state.geometry;
         return;
     }
     if (state.visibility == QWindow::FullScreen) {
@@ -484,7 +478,7 @@ QVariantList DesktopController::wheelEntries(double radius, double ringRadius) c
             entry.insert(QStringLiteral("label"), entries[i].label);
             entry.insert(QStringLiteral("x"), positions[i].x());
             entry.insert(QStringLiteral("y"), positions[i].y());
-            entry.insert(QStringLiteral("restoresMain"), opensInTheMainWindow(entries[i].command));
+            entry.insert(QStringLiteral("restoresMain"), entries[i].opensInTheMainWindow); // H-M8
             entry.insert(QStringLiteral("ring"), self(entries[i].ring, ringR, ringR, self));
             list.push_back(entry);
         }

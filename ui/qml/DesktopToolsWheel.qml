@@ -53,9 +53,15 @@ Window {
         if (!root.commands) {
             return
         }
-        // Écart à l'original (H-M8, voir opensInTheMainWindow) : un outil de la fenêtre principale la rend
-        // d'abord, sinon il s'ouvrirait dans la fenêtre réduite, invisible.
+        // Écart à l'original (H-M8, voir features::WheelEntry::opensInTheMainWindow) : un outil de la fenêtre
+        // principale la rend d'abord, sinon il s'ouvrirait dans la fenêtre réduite, invisible. Pendant
+        // l'annotation, cette fenêtre n'est que la palette (seule la palette reste devant) : l'annotation se
+        // ferme d'abord (son paperboard est gardé), et desktop.restore rend l'état d'avant l'annotation (M5),
+        // assez grand pour l'outil (Ma1).
         if (entry.restoresMain) {
+            if (root.controller && root.controller.annotating) {
+                root.commands.trigger("desktop.annotate")
+            }
             root.commands.trigger("desktop.restore")
         }
         root.commands.trigger(entry.command)

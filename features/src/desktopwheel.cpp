@@ -25,6 +25,9 @@ std::vector<WheelEntry> defaultWheel()
     auto command = [](const char* id, const QString& label) {
         return WheelEntry{QString::fromLatin1(id), label, {}, false};
     };
+    auto mainWindowTool = [](const char* id, const QString& label) {
+        return WheelEntry{QString::fromLatin1(id), label, {}, true};
+    };
     auto ring = [](const QString& label, std::vector<WheelEntry> entries) {
         return WheelEntry{QString(), label, std::move(entries), false};
     };
@@ -36,10 +39,11 @@ std::vector<WheelEntry> defaultWheel()
                                         command("tool.camera-window", QStringLiteral("Fenêtre")),
                                         command("tool.camera-screen", QStringLiteral("Écran entier"))}),
         command("tool.keyboard", QStringLiteral("Clavier à l'écran")),
-        ring(QStringLiteral("Autres outils"), {command("tool.ticker", QStringLiteral("Message défilant")),
-                                               command("tool.clock", QStringLiteral("Horloge")),
-                                               command("tool.calculator", QStringLiteral("Calculatrice")),
-                                               command("tool.dice", QStringLiteral("Dés"))}),
+        ring(QStringLiteral("Autres outils"),
+             {mainWindowTool("tool.ticker", QStringLiteral("Message défilant")),
+              mainWindowTool("tool.clock", QStringLiteral("Horloge")),
+              mainWindowTool("tool.calculator", QStringLiteral("Calculatrice")),
+              mainWindowTool("tool.dice", QStringLiteral("Dés"))}),
     };
 }
 
