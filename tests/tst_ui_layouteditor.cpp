@@ -8,15 +8,23 @@
 
 #include <QCryptographicHash>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
+#include <QQuickWindow>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
 #include <memory>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
 
@@ -28,6 +36,31 @@ QByteArray fileHash(const QString& path)
     if (!file.open(QIODevice::ReadOnly))
         return {};
     return QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256);
+}
+
+// Empreinte de chaque fichier sous `root` : la vraie garde de « rien d'écrit ailleurs que le dossier du
+// profil » (le fichier des ressources est en qrc, non inscriptible : son empreinte ne peut pas changer).
+QHash<QString, QByteArray> snapshot(const QString& root)
+{
+    QHash<QString, QByteArray> out;
+    QDirIterator it(root, QDir::Files | QDir::Hidden, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString path = it.next();
+        out.insert(path, fileHash(path));
+    }
+    return out;
+}
+
+QStringList changedFiles(const QHash<QString, QByteArray>& before, const QHash<QString, QByteArray>& after)
+{
+    QStringList out;
+    for (auto it = after.cbegin(); it != after.cend(); ++it)
+        if (before.value(it.key()) != it.value())
+            out << QDir::cleanPath(it.key());
+    for (auto it = before.cbegin(); it != before.cend(); ++it)
+        if (!after.contains(it.key()))
+            out << QDir::cleanPath(it.key());
+    return out;
 }
 
 QJsonObject readJson(const QString& path)
@@ -246,29 +279,32 @@ private slots:
         const QByteArray resourceHash = fileHash(defaultLayoutPath());
         QVERIFY(!resourceHash.isEmpty());
         QVERIFY(!QFile::exists(bench.profileLayout()));
+        const auto before = snapshot(bench.root.path());
         bench.editor.setTarget(QStringLiteral("objectBar"));
         QVERIFY(bench.editor.add(QStringLiteral("file.save")));
         QVERIFY(bench.editor.apply());
         QVERIFY(QFile::exists(bench.profileLayout()));
         QCOMPARE(fileHash(defaultLayoutPath()), resourceHash);
+        QCOMPARE(changedFiles(before, snapshot(bench.root.path())),
+                 QStringList{QDir::cleanPath(bench.profileLayout())});
         const QJsonArray objectBar =
             readJson(bench.profileLayout()).value(QStringLiteral("objectBar")).toArray();
         QCOMPARE(objectBar.last().toString(), QStringLiteral("file.save"));
-        for (const QString& other : ui::ProfileController::builtinOrder())
-            if (other != bench.profile->currentId())
-                QVERIFY2(
-                    !QFile::exists(bench.profile->store().directory(other) + QStringLiteral("/layout.json")),
-                    qPrintable(other));
     }
 
     void defaultLayoutUntouched()
     {
         Bench bench;
         const QByteArray resourceHash = fileHash(defaultLayoutPath());
+        const auto before = snapshot(bench.root.path());
         bench.editor.setTarget(QStringLiteral("palette"));
         QVERIFY(bench.editor.add(QStringLiteral("file.new-1024x768")));
         QVERIFY(bench.editor.apply());
         QCOMPARE(fileHash(defaultLayoutPath()), resourceHash);
+        const QString profileDir =
+            QDir::cleanPath(bench.profile->store().directory(bench.profile->currentId()));
+        for (const QString& path : changedFiles(before, snapshot(bench.root.path())))
+            QVERIFY2(path.startsWith(profileDir + QLatin1Char('/')), qPrintable(path));
         ui::Commands fresh;
         fresh.setPlatform(actions::Platform::Windows);
         fresh.setProfileDir(QString());
@@ -350,8 +386,8 @@ private slots:
         QCOMPARE(written.value(QStringLiteral("x-extension")), layout.value(QStringLiteral("x-extension")));
     }
 
-    // Majeur 1 : une commande n'atterrit jamais sous « couleurs » ou « epaisseur », que ToolPalette ne dessine
-    // pas en boutons. Le patron écarté (ces en-têtes traités comme les autres) range tool.select sous
+    // Majeur 1 : une commande n'atterrit jamais sous « couleurs » ou « epaisseur », que ToolPalette ne
+    // dessine pas en boutons. Le patron écarté (ces en-têtes traités comme les autres) range tool.select sous
     // « epaisseur » au premier « Monter » : l'outil disparaît de la palette, sans message.
     void commandsStayInDrawnGroups()
     {
@@ -448,6 +484,208 @@ private slots:
         QVERIFY(list.count() > 0);
         QVERIFY(!bench.profile->store().hasUserCopy(id));
         QVERIFY(currentModified(*bench.profile));
+    }
+
+    // Majeur 3 : un seul « Terminé » dans la fenêtre ; l'onglet a « Appliquer », et le quitter (popup fermée,
+    // autre onglet : la visibilité effective tombe) applique ce qui ne l'est pas. Le patron écarté (deux
+    // « Terminé », celui de l'éditeur sans écrire) perd la modification en silence. Mineur vérifié : un
+    // nouveau modèle remet currentIndex à 0 ; la sélection suit l'entrée ajoutée.
+    void leavingTheTabApplies()
+    {
+        Bench bench;
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\n"
+                          "Item { width: 640; height: 480; CommandsPage { anchors.fill: parent } }\n",
+                          QUrl());
+        std::unique_ptr<QObject> holder(component.create());
+        QVERIFY2(holder, qPrintable(component.errorString()));
+        QQuickWindow window;
+        auto* frame = qobject_cast<QQuickItem*>(holder.get());
+        QVERIFY(frame);
+        frame->setParentItem(window.contentItem());
+        auto* page = holder->findChild<QQuickItem*>(QStringLiteral("commandsPage"));
+        QVERIFY(page);
+        page->setProperty("commands", QVariant::fromValue(&bench.commands));
+        page->setProperty("profile", QVariant::fromValue(bench.profile.get()));
+        auto* editor = page->findChild<ui::LayoutEditor*>(QStringLiteral("layoutEditor"));
+        QVERIFY(editor);
+        QCOMPARE(editor->profile(), bench.profile.get());
+        auto* applyButton = page->findChild<QQuickItem*>(QStringLiteral("applyButton"));
+        QVERIFY(applyButton);
+        QCOMPARE(applyButton->property("text").toString(), QStringLiteral("Appliquer"));
+
+        auto* list = page->findChild<QQuickItem*>(QStringLiteral("targetList"));
+        QVERIFY(list);
+        editor->setTarget(QStringLiteral("objectBar"));
+        editor->setCurrent(1);
+        QCOMPARE(list->property("currentIndex").toInt(), 1);
+        QVERIFY(editor->add(QStringLiteral("file.save")));
+        QCOMPARE(editor->current(), 2);
+        QCOMPARE(list->property("currentIndex").toInt(), 2);
+
+        QVERIFY(!QFile::exists(bench.profileLayout()));
+        frame->setVisible(false);
+        QVERIFY(QFile::exists(bench.profileLayout()));
+        QVERIFY(!editor->modified());
+        QCOMPARE(
+            readJson(bench.profileLayout()).value(QStringLiteral("objectBar")).toArray().at(2).toString(),
+            QStringLiteral("file.save"));
+    }
+
+    // Mineur : add() et addSeparator() insèrent juste après l'entrée choisie, qui devient l'entrée ajoutée.
+    void insertsAfterTheSelection()
+    {
+        Bench bench;
+        bench.editor.setTarget(QStringLiteral("menu:file"));
+        const QStringList before = tokens(bench.editor.items());
+        QVERIFY(!before.contains(QStringLiteral("tool.select")));
+        bench.editor.setCurrent(1);
+        QVERIFY(bench.editor.add(QStringLiteral("tool.select")));
+        QStringList expected = before;
+        expected.insert(2, QStringLiteral("tool.select"));
+        QCOMPARE(tokens(bench.editor.items()), expected);
+        QCOMPARE(bench.editor.current(), 2);
+        QVERIFY(bench.editor.addSeparator());
+        expected.insert(3, QStringLiteral("-"));
+        QCOMPARE(tokens(bench.editor.items()), expected);
+        QCOMPARE(bench.editor.current(), 3);
+
+        // Palette : un groupe neuf s'ouvre après l'entrée choisie et emporte la suite de son groupe.
+        bench.editor.setTarget(QStringLiteral("palette"));
+        const int select = indexOf(bench.editor.items(), QStringLiteral("tool.select"));
+        bench.editor.setCurrent(select);
+        QVERIFY(bench.editor.addSeparator());
+        QCOMPARE(bench.editor.current(), select + 1);
+        QCOMPARE(bench.editor.items().at(select + 1).toMap().value(QStringLiteral("group")).toString(),
+                 QStringLiteral("groupe-1"));
+        QCOMPARE(bench.editor.items().at(select + 1).toMap().value(QStringLiteral("label")).toString(),
+                 QStringLiteral("Groupe 1"));
+    }
+
+    // Mineur : doublon refusé, rien de changé.
+    void duplicateRefused()
+    {
+        Bench bench;
+        bench.editor.setTarget(QStringLiteral("objectBar"));
+        const QStringList before = tokens(bench.editor.items());
+        QVERIFY(!before.isEmpty());
+        QVERIFY(!bench.editor.add(before.constFirst()));
+        QCOMPARE(tokens(bench.editor.items()), before);
+        QVERIFY(!bench.editor.modified());
+    }
+
+    // Mineur : aller-retour de la palette. Blocs fixes sans clé items, clés de chaque groupe gardées ; seule
+    // la liste du groupe modifié change.
+    void paletteRoundTrip()
+    {
+        Bench bench;
+        const QJsonArray origin = readJson(defaultLayoutPath()).value(QStringLiteral("palette")).toArray();
+        QVERIFY(origin.at(0).toObject().value(QStringLiteral("items")).toArray().size() >= 2);
+        bool fixedWithoutItems = false;
+        for (const QJsonValue& group : origin)
+            fixedWithoutItems = fixedWithoutItems ||
+                                (undrawnGroup(group.toObject().value(QStringLiteral("group")).toString()) &&
+                                 !group.toObject().contains(QStringLiteral("items")));
+        QVERIFY(fixedWithoutItems);
+        bench.editor.setTarget(QStringLiteral("palette"));
+        QVERIFY(bench.editor.moveDown(1));
+        QVERIFY(bench.editor.apply());
+        QJsonArray expected = origin;
+        QJsonObject first = origin.at(0).toObject();
+        QJsonArray items = first.value(QStringLiteral("items")).toArray();
+        const QJsonValue a = items.at(0);
+        items.replace(0, items.at(1));
+        items.replace(1, a);
+        first.insert(QStringLiteral("items"), items);
+        expected.replace(0, first);
+        QCOMPARE(readJson(bench.profileLayout()).value(QStringLiteral("palette")).toArray(), expected);
+    }
+
+    // Mineur : sur Android, une entrée absente de la plateforme (launcher.edit, menu Outils) est montrée
+    // grisée et gardée telle qu'écrite.
+    void absentEntryKeptOnWrite()
+    {
+        Bench bench(actions::Platform::Android);
+        const QJsonArray origin = menuObject(readJson(defaultLayoutPath()), QStringLiteral("tools"))
+                                      .value(QStringLiteral("items"))
+                                      .toArray();
+        QVERIFY(QJsonDocument(origin).toJson().contains("launcher.edit"));
+        QVERIFY(!ids(bench.editor.catalog()).contains(QStringLiteral("launcher.edit")));
+        bench.editor.setTarget(QStringLiteral("menu:tools"));
+        QVERIFY(bench.editor.addSeparator());
+        QVERIFY(bench.editor.apply());
+        QJsonArray expected = origin;
+        expected.append(QStringLiteral("-"));
+        QCOMPARE(menuObject(readJson(bench.profileLayout()), QStringLiteral("tools"))
+                     .value(QStringLiteral("items"))
+                     .toArray(),
+                 expected);
+    }
+
+    // Mineur : changer de profil n'abandonne pas les modifications : elles vont au profil quitté, comme ses
+    // réglages (ProfileController::activate).
+    void editsGoToTheDepartedProfile()
+    {
+        Bench bench;
+        const QString departed = bench.profile->currentId();
+        const QString departedLayout = bench.profileLayout();
+        QString other;
+        for (const QString& id : ui::ProfileController::builtinOrder())
+            if (other.isEmpty() && id != departed)
+                other = id;
+        bench.editor.setTarget(QStringLiteral("objectBar"));
+        QVERIFY(bench.editor.add(QStringLiteral("file.save")));
+        QVERIFY(bench.profile->activate(other));
+        QVERIFY(!bench.editor.modified());
+        QCOMPARE(readJson(departedLayout).value(QStringLiteral("objectBar")).toArray().last().toString(),
+                 QStringLiteral("file.save"));
+        QVERIFY(!QFile::exists(bench.profileLayout()));
+        QVERIFY(!tokens(bench.editor.items()).contains(QStringLiteral("file.save")));
+    }
+
+    // Mineurs : apply() sans modification n'écrit rien ; layout.json du profil refusé par parseLayout :
+    // l'éditeur montre la disposition des ressources (comme Commands) et apply() la remplace.
+    void applyWithoutEditsAndInvalidProfileLayout()
+    {
+        Bench bench;
+        QVERIFY(bench.editor.apply());
+        QVERIFY(!QFile::exists(bench.profileLayout()));
+
+        const QJsonObject invalid{{QStringLiteral("palette"), 3}};
+        actions::Layout parsed;
+        QString error;
+        QVERIFY(!actions::parseLayout(QJsonDocument(invalid).toJson(), parsed, error));
+        QVERIFY(writeJson(bench.profileLayout(), invalid));
+        bench.editor.reload();
+        bench.editor.setTarget(QStringLiteral("objectBar"));
+        const QJsonArray origin = readJson(defaultLayoutPath()).value(QStringLiteral("objectBar")).toArray();
+        QCOMPARE(bench.editor.items().size(), origin.size());
+        QVERIFY(bench.editor.add(QStringLiteral("file.save")));
+        QVERIFY(bench.editor.apply());
+        QFile written(bench.profileLayout());
+        QVERIFY(written.open(QIODevice::ReadOnly));
+        QVERIFY2(actions::parseLayout(written.readAll(), parsed, error), qPrintable(error));
+        QCOMPARE(readJson(bench.profileLayout()).value(QStringLiteral("objectBar")).toArray().size(),
+                 origin.size() + 1);
+    }
+
+    // Mineur : un échec d'apply() est signalé (error, ProfileController::failed) et garde les modifications.
+    void applyFailureReported()
+    {
+        Bench bench;
+        const QString dir = bench.profile->store().directory(bench.profile->currentId());
+        QVERIFY(QDir().mkpath(QFileInfo(dir).absolutePath()));
+        QFile blocker(dir); // un fichier à la place du dossier du profil : écriture impossible
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
+        QSignalSpy failed(bench.profile.get(), &ui::ProfileController::failed);
+        bench.editor.setTarget(QStringLiteral("objectBar"));
+        QVERIFY(bench.editor.add(QStringLiteral("file.save")));
+        QVERIFY(!bench.editor.apply());
+        QVERIFY(!bench.editor.error().isEmpty());
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(bench.editor.modified());
     }
 };
 

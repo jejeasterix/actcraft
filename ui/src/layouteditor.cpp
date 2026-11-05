@@ -2,13 +2,12 @@
 #include <actcraft/actions/layout.h>
 #include <actcraft/ui/layouteditor.h>
 
-#include <QDir>
 #include <QJsonDocument>
 #include <QJsonValue>
-#include <QSaveFile>
 #include <QSet>
 #include <QVariantMap>
 
+#include <algorithm>
 #include <utility>
 
 namespace actcraft::ui {
@@ -56,6 +55,53 @@ QJsonArray flattenPalette(const QJsonArray& groups)
 bool isGroupHeader(const QJsonValue& token)
 {
     return token.isObject() && token.toObject().contains(kGroup);
+}
+
+// Groupes que ToolPalette ne dessine pas en boutons (il y charge le nuancier et l'épaisseur) : blocs fixes.
+bool isFixedGroup(const QJsonValue& token)
+{
+    if (!isGroupHeader(token)) {
+        return false;
+    }
+    const QString group = token.toObject().value(kGroup).toString();
+    return group == QLatin1String("couleurs") || group == QLatin1String("epaisseur");
+}
+
+// Commandes rangées sous un bloc fixe : absentes de la palette dessinée. Toujours 0 hors de la palette.
+qsizetype hiddenCount(const QJsonArray& tokens)
+{
+    qsizetype count = 0;
+    bool fixed = false;
+    for (const QJsonValue& token : tokens) {
+        if (isGroupHeader(token)) {
+            fixed = isFixedGroup(token);
+        } else if (fixed) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void swapAt(QJsonArray& tokens, int a, int b)
+{
+    const QJsonValue first = tokens.at(a);
+    tokens.replace(a, tokens.at(b));
+    tokens.replace(b, first);
+}
+
+// Pousse le jeton en `index` dans le sens `step` (par-dessus les blocs fixes) tant que la liste cache plus de
+// commandes que `hidden` ; rend sa place, ou -1 s'il bute sur un bord.
+int settle(QJsonArray& tokens, int index, int step, qsizetype hidden)
+{
+    while (hiddenCount(tokens) > hidden) {
+        const int next = index + step;
+        if (next < 0 || next >= tokens.size()) {
+            return -1;
+        }
+        swapAt(tokens, index, next);
+        index = next;
+    }
+    return index;
 }
 
 QJsonArray rebuildPalette(const QJsonArray& tokens)
@@ -175,22 +221,32 @@ void LayoutEditor::setProfile(ProfileController* profile)
     if (m_profile == profile) {
         return;
     }
-    QObject::disconnect(m_profileConnection);
+    if (m_profile) {
+        QObject::disconnect(m_profile, nullptr, this, nullptr);
+    }
     m_profile = profile;
     if (m_profile) {
-        m_profileConnection =
-            connect(m_profile, &ProfileController::profileChanged, this, &LayoutEditor::onProfileChanged);
+        connect(m_profile, &ProfileController::profileChanged, this, &LayoutEditor::onProfileChanged);
+        // Écriture de la disposition du profil courant ou « Revenir à l'origine » (même identifiant) :
+        // relire.
+        connect(m_profile, &ProfileController::profileLayoutChanged, this, &LayoutEditor::reload);
     }
     emit profileChanged();
     reload();
 }
 
-// profileChanged suit aussi chaque réglage du profil : seule l'activation d'un autre profil relit.
+// profileChanged suit aussi chaque réglage du profil : seule l'activation d'un autre profil relit. Les
+// modifications pas encore appliquées vont au profil quitté, comme ses réglages
+// (ProfileController::activate), sauf s'il n'existe plus.
 void LayoutEditor::onProfileChanged()
 {
-    if (m_profile && m_profile->currentId() != m_profileId) {
-        reload();
+    if (!m_profile || m_profile->currentId() == m_profileId) {
+        return;
     }
+    if (!m_edits.isEmpty() && m_profile->store().ids().contains(m_profileId)) {
+        write(m_profileId);
+    }
+    reload();
 }
 
 QVariantList LayoutEditor::targets() const
@@ -203,19 +259,20 @@ QString LayoutEditor::target() const
     return m_target;
 }
 
+bool LayoutEditor::hasTarget(const QString& id) const
+{
+    return std::any_of(m_targets.cbegin(), m_targets.cend(), [&id](const QVariant& entry) {
+        return entry.toMap().value(QStringLiteral("id")).toString() == id;
+    });
+}
+
 void LayoutEditor::setTarget(const QString& id)
 {
-    if (id == m_target) {
-        return;
-    }
-    bool known = false;
-    for (const QVariant& entry : m_targets) {
-        known = known || entry.toMap().value(QStringLiteral("id")).toString() == id;
-    }
-    if (!known) {
+    if (id == m_target || !hasTarget(id)) {
         return;
     }
     m_target = id;
+    m_current = -1;
     emit targetChanged();
     loadTarget();
 }
@@ -235,7 +292,8 @@ QVariantList LayoutEditor::buildItems() const
             const QString group = token.toObject().value(kGroup).toString();
             item.insert(QStringLiteral("separator"), true);
             item.insert(kGroup, group);
-            item.insert(QStringLiteral("label"), group);
+            item.insert(QStringLiteral("label"), groupLabel(group));
+            item.insert(QStringLiteral("fixed"), isFixedGroup(token));
         } else if (token.isObject()) {
             const QJsonObject submenu = token.toObject();
             item.insert(kSubmenu, true);
@@ -260,6 +318,68 @@ QVariantList LayoutEditor::buildItems() const
     return out;
 }
 
+// Nom affiché d'un groupe de la palette ; « groupe-3 » (groupe neuf) : « Groupe 3 » ; inconnu : tel quel.
+QString LayoutEditor::groupLabel(const QString& group)
+{
+    const QHash<QString, QString> labels{{QStringLiteral("commandes"), tr("Commandes")},
+                                         {QStringLiteral("pages"), tr("Pages")},
+                                         {QStringLiteral("couleurs"), tr("Couleurs")},
+                                         {QStringLiteral("epaisseur"), tr("Épaisseur")},
+                                         {QStringLiteral("outils"), tr("Outils")},
+                                         {QStringLiteral("edition"), tr("Édition")},
+                                         {QStringLiteral("presentation"), tr("Présentation")},
+                                         {QStringLiteral("formes-texte"), tr("Formes et texte")},
+                                         {QStringLiteral("groupe"), tr("Groupe")}};
+    if (const auto it = labels.constFind(group); it != labels.cend()) {
+        return it.value();
+    }
+    const QString prefix = QStringLiteral("groupe-");
+    return group.startsWith(prefix) ? tr("Groupe %1").arg(group.mid(prefix.size())) : group;
+}
+
+// Nom affiché d'une catégorie (préfixe de l'identifiant) ; inconnue : telle quelle.
+QString LayoutEditor::categoryLabel(const QString& category)
+{
+    const QHash<QString, QString> labels{{QStringLiteral("file"), tr("Fichier")},
+                                         {QStringLiteral("view"), tr("Affichage")},
+                                         {QStringLiteral("page"), tr("Pages")},
+                                         {QStringLiteral("tool"), tr("Outils")},
+                                         {QStringLiteral("pen"), tr("Stylo")},
+                                         {QStringLiteral("menu"), tr("Menus")},
+                                         {QStringLiteral("help"), tr("Aide")},
+                                         {QStringLiteral("edit"), tr("Édition")},
+                                         {QStringLiteral("clear"), tr("Effacer")},
+                                         {QStringLiteral("object"), tr("Objets")},
+                                         {QStringLiteral("present"), tr("Présentation")},
+                                         {QStringLiteral("math"), tr("Mathématiques")},
+                                         {QStringLiteral("insert"), tr("Insertion")},
+                                         {QStringLiteral("equation"), tr("Équations")},
+                                         {QStringLiteral("recognition"), tr("Reconnaissance")},
+                                         {QStringLiteral("desktop"), tr("Bureau")},
+                                         {QStringLiteral("shape"), tr("Formes")},
+                                         {QStringLiteral("text"), tr("Texte")},
+                                         {QStringLiteral("browsers"), tr("Navigateurs")},
+                                         {QStringLiteral("grid"), tr("Grille")},
+                                         {QStringLiteral("arrange"), tr("Disposition")},
+                                         {QStringLiteral("align"), tr("Alignement")},
+                                         {QStringLiteral("transform"), tr("Transformation")},
+                                         {QStringLiteral("connector"), tr("Connecteurs")},
+                                         {QStringLiteral("tab"), tr("Onglets")},
+                                         {QStringLiteral("export"), tr("Exporter")},
+                                         {QStringLiteral("palette"), tr("Palette")},
+                                         {QStringLiteral("color"), tr("Couleurs")},
+                                         {QStringLiteral("browser"), tr("Navigateur")},
+                                         {QStringLiteral("profile"), tr("Profils")},
+                                         {QStringLiteral("mode"), tr("Modes")},
+                                         {QStringLiteral("resources"), tr("Ressources")},
+                                         {QStringLiteral("classroom"), tr("Classe")},
+                                         {QStringLiteral("spell"), tr("Orthographe")},
+                                         {QStringLiteral("launcher"), tr("Raccourcis vers des programmes")},
+                                         {QStringLiteral("shortcutbar"), tr("Barre de raccourcis")},
+                                         {QStringLiteral("settings"), tr("Paramètres")}};
+    return labels.value(category, category);
+}
+
 // Commandes disponibles sur la plateforme, rangées par catégorie (préfixe de l'identifiant) dans l'ordre de
 // leur première rencontre, puis dans l'ordre de déclaration.
 QVariantList LayoutEditor::catalog() const
@@ -267,7 +387,7 @@ QVariantList LayoutEditor::catalog() const
     return m_catalog;
 }
 
-// categoryStart : première entrée de sa catégorie (en-tête dans la liste).
+// categoryStart : première entrée de sa catégorie (en-tête dans la liste, categoryLabel).
 QVariantList LayoutEditor::buildCatalog() const
 {
     if (!m_commands) {
@@ -294,6 +414,7 @@ QVariantList LayoutEditor::buildCatalog() const
         QVariantList entries = byCategory.value(category);
         QVariantMap first = entries.constFirst().toMap();
         first.insert(QStringLiteral("categoryStart"), true);
+        first.insert(QStringLiteral("categoryLabel"), categoryLabel(category));
         entries.replace(0, first);
         out.append(entries);
     }
@@ -309,13 +430,29 @@ void LayoutEditor::refreshCatalog()
     }
 }
 
-// Les délégués QML lisent la liste mise en cache : chaque lecture ne la reconstruit pas.
+// Les délégués QML lisent la liste mise en cache : chaque lecture ne la reconstruit pas. Un nouveau contenu
+// signale aussi `current` : le ListView vient de remettre son currentIndex à 0.
 void LayoutEditor::refreshItems(bool force)
 {
     QVariantList items = buildItems();
     if (force || items != m_items) {
         m_items = std::move(items);
         emit itemsChanged();
+        emit currentChanged();
+    }
+}
+
+int LayoutEditor::current() const noexcept
+{
+    return m_current;
+}
+
+void LayoutEditor::setCurrent(int index)
+{
+    const int value = index >= 0 && index < m_tokens.size() ? index : -1;
+    if (value != m_current) {
+        m_current = value;
+        emit currentChanged();
     }
 }
 
@@ -329,16 +466,18 @@ bool LayoutEditor::modified() const noexcept
     return !m_edits.isEmpty();
 }
 
+QString LayoutEditor::error() const
+{
+    return m_error;
+}
+
 bool LayoutEditor::add(const QString& id)
 {
     if (m_target.isEmpty() || !m_commands || !m_commands->isAvailable(id) ||
         m_tokens.contains(QJsonValue(id))) {
         return false;
     }
-    QJsonArray tokens = m_tokens;
-    tokens.append(id);
-    setTokens(tokens);
-    return true;
+    return insert(id);
 }
 
 bool LayoutEditor::removeAt(int index)
@@ -347,27 +486,40 @@ bool LayoutEditor::removeAt(int index)
         return false;
     }
     QJsonArray tokens = m_tokens;
+    const qsizetype hidden = hiddenCount(tokens);
     tokens.removeAt(index);
-    setTokens(tokens);
+    if (hiddenCount(tokens) > hidden) {
+        return false; // les commandes du groupe passeraient sous un bloc fixe
+    }
+    setTokens(tokens, std::min(index, static_cast<int>(tokens.size()) - 1));
     return true;
 }
 
 bool LayoutEditor::moveUp(int index)
 {
-    if (index <= 0 || index >= m_tokens.size()) {
-        return false;
-    }
-    QJsonArray tokens = m_tokens;
-    const QJsonValue moved = tokens.at(index);
-    tokens.replace(index, tokens.at(index - 1));
-    tokens.replace(index - 1, moved);
-    setTokens(tokens);
-    return true;
+    return move(index, -1);
 }
 
 bool LayoutEditor::moveDown(int index)
 {
-    return index >= 0 && index < m_tokens.size() - 1 && moveUp(index + 1);
+    return move(index, 1);
+}
+
+bool LayoutEditor::move(int index, int step)
+{
+    const int next = index + step;
+    if (index < 0 || index >= m_tokens.size() || next < 0 || next >= m_tokens.size()) {
+        return false;
+    }
+    QJsonArray tokens = m_tokens;
+    const qsizetype hidden = hiddenCount(tokens);
+    swapAt(tokens, index, next);
+    const int at = settle(tokens, next, step, hidden);
+    if (at < 0) {
+        return false;
+    }
+    setTokens(tokens, at);
+    return true;
 }
 
 bool LayoutEditor::addSeparator()
@@ -375,23 +527,41 @@ bool LayoutEditor::addSeparator()
     if (!separatorAllowed()) {
         return false;
     }
-    QJsonArray tokens = m_tokens;
-    if (m_target == kPalette) {
-        QSet<QString> used;
-        for (const QJsonValue& token : tokens) {
-            if (isGroupHeader(token)) {
-                used.insert(token.toObject().value(kGroup).toString());
-            }
-        }
-        int n = 1;
-        while (used.contains(QStringLiteral("groupe-%1").arg(n))) {
-            ++n;
-        }
-        tokens.append(QJsonObject{{kGroup, QStringLiteral("groupe-%1").arg(n)}, {kItems, QJsonArray()}});
-    } else {
-        tokens.append(QStringLiteral("-"));
+    if (m_target != kPalette) {
+        return insert(QStringLiteral("-"));
     }
-    setTokens(tokens);
+    QSet<QString> used;
+    for (const QJsonValue& token : m_tokens) {
+        if (isGroupHeader(token)) {
+            used.insert(token.toObject().value(kGroup).toString());
+        }
+    }
+    int n = 1;
+    while (used.contains(QStringLiteral("groupe-%1").arg(n))) {
+        ++n;
+    }
+    return insert(QJsonObject{{kGroup, QStringLiteral("groupe-%1").arg(n)}, {kItems, QJsonArray()}});
+}
+
+// Juste après l'entrée choisie (en fin de liste sans choix) ; sous un bloc fixe, la commande passe au groupe
+// suivant, ou à la fin du précédent si le bloc est le dernier.
+bool LayoutEditor::insert(const QJsonValue& token)
+{
+    QJsonArray tokens = m_tokens;
+    const qsizetype hidden = hiddenCount(tokens);
+    const int at = m_current >= 0 ? m_current + 1 : static_cast<int>(tokens.size());
+    tokens.insert(at, token);
+    QJsonArray down = tokens;
+    int placed = settle(down, at, 1, hidden);
+    if (placed >= 0) {
+        tokens = down;
+    } else {
+        placed = settle(tokens, at, -1, hidden);
+    }
+    if (placed < 0) {
+        return false;
+    }
+    setTokens(tokens, placed);
     return true;
 }
 
@@ -399,22 +569,31 @@ void LayoutEditor::reload()
 {
     m_profileId = m_profile ? m_profile->currentId() : QString();
     m_edits.clear();
-    m_effective = readEffective();
+    m_current = -1;
+    m_effective = readEffective(m_profileId);
     rebuildTargets();
     loadTarget();
 }
 
 bool LayoutEditor::apply()
 {
-    const QString dir = profileDir();
-    if (!m_commands || dir.isEmpty()) {
-        return false;
+    if (m_edits.isEmpty()) {
+        return true; // rien d'écrit : sans modification, la disposition suit toujours celle des ressources
     }
-    // Le patron évident (réécrire la disposition à partir du seul contenu affiché) perdrait ce que l'éditeur
-    // ne connaît pas : on repart du JSON effectif et on n'y remplace que les listes modifiées.
-    QJsonObject layout = readEffective();
+    // Succès : ProfileController::writeLayout signale profileLayoutChanged, qui relit (reload).
+    return write(m_profile ? m_profile->currentId() : QString());
+}
+
+// Le patron évident (réécrire la disposition à partir du seul contenu affiché) perdrait ce que l'éditeur ne
+// connaît pas : on repart du JSON effectif du profil et on n'y remplace que les listes modifiées.
+bool LayoutEditor::write(const QString& profileId)
+{
+    if (!m_commands || !m_profile || profileId.isEmpty()) {
+        return fail(tr("Disposition non enregistrée : aucun profil."));
+    }
+    QJsonObject layout = readEffective(profileId);
     if (layout.isEmpty()) {
-        return false;
+        return fail(tr("Disposition non enregistrée : disposition actuelle illisible."));
     }
     for (auto it = m_edits.cbegin(); it != m_edits.cend(); ++it) {
         replaceTokens(layout, it.key(), it.value());
@@ -422,35 +601,47 @@ bool LayoutEditor::apply()
     const QByteArray json = QJsonDocument(layout).toJson();
     actions::Layout parsed;
     QString error;
-    if (!actions::parseLayout(json, parsed, error) || !QDir().mkpath(dir)) {
-        return false;
+    if (!actions::parseLayout(json, parsed, error)) {
+        return fail(tr("Disposition non enregistrée : %1").arg(error));
     }
-    QSaveFile file(QDir(dir).filePath(kLayoutFile));
-    if (!file.open(QIODevice::WriteOnly) || file.write(json) != json.size() || !file.commit()) {
-        return false;
+    if (!m_profile->writeLayout(profileId, json)) {
+        return fail(
+            tr("Disposition non enregistrée dans « %1 ».").arg(m_profile->store().directory(profileId)));
     }
-    // Commands ne lit le dossier du profil que s'il y trouvait déjà un layout.json (applyLayoutDir) :
-    // setProfileDir le pose, puis Commands::reload().
-    m_commands->setProfileDir(dir);
-    reload();
+    setError(QString());
     return true;
 }
 
-QString LayoutEditor::profileDir() const
+bool LayoutEditor::fail(const QString& message)
 {
-    if (!m_profile || m_profile->currentId().isEmpty()) {
-        return {};
-    }
-    return m_profile->store().directory(m_profile->currentId());
+    setError(message);
+    return false;
 }
 
-// Disposition effective : layout.json du profil s'il se lit, sinon celle des ressources.
-QJsonObject LayoutEditor::readEffective() const
+void LayoutEditor::setError(const QString& message)
+{
+    if (message != m_error) {
+        m_error = message;
+        emit errorChanged();
+    }
+}
+
+// Disposition effective du profil : son layout.json s'il passe actions::parseLayout (Commands retombe aussi
+// sur les ressources sinon), sinon celle des ressources.
+QJsonObject LayoutEditor::readEffective(const QString& profileId) const
 {
     const QString resourceDir = actions::dataResourceDir();
-    const QJsonObject layered = parseObject(actions::readLayeredFile(kLayoutFile, profileDir(), resourceDir));
-    return layered.isEmpty() ? parseObject(actions::readLayeredFile(kLayoutFile, QString(), resourceDir))
-                             : layered;
+    const QString dir =
+        m_profile && !profileId.isEmpty() ? m_profile->store().directory(profileId) : QString();
+    if (!dir.isEmpty()) {
+        const QByteArray own = actions::readLayeredFile(kLayoutFile, dir, resourceDir);
+        actions::Layout parsed;
+        QString error;
+        if (actions::parseLayout(own, parsed, error)) {
+            return parseObject(own);
+        }
+    }
+    return parseObject(actions::readLayeredFile(kLayoutFile, QString(), resourceDir));
 }
 
 void LayoutEditor::rebuildTargets()
@@ -468,11 +659,7 @@ void LayoutEditor::rebuildTargets()
         m_targets = targets;
         emit targetsChanged();
     }
-    bool known = false;
-    for (const QVariant& entry : m_targets) {
-        known = known || entry.toMap().value(QStringLiteral("id")).toString() == m_target;
-    }
-    if (!known) {
+    if (!hasTarget(m_target)) {
         m_target = kPalette;
         emit targetChanged();
     }
@@ -484,10 +671,11 @@ void LayoutEditor::loadTarget()
     refreshItems(true);
 }
 
-void LayoutEditor::setTokens(const QJsonArray& tokens)
+void LayoutEditor::setTokens(const QJsonArray& tokens, int current)
 {
     m_tokens = tokens;
     m_edits.insert(m_target, tokens);
+    m_current = current;
     refreshItems(true);
 }
 

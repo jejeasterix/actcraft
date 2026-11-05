@@ -1,8 +1,7 @@
 #include <actcraft/actions/commandregistry.h>
 #include <actcraft/actions/profilestore.h>
-#include <actcraft/ui/profilecontroller.h>
-
 #include <actcraft/ui/commands.h>
+#include <actcraft/ui/profilecontroller.h>
 
 #include <QDir>
 #include <QFile>
@@ -128,17 +127,16 @@ private slots:
         }
     }
 
-    // Amendement 9 : un profil fourni dont seul <dossier>/layout.json a changé est « modifié », et « Revenir à
-    // l'origine » retire ce fichier. Le patron écarté (`hasUserCopy` seul) ne regarde que <id>.json.
+    // Amendement 9 : un profil fourni dont seul <dossier>/layout.json a changé est « modifié », et « Revenir
+    // à l'origine » retire ce fichier. Le patron écarté (`hasUserCopy` seul) ne regarde que <id>.json.
     void layoutAloneMarksTheBuiltinModified()
     {
         QTemporaryDir root;
         ui::Commands commands;
-        ui::ProfileController controller(
-            actions::ProfileStore(root.filePath(QStringLiteral("profiles")),
-                                  QStringLiteral(":/actcraft/actions/profiles"),
-                                  ui::ProfileController::builtinOrder()),
-            nullptr, &commands);
+        ui::ProfileController controller(actions::ProfileStore(root.filePath(QStringLiteral("profiles")),
+                                                               QStringLiteral(":/actcraft/actions/profiles"),
+                                                               ui::ProfileController::builtinOrder()),
+                                         nullptr, &commands);
         controller.start();
         const QString id = controller.currentId();
         QVERIFY(controller.store().isBuiltin(id));
