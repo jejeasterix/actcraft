@@ -1,6 +1,3 @@
-#ifdef Q_OS_WIN
-#include "calculatorcontroller.h"
-#endif
 #include "desktopcontroller.h"
 #include "presentationdocument.h"
 #include "support/lot7registry.h"
@@ -28,6 +25,10 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtTest>
+
+#ifdef Q_OS_WIN
+#include "calculatorcontroller.h" // après les en-têtes Qt : Q_OS_WIN y est défini
+#endif
 
 #include <cstddef>
 #include <vector>
