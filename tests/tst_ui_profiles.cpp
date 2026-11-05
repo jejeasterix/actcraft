@@ -204,7 +204,7 @@ private slots:
         const QString id = controller.currentId();
         const QString original = controller.paletteDock();
         controller.setPaletteDock(original == QStringLiteral("left") ? QStringLiteral("right")
-                                                                      : QStringLiteral("left"));
+                                                                     : QStringLiteral("left"));
         controller.saveNow();
         QVERIFY(controller.store().hasUserCopy(id));
         controller.setContactActive(true);

@@ -791,7 +791,8 @@ bool ResourceLibrary::remove(const QString& path, bool permanently)
 
 bool ResourceLibrary::hasItem(const QString& path) const
 {
-    return std::any_of(m_items.begin(), m_items.end(), [&path](const Item& item) { return item.path == path; });
+    return std::any_of(m_items.begin(), m_items.end(),
+                       [&path](const Item& item) { return item.path == path; });
 }
 
 bool ResourceLibrary::createFolder(const QString& name)

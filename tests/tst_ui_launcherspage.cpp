@@ -306,7 +306,8 @@ private slots:
         QObject* browser = named(s, "resourceBrowser");
         QObject* library = named(s, "appResources");
         QVERIFY(browser && library);
-        QVERIFY(QMetaObject::invokeMethod(library, "setOtherFolder", Q_ARG(QUrl, QUrl::fromLocalFile(dir.path()))));
+        QVERIFY(QMetaObject::invokeMethod(library, "setOtherFolder",
+                                          Q_ARG(QUrl, QUrl::fromLocalFile(dir.path()))));
         QTRY_COMPARE(library->property("itemCount").toInt(), 1);
         browser->setProperty("selectedPath", photo);
         QVERIFY(QMetaObject::invokeMethod(browser, "setStamping", Q_ARG(QVariant, true)));
