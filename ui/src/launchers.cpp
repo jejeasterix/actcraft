@@ -5,6 +5,7 @@
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -12,8 +13,10 @@
 #include <QProcess>
 #include <QRandomGenerator>
 #include <QSet>
+#include <QStandardPaths>
 #include <QUrl>
 #include <QUuid>
+#include <QtEndian>
 
 #include <algorithm>
 #include <utility>
@@ -126,6 +129,23 @@ bool opensAsDocument(const QString& path)
     const QFileInfo info(path);
     return info.exists() && !(info.isFile() && info.isExecutable());
 }
+
+#ifdef Q_OS_WIN
+// Fichier que CreateProcess démarrerait : « .exe » ajouté à un nom sans suffixe, puis le PATH pour un nom nu.
+// Lu au lancement seulement, après la confirmation. Vide : rien à lire, CreateProcess décide.
+QString programFile(const QString& path)
+{
+    QString name = path;
+    if (suffixOf(name).isEmpty())
+        name += QLatin1String(".exe");
+    if (suffixOf(name).compare(QLatin1String("exe"), Qt::CaseInsensitive) != 0)
+        return {};
+    if (QFileInfo(name).isFile())
+        return name;
+    const bool bare = !name.contains(QLatin1Char('/')) && !name.contains(QLatin1Char('\\'));
+    return bare ? QStandardPaths::findExecutable(name) : QString();
+}
+#endif
 
 QString documentRefusal(const QString& path)
 {
@@ -285,6 +305,18 @@ QByteArray Launchers::signatureOf(const QString& path, const QStringList& argume
     return QMessageAuthenticationCode::hash(message, key, QCryptographicHash::Sha256);
 }
 
+bool Launchers::fakeWindowsImage(const QString& file)
+{
+    QFile image(file);
+    if (!image.open(QIODevice::ReadOnly))
+        return false; // alias d'exécution de WindowsApps : ne s'ouvre pas, et se lance
+    const QByteArray dos = image.read(0x40);
+    if (dos.size() < 0x40 || !dos.startsWith("MZ"))
+        return true;
+    return !image.seek(qFromLittleEndian<quint32>(dos.constData() + 0x3C)) ||
+           image.read(4) != QByteArray("PE\0\0", 4);
+}
+
 QJsonArray Launchers::storedItems() const
 {
     return m_profile ? m_profile->profile().launchers.value(kEntries).toArray() : QJsonArray();
@@ -380,6 +412,12 @@ bool Launchers::launch(const Entry& entry)
         emit failed(documentRefusal(entry.path));
         return false;
     }
+#ifdef Q_OS_WIN // la boîte système qui bloquerait CreateProcess n'existe que sous Windows
+    if (!document && fakeWindowsImage(programFile(entry.path))) {
+        emit failed(tr("Ce .exe n'est pas un programme Windows : %1").arg(entry.path));
+        return false;
+    }
+#endif
     const bool started =
         document ? QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(entry.path).absoluteFilePath()))
                  : QProcess::startDetached(entry.path, entry.arguments);
