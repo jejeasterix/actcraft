@@ -1,10 +1,41 @@
 {
   "format": "actcraft-scenario/1",
   "name": "classe-protegee",
-  "description": "Talon L6 : rempli par L6-T31.",
+  "description": "S19 (L6-T31) : mode classe protégé. Premier verrouillage : création du mot de passe d'essai (deux saisies) ; commandes verrouillables grisées ; mauvais mot de passe refusé ; bon mot de passe accepté ; verrou gardé à la relance. Chaque saisie est suivie d'une attente (calcul hors du fil principal).",
   "steps": [
-    {
-      "waitReady": true
-    }
+    { "waitReady": true },
+    { "expect": "appTabs.commands", "value": "<non textuel : actcraft::ui::Commands*>" },
+    { "expect": "appPages.commands", "value": "<non textuel : actcraft::ui::Commands*>" },
+    { "expect": "appClassroom.hasPassword", "value": false },
+    { "command": "classroom.lock" },
+    { "waitFor": "classroomLockDialog.opened", "value": true },
+    { "typeText": "essai-1234" },
+    { "key": "Return" },
+    { "typeText": "essai-1234" },
+    { "key": "Return" },
+    { "waitFor": "appClassroom.hasPassword", "value": true },
+    { "waitFor": "appClassroom.busy", "value": false },
+    { "expect": "appClassroom.locked", "value": true },
+    { "expect": "commands.lockedCount", "value": 0, "above": true },
+    { "waitFor": "classroomLockDialog.opened", "value": false },
+    { "capture": "verrouille" },
+    { "command": "classroom.lock" },
+    { "waitFor": "classroomLockDialog.opened", "value": true },
+    { "typeText": "faux" },
+    { "key": "Return" },
+    { "waitFor": "appClassroom.busy", "value": false },
+    { "expect": "appClassroom.locked", "value": true },
+    { "typeText": "essai-1234" },
+    { "key": "Return" },
+    { "waitFor": "appClassroom.locked", "value": false },
+    { "expect": "commands.lockedCount", "value": 0 },
+    { "waitFor": "classroomLockDialog.opened", "value": false },
+    { "capture": "deverrouille" },
+    { "command": "classroom.lock" },
+    { "expect": "appClassroom.locked", "value": true },
+    { "restart": true },
+    { "waitReady": true },
+    { "expect": "appClassroom.locked", "value": true },
+    { "expect": "commands.lockedCount", "value": 0, "above": true }
   ]
 }

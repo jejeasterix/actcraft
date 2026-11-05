@@ -6,11 +6,15 @@
 #include <QDir>
 #include <QFile>
 #include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QScreen>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QSysInfo>
 #include <QTest>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
@@ -74,8 +78,16 @@ int main(int argc, char* argv[])
     if (scenarioPath.isEmpty() || !file.open(QIODevice::ReadOnly)) {
         return invalid(QStringLiteral("scénario introuvable : %1").arg(scenarioPath));
     }
+    const QByteArray content = file.readAll();
+    // Un scénario peut déclarer "platforms": ["windows"] ; ailleurs il ne se joue pas (code 77, « Skipped »).
+    const QJsonArray platforms =
+        QJsonDocument::fromJson(content).object().value(QStringLiteral("platforms")).toArray();
+    if (!platforms.isEmpty() && !platforms.contains(QJsonValue(QSysInfo::productType()))) {
+        printLine(QStringLiteral("SCENARIO HORS PLATEFORME"));
+        return 77;
+    }
     UiScenario scenario;
-    if (!parseUiScenario(file.readAll(), scenario, error)) {
+    if (!parseUiScenario(content, scenario, error)) {
         return invalid(QStringLiteral("%1 : %2").arg(scenarioPath, error));
     }
     std::vector<UiStep> reads;

@@ -499,7 +499,11 @@ foreach(_scn IN ITEMS profils palette couleurs proprietes navigateur-objets note
             --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_scn})
     set_tests_properties(tst_captures_${_scn_id} PROPERTIES
         TIMEOUT 300
+        SKIP_RETURN_CODE 77
         ENVIRONMENT "${_bench_env_offscreen}"
         PASS_REGULAR_EXPRESSION "SCENARIO OK"
         FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 endforeach()
+# L6-T31 : le mot de passe d'essai du scénario n'apparaît jamais dans sa sortie.
+set_tests_properties(tst_captures_classe_protegee PROPERTIES
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE|essai-1234")

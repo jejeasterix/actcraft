@@ -1,6 +1,7 @@
 #pragma once
 
 #include <actcraft/core/model.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 
 #include <QList>
@@ -22,6 +23,10 @@ class PagesController : public QObject
     QML_NAMED_ELEMENT(Pages)
     Q_PROPERTY(actcraft::ui::DocumentController* documentController READ documentController WRITE
                    setDocumentController NOTIFY wiringChanged)
+    // Amendement 12 (L6-T31) : sous verrou de classe, supprimer, couper, coller et dupliquer suivent
+    // page.delete, page.cut, page.paste et page.duplicate, même appelés hors du registre (navigateur de
+    // pages). Nul : aucun verrou.
+    Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY wiringChanged)
     Q_PROPERTY(QList<int> selection READ selection NOTIFY selectionChanged) // indices triés, jamais vide
     Q_PROPERTY(bool canPaste READ canPaste NOTIFY clipboardChanged)
 
@@ -29,6 +34,8 @@ public:
     explicit PagesController(QObject* parent = nullptr);
     DocumentController* documentController() const noexcept;
     void setDocumentController(DocumentController* controller);
+    Commands* commands() const noexcept;
+    void setCommands(Commands* commands);
     QList<int> selection() const;
     bool canPaste() const noexcept;
 
@@ -64,6 +71,7 @@ private:
     // Sélection = `selection`, page affichée = `shown` (M-J : remontrée seulement si elle change) ; les
     // signaux de la page affichée émis pendant l'opération sont ignorés (m_working).
     void apply(const QList<int>& selection, int shown);
+    bool allows(const char* command) const;
     // La sélection reste dans les bornes et contient la page affichée (changement par une autre voie).
     void sync();
     void setSelection(const QList<int>& selection);
@@ -76,6 +84,7 @@ private:
     void capture();
 
     QPointer<DocumentController> m_controller;
+    QPointer<Commands> m_commands;
     QMetaObject::Connection m_pagesConnection;
     bool m_working = false;
     QList<int> m_selection;
