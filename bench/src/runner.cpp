@@ -74,7 +74,7 @@ class TransitionWatch : public QObject
 public:
     explicit TransitionWatch(QObject* transition) : m_transition(transition)
     {
-        m_valid = transition != nullptr &&
+        m_valid = transition != nullptr && transition->property("playing").isValid() &&
                   connect(transition, SIGNAL(phaseChanged()), this, SLOT(notePhase())) &&
                   connect(transition, SIGNAL(playedChanged()), this, SLOT(notePlayed()));
     }
@@ -748,6 +748,9 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
         waitFor([&effects] { return !effects->playing(); }, kPageShownTimeoutMs);
         if (const QString error = pageEffectEndCheck(plan, effects->playing()); !error.isEmpty()) {
             invalidReasons << error;
+            // Effet jamais fini : terminé ici, il ne reste pas en surcouche pour le scénario suivant.
+            QMetaObject::invokeMethod(m_window->findChild<QObject*>(QStringLiteral("transition")),
+                                      "finished");
         }
     }
     if (!commands.empty()) {
@@ -1218,6 +1221,13 @@ BenchResult Runner::run(QQuickWindow* window)
                 break;
             }
         }
+        // Arrêté à toute sortie de ce passage (break compris) : boucle, vitesse et texte du banc ne restent
+        // pas pour le scénario suivant.
+        const auto stopTicker = qScopeGuard([ticker] {
+            if (ticker != nullptr) {
+                QMetaObject::invokeMethod(ticker, "stop");
+            }
+        });
         // L7-T38 : effet et durée d'avant le scénario, rétablis à toute sortie de ce passage (break compris,
         // mesure interrompue) ; teardownCommands remet aussi « none ».
         QObject* const transition =
@@ -1331,7 +1341,6 @@ BenchResult Runner::run(QQuickWindow* window)
             if (motion == nullptr || !motion->property("running").toBool()) {
                 result.invalidReasons << QStringLiteral("error: ticker not moving in %1").arg(plan.name);
             }
-            QMetaObject::invokeMethod(ticker, "stop");
         }
         for (const auto& [command, argument] : plan.teardownCommands) { // L4-T29 : panneau refermé
             if (!runWindowCommand(m_window, command, argument)) {
