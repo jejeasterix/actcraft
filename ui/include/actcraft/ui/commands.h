@@ -94,6 +94,8 @@ public:
     // Amendement 12 : un geste qui ne passe pas par le registre (barre d'onglets, navigateur de pages) suit
     // sa commande sous verrou ; hors du verrou, il ne dépend pas d'elle. C++ seulement.
     bool allowsWhileLocked(const QString& id) const;
+    // Idem pour un possesseur dont les commandes peuvent manquer (absentes : permis).
+    static bool allowsWhileLocked(const Commands* commands, const char* id);
 
 signals:
     void layoutChanged();

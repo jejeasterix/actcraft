@@ -113,12 +113,13 @@ FocusScope {
             id: spin
             readonly property int decimals: 2
             readonly property real factor: 100
+            readonly property int shown: root.hasValue ? Math.round(Number(root.value) * spin.factor) : 0
             editable: true
             enabled: root.editable
             from: Math.round(root.low * spin.factor)
             to: Math.round(root.high * spin.factor)
             stepSize: spin.factor
-            value: root.hasValue ? Math.round(Number(root.value) * spin.factor) : 0
+            value: spin.shown
             font.pixelSize: Theme.taillePolice
             validator: DoubleValidator {
                 bottom: root.low
@@ -171,7 +172,7 @@ FocusScope {
             Connections {
                 target: root
                 function onResync() {
-                    spin.value = Qt.binding(() => root.hasValue ? Math.round(Number(root.value) * spin.factor) : 0)
+                    spin.value = Qt.binding(() => spin.shown)
                 }
             }
         }
@@ -229,15 +230,16 @@ FocusScope {
         id: choiceEditor
         ComboBox {
             id: combo
+            readonly property int shown: root.hasValue ? Number(root.value) : -1
             model: root.choices
             enabled: root.editable
-            currentIndex: root.hasValue ? Number(root.value) : -1
+            currentIndex: combo.shown
             font.pixelSize: Theme.taillePolice
             displayText: combo.currentIndex < 0 ? "" : combo.currentText
             onActivated: index => root.commit(index)
             Connections {
                 target: root
-                function onResync() { combo.currentIndex = Qt.binding(() => root.hasValue ? Number(root.value) : -1) }
+                function onResync() { combo.currentIndex = Qt.binding(() => combo.shown) }
             }
         }
     }
@@ -246,12 +248,13 @@ FocusScope {
         id: boolEditor
         Switch {
             id: toggle
+            readonly property bool on: root.value === true
             enabled: root.editable
-            checked: root.value === true
+            checked: toggle.on
             onToggled: root.commit(toggle.checked)
             Connections {
                 target: root
-                function onResync() { toggle.checked = Qt.binding(() => root.value === true) }
+                function onResync() { toggle.checked = Qt.binding(() => toggle.on) }
             }
         }
     }

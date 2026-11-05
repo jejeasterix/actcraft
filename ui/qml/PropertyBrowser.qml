@@ -46,7 +46,7 @@ Item {
         anchors.top: parent.top
         anchors.margins: Theme.espace2
         text: appProperties.title
-        textFormat: Text.PlainText // titre tiré du fichier ouvert
+        textFormat: Text.PlainText // titre composé par PropertyModel (type de l'objet ou « Page »)
         color: Theme.texte
         font.pixelSize: Theme.taillePoliceTitre
         font.bold: true

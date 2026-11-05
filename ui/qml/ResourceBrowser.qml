@@ -223,8 +223,9 @@ Item {
             objectName: "resourceSearch"
             Layout.fillWidth: true
             placeholderText: qsTr("Rechercher…")
-            onTextEdited: text === "" ? appResources.cancelSearch() : appResources.search(text, true, true)
-            onAccepted: text === "" ? appResources.cancelSearch() : appResources.search(text, true, true)
+            function runSearch() { text === "" ? appResources.cancelSearch() : appResources.search(text, true, true) }
+            onTextEdited: runSearch()
+            onAccepted: runSearch()
         }
         ListView {
             id: treeList
@@ -257,7 +258,6 @@ Item {
                 TapHandler {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onTapped: (point, button) => {
-                        root.selectedFolder = folderRow.modelData.path
                         appResources.openFolder(folderRow.modelData.path)
                         root.selectedFolder = folderRow.modelData.path
                         if (button === Qt.RightButton) {

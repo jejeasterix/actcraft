@@ -1,3 +1,5 @@
+#include "validpage.h"
+
 #include <actcraft/core/document.h>
 #include <actcraft/core/notesedits.h>
 
@@ -5,15 +7,6 @@
 #include <utility>
 
 namespace actcraft::core {
-
-namespace {
-
-bool validPage(const Document& document, int page) noexcept
-{
-    return page >= 0 && static_cast<std::size_t>(page) < document.pageCount();
-}
-
-} // namespace
 
 SetPageNotesCommand::SetPageNotesCommand(int page, std::string html, Clock::time_point when)
     : m_page(page), m_html(std::move(html)), m_when(when)

@@ -851,21 +851,10 @@ bool ResourceLibrary::insert(const QString& path, QPointF pagePoint)
     std::optional<formats::Fragment> fragment = readFragmentFile(info.absoluteFilePath());
     if (!fragment || fragment->page.objects.empty())
         return false;
-    // Centre de l'ensemble posé sur pagePoint : union des emprises (un groupe n'en a pas : ses membres).
-    bool any = false;
-    double left = 0, top = 0, right = 0, bottom = 0;
-    for (const core::PageObject& object : fragment->page.objects) {
-        if (!core::hasExtent(object))
-            continue;
-        const core::RectF box = core::boundsOnPage(object);
-        left = any ? std::min(left, box.x) : box.x;
-        top = any ? std::min(top, box.y) : box.y;
-        right = any ? std::max(right, box.x + box.width) : box.x + box.width;
-        bottom = any ? std::max(bottom, box.y + box.height) : box.y + box.height;
-        any = true;
-    }
-    const double dx = any ? pagePoint.x() - (left + right) / 2 : 0;
-    const double dy = any ? pagePoint.y() - (top + bottom) / 2 : 0;
+    // Centre de l'ensemble posé sur pagePoint.
+    const std::optional<core::PointF> center = core::centerOfExtents(fragment->page.objects);
+    const double dx = center ? pagePoint.x() - center->x : 0;
+    const double dy = center ? pagePoint.y() - center->y : 0;
     m_document->execute(std::make_unique<InsertFragmentCommand>(
         static_cast<std::size_t>(m_document->currentIndex()), std::move(*fragment), dx, dy));
     return true;

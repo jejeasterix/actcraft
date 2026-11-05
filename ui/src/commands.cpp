@@ -436,6 +436,11 @@ bool Commands::allowsWhileLocked(const QString& id) const
     return !isLocked() || isEnabled(id);
 }
 
+bool Commands::allowsWhileLocked(const Commands* commands, const char* id)
+{
+    return commands == nullptr || commands->allowsWhileLocked(QString::fromLatin1(id));
+}
+
 int Commands::lockedCount() const
 {
     if (!m_registry.isLocked()) {

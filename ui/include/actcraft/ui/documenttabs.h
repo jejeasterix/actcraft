@@ -80,7 +80,6 @@ private:
     // L5-T20 : un onglet ; `parked` est nul pour l'onglet affiché (son document est au contrôleur).
     struct Tab;
     bool canSwitch() const;
-    bool allows(const char* command) const;
     void switchTo(int index, std::unique_ptr<DocumentController::ParkedSession> leaving);
     void emitRow(int row);
     DocumentController* m_document = nullptr;

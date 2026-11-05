@@ -74,8 +74,9 @@ public:
     // signal failed émis, si l'écriture est refusée.
     bool writeLayout(const QString& id, const QByteArray& json);
     const actions::Profile& profile() const noexcept;
-    actions::Profile& editProfile(); // modifie puis appelle touch()
-    void touch();                    // modification : signal, puis enregistrement différé
+    actions::Profile& editProfile();          // modifie puis appelle touch()
+    void touch();                             // modification : signal, puis enregistrement différé
+    void assignFlag(bool& field, bool value); // booléen du profil : touch() seulement si la valeur change
     actions::ProfileStore& store() noexcept;
 
     Q_INVOKABLE void addColor(const QString& color);    // F-135, sans doublon

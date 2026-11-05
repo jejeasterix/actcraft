@@ -136,7 +136,7 @@ SelectionView layoutSelection(const core::Page& page, const std::vector<core::Ob
         united = united ? core::unitedRect(*united, bounds) : bounds;
         single = &object;
         ++count;
-        const bool unlocked = lockIgnored || !object.common.locked;
+        const bool unlocked = unlockedFor(object, lockIgnored);
         resizable = resizable && unlocked && object.common.restrictions.resizable;
         rotatable = rotatable && unlocked && object.common.restrictions.rotatable;
     }
@@ -171,7 +171,7 @@ SelectionView layoutSelection(const core::Page& page, const std::vector<core::Ob
         commands.removeAll(QStringLiteral("object.rotate"));
     }
     out.bar = layoutBar(out.corners, commands, zoom);
-    if (count == 1 && (lockIgnored || !single->common.locked)) {
+    if (count == 1 && (unlockedFor(*single, lockIgnored))) {
         out.smartPoints = smartPointsOnPage(*single);
     }
     return out;
