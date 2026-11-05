@@ -758,9 +758,9 @@ void TstUiLaunchers::colonAndSeparatorRefused()
 }
 
 // L6-C17 : sous Windows, CreateProcess sur un .exe qui n'est pas une image de programme peut ouvrir une boîte
-// système et ne rend la main qu'une fois qu'on y répond (300 s sous ctest, interface gelée). Exécutable sur le
-// disque, un tel .exe est refusé au lancement, avant tout démarrage : le message le dit, pas « Impossible de
-// lancer ». Hors Windows, un en-tête MZ suivi de « PE\0\0 » passe ce contrôle et seul le démarrage échoue.
+// système et ne rend la main qu'une fois qu'on y répond (300 s sous ctest, interface gelée). Exécutable sur
+// le disque, un tel .exe est refusé au lancement, avant tout démarrage : le message le dit, pas « Impossible
+// de lancer ». Hors Windows, un en-tête MZ suivi de « PE\0\0 » passe ce contrôle et seul le démarrage échoue.
 void TstUiLaunchers::fakeExeRefusedBeforeStart()
 {
     const QString fake = document(QStringLiteral("image.exe"));
