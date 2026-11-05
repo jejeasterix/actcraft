@@ -244,6 +244,9 @@ FloatingPanel {
         DragHandler {
             id: drag
             target: null
+            // Les coins hauts recouvrent la barre de titre (DragHandler de déplacement) : sans cela, la barre
+            // gardait le glissé et déplaçait le panneau au lieu de l'agrandir.
+            grabPermissions: PointerHandler.CanTakeOverFromAnything
             property real w0: 0
             property real h0: 0
             property real x0: 0

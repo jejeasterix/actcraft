@@ -389,8 +389,7 @@ private slots:
     }
 
     // Revue M7 : les poignées de coin ne font pas sortir le panneau de la couche. Coin bas droit (celui que
-    // clockBlocksTheStylus prouve à la souris ; les poignées hautes ne répondent pas au glissé de la souris
-    // ici, consigné), panneau posé à 20 px des bords bas et droit de la vue de page, tiré jusqu'au coin de la
+    // clockBlocksTheStylus prouve à la souris ; les trois autres : otherCornerGripsResizeAndStayInside), panneau posé à 20 px des bords bas et droit de la vue de page, tiré jusqu'au coin de la
     // couche. La précondition garde le test discriminant : sans borne, l'échelle tirée dépasse la place
     // laissée et le panneau déborderait ; bornée, il grandit jusqu'au bord, son coin haut gauche fixe.
     void cornerGripsKeepThePanelInside()
@@ -432,6 +431,58 @@ private slots:
                                 .arg(after.bottom())
                                 .arg(layer->width())
                                 .arg(layer->height())));
+    }
+
+    // L7-T43 : les trois autres coins (poignées hautes et gauches : branches sx < 0 et sy < 0 de ClockPanel).
+    // Tirée vers l'extérieur, chacune agrandit le panneau en gardant fixe le coin opposé, et le tire jusqu'au
+    // bord de la couche sans le faire sortir (haut et gauche compris).
+    void otherCornerGripsResizeAndStayInside_data()
+    {
+        QTest::addColumn<QString>("corner");
+        QTest::addColumn<int>("sx");
+        QTest::addColumn<int>("sy");
+        QTest::newRow("haut gauche") << QStringLiteral("clockCornerTopLeft") << -1 << -1;
+        QTest::newRow("haut droite") << QStringLiteral("clockCornerTopRight") << 1 << -1;
+        QTest::newRow("bas gauche") << QStringLiteral("clockCornerBottomLeft") << -1 << 1;
+    }
+
+    void otherCornerGripsResizeAndStayInside()
+    {
+        QFETCH(QString, corner);
+        QFETCH(int, sx);
+        QFETCH(int, sy);
+        MainWindow main;
+        QVERIFY(main.window() != nullptr);
+        QQuickItem* panel = openClock(main);
+        QVERIFY(panel != nullptr);
+        QQuickItem* layer = panel->parentItem();
+        QVERIFY(layer != nullptr);
+        QQuickItem* grip = presentationharness::findItem(panel, corner);
+        QVERIFY(grip != nullptr);
+        panel->setSize(QSizeF(280, 340));
+        panel->setPosition(QPointF(layer->width() / 2 - 140, layer->height() / 2 - 170));
+        const QRectF before(panel->position(), panel->size());
+        const QPointF from = centreOf(grip);
+
+        // Tiré de 60 px vers l'extérieur : agrandi, coin opposé fixe.
+        const QPointF out = from + QPointF(sx * 60, sy * 60);
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, from, out);
+        QRectF after(panel->position(), panel->size());
+        QVERIFY2(after.width() > before.width() + 1, qPrintable(QStringLiteral("largeur %1").arg(after.width())));
+        const QPointF fixedBefore(sx < 0 ? before.right() : before.left(), sy < 0 ? before.bottom() : before.top());
+        const QPointF fixedAfter(sx < 0 ? after.right() : after.left(), sy < 0 ? after.bottom() : after.top());
+        QVERIFY2((fixedAfter - fixedBefore).manhattanLength() < 0.5, "coin opposé fixe");
+
+        // Tiré très loin vers l'extérieur : borné à la couche.
+        const QPointF grip2 = centreOf(grip);
+        const QPointF far = layer->mapToScene(
+            QPointF(sx < 0 ? 0 : layer->width() - 1, sy < 0 ? 0 : layer->height() - 1));
+        presentationharness::strokeAt(main.window(), Pointer::Mouse, grip2, far);
+        after = QRectF(panel->position(), panel->size());
+        QVERIFY2(after.left() >= -0.5 && after.top() >= -0.5 && after.right() <= layer->width() + 0.5 &&
+                     after.bottom() <= layer->height() + 0.5,
+                 qPrintable(QStringLiteral("dans la couche : (%1, %2) à (%3, %4)")
+                                .arg(after.left()).arg(after.top()).arg(after.right()).arg(after.bottom())));
     }
 };
 
