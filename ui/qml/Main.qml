@@ -846,7 +846,7 @@ Window {
         })
         appCommands.setHandler("connector.style", function (rank) {
             if (root.hasArgument(rank))
-                appTools.setConnectorStyle(Number(rank))
+                appTools.chooseConnectorStyle(Number(rank)) // H5-33 : règle aussi les extrémités
         })
         appCommands.setHandler("connector.caps", function (caps) {
             const ranks = root.hasArgument(caps) ? String(caps).split(",") : []

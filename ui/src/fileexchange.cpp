@@ -16,13 +16,32 @@ namespace actcraft::ui {
 namespace {
 
 // Un chemin donné en texte par une commande (« C:/x.pdf » devient un schéma « c » pour QUrl) devient une URL
-// de fichier ; une URL à schéma (file:, content:) reste telle quelle.
+// de fichier ; une URL à schéma (file:, content:) reste telle quelle. Le chemin est recomposé par scheme() et
+// path() : toString(), même décodé, laisse « %5C » à la place des barres obliques inverses d'un chemin natif.
 QUrl localized(const QUrl& url)
 {
     if (url.isEmpty() || url.scheme().size() > 1) {
         return url;
     }
-    return QUrl::fromLocalFile(QDir::cleanPath(QDir::current().absoluteFilePath(url.toString())));
+    // Toutes les parties que QUrl a découpées font partie du chemin : « //serveur » (autorité), « ?… »
+    // (requête), « #… » (fragment). Sans schéma (relatif, ou absolu « /… » sous macOS et Linux), pas de « : »
+    // en tête.
+    QString path;
+    if (!url.scheme().isEmpty()) {
+        path += url.scheme() + QLatin1Char(':');
+    }
+    if (!url.authority().isEmpty()) {
+        path += QStringLiteral("//") + url.authority(QUrl::FullyDecoded);
+    }
+    path += url.path(QUrl::FullyDecoded);
+    if (url.hasQuery()) {
+        path += QLatin1Char('?') + url.query(QUrl::FullyDecoded);
+    }
+    if (url.hasFragment()) {
+        path += QLatin1Char('#') + url.fragment(QUrl::FullyDecoded);
+    }
+    return QUrl::fromLocalFile(
+        QDir::cleanPath(QDir::current().absoluteFilePath(QDir::fromNativeSeparators(path))));
 }
 
 QString fileName(const QUrl& url)

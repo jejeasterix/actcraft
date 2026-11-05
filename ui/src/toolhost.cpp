@@ -1,5 +1,6 @@
 #include "tooladapters.h"
 
+#include <actcraft/core/connectors.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/penmodifiers.h>
 #include <actcraft/core/shapegeometry.h>
@@ -19,6 +20,7 @@
 #include <QInputEvent>
 #include <QKeyEvent>
 #include <QPoint>
+#include <QPointF>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QTextCharFormat>
@@ -64,8 +66,8 @@ bool isInkTool(const QString& id)
     return id == QStringLiteral("pen") || id == QStringLiteral("highlighter");
 }
 
-constexpr int kConnectorStyleCount = 14; // panneau des connecteurs (D11)
-constexpr int kConnectorCapCount = 3;    // extrémités : aucune, rayon, flèche (D11)
+constexpr int kConnectorStyleCount = core::kConnectorStyleCount; // panneau des connecteurs (D11)
+constexpr int kConnectorCapCount = 3;                            // extrémités : aucune, rayon, flèche (D11)
 
 // Outils dont la palette principale règle la couleur : l'encre, le pot de peinture (L5-T17), et l'outil des
 // formes pour son contour (P6, réglage propre ; L4-C7). Le dernier outil d'encre (m_lastInk) reste un outil
@@ -579,6 +581,43 @@ void ToolHost::setConnectorCaps(int capA, int capB)
     writeValue(settingsKey(QStringLiteral("connector"), QStringLiteral("capB")), m_connectorCapB);
     configureTool(existingTool(QStringLiteral("connector")));
     emit settingsChanged();
+}
+
+// H5-33 (L5-C3) : choisir un style au panneau règle aussi les extrémités de l'outil selon ses flèches (départ
+// → A, arrivée → B : flèche, sinon aucune) ; elles restent réglables ensuite. setConnectorStyle, qui ne fait
+// que garder le rang, ne les touche pas : relire ou poser un rang n'écrase jamais des extrémités choisies.
+void ToolHost::chooseConnectorStyle(int style)
+{
+    setConnectorStyle(style);
+    const core::ConnectorStyle chosen = core::connectorStyle(m_connectorStyle);
+    const int arrow = static_cast<int>(core::ConnectorCap::Arrow);
+    const int none = static_cast<int>(core::ConnectorCap::None);
+    setConnectorCaps(chosen.arrowStart ? arrow : none, chosen.arrowEnd ? arrow : none);
+}
+
+// Vignette d'un style (L5-C3) : le tracé de core (connectorPath) de (4, 4) à (width − 4, height − 4), avec
+// les flèches et les pointillés du style ; la page et le panneau dessinent la même géométrie.
+QVariantMap ToolHost::connectorStyleSketch(int style, qreal width, qreal height) const
+{
+    constexpr double kInset = 4;
+    core::Connector sketch;
+    sketch.firstEnd = {kInset, kInset};
+    sketch.secondEnd = {width - kInset, height - kInset};
+    sketch.style = static_cast<std::uint8_t>(std::clamp(style, 0, kConnectorStyleCount - 1));
+    QVariantList points;
+    for (const core::PointF& p : core::connectorPath(sketch)) {
+        points.append(QPointF(p.x, p.y));
+    }
+    const core::ConnectorTips tips = core::connectorTips(sketch);
+    const core::ConnectorStyle look = core::connectorStyle(sketch.style);
+    return {
+        {QStringLiteral("points"), points},
+        {QStringLiteral("outwardA"), QPointF(tips.a.outward.x, tips.a.outward.y)},
+        {QStringLiteral("outwardB"), QPointF(tips.b.outward.x, tips.b.outward.y)},
+        {QStringLiteral("arrowStart"), look.arrowStart},
+        {QStringLiteral("arrowEnd"), look.arrowEnd},
+        {QStringLiteral("dashed"), look.dashed},
+    };
 }
 
 int ToolHost::connectorStyle() const noexcept

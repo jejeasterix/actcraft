@@ -69,7 +69,13 @@ Popup {
         function onFinished(text) { dialog.message = text }
     }
 
-    background: Rectangle { color: "#f4f4f4"; border.color: "#808080"; radius: 4 }
+    // Fond du thème, comme GridDesigner : les libellés suivent la palette claire sur sombre de Main.qml
+    // (un fond clair fixe les rendait illisibles, contraste ≈ 1,07 relevé à l'écran en D3D11).
+    background: Rectangle {
+        color: Theme.palette
+        radius: Theme.rayon
+        border.color: Theme.contour
+    }
 
     contentItem: RowLayout {
         spacing: 16
@@ -107,6 +113,8 @@ Popup {
             Label { text: qsTr("Pages par feuille : lignes") }
             SpinBox {
                 id: rowsBox; objectName: "rowsBox"; from: 1; to: 20; editable: true
+                // Cible du clic nommé des scénarios (« tap »), qui vise le centre du bouton « plus ».
+                Component.onCompleted: up.indicator.objectName = "rowsBoxPlus"
                 onValueChanged: if (dialog.printing.rows !== value) dialog.printing.rows = value
             }
             Label { text: qsTr("Pages par feuille : colonnes") }
@@ -135,12 +143,16 @@ Popup {
             Label { text: qsTr("De la page"); enabled: rangeBox.currentIndex === 2 }
             SpinBox {
                 id: fromBox; objectName: "fromBox"; from: 1; to: 9999; editable: true
+                // Cible du clic nommé des scénarios (« tap »), qui vise le centre du bouton « plus ».
+                Component.onCompleted: up.indicator.objectName = "fromBoxPlus"
                 enabled: rangeBox.currentIndex === 2
                 onValueChanged: if (dialog.printing.from !== value) dialog.printing.from = value
             }
             Label { text: qsTr("à la page"); enabled: rangeBox.currentIndex === 2 }
             SpinBox {
                 id: toBox; objectName: "toBox"; from: 1; to: 9999; editable: true
+                // Cible du clic nommé des scénarios (« tap »), qui vise le centre du bouton « plus ».
+                Component.onCompleted: up.indicator.objectName = "toBoxPlus"
                 enabled: rangeBox.currentIndex === 2
                 onValueChanged: if (dialog.printing.to !== value) dialog.printing.to = value
             }
@@ -181,7 +193,7 @@ Popup {
                 objectName: "messageLabel"
                 text: dialog.message
                 wrapMode: Text.Wrap
-                color: "#404040"
+                color: Theme.texteDiscret
             }
             Item { Layout.fillHeight: true; Layout.columnSpan: 2 }
         }

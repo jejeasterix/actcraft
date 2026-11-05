@@ -177,7 +177,7 @@ public slots:
 
 } // namespace
 
-class TstUiPrintDialog : public QObject
+class TstUiPrintSetup : public QObject
 {
     Q_OBJECT
 private slots:
@@ -220,7 +220,7 @@ private slots:
     void printButtonPrintsTheSheetsOfTheSettings();
 };
 
-void TstUiPrintDialog::sheetCountFollowsSettings()
+void TstUiPrintSetup::sheetCountFollowsSettings()
 {
     ui::DocumentController document;
     fillDocument(document, 4);
@@ -256,7 +256,7 @@ void TstUiPrintDialog::sheetCountFollowsSettings()
     QCOMPARE(printing.rows(), 1);
 }
 
-void TstUiPrintDialog::settingsSurviveRestart()
+void TstUiPrintSetup::settingsSurviveRestart()
 {
     QTemporaryDir dir;
     const QString file = dir.filePath(QStringLiteral("r.ini"));
@@ -323,7 +323,7 @@ void TstUiPrintDialog::settingsSurviveRestart()
     QVERIFY(bad.marginMm() >= 0.0);
 }
 
-void TstUiPrintDialog::previewMatchesSheets()
+void TstUiPrintSetup::previewMatchesSheets()
 {
     ui::DocumentController document;
     fillDocument(document, 5);
@@ -364,7 +364,7 @@ void TstUiPrintDialog::previewMatchesSheets()
     QVERIFY(printing.previewSheet(2, 72) == printing.previewSheet(0, 72));
 }
 
-void TstUiPrintDialog::previewIsLazy()
+void TstUiPrintSetup::previewIsLazy()
 {
     ui::DocumentController document;
     fillDocument(document, 6);
@@ -398,7 +398,7 @@ void TstUiPrintDialog::previewIsLazy()
           static_cast<long long>(oneSheetMs));
 }
 
-void TstUiPrintDialog::printWritesTheSheets()
+void TstUiPrintSetup::printWritesTheSheets()
 {
     ui::DocumentController document;
     fillDocument(document, 4);
@@ -441,7 +441,7 @@ void TstUiPrintDialog::printWritesTheSheets()
     QVERIFY(!QFile::exists(impossible));
 }
 
-void TstUiPrintDialog::dialogEditsSettingsAndShowsTheSheet()
+void TstUiPrintSetup::dialogEditsSettingsAndShowsTheSheet()
 {
     Shell shell;
     QVERIFY(shell.start(4));
@@ -513,7 +513,7 @@ void TstUiPrintDialog::dialogEditsSettingsAndShowsTheSheet()
 
 // L5-C15 : sans QPrinter, « Imprimer » ouvre un PDF des feuilles des réglages (2 × 2 : une feuille pour
 // quatre pages), pas celui du document entier (quatre pages) que donnerait FileExchange::printThroughPdf.
-void TstUiPrintDialog::printButtonPrintsTheSheetsOfTheSettings()
+void TstUiPrintSetup::printButtonPrintsTheSheetsOfTheSettings()
 {
     if (print::printingAvailable()) {
         QSKIP("QPrinter construit : « Imprimer » part vers l'imprimante, pas vers un PDF");
@@ -542,5 +542,5 @@ void TstUiPrintDialog::printButtonPrintsTheSheetsOfTheSettings()
     QFile::remove(path);
 }
 
-QTEST_MAIN(TstUiPrintDialog)
+QTEST_MAIN(TstUiPrintSetup)
 #include "tst_ui_printdialog.moc"

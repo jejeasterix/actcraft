@@ -64,6 +64,8 @@ enum class UiStepKind : std::uint8_t
     DoubleClick, // {"doubleClick": [x, y], "space": "page"}
     // Ajoutée par L4-T14, à la fin.
     TypeText, // {"typeText": "Bonjour"} — un QKeyEvent par caractère, avec son texte (dans `value`)
+    // Ajoutée par L5-C28, à la fin.
+    Tap, // {"tap": "grayRadio"} — clic gauche au centre de l'élément nommé, en repère fenêtre (dans `target`)
     // Ajoutée par L5-T32 (S8), à la fin.
     FileCheck, // {"file": "<chemin>", "pdfPages": 3} ou {"file": "<chemin>", "imageSize": [1024, 768]}
     // Ajoutée par L6-T18 (S9), à la fin.
@@ -195,6 +197,7 @@ private:
     bool touch(const UiStep& step, QStringList& report);
     bool pinch(const UiStep& step, QStringList& report);
     bool pointer(const UiStep& step, QStringList& report);
+    bool tap(const UiStep& step, QStringList& report);
     bool doubleClick(const UiStep& step, QStringList& report);
     bool typeText(const UiStep& step, QStringList& report);
     Injector& gestures(); // injecteur des gestes directs, créé à la première étape qui en a besoin

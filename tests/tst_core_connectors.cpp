@@ -107,6 +107,41 @@ int changedCount(const core::Changes& changes, core::ObjectId id)
 
 } // namespace
 
+namespace {
+
+// L5-C3 : comparaison de points à 1e-9 près (les directions sont normées, les courbes échantillonnées).
+bool same(core::PointF p, double x, double y)
+{
+    return std::abs(p.x - x) < 1e-9 && std::abs(p.y - y) < 1e-9;
+}
+
+std::vector<XY> xys(const std::vector<core::PointF>& points)
+{
+    std::vector<XY> out;
+    for (const core::PointF& p : points) {
+        out.push_back(xy(p));
+    }
+    return out;
+}
+
+core::Connector styled(int rank, core::PointF a, core::PointF b)
+{
+    core::Connector c;
+    c.firstEnd = a;
+    c.secondEnd = b;
+    c.style = static_cast<std::uint8_t>(rank);
+    return c;
+}
+
+bool inside(const core::RectF& box, core::PointF p)
+{
+    constexpr double e = 1e-9;
+    return p.x >= box.x - e && p.x <= box.x + box.width + e && p.y >= box.y - e &&
+           p.y <= box.y + box.height + e;
+}
+
+} // namespace
+
 class TestConnectors : public QObject
 {
     Q_OBJECT
@@ -402,6 +437,166 @@ private slots:
         QVERIFY(capped.contains({96.5, 100}));  // bord du disque, rayon 4
         QVERIFY(core::objectAt(d.page(0), {292, 103.5}, 0) == c);
         QVERIFY(core::objectAt(d.page(0), {96.5, 100}, 0) == c);
+    }
+
+    // L5-C3 : les 14 rangs du panneau, (tracé, flèche au départ, flèche à l'arrivée, pointillés), d'après
+    // notre ancêtre Python (CONNECTOR_TYPES) ; un rang hors du panneau est la ligne simple du rang 0.
+    void styleTableFollowsThePanel()
+    {
+        using R = core::ConnectorRoute;
+        struct Row
+        {
+            R route;
+            bool start;
+            bool end;
+            bool dashed;
+        };
+        const Row rows[] = {
+            {R::Straight, false, false, false}, {R::Straight, true, false, false},
+            {R::Straight, false, true, false},  {R::Straight, true, true, false},
+            {R::Straight, false, false, true},  {R::Straight, true, false, true},
+            {R::Straight, false, true, true},   {R::Straight, true, true, true},
+            {R::CurveA, false, false, false},   {R::CurveB, false, false, false},
+            {R::Step, false, false, false},     {R::Elbow, false, false, false},
+            {R::Angle, false, false, false},    {R::Angle, true, false, false},
+        };
+        QCOMPARE(core::kConnectorStyleCount, 14);
+        for (int rank = 0; rank < core::kConnectorStyleCount; ++rank) {
+            const core::ConnectorStyle s = core::connectorStyle(rank);
+            QCOMPARE(s.route, rows[rank].route);
+            QCOMPARE(s.arrowStart, rows[rank].start);
+            QCOMPARE(s.arrowEnd, rows[rank].end);
+            QCOMPARE(s.dashed, rows[rank].dashed);
+        }
+        for (int outside : {14, 255, -1}) {
+            const core::ConnectorStyle s = core::connectorStyle(outside);
+            QCOMPARE(s.route, R::Straight);
+            QVERIFY(!s.arrowStart && !s.arrowEnd && !s.dashed);
+        }
+    }
+
+    // L5-C3 : polygone de contrôle de chaque tracé, a (20, 30), b (220, 130) ; la courbe A part verticale
+    // (contrôle (a.x, b.y)), la B horizontale (contrôle (b.x, a.y)).
+    void controlPointsFollowTheRoute()
+    {
+        const core::PointF a{20, 30};
+        const core::PointF b{220, 130};
+        const auto points = [&](int rank) { return xys(core::connectorControlPoints(styled(rank, a, b))); };
+        QCOMPARE(points(0), (std::vector<XY>{{20, 30}, {220, 130}}));
+        QCOMPARE(points(6), (std::vector<XY>{{20, 30}, {220, 130}}));
+        QCOMPARE(points(8), (std::vector<XY>{{20, 30}, {20, 130}, {220, 130}}));
+        QCOMPARE(points(9), (std::vector<XY>{{20, 30}, {220, 30}, {220, 130}}));
+        QCOMPARE(points(10), (std::vector<XY>{{20, 30}, {120, 30}, {120, 130}, {220, 130}}));
+        QCOMPARE(points(11), (std::vector<XY>{{20, 30}, {220, 30}, {220, 130}}));
+        QCOMPARE(points(12), (std::vector<XY>{{20, 30}, {120, 130}, {220, 130}}));
+        QCOMPARE(points(13), (std::vector<XY>{{20, 30}, {120, 130}, {220, 130}}));
+    }
+
+    // L5-C3 : le tracé dessiné est la polyligne de contrôle, la courbe échantillonnée en
+    // kConnectorCurveSegments segments égaux en paramètre.
+    void pathSamplesTheCurve()
+    {
+        const core::PointF a{20, 30};
+        const core::PointF b{220, 130};
+        QCOMPARE(xys(core::connectorPath(styled(11, a, b))),
+                 xys(core::connectorControlPoints(styled(11, a, b))));
+        const std::vector<core::PointF> curve = core::connectorPath(styled(8, a, b));
+        QCOMPARE(int(curve.size()), core::kConnectorCurveSegments + 1);
+        QVERIFY(same(curve.front(), 20, 30));
+        QVERIFY(same(curve.back(), 220, 130));
+        // B(1/2) = a/4 + c/2 + b/4, c = (20, 130)
+        QVERIFY(same(curve[core::kConnectorCurveSegments / 2], 70, 105));
+        const std::vector<core::PointF> curveB = core::connectorPath(styled(9, a, b));
+        QVERIFY(same(curveB[core::kConnectorCurveSegments / 2], 170, 55)); // c = (220, 30)
+    }
+
+    // L5-C3 : la flèche suit la tangente du tracé à son bout (premier segment de contrôle non nul), pas la
+    // droite a→b ; `outward` pointe hors du tracé, `reach` borne la flèche à ce segment.
+    void tipsFollowTheEndTangent()
+    {
+        const core::PointF a{20, 30};
+        const core::PointF b{220, 130};
+        const double n = std::hypot(200.0, 100.0);
+        const auto tips = [&](int rank) { return core::connectorTips(styled(rank, a, b)); };
+
+        const core::ConnectorTips line = tips(2);
+        QVERIFY(same(line.a.point, 20, 30) && same(line.b.point, 220, 130));
+        QVERIFY(same(line.b.outward, 200 / n, 100 / n));
+        QVERIFY(same(line.a.outward, -200 / n, -100 / n));
+        QCOMPARE(line.b.reach, n);
+
+        const core::ConnectorTips curveA = tips(8);
+        QVERIFY(same(curveA.a.outward, 0, -1)); // part verticale
+        QVERIFY(same(curveA.b.outward, 1, 0));  // arrive horizontale
+        QCOMPARE(curveA.a.reach, 100.0);
+        QCOMPARE(curveA.b.reach, 200.0);
+
+        const core::ConnectorTips curveB = tips(9);
+        QVERIFY(same(curveB.a.outward, -1, 0));
+        QVERIFY(same(curveB.b.outward, 0, 1));
+
+        const core::ConnectorTips step = tips(10);
+        QVERIFY(same(step.a.outward, -1, 0));
+        QVERIFY(same(step.b.outward, 1, 0));
+        QCOMPARE(step.b.reach, 100.0);
+
+        const core::ConnectorTips elbow = tips(11);
+        QVERIFY(same(elbow.a.outward, -1, 0));
+        QVERIFY(same(elbow.b.outward, 0, 1));
+
+        const core::ConnectorTips angle = tips(13);
+        QVERIFY(same(angle.a.outward, -std::sqrt(0.5), -std::sqrt(0.5)));
+        QVERIFY(same(angle.b.outward, 1, 0));
+        QCOMPARE(angle.b.reach, 100.0);
+    }
+
+    // L5-C3 : un segment de contrôle nul est sauté (marches ou courbe à a.x == b.x) ; a == b n'a pas de sens.
+    void degenerateRoutesKeepATangent()
+    {
+        const core::ConnectorTips step = core::connectorTips(styled(10, {50, 10}, {50, 200}));
+        QVERIFY(same(step.a.outward, 0, -1));
+        QVERIFY(same(step.b.outward, 0, 1));
+        const core::ConnectorTips curve = core::connectorTips(styled(8, {50, 10}, {50, 200}));
+        QVERIFY(same(curve.b.outward, 0, 1));
+        const core::ConnectorTips point = core::connectorTips(styled(12, {50, 50}, {50, 50}));
+        QVERIFY(same(point.a.outward, 0, 0) && same(point.b.outward, 0, 0));
+        QCOMPARE(point.b.reach, 0.0);
+    }
+
+    // L5-C3 : tous les tracés restent dans le rectangle a–b et chaque flèche (le long de sa tangente, bornée
+    // par `reach`, demi-largeur connectorCapSize / 2) dans la marge : l'emprise et la touche d'avant
+    // suffisent.
+    void routesAndArrowsStayInTheExtent()
+    {
+        const std::pair<core::PointF, core::PointF> ends[] = {
+            {{20, 30}, {220, 130}}, {{220, 130}, {20, 30}}, {{50, 10}, {50, 200}},
+            {{0, 0}, {2, 100}},     {{0, 0}, {100, 2}},     {{300, 40}, {10, 400}},
+        };
+        for (int rank = 0; rank < core::kConnectorStyleCount; ++rank) {
+            for (const auto& [a, b] : ends) {
+                core::Connector c = styled(rank, a, b);
+                c.pen.width = 2;
+                c.capA = core::ConnectorCap::Arrow;
+                c.capB = core::ConnectorCap::Arrow;
+                const core::PageObject object = c;
+                const core::RectF box = core::boundsOnPage(object);
+                for (const core::PointF& p : core::connectorPath(c)) {
+                    QVERIFY2(inside(box, p), qPrintable(QStringLiteral("rang %1").arg(rank)));
+                }
+                const double size = core::connectorCapSize(c.pen.width);
+                const core::ConnectorTips tips = core::connectorTips(c);
+                for (const core::ConnectorTip& tip : {tips.a, tips.b}) {
+                    const double length = std::min(size, tip.reach);
+                    const core::PointF base{tip.point.x - tip.outward.x * length,
+                                            tip.point.y - tip.outward.y * length};
+                    const core::PointF side{-tip.outward.y * size / 2, tip.outward.x * size / 2};
+                    QVERIFY2(inside(box, {base.x + side.x, base.y + side.y}),
+                             qPrintable(QStringLiteral("rang %1").arg(rank)));
+                    QVERIFY2(inside(box, {base.x - side.x, base.y - side.y}),
+                             qPrintable(QStringLiteral("rang %1").arg(rank)));
+                }
+            }
+        }
     }
 };
 

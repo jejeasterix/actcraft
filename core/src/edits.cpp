@@ -82,6 +82,9 @@ std::optional<RectF> localBounds(const PageObject& object) noexcept
     } else if (const auto* m = std::get_if<Media>(&object)) {
         box.addRect(m->bounds);
     } else if (const auto* c = std::get_if<Connector>(&object)) {
+        // L5-C3 : tous les tracés (connectorPath) restent dans le rectangle a–b et chaque flèche, posée sur
+        // sa tangente et bornée par son segment de contrôle, dans la marge : l'emprise et la touche n'ont pas
+        // à suivre le tracé (tst_core_connectors, routesAndArrowsStayInTheExtent).
         box.add(c->firstEnd);
         box.add(c->secondEnd);
         margin = c->pen.width / 2;
