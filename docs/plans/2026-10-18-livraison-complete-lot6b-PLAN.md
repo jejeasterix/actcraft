@@ -991,6 +991,8 @@ le scénario `classe-protegee.json` contient, après le verrouillage,
 `ClassroomLockDialog.qml` (racine `root`) :
 `ClassroomLock { id: appClassroom; objectName: "appClassroom"; commands: root.commands; preferences: root.preferences }`.
 
+**Amendement 12 (L6-T31, 2026-11-05).** Relecture : des voies contournent le verrou hors du registre. Fichiers élargis : `ui/include/actcraft/ui/pagescontroller.h`, `ui/src/pagescontroller.cpp`, `ui/include/actcraft/ui/documenttabs.h`, `ui/src/documenttabs.cpp`, `bench/src/uiscenario.cpp`. Sous verrou : fermer un onglet (« × », clic du milieu, « Ne pas enregistrer ») suit `file.close` ; déposer des pages sur un onglet et les gestes du navigateur de pages (Suppr, Ctrl+X, Ctrl+V, Ctrl+D) suivent leurs commandes ; `DocumentTabs::newTab()` refuse sous verrou côté C++. Le banc n'écrit jamais en clair le texte saisi dans un champ en mode mot de passe.
+
 <a id="tache-l6-t32"></a>
 ### Tâche L6-T32 — Orthographe I : Hunspell et dictionnaire
 
