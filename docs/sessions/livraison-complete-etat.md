@@ -235,6 +235,7 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 Tâche : L6-T29 — raccourcis vers des programmes — depuis 2026-11-05
 Tâche : L6-T23 — tableau d'accueil — depuis 2026-11-05
 Tâche : L6-T27 — onglet paramètres — depuis 2026-11-05
+Tâche : L6-T31 — mode classe protégé — depuis 2026-11-05
 
 ### Tâches du lot 6
 | id | statut | essais | worktree / commit | note |
@@ -279,6 +280,7 @@ Tâche : L6-T27 — onglet paramètres — depuis 2026-11-05
 | L6-T29 | en cours | 2/3 | `.worktrees/livraison-complete--L6-T29` | V11 ; `concepteur-critique` ; essai 2 : bloquant de revue (refus des scripts contourné, `relecture-L6-T29.md`), amendement 10 (types exécutés par `openUrl`) |
 | L6-T23 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T23` | V12 ; `implementeur-tdd` sonnet ; renvois de L6-T24 (récents) et L6-T28 (`NetworkSettings` au démarrage) |
 | L6-T27 | en cours | 2/3 | `.worktrees/livraison-complete--L6-T27` | V12 ; `concepteur-critique` ; essai 2 : bloquant de revue (clés du lot 7 fausses), 3 majeurs (`relecture-L6-T27.md`) ; hors périmètre (porte de fin) : 12 réglages du profil sans lecteur |
+| L6-T31 | en cours | 1/3 | `.worktrees/livraison-complete--L6-T31` | V13 ; `concepteur-critique` ; renvois de l'ancien handoff (`commands`, `Ctrl+Alt+N`, `setLocked`) |
 | L6-T32 | terminée | 1/3 | 8be10ff0 → merge 8bee7289 | rejoué : 207/207, 0 avertissement, `tst_core_spellcheck` lié à Hunspell (talon `SKIP` pour L6-T33) ; Hunspell 1.7.2 (MPL 1.1) et Grammalecte 7.7 (MPL 2.0), sommes SHA-256 au commit ; Android : CI de la PR de fin de lot (pas de NDK sur le Mac) ; PC : MSVC, installateur « Hunspell », `NOMS OK` |
 | L6-T19 | terminée | 2/3 | 69996590 → merge c9cf519d | fragment de ressource (chemin du presse-papiers, document neuf d'une page) ; essai 2 : majeur traité (`clearDanglingTargets` : action `OnObject` hors sélection remise à 0, `danglingActionTargetIsCleared` rouge sous mutation) et 4 mineurs ; rejeu : 207/207, 0 avertissement, `tst_formats_fragment` 9 fonctions `PASS`. Pour 3.8 : refus d'une ressource absente filtré sur le texte des avertissements « ressource … » (`nativejson.cpp:1957-1974`), le contrôle propre passerait par `forEachCitedKey` (privé à `clipboard.cpp`) ; `Resource::unknownKeys` perdu (comme le presse-papiers). Pour L6-T20 : `prepareInsertion` rend de vrais identifiants, `PasteObjectsCommand` attend des numéros provisoires |
 
