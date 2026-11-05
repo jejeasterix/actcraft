@@ -43,6 +43,7 @@ include(ActCraftModule)
 # Ordre = sens des dépendances : un module ne dépend que de ceux listés avant lui.
 # Code tiers (DA3) : avant les modules qui l'utilisent.
 add_subdirectory(third_party/miniz)
+add_subdirectory(third_party/hunspell)
 add_subdirectory(core)
 add_subdirectory(formats)
 add_subdirectory(actions)

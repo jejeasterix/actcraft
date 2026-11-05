@@ -69,6 +69,10 @@ public:
     void start();
     Q_INVOKABLE bool activate(const QString& id);
     Q_INVOKABLE void saveNow();
+    // Écrit <dossier du profil `id`>/layout.json (LayoutEditor::apply) ; profil courant : Commands relit la
+    // disposition et profileLayoutChanged est émis. Signale la liste (« modifié » d'un profil fourni). Faux,
+    // signal failed émis, si l'écriture est refusée.
+    bool writeLayout(const QString& id, const QByteArray& json);
     const actions::Profile& profile() const noexcept;
     actions::Profile& editProfile(); // modifie puis appelle touch()
     void touch();                    // modification : signal, puis enregistrement différé
@@ -133,6 +137,9 @@ signals:
     void userRootChanged();
     void profileChanged();
     void listChanged();
+    // layout.json du profil courant écrit (writeLayout) ou retiré (« Revenir à l'origine »), même
+    // identifiant.
+    void profileLayoutChanged();
     void contactActiveChanged();
     void saved();
     void started();
