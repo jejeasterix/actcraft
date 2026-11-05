@@ -495,6 +495,36 @@ bool waitUntil(const std::function<bool()>& condition, int timeoutMs)
     return true;
 }
 
+// Statut « Loading » de QQuickImageBase (Image, BorderImage, AnimatedImage), lu par le méta-objet public.
+constexpr int kImageLoading = 2;
+
+// Vrai si une image visible de la scène se charge encore (L7-T40). Le lecteur d'images de Qt Quick charge
+// hors du fil principal ce qui n'est ni un fichier ni une ressource, URL « data: » comprises (le pointillé
+// des séparations de zones) : tant qu'elle se charge, l'image n'est pas dessinée et grabWindow() rend la
+// scène sans elle. Le cache de la page n'y est pour rien : il ne photographie pas les surcouches.
+bool imageLoading(const QQuickItem* item)
+{
+    if (item == nullptr || !item->isVisible()) {
+        return false;
+    }
+    if (item->inherits("QQuickImageBase") && item->property("status").toInt() == kImageLoading) {
+        return true;
+    }
+    const QList<QQuickItem*> children = item->childItems();
+    return std::any_of(children.cbegin(), children.cend(),
+                       [](const QQuickItem* child) { return imageLoading(child); });
+}
+
+// Image du moment pour une étape qui lit des pixels (capture, checkPixel, checkEdge), prise une fois chargées
+// les images visibles de la scène : jamais une scène à moitié dessinée, quelle que soit l'attente que le
+// scénario a posée avant. Attente avec plafond ; `loaded` faux si une image se charge encore au plafond
+// (l'étape échoue alors et le dit).
+QImage grabLoadedScene(QQuickWindow* window, bool& loaded)
+{
+    loaded = waitUntil([window] { return !imageLoading(window->contentItem()); }, kReadyTimeoutMs);
+    return window->grabWindow();
+}
+
 // Témoin d'une touche (filtre posé sur l'application le temps de l'étape). Le booléen « acceptée » de
 // QWindowSystemInterface dit si quelqu'un a pris la touche ; le témoin dit qui : un raccourci joué, un
 // raccourci ambigu (plusieurs candidats, aucun joué), ou l'appui livré à un élément. Sans élément ni
@@ -1207,13 +1237,17 @@ bool UiScenarioPlayer::doubleClick(const UiStep& step, QStringList& report)
 bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
 {
     ui::PageView* v = view();
-    // Image du moment, jamais la dernière capture : grabWindow() synchronise et dessine la scène courante. Le
-    // scénario place « waitReady » avant si le cache doit être à jour (le joueur ne le devine pas).
-    const QImage image = m_window->grabWindow();
+    // Image du moment, jamais la dernière capture : grabWindow() synchronise et dessine la scène courante,
+    // une fois chargées ses images (grabLoadedScene). Le scénario place « waitReady » avant si le cache doit
+    // être à jour (le joueur ne le devine pas).
+    bool loaded = false;
+    const QImage image = grabLoadedScene(m_window, loaded);
     QColor actual;
     QString read = QStringLiteral("hors image");
     if (!v) {
         read = QStringLiteral("vue de page introuvable");
+    } else if (!loaded) {
+        read = QStringLiteral("image encore en chargement après %1 ms").arg(kReadyTimeoutMs);
     } else if (image.isNull()) {
         read = QStringLiteral("capture vide");
     } else {
@@ -1238,7 +1272,14 @@ bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
     constexpr int kEdgeMargin = 24;
     const QColor edgeInk(Qt::black);
     ui::PageView* v = view();
-    const QImage image = m_window->grabWindow();
+    bool loaded = false;
+    const QImage image = grabLoadedScene(m_window, loaded);
+    if (!loaded) {
+        report << QStringLiteral("BORD %1 ECART (image encore en chargement après %2 ms)")
+                      .arg(step.name)
+                      .arg(kReadyTimeoutMs);
+        return false;
+    }
     int count = -1;
     int ink = -1;
     if (v && !image.isNull()) {
@@ -1576,14 +1617,17 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return ok;
     }
     case UiStepKind::Capture: {
-        const QImage image = m_window->grabWindow();
+        bool loaded = false;
+        const QImage image = grabLoadedScene(m_window, loaded);
         const QString file = QStringLiteral("%1-%2-%3.png")
                                  .arg(m_scenarioName)
                                  .arg(++m_captureIndex, 2, 10, QLatin1Char('0'))
                                  .arg(step.name);
         const QString path = QDir(m_outputDir).filePath(file);
         QString why;
-        if (image.isNull()) {
+        if (!loaded) {
+            why = QStringLiteral("image encore en chargement après %1 ms").arg(kReadyTimeoutMs);
+        } else if (image.isNull()) {
             why = QStringLiteral("capture vide");
         } else if (isUniform(image)) {
             why = QStringLiteral("image uniforme : rien de dessiné");
