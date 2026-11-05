@@ -119,7 +119,9 @@ Qt::HANDLE ClassroomLock::lastHashThread() const noexcept
 
 bool ClassroomLock::createPassword(const QString& password, const QString& confirmation)
 {
-    if (m_busy || !m_preferences || hasPassword() || password.isEmpty() || password != confirmation) {
+    // m3 : jamais pendant le verrou (empreinte effacée du fichier pendant qu'il tient).
+    if (m_busy || m_locked || !m_preferences || hasPassword() || password.isEmpty() ||
+        password != confirmation) {
         return false;
     }
     const QByteArray salt = newSalt();

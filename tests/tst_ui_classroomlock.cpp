@@ -132,6 +132,23 @@ core::PageObject strokeObject()
     return core::PageObject{stroke};
 }
 
+// Délégués d'une vue : enfants visuels, pas enfants QObject de la fenêtre.
+QQuickItem* itemNamed(QQuickItem* root, const char* name)
+{
+    if (!root) {
+        return nullptr;
+    }
+    if (root->objectName() == QLatin1String(name)) {
+        return root;
+    }
+    for (QQuickItem* child : root->childItems()) {
+        if (QQuickItem* found = itemNamed(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
 int treeRowOf(const ui::ObjectTreeModel& tree, core::ObjectId id)
 {
     for (int row = 0; row < tree.rowCount(); ++row) {
@@ -184,7 +201,8 @@ void TstUiClassroomlock::firstLockCreatesThePassword()
     QVERIFY(f.lock->isLocked());
     QVERIFY(f.commands->isLocked());
     QVERIFY(f.prefs->value(key(ui::ClassroomLock::kLockedKey)).toBool());
-    // m3 : empreinte effacée pendant le verrou (fichier relu) : aucun mot de passe ne se crée, le verrou tient.
+    // m3 : empreinte effacée pendant le verrou (fichier relu) : aucun mot de passe ne se crée, le verrou
+    // tient.
     f.prefs->remove(key(ui::ClassroomLock::kHashKey));
     f.prefs->remove(key(ui::ClassroomLock::kSaltKey));
     f.prefs->remove(key(ui::ClassroomLock::kIterationsKey));
@@ -238,8 +256,8 @@ void TstUiClassroomlock::wrongPasswordKeepsTheLock()
     QVERIFY(!f.unlock(QString()));
     QVERIFY(f.lock->isLocked());
 
-    // M2 : `classroom.password` n'est pas verrouillable ; changer le mot de passe avec un ancien faux ne change
-    // rien, et le nouveau ne lève pas le verrou.
+    // M2 : `classroom.password` n'est pas verrouillable ; changer le mot de passe avec un ancien faux ne
+    // change rien, et le nouveau ne lève pas le verrou.
     const QString hash = f.prefs->value(key(ui::ClassroomLock::kHashKey)).toString();
     const QString salt = f.prefs->value(key(ui::ClassroomLock::kSaltKey)).toString();
     const QString intruder = QStringLiteral("pirate-1");
@@ -404,7 +422,7 @@ void TstUiClassroomlock::qmlCannotBypass()
     ui::DocumentController document;
     document.newDocument(800, 600);
     ui::DocumentTabs tabs;
-    tabs.setProperty("commands", QVariant::fromValue(f.commands.get())); // câblage de Main.qml
+    QVERIFY(tabs.setProperty("commands", QVariant::fromValue(f.commands.get()))); // câblage de Main.qml
     tabs.setDocument(&document);
     QQmlComponent windowComponent(&engine);
     windowComponent.setData("import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\n"
@@ -463,9 +481,7 @@ void TstUiClassroomlock::qmlCannotBypass()
     QVERIFY(addObject(document, shapeAt(100), core::Layer::Middle) != 0); // onglet affiché modifié
     QVERIFY(tabs.isModifiedAt(2));
     QVERIFY(!tabs.isModifiedAt(0));
-    const auto item = [window](const char* name) {
-        return window->findChild<QQuickItem*>(QString::fromLatin1(name));
-    };
+    const auto item = [window](const char* name) { return itemNamed(window->contentItem(), name); };
     QTRY_VERIFY(item("documentTabClose0") && item("documentTabSelect1") && item("documentTabClose2"));
     auto* saveChanges = window->findChild<QObject*>(QStringLiteral("tabSaveChangesDialog"));
     QVERIFY(saveChanges);
@@ -476,21 +492,23 @@ void TstUiClassroomlock::qmlCannotBypass()
     };
     QSignalSpy asked(&tabs, &ui::DocumentTabs::saveRequested);
     QVERIFY(f.lock->lock());
-    click(item("documentTabClose0"), Qt::LeftButton);    // « × » d'un onglet non modifié
-    click(item("documentTabSelect1"), Qt::MiddleButton); // clic du milieu
-    click(item("documentTabClose2"), Qt::LeftButton);    // onglet modifié : aucune boîte
+    click(item("documentTabClose0"), Qt::LeftButton);                    // « × » d'un onglet non modifié
+    click(item("documentTabSelect1"), Qt::MiddleButton);                 // clic du milieu
+    click(item("documentTabClose2"), Qt::LeftButton);                    // onglet modifié : aucune boîte
     QVERIFY(QMetaObject::invokeMethod(saveChanges, "discardRequested")); // « Ne pas enregistrer »
     QCOMPARE(tabs.rowCount(), 3);
     QCOMPARE(asked.count(), 0);
     QVERIFY(tabs.isModifiedAt(2));
     QVERIFY(QMetaObject::invokeMethod(&tabs, "newTab"));
     QVERIFY(QMetaObject::invokeMethod(
-        &tabs, "openInNewTab", Q_ARG(QUrl, QUrl::fromLocalFile(f.dir.filePath(QStringLiteral("absent.actcraft"))))));
+        &tabs, "openInNewTab",
+        Q_ARG(QUrl, QUrl::fromLocalFile(f.dir.filePath(QStringLiteral("absent.actcraft"))))));
     bool closed = true;
     QVERIFY(QMetaObject::invokeMethod(&tabs, "requestClose", Q_RETURN_ARG(bool, closed), Q_ARG(int, 0)));
     QVERIFY(!closed);
     QVERIFY(QMetaObject::invokeMethod(&tabs, "closeWithoutSaving", Q_ARG(int, 2)));
-    QVERIFY(QMetaObject::invokeMethod(&tabs, "copyPagesToTab", Q_ARG(QVariantList, QVariantList{0}), Q_ARG(int, 0)));
+    QVERIFY(QMetaObject::invokeMethod(&tabs, "copyPagesToTab", Q_ARG(QVariantList, QVariantList{0}),
+                                      Q_ARG(int, 0)));
     QCOMPARE(tabs.rowCount(), 3);
     QCOMPARE(tabs.currentIndex(), 2);
     QVERIFY(tabs.isModifiedAt(2));
@@ -574,12 +592,12 @@ void TstUiClassroomlock::everyLot6ControllerRefuses()
     const int row2 = treeRowOf(tree, shape2);
     QVERIFY(row1 >= 0 && row2 >= 0);
     const std::vector<core::ObjectId> order = idsOnPage(document);
-    // Amendement 12 : les gestes du navigateur de pages (Suppr, Ctrl+X, Ctrl+V, Ctrl+D) appellent le contrôleur
-    // de pages sans passer par le registre ; il refuse lui-même sous verrou.
+    // Amendement 12 : les gestes du navigateur de pages (Suppr, Ctrl+X, Ctrl+V, Ctrl+D) appellent le
+    // contrôleur de pages sans passer par le registre ; il refuse lui-même sous verrou.
     ui::DocumentController pagesDocument;
     pagesDocument.newDocument(1024, 768);
     ui::PagesController pages;
-    pages.setProperty("commands", QVariant::fromValue(f.commands.get())); // câblage de Main.qml
+    QVERIFY(pages.setProperty("commands", QVariant::fromValue(f.commands.get()))); // câblage de Main.qml
     pages.setDocumentController(&pagesDocument);
     pages.insertBlank(true);
     pages.click(0, 0);

@@ -91,6 +91,9 @@ public:
     void setLocked(bool locked);
     bool isLocked() const noexcept;
     int lockedCount() const;
+    // Amendement 12 : un geste qui ne passe pas par le registre (barre d'onglets, navigateur de pages) suit
+    // sa commande sous verrou ; hors du verrou, il ne dépend pas d'elle. C++ seulement.
+    bool allowsWhileLocked(const QString& id) const;
 
 signals:
     void layoutChanged();

@@ -28,7 +28,11 @@ Item {
         objectName: "appClassroom"
         commands: root.commands
         preferences: root.preferences
-        onLockedChanged: root.commands.setChecked("classroom.lock", appClassroom.locked)
+        // Relance verrouillée : `commands` peut être posé après `preferences` (Component.onCompleted recoche).
+        onLockedChanged: {
+            if (root.commands)
+                root.commands.setChecked("classroom.lock", appClassroom.locked)
+        }
         onPasswordCreated: ok => {
             if (!ok) {
                 root.fail(qsTr("Le mot de passe n'a pas pu être créé."))

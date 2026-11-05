@@ -131,10 +131,31 @@ void DocumentTabs::setPosition(const QString& position)
     emit positionChanged();
 }
 
+Commands* DocumentTabs::commands() const
+{
+    return m_commands.data();
+}
+
+void DocumentTabs::setCommands(Commands* commands)
+{
+    if (commands == m_commands) {
+        return;
+    }
+    m_commands = commands;
+    emit commandsChanged();
+}
+
 // Pendant une lecture ou une écriture, le document affiché ne change pas (son résultat lui revient).
 bool DocumentTabs::canSwitch() const
 {
     return m_document && !m_document->isBusy();
+}
+
+// Amendement 12 (L6-T31) : le modèle refuse lui-même, une garde de la barre seule laisserait passer tout
+// autre QML.
+bool DocumentTabs::allows(const char* command) const
+{
+    return !m_commands || m_commands->allowsWhileLocked(QString::fromLatin1(command));
 }
 
 void DocumentTabs::emitRow(int row)
@@ -163,7 +184,7 @@ void DocumentTabs::switchTo(int index, std::unique_ptr<ParkedSession> leaving)
 
 void DocumentTabs::newTab()
 {
-    if (!canSwitch()) {
+    if (!canSwitch() || !allows("file.new")) {
         return;
     }
     const QSizeF size = m_document->pageSize();
@@ -182,7 +203,11 @@ void DocumentTabs::openInNewTab(const QUrl& url)
     if (!canSwitch()) {
         return;
     }
+    const int before = rowCount();
     newTab();
+    if (rowCount() == before) {
+        return; // onglet refusé : le document affiché n'est pas remplacé
+    }
     m_document->openUrl(url);
 }
 
@@ -201,7 +226,7 @@ bool DocumentTabs::isModifiedAt(int index) const
 
 bool DocumentTabs::requestClose(int index)
 {
-    if (!m_document || index < 0 || index >= rowCount()) {
+    if (!m_document || index < 0 || index >= rowCount() || !allows("file.close")) {
         return false;
     }
     const ParkedSession* parked = m_tabs[static_cast<std::size_t>(index)].parked.get();
@@ -216,7 +241,7 @@ bool DocumentTabs::requestClose(int index)
 // Un document vide reste toujours ouvert : le dernier onglet fermé est remplacé par un vide.
 void DocumentTabs::closeWithoutSaving(int index)
 {
-    if (!m_document || index < 0 || index >= rowCount()) {
+    if (!m_document || index < 0 || index >= rowCount() || !allows("file.close")) {
         return;
     }
     if (index != m_current) {
@@ -256,10 +281,10 @@ void DocumentTabs::closeWithoutSaving(int index)
 // F-011 : les pages copiées vont avant la première page de l'onglet d'arrivée, en une étape de sa pile (A15,
 // core::InsertPagesCommand) ; un onglet garé la reçoit sur sa pile garée, sans être affiché, et montrera la
 // première page copiée.
-void DocumentTabs::copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)
+bool DocumentTabs::copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)
 {
-    if (!canSwitch() || tabIndex < 0 || tabIndex >= rowCount()) {
-        return;
+    if (!canSwitch() || tabIndex < 0 || tabIndex >= rowCount() || !allows("page.paste")) {
+        return false;
     }
     const core::Document& source = m_document->document();
     std::vector<std::size_t> indexes;
@@ -273,7 +298,7 @@ void DocumentTabs::copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)
     std::sort(indexes.begin(), indexes.end());
     indexes.erase(std::unique(indexes.begin(), indexes.end()), indexes.end());
     if (indexes.empty()) {
-        return;
+        return false;
     }
     std::vector<core::Page> pages;
     pages.reserve(indexes.size());
@@ -284,13 +309,15 @@ void DocumentTabs::copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)
     auto command = std::make_unique<core::InsertPagesCommand>(0, std::move(pages), std::move(resources));
     if (tabIndex == m_current) {
         m_document->execute(std::move(command));
-        return;
+        return true;
     }
     ParkedSession& target = *m_tabs[static_cast<std::size_t>(tabIndex)].parked;
-    if (!target.undo.push(target.document, std::move(command)).empty()) {
-        target.current = 0;
-        emitRow(tabIndex);
+    if (target.undo.push(target.document, std::move(command)).empty()) {
+        return false;
     }
+    target.current = 0;
+    emitRow(tabIndex);
+    return true;
 }
 
 void DocumentTabs::next()

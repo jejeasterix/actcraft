@@ -8,7 +8,8 @@ import ActCraft.Ui
 // porte pas). Le titre vient d'un fichier : texte brut, jamais interprété comme du balisage. Un onglet n'est
 // activé ni fermé pendant une lecture ou une écriture : le modèle refuse sans erreur. Déposer des pages sur un
 // onglet inactif les y copie (F-011, voir PageNavigator). Ctrl+Alt+N et « + » ouvrent un onglet neuf si le registre
-// le permet (file.new, verrouillable : le registre décide, verrou de classe compris, pas une garde QML).
+// le permet (file.new). Sous verrou de classe, DocumentTabs refuse lui-même d'ouvrir, de fermer (« × », clic du
+// milieu, « Ne pas enregistrer » : file.close) et de recevoir des pages (amendement 12) : pas de garde QML seule.
 Item {
     id: root
     objectName: "documentTabBar"
@@ -192,8 +193,8 @@ Item {
                     const pages = drop.source && drop.source.dragPages ? drop.source.dragPages : []
                     if (pages.length === 0)
                         return
-                    root.tabs.copyPagesToTab(pages, tab.index)
-                    drop.acceptProposedAction()
+                    if (root.tabs.copyPagesToTab(pages, tab.index))
+                        drop.acceptProposedAction()
                 }
             }
         }

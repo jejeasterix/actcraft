@@ -431,6 +431,11 @@ bool Commands::isLocked() const noexcept
     return m_registry.isLocked();
 }
 
+bool Commands::allowsWhileLocked(const QString& id) const
+{
+    return !isLocked() || isEnabled(id);
+}
+
 int Commands::lockedCount() const
 {
     if (!m_registry.isLocked()) {
