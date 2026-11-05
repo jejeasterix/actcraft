@@ -4,6 +4,8 @@
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/propertyedits.h>
 
+#include "validpage.h"
+
 #include <cmath>
 #include <numbers>
 #include <type_traits>
@@ -269,11 +271,6 @@ Change changeFor(ObjectProperty property, std::size_t page, ObjectId id, const R
         return Change{Change::Kind::PageSettingsChanged, page, id, RectF{}};
     }
     return Change{Change::Kind::ObjectChanged, page, id, unitedRect(before, after)};
-}
-
-bool validPage(const Document& document, int page) noexcept
-{
-    return page >= 0 && static_cast<std::size_t>(page) < document.pageCount();
 }
 
 bool pageTouchesTheCache(PageProperty property) noexcept
