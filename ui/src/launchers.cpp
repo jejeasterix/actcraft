@@ -5,6 +5,7 @@
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -14,6 +15,7 @@
 #include <QSet>
 #include <QUrl>
 #include <QUuid>
+#include <QtEndian>
 
 #include <algorithm>
 #include <utility>
@@ -125,6 +127,23 @@ bool opensAsDocument(const QString& path)
 {
     const QFileInfo info(path);
     return info.exists() && !(info.isFile() && info.isExecutable());
+}
+
+// Un .exe qui n'est pas une image de programme (« MZ », puis « PE\0\0 » à l'adresse lue en 0x3C) : sous
+// Windows, CreateProcess peut alors ouvrir une boîte système et ne rendre la main qu'une fois qu'on y répond,
+// interface gelée. Lu au lancement seulement, après la confirmation.
+bool fakeExe(const QString& path)
+{
+    if (suffixOf(path).compare(QLatin1String("exe"), Qt::CaseInsensitive) != 0 || !QFileInfo(path).isFile())
+        return false; // un nom cherché dans le PATH n'est pas lu ici
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return true;
+    const QByteArray dos = file.read(0x40);
+    if (dos.size() < 0x40 || !dos.startsWith("MZ"))
+        return true;
+    return !file.seek(qFromLittleEndian<quint32>(dos.constData() + 0x3C)) ||
+           file.read(4) != QByteArray("PE\0\0", 4);
 }
 
 QString documentRefusal(const QString& path)
@@ -378,6 +397,10 @@ bool Launchers::launch(const Entry& entry)
     const bool document = opensAsDocument(entry.path);
     if (document && !entry.arguments.isEmpty()) { // devenu document depuis la demande : rien ne part
         emit failed(documentRefusal(entry.path));
+        return false;
+    }
+    if (!document && fakeExe(entry.path)) {
+        emit failed(tr("Ce .exe n'est pas un programme Windows : %1").arg(entry.path));
         return false;
     }
     const bool started =
