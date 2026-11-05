@@ -54,7 +54,10 @@ FloatingPanel {
         if (!root.commands) {
             return
         }
-        root.commands.setHandler("view.page-effects", function () { root.openPicker() })
+        root.commands.setHandler("view.page-effects", function () {
+            root.commands.requestMainWindow("view.page-effects")
+            root.openPicker()
+        })
     }
 
     Component.onCompleted: Qt.callLater(root.registerCommands)

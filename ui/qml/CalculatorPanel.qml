@@ -186,7 +186,9 @@ FloatingPanel {
             return
         }
         root.commands.setHandler("tool.calculator", function () {
+            // Calculatrice du système (mode 1 ou 2) lancée : aucun panneau, l'annotation reste (Ma1 essai 3).
             if (calculatorController.open()) {
+                root.commands.requestMainWindow("tool.calculator")
                 root.visible = true
                 root.forceActiveFocus()
             }

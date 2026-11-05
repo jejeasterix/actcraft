@@ -258,6 +258,7 @@ Item {
         }
         // Le message défile aussitôt avec les réglages courants, et la fenêtre d'édition s'ouvre.
         root.commands.setHandler("tool.ticker", function () {
+            root.commands.requestMainWindow("tool.ticker")
             tickerController.start()
             tickerDialog.open()
         })

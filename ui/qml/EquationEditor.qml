@@ -106,6 +106,7 @@ FloatingPanel {
     function editEquation(id) {
         if (!equationController.edit(Number(id)))
             return
+        root.commands.requestMainWindow("equation.edit") // Ma1 : seulement si le panneau s'ouvre
         root.visible = true
         root.forceActiveFocus()
     }
@@ -359,6 +360,7 @@ FloatingPanel {
             return
         }
         root.commands.setHandler("insert.equation", function () {
+            root.commands.requestMainWindow("insert.equation")
             root.openEditor()
         })
         root.commands.setHandler("equation.edit", function (id) {

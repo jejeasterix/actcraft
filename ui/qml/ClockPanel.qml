@@ -333,6 +333,7 @@ FloatingPanel {
             return
         }
         root.commands.setHandler("tool.clock", function () {
+            root.commands.requestMainWindow("tool.clock")
             root.visible = true
         })
     }

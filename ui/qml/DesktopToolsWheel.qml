@@ -44,7 +44,7 @@ Window {
         }
     }
 
-    // entry : {command, restoresMain, …} (DesktopController::wheelEntries).
+    // entry : {command, …} (DesktopController::wheelEntries).
     function trigger(entry) {
         if (!entry || entry.command === "") {
             return
@@ -53,11 +53,8 @@ Window {
         if (!root.commands) {
             return
         }
-        // Écart à l'original (H-M8, voir opensInTheMainWindow) : un outil de la fenêtre principale la rend
-        // d'abord, sinon il s'ouvrirait dans la fenêtre réduite, invisible.
-        if (entry.restoresMain) {
-            root.commands.trigger("desktop.restore")
-        }
+        // Un outil de la fenêtre principale la rend lui-même (DesktopController::makeRoomForMainWindowTool,
+        // H-M8), par ce chemin comme par tous les autres.
         root.commands.trigger(entry.command)
     }
 

@@ -177,6 +177,7 @@ FloatingPanel {
             return
         }
         root.commands.setHandler("tool.dice", function () {
+            root.commands.requestMainWindow("tool.dice")
             root.visible = true
         })
     }

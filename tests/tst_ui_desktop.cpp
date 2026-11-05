@@ -1,4 +1,5 @@
 #include "desktopcontroller.h"
+#include "presentationdocument.h"
 #include "support/lot7registry.h"
 #include "support/presentationharness.h"
 
@@ -9,8 +10,11 @@
 #include <actcraft/ui/pageview.h>
 
 #include <QColor>
+#include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QImage>
+#include <QJSEngine>
+#include <QKeySequence>
 #include <QPointer>
 #include <QQuickWindow>
 #include <QScreen>
@@ -140,6 +144,107 @@ QQuickWindow* windowNamed(const QString& name)
 QQuickWindow* wheelWindow()
 {
     return windowNamed(QStringLiteral("desktopToolsWheel"));
+}
+
+// Roue ouverte (repliée) : déploie l'icône, ouvre l'anneau qui porte `command`, puis clique cette entrée.
+bool clickRingEntry(DesktopController* desktop, QQuickWindow* wheel, const QString& command)
+{
+    QVariantList entries;
+    if (!QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
+                                   Q_ARG(double, 110.0), Q_ARG(double, 205.0))) {
+        return false;
+    }
+    int ringIndex = -1;
+    for (qsizetype i = 0; i < entries.size(); ++i) {
+        for (const QVariant& inner : entries[i].toMap().value(QStringLiteral("ring")).toList()) {
+            if (inner.toMap().value(QStringLiteral("command")).toString() == command) {
+                ringIndex = static_cast<int>(i);
+            }
+        }
+    }
+    const auto click = [wheel](const QString& name) {
+        const auto find = [wheel, &name] {
+            return presentationharness::findItem(wheel->contentItem(), name);
+        };
+        return QTest::qWaitFor([&find] { return find() != nullptr; }) &&
+               QMetaObject::invokeMethod(find(), "click");
+    };
+    return ringIndex >= 0 && click(QStringLiteral("desktopWheelIcon")) &&
+           click(QStringLiteral("desktopWheelRing_%1").arg(ringIndex)) &&
+           click(QStringLiteral("desktopWheelEntry_") + command);
+}
+
+// Ce qu'un outil montre : la racine de son panneau, ou l'élément visuel de sa fenêtre surgissante (dialogue
+// du message défilant). Cherché dans l'arbre de la fenêtre principale seulement.
+QQuickItem* shownItemOf(const MainWindow& main, const QString& name)
+{
+    QObject* object = main.window() ? main.window()->findChild<QObject*>(name) : nullptr;
+    if (auto* item = qobject_cast<QQuickItem*>(object)) {
+        return item;
+    }
+    auto* content = object ? object->property("contentItem").value<QQuickItem*>() : nullptr;
+    return content ? content->parentItem() : nullptr;
+}
+
+// Ma1 : affiché ENTIER dans sa fenêtre, à une taille non nulle. isVisible() seul ne verrait ni un panneau
+// rogné ni un panneau hors de la fenêtre.
+bool shownWholeIn(const QQuickItem* item, const QQuickWindow* window)
+{
+    if (!item || !window || !item->isVisible() || item->window() != window || item->width() <= 0 ||
+        item->height() <= 0) {
+        return false;
+    }
+    const QRectF inScene = item->mapRectToScene(QRectF(0, 0, item->width(), item->height()));
+    return QRectF(QPointF(0, 0), QSizeF(window->size())).contains(inScene);
+}
+
+QString placeOf(const QQuickItem* item, const QQuickWindow* window)
+{
+    if (!item || !window) {
+        return QStringLiteral("élément ou fenêtre absent");
+    }
+    const QRectF r = item->mapRectToScene(QRectF(0, 0, item->width(), item->height()));
+    return QStringLiteral("élément (%1, %2, %3 x %4) visible=%5 ; fenêtre %6 x %7")
+        .arg(r.x())
+        .arg(r.y())
+        .arg(r.width())
+        .arg(r.height())
+        .arg(item->isVisible())
+        .arg(window->width())
+        .arg(window->height());
+}
+
+// Place faite pour un outil de la fenêtre principale (annotation fermée, fenêtre plus réduite) : attente
+// bornée. Une attente QTRY_* par défaut qui échoue dure 15 s (5 s, puis 10 s de diagnostic) : sous le mutant
+// « clé mainWindow non lue », 24 lignes Ma1/M8 en échec dépassaient le délai de 300 s de ctest, qui semblait
+// pendre (essai 3). Ici, une ligne en échec dure 6 s.
+constexpr int kRoomMadeMs = 2000;
+
+// Ma1 : annotation ouverte, la fenêtre principale n'est plus que la palette. `before` : sa géométrie d'avant.
+void openAnnotationWithPaletteOnly(MainWindow& main, QRect& before)
+{
+    QQuickWindow* window = main.window();
+    QVERIFY(window);
+    DesktopController* desktop = desktopOf(main);
+    QVERIFY(desktop);
+    QVERIFY(main.waitReady());
+    before = window->geometry();
+    QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+    QVERIFY(waitDesktopReady(desktop));
+    QTRY_VERIFY(window->geometry().width() < before.width()); // la palette seule
+}
+
+// Ma1 : le panneau `shown` s'est ouvert ENTIER dans la fenêtre principale, l'annotation fermée et la fenêtre
+// revenue à sa géométrie d'avant l'annotation.
+void expectWholeInTheMainWindow(MainWindow& main, const QString& shown, const QRect& before)
+{
+    QQuickWindow* window = main.window();
+    QQuickItem* item = shownItemOf(main, shown);
+    QVERIFY2(item, qPrintable(shown));
+    QTRY_VERIFY_WITH_TIMEOUT(!desktopOf(main)->isAnnotating(), kRoomMadeMs);
+    QTRY_VERIFY2(item->isVisible(), qPrintable(shown + QStringLiteral(" jamais montré")));
+    QTRY_VERIFY2(shownWholeIn(item, window), qPrintable(placeOf(item, window)));
+    QTRY_COMPARE(window->geometry(), before);
 }
 
 // Tout le fichier dans cet espace de noms anonyme (exécutable unique : aucun nom global hors du registre).
@@ -888,8 +993,13 @@ private slots:
 
     // M4 (relecture du lot 7) : la capture n'endort pas le fil principal. La commande rend la main aussitôt,
     // nos fenêtres masquées ; la saisie vient après le délai, puis le fond est posé et les fenêtres
-    // reviennent ; une seconde demande pendant ce temps est refusée. Mutant : saisie dans la commande même
-    // (l'ancien QThread::msleep de 250 ms).
+    // reviennent ; une seconde demande pendant ce temps est refusée. La source de production est enveloppée,
+    // pas remplacée (mineur du tour 2 : remplacée, un sommeil remis dans grabPrimaryScreen passait). Deux
+    // durées du fil principal sont mesurées, chacune sous le délai de 250 ms qu'un sommeil du défaut M4
+    // dépasse : la commande (captureBackground, hideOurWindows : mineur de la relecture de l'essai 1) et la
+    // fin de la capture, de l'entrée dans la source à backgroundCaptured (grabPrimaryScreen,
+    // showOurWindows). Mutants : saisie dans la commande même ; QThread::msleep(250) remis dans
+    // grabPrimaryScreen, puis dans hideOurWindows.
     void captureDoesNotBlockTheMainThread()
     {
         MainWindow main;
@@ -898,13 +1008,28 @@ private slots:
         QVERIFY(desktop);
         DocumentController* open = openDocumentOf(main);
         QVERIFY(open);
+        const DesktopController::CaptureSource screen = desktop->captureSource();
+        QVERIFY(screen);
         int calls = 0;
-        desktop->setCaptureSource([&calls] {
+        QElapsedTimer finishing;
+        desktop->setCaptureSource([&calls, &screen, &finishing] {
             ++calls;
+            finishing.start();
+            static_cast<void>(screen()); // l'image d'un écran hors écran ne sert pas : seule sa durée compte
             return fakeDesktop();
         });
+        qint64 finishMs = -1;
+        qint64 totalMs = -1;
+        QElapsedTimer running;
+        connect(desktop, &DesktopController::backgroundCaptured, this,
+                [&finishing, &finishMs, &running, &totalMs] {
+                    finishMs = finishing.elapsed();
+                    totalMs = running.elapsed();
+                });
         QSignalSpy finished(desktop, &DesktopController::backgroundCaptured);
+        running.start();
         QVERIFY(main.run(QStringLiteral("page.background-desktop-capture")));
+        const qint64 runMs = running.elapsed();
         QCOMPARE(calls, 0);
         QVERIFY(!main.window()->isVisible());
         QVERIFY(shownPage(*open).background.image.empty());
@@ -913,6 +1038,14 @@ private slots:
         QCOMPARE(finished.count(), 1);
         QVERIFY(finished.first().at(0).toBool());
         QCOMPARE(calls, 1);
+        // Ni la commande ni la fin de la capture n'endorment le fil principal (sous le délai de 250 ms).
+        QVERIFY2(runMs < 200, qPrintable(QStringLiteral("commande : %1 ms").arg(runMs)));
+        QVERIFY2(finishMs >= 0 && finishMs < 200, qPrintable(QStringLiteral("fin : %1 ms").arg(finishMs)));
+        // Toute la chaîne, de la commande à backgroundCaptured, moins le délai de 250 ms des fenêtres
+        // masquées : un sommeil entre ce délai et l'appel de la source (finishCapture) échappe aux deux
+        // mesures précédentes, pas à celle-ci (mineur du tour 2, mutant : msleep(250) avant m_capture()).
+        QVERIFY2(totalMs >= 0 && totalMs < 250 + 200,
+                 qPrintable(QStringLiteral("commande à fin : %1 ms").arg(totalMs)));
         QVERIFY(main.window()->isVisible());
         QVERIFY(!shownPage(*open).background.image.empty());
     }
@@ -1038,32 +1171,8 @@ private slots:
         QVERIFY(wheel);
         QTRY_VERIFY(wheel->isVisible());
         QTRY_COMPARE(main.window()->visibility(), QWindow::Minimized);
-        // L'anneau qui porte la commande.
-        QVariantList entries;
-        QVERIFY(QMetaObject::invokeMethod(desktop, "wheelEntries", Q_RETURN_ARG(QVariantList, entries),
-                                          Q_ARG(double, 110.0), Q_ARG(double, 205.0)));
-        int ringIndex = -1;
-        for (qsizetype i = 0; i < entries.size(); ++i) {
-            for (const QVariant& inner : entries[i].toMap().value(QStringLiteral("ring")).toList()) {
-                if (inner.toMap().value(QStringLiteral("command")).toString() == command) {
-                    ringIndex = static_cast<int>(i);
-                }
-            }
-        }
-        QVERIFY2(ringIndex >= 0, qPrintable(command));
-        const auto entry = [wheel](const QString& name) {
-            return presentationharness::findItem(wheel->contentItem(), name);
-        };
-        QQuickItem* icon = entry(QStringLiteral("desktopWheelIcon"));
-        QVERIFY(icon);
-        QVERIFY(QMetaObject::invokeMethod(icon, "click"));
-        const QString ringName = QStringLiteral("desktopWheelRing_%1").arg(ringIndex);
-        QTRY_VERIFY(entry(ringName));
-        QVERIFY(QMetaObject::invokeMethod(entry(ringName), "click"));
-        const QString entryName = QStringLiteral("desktopWheelEntry_") + command;
-        QTRY_VERIFY2(entry(entryName), qPrintable(entryName));
-        QVERIFY(QMetaObject::invokeMethod(entry(entryName), "click"));
-        QTRY_VERIFY(main.window()->visibility() != QWindow::Minimized);
+        QVERIFY2(clickRingEntry(desktop, wheel, command), qPrintable(command));
+        QTRY_VERIFY_WITH_TIMEOUT(main.window()->visibility() != QWindow::Minimized, kRoomMadeMs);
         QVERIFY(main.window()->isVisible());
         QVERIFY(!desktop->property("toolsShown").toBool());
         if (!panel.isEmpty()) {
@@ -1072,6 +1181,237 @@ private slots:
             QTRY_VERIFY(root->isVisible());
             QCOMPARE(root->window(), main.window());
         }
+    }
+
+    // Ma1 (tour 2 de relecture du lot 7) : M8 pendant l'annotation du bureau. La fenêtre principale n'y est
+    // que la palette (keepMainInFront, décision « seule la palette reste devant ») : un outil de l'anneau «
+    // Autres outils », élément de cette fenêtre (H-M8), y serait rogné ou hors champ. L'entrée ferme d'abord
+    // l'annotation (comme desktop.annotate : son paperboard est gardé) ; la fenêtre principale reprend son
+    // état d'avant l'annotation (chemin M5), puis l'outil s'y ouvre ENTIER. Mutant : l'entrée fait seulement
+    // desktop.restore (showNormal à l'emprise de la palette) ; isVisible() du panneau resterait vrai.
+    void wheelToolDuringAnnotationIsWholeInTheMainWindow_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("shown"); // racine du panneau, ou dialogue (fenêtre surgissante)
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice")
+            << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QStringLiteral("tickerDialog");
+    }
+    void wheelToolDuringAnnotationIsWholeInTheMainWindow()
+    {
+        QFETCH(QString, command);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QQuickWindow* window = main.window();
+        QVERIFY(window);
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.waitReady());
+        const QRect before = window->geometry();
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QTRY_VERIFY(window->geometry().width() < before.width()); // la palette seule
+        QVERIFY(main.run(QStringLiteral("desktop.tools")));
+        QQuickWindow* wheel = wheelWindow();
+        QVERIFY(wheel);
+        QTRY_VERIFY(wheel->isVisible());
+        QTRY_COMPARE(window->visibility(), QWindow::Minimized);
+        QVERIFY2(clickRingEntry(desktop, wheel, command), qPrintable(command));
+        QTRY_VERIFY_WITH_TIMEOUT(window->visibility() != QWindow::Minimized, kRoomMadeMs);
+        QVERIFY(window->isVisible());
+        QVERIFY(!desktop->property("toolsShown").toBool());
+        QQuickItem* item = shownItemOf(main, shown);
+        QVERIFY2(item, qPrintable(shown));
+        QTRY_VERIFY2(shownWholeIn(item, window), qPrintable(placeOf(item, window)));
+        // Comportement retenu : annotation fermée, fenêtre principale à sa géométrie d'avant l'annotation.
+        QVERIFY(!desktop->isAnnotating());
+        QTRY_COMPARE(window->geometry(), before);
+    }
+
+    // Ma1, essai 2 (tour 2 de relecture du lot 7) : la règle vit au niveau des commandes, plus dans la seule
+    // roue. Pendant l'annotation, la fenêtre principale n'est que la palette : toute commande qui ouvre un
+    // panneau de la fenêtre principale (posé dans presentation.layer ; drapeau « mainWindow » de
+    // commands.json) ferme d'abord l'annotation, son paperboard gardé ; la fenêtre reprend sa géométrie
+    // d'avant et le panneau s'y ouvre ENTIER, quel que soit le chemin. Ici, la commande directe. Mutant : la
+    // règle dans la seule roue (essai 1) ; le panneau s'ouvre rogné dans la fenêtre de la palette.
+    void mainWindowToolDuringAnnotationIsWhole_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("shown"); // racine du panneau, ou dialogue (fenêtre surgissante)
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice")
+            << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QStringLiteral("tickerDialog");
+        QTest::newRow("effets de page")
+            << QStringLiteral("view.page-effects") << QStringLiteral("effectsRoot");
+        QTest::newRow("equation") << QStringLiteral("insert.equation") << QStringLiteral("equationRoot");
+    }
+    void mainWindowToolDuringAnnotationIsWhole()
+    {
+        QFETCH(QString, command);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QVERIFY(main.run(command));
+        expectWholeInTheMainWindow(main, shown, before);
+    }
+
+    // Ma1, essai 3 (tour 2 de relecture du lot 7) : la place n'est faite que pour un panneau qui s'ouvre
+    // vraiment. Une commande « mainWindow » dont le gestionnaire ne montre rien (calculatrice du système :
+    // réglage tools/calculator/mode à 1 ou 2, programme lancé, panneau fermé) garde l'annotation et la
+    // palette seule. Le gestionnaire est remplacé par un gestionnaire qui ne montre rien : le cas de la
+    // calculatrice du système, reproductible hors Windows et sans lancer de programme. Mutant : l'essai 2,
+    // place faite par bindHandler avant tout gestionnaire marqué (annotation fermée pour rien).
+    void mainWindowCommandShowingNothingKeepsTheAnnotation()
+    {
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        actcraft::ui::Commands* commands = desktop->commands();
+        QVERIFY(commands);
+        QJSEngine* engine = qjsEngine(commands);
+        QVERIFY(engine);
+        const QRect palette = main.window()->geometry();
+        commands->setHandler(QStringLiteral("tool.calculator"),
+                             engine->evaluate(QStringLiteral("(function () {})")));
+        QVERIFY(main.run(QStringLiteral("tool.calculator")));
+        QVERIFY(desktop->isAnnotating());
+        QCOMPARE(main.window()->geometry(), palette);
+        QQuickItem* panel = main.item(QStringLiteral("calculatorRoot"));
+        QVERIFY(panel);
+        QVERIFY(!panel->isVisible());
+    }
+
+    // Ma1, essai 3 (mineur du tour 2) : equation.edit ouvre le même panneau (equationRoot) que
+    // insert.equation, et se déclenche pendant l'annotation (trigger d'un scénario). Équation connue : le
+    // panneau s'ouvre entier dans la fenêtre principale ; équation inconnue : aucun panneau, l'annotation
+    // reste. Mutants : drapeau « mainWindow » retiré d'equation.edit (place refusée, panneau rogné dans la
+    // palette) ; place demandée avant equationController.edit (annotation fermée pour rien).
+    void equationEditDuringAnnotation_data()
+    {
+        QTest::addColumn<bool>("known");
+        QTest::newRow("equation connue") << true;
+        QTest::newRow("equation inconnue") << false;
+    }
+    void equationEditDuringAnnotation()
+    {
+        QFETCH(bool, known);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        DocumentController* open = openDocumentOf(main);
+        QVERIFY(open);
+        actcraft::core::Equation equation;
+        equation.bounds = actcraft::core::RectF{100, 100, 160, 60};
+        equation.mathml = "<math><mi>x</mi><mo>+</mo><mi>y</mi></math>";
+        actcraft::core::PageObject object = std::move(equation);
+        object.common.layer = actcraft::core::Layer::Middle;
+        const actcraft::core::ObjectId id =
+            actcraft::ui::DocumentInsertions(*open).insertObject(std::move(object));
+        const QRect palette = main.window()->geometry();
+        const double target = static_cast<double>(id) + (known ? 0.0 : 1000.0);
+        QVERIFY(main.run(QStringLiteral("equation.edit"), QVariant(target)));
+        if (known) {
+            expectWholeInTheMainWindow(main, QStringLiteral("equationRoot"), before);
+            return;
+        }
+        QVERIFY(desktop->isAnnotating());
+        QCOMPARE(main.window()->geometry(), palette);
+        QQuickItem* panel = main.item(QStringLiteral("equationRoot"));
+        QVERIFY(panel);
+        QVERIFY(!panel->isVisible());
+    }
+
+    // Ma1, essai 2 : même règle par le raccourci clavier de la commande. Mutant : la règle dans la seule
+    // roue.
+    void mainWindowToolShortcutDuringAnnotationIsWhole_data()
+    {
+        QTest::addColumn<QString>("sequence");
+        QTest::addColumn<QString>("shown");
+        QTest::newRow("horloge") << QStringLiteral("Ctrl+Shift+U") << QStringLiteral("clockRoot");
+        QTest::newRow("message defilant") << QStringLiteral("Ctrl+Shift+T") << QStringLiteral("tickerDialog");
+    }
+    void mainWindowToolShortcutDuringAnnotationIsWhole()
+    {
+        QFETCH(QString, sequence);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QTest::keySequence(main.window(), QKeySequence(sequence));
+        expectWholeInTheMainWindow(main, shown, before);
+    }
+
+    // Ma1, essai 2 : même règle par la palette (« Horloge », seul outil de la fenêtre principale qu'elle
+    // porte), cherchée dans la palette elle-même. Mutant : la règle dans la seule roue.
+    void mainWindowToolFromThePaletteDuringAnnotationIsWhole()
+    {
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QQuickItem* palette =
+            presentationharness::findItem(main.window()->contentItem(), QStringLiteral("toolPalette"));
+        QVERIFY(palette);
+        QQuickItem* button = presentationharness::findItem(palette, QStringLiteral("button-tool.clock"));
+        QVERIFY(button);
+        QVERIFY(QMetaObject::invokeMethod(button, "click"));
+        expectWholeInTheMainWindow(main, QStringLiteral("clockRoot"), before);
+    }
+
+    // Ma1, essai 2 : même règle par le menu « Outils » de la barre du haut, que la fenêtre réduite garde
+    // (« Outils de maths » : dés, calculatrice ; « Autres outils » : horloge, message défilant). Mutant : la
+    // règle dans la seule roue.
+    void mainWindowToolFromTheMenuDuringAnnotationIsWhole_data()
+    {
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("shown");
+        QTest::newRow("des") << QStringLiteral("tool.dice") << QStringLiteral("diceRoot");
+        QTest::newRow("calculatrice")
+            << QStringLiteral("tool.calculator") << QStringLiteral("calculatorRoot");
+        QTest::newRow("horloge") << QStringLiteral("tool.clock") << QStringLiteral("clockRoot");
+        QTest::newRow("message defilant") << QStringLiteral("tool.ticker") << QStringLiteral("tickerDialog");
+    }
+    void mainWindowToolFromTheMenuDuringAnnotationIsWhole()
+    {
+        QFETCH(QString, command);
+        QFETCH(QString, shown);
+        MainWindow main;
+        QRect before;
+        openAnnotationWithPaletteOnly(main, before);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QQuickItem* menuButton =
+            presentationharness::findItem(main.window()->contentItem(), QStringLiteral("menu-tools"));
+        QVERIFY(menuButton);
+        QVERIFY(QMetaObject::invokeMethod(menuButton, "clicked"));
+        auto* entry = menuButton->findChild<QQuickItem*>(QStringLiteral("menuItem-") + command);
+        QVERIFY2(entry, qPrintable(command));
+        QVERIFY(QMetaObject::invokeMethod(entry, "click"));
+        expectWholeInTheMainWindow(main, shown, before);
     }
 
     // M2 (relecture du lot 7 ; plan 7b, L7-T30 ; F-640 : effets désactivés pendant l'annotation de bureau) :
