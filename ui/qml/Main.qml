@@ -505,6 +505,45 @@ Window {
         onClosed: root.popupClosed()
     }
 
+    // Lot 8 (L8-T2) : coquille. Les types C++ sont encore des talons (QtObject marqués) ; chaque tâche
+    // propriétaire remplace l'instance par le vrai type.
+    QtObject { // Talon L8 : rempli par L8-T9.
+        id: appActionRunner
+        objectName: "appActionRunner"
+    }
+    QtObject { // Talon L8 : rempli par L8-T10.
+        id: appLinks
+        objectName: "appLinks"
+    }
+    QtObject { // Talon L8 : rempli par L8-T11.
+        id: appActionBrowser
+        objectName: "appActionBrowser"
+    }
+    QtObject { // Talon L8 : rempli par L8-T13.
+        id: appDragDrop
+        objectName: "appDragDrop"
+    }
+    DragDropActions { objectName: "dragDropActions" }
+    LinkDialog {
+        id: linkDialog
+        commands: appCommands
+    }
+    LinkConfirmDialog { objectName: "linkConfirmDialog" }
+    WebFrameDialog { objectName: "webFrameDialog" }
+    PublishDialog {
+        id: publishDialog
+        commands: appCommands
+    }
+    SoundController {
+        id: soundController
+        commands: appCommands
+    }
+    RecorderPalette {
+        id: recorderPalette
+        commands: appCommands
+    }
+    RecordingIndicator { objectName: "recordingIndicator" }
+
     AboutDialog {
         id: aboutDialog
         onOpened: root.popupOpened()

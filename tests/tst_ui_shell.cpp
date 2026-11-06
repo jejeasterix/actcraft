@@ -1542,7 +1542,10 @@ private slots:
                  "page");
         QVERIFY2(near(pixel(largeur - 192, psInt(hauteur * 0.72)), palette, 16), "fond de palette");
         const int swatchX = largeur - swatch.captured(1).toInt();
-        const int swatchY = psInt(hauteur * swatch.captured(2).toDouble());
+        // L8-T2 : la palette porte une rangée de boutons de plus (page.history-back/forward, groupe « pages »),
+        // 48 points : les pastilles descendent de 48 * densite pixels par rapport au point relevé du script.
+        static constexpr int decalagePalette = 48 * densite;
+        const int swatchY = psInt(hauteur * swatch.captured(2).toDouble()) + decalagePalette;
         QVERIFY2(near(pixel(swatchX, swatchY), QColor(229, 57, 53), 40),
                  qPrintable(QStringLiteral("pastille rouge en (%1, %2) : lu %3")
                                 .arg(swatchX)
