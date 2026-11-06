@@ -44,6 +44,8 @@ public:
     void requestStored(const QByteArray& bytes, const QString& originalName, const QString& documentKey);
     Q_INVOKABLE void answer(int token, bool accepted); // seul point qui ouvre ; un jeton ne sert qu'une fois
     static QString refusalFor(const QUrl& url, int kind); // vide : acceptée
+    // Accès au disque faits par refusalFor depuis le démarrage (tests : un chemin réseau n'en fait aucun).
+    static int diskQueries();
 
 signals:
     void confirmationNeeded(const QString& shownTarget, int token);

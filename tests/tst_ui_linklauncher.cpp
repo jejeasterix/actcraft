@@ -3,10 +3,22 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QQmlComponent>
+#include <QQmlEngine>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
+
+#include <memory>
+
+#ifdef Q_OS_MACOS
+#include <sys/xattr.h>
+#endif
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using actcraft::ui::LinkLauncher;
 
@@ -34,16 +46,20 @@ class TstUiLinkLauncher : public QObject
             return true;
         });
     }
-    static QString extractionDir()
-    {
-        return QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
-               QStringLiteral("/actcraft-doc1");
-    }
     static void touch(const QString& path)
     {
         QFile f(path);
         QVERIFY(f.open(QIODevice::WriteOnly));
         f.close();
+    }
+    static QString tempRoot() { return QStandardPaths::writableLocation(QStandardPaths::TempLocation); }
+    static QStringList extractionDirs()
+    {
+        return QDir(tempRoot()).entryList({QStringLiteral("actcraft-*")}, QDir::Dirs | QDir::NoDotAndDotDot);
+    }
+    static QString parentDirOf(const QString& shown)
+    {
+        return QFileInfo(QDir::fromNativeSeparators(shown)).absolutePath();
     }
 
 private slots:
@@ -51,13 +67,11 @@ private slots:
     {
         for (const char* scheme : {"http", "https", "file"})
             QDesktopServices::setUrlHandler(QString::fromLatin1(scheme), &m_catcher, "got");
-        QDir(extractionDir()).removeRecursively();
     }
     void cleanupTestCase()
     {
         for (const char* scheme : {"http", "https", "file"})
             QDesktopServices::unsetUrlHandler(QString::fromLatin1(scheme));
-        QDir(extractionDir()).removeRecursively();
         QVERIFY(m_catcher.caught.isEmpty()); // aucun test n'a atteint l'ouvreur du système
     }
 
@@ -91,8 +105,9 @@ private slots:
     }
     void onlyHttpAndHttps()
     {
-        for (const char* u :
-             {"ftp://example.org/", "javascript:alert(1)", "file:///C:/x.txt", "mailto:a@b.c"})
+        // Identifiants dans l'adresse : « https://ecole.fr@evil.example/ » mène à evil.example.
+        for (const char* u : {"ftp://example.org/", "javascript:alert(1)", "file:///C:/x.txt", "mailto:a@b.c",
+                              "https://ecole.fr@evil.example/", "http://eleve:secret@example.org/"})
             QVERIFY2(!LinkLauncher::refusalFor(QUrl(QString::fromLatin1(u)), LinkLauncher::Website).isEmpty(),
                      u);
         QVERIFY(LinkLauncher::refusalFor(QUrl(QStringLiteral("http://example.org/")), LinkLauncher::Website)
@@ -100,12 +115,41 @@ private slots:
     }
     void networkPathRefused()
     {
-        QVERIFY(!LinkLauncher::refusalFor(QUrl::fromLocalFile(QStringLiteral("//serveur/partage/a.pdf")),
-                                          LinkLauncher::File)
-                     .isEmpty());
-        QVERIFY(!LinkLauncher::refusalFor(QUrl(QStringLiteral("file://serveur/partage/a.pdf")),
-                                          LinkLauncher::File)
-                     .isEmpty());
+        // Le motif est celui du chemin réseau, et aucun accès au disque n'a lieu avant ce refus : sous
+        // Windows, le moindre test d'existence d'un « \\hôte\… » envoie l'authentification du compte à
+        // l'hôte.
+        QTemporaryDir dir;
+        const QString local = dir.filePath(QStringLiteral("cours.pdf"));
+        touch(local);
+        QString tail = QDir::fromNativeSeparators(local);
+        while (tail.startsWith(u'/'))
+            tail.remove(0, 1);
+        // « file:////… » : hôte vide, chemin en « // ». Hors de Windows, il désigne un fichier qui existe :
+        // seul le contrôle réseau le refuse.
+        const QUrl doubleSlash(QStringLiteral("file:////") + tail);
+        QVERIFY(doubleSlash.host().isEmpty());
+        QVERIFY(doubleSlash.toLocalFile().startsWith(QStringLiteral("//")));
+#ifndef Q_OS_WIN
+        QVERIFY(QFileInfo::exists(doubleSlash.toLocalFile()));
+#endif
+        const int before = LinkLauncher::diskQueries();
+        for (const QUrl& url : {QUrl::fromLocalFile(QStringLiteral("//serveur/partage/a.pdf")),
+                                QUrl::fromLocalFile(QStringLiteral("\\\\serveur\\partage\\a.pdf")),
+                                QUrl(QStringLiteral("file://serveur/partage/a.pdf")), doubleSlash}) {
+            const QString reason = LinkLauncher::refusalFor(url, LinkLauncher::File);
+            QVERIFY2(reason.contains(QStringLiteral("chemin réseau")),
+                     qPrintable(url.toString() + u' ' + reason));
+        }
+        LinkLauncher l;
+        fake(l);
+        QSignalSpy refused(&l, &LinkLauncher::refused);
+        l.request(QStringLiteral("\\\\serveur\\partage\\a.pdf"), LinkLauncher::File);
+        QCOMPARE(refused.size(), 1);
+        QVERIFY(refused[0][0].toString().contains(QStringLiteral("chemin réseau")));
+        QCOMPARE(LinkLauncher::diskQueries(), before); // aucun accès au disque
+        // Témoin : un fichier local, lui, se cherche sur le disque.
+        QCOMPARE(LinkLauncher::refusalFor(QUrl::fromLocalFile(local), LinkLauncher::File), QString());
+        QVERIFY(LinkLauncher::diskQueries() > before);
     }
     void executableRefused()
     {
@@ -146,9 +190,9 @@ private slots:
     }
     void trailingDotRefused()
     {
-        // Les fichiers existent : Windows résout « a.exe. » et « a.exe  » en « a.exe ». Seul le retrait des
-        // points et espaces finaux avant la comparaison refuse ces noms ; la règle « fichier absent » ne les
-        // attrape pas.
+        // Garde le refus : Windows résout « a.exe. », « a.exe  » et « a.hta. . » en « a.exe » et « a.hta »,
+        // qui existent. La liste blanche les refuse avec ou sans le retrait des points et espaces finaux
+        // (suffixe vide ou « exe  ») : le témoin qui prouve le retrait est trailingDotPdfAccepted.
         QTemporaryDir dir;
         for (const char* real : {"a.exe", "a.hta"})
             touch(dir.filePath(QString::fromLatin1(real)));
@@ -180,6 +224,7 @@ private slots:
     }
     void htaRefused()
     {
+        const QStringList dirsBefore = extractionDirs();
         LinkLauncher l;
         fake(l);
         QSignalSpy refused(&l, &LinkLauncher::refused);
@@ -189,7 +234,7 @@ private slots:
         QVERIFY(!refused[0][0].toString().isEmpty()); // le refus montre son motif
         QCOMPARE(ask.size(), 0);                      // refusé avant même la confirmation
         QVERIFY(m_opened.isEmpty());
-        QVERIFY(!QFile::exists(extractionDir() + QStringLiteral("/cours.hta"))); // refusé avant l'écriture
+        QCOMPARE(extractionDirs(), dirsBefore); // refusé avant toute écriture : aucun dossier d'extraction
     }
     void missingFileRefused()
     {
@@ -204,31 +249,137 @@ private slots:
     }
     void storedFileExtractedUnderASafeName()
     {
-        LinkLauncher l;
-        fake(l);
-        QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
-        l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("..\\..\\a<b>.pdf"), QStringLiteral("doc1"));
-        QCOMPARE(ask.size(), 1);
-        const QString shown = ask[0][0].toString();
-        QVERIFY(shown.endsWith(QStringLiteral("ab.pdf")));
-        QVERIFY(!shown.contains(QStringLiteral("..")));
-        const QString extracted = QDir::cleanPath(extractionDir() + QStringLiteral("/ab.pdf"));
-        QCOMPARE(QDir::fromNativeSeparators(shown), extracted);
-        QFile f(extracted);
-        QVERIFY(f.open(QIODevice::ReadOnly));
-        QCOMPARE(f.readAll(), QByteArray("%PDF-1.4"));
-        QVERIFY(m_opened.isEmpty());
-        l.answer(ask[0][1].toInt(), true);
-        QCOMPARE(m_opened, QList<QUrl>{QUrl::fromLocalFile(extracted)});
+        QString extractionDir;
+        {
+            LinkLauncher l;
+            fake(l);
+            QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+            l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("..\\..\\a<b>.pdf"),
+                            QStringLiteral("doc1"));
+            QCOMPARE(ask.size(), 1);
+            const QString shown = ask[0][0].toString();
+            QVERIFY(shown.endsWith(QStringLiteral("ab.pdf")));
+            QVERIFY(!shown.contains(QStringLiteral("..")));
+            const QString extracted = QDir::fromNativeSeparators(shown);
+            QFile f(extracted);
+            QVERIFY(f.open(QIODevice::ReadOnly));
+            QCOMPARE(f.readAll(), QByteArray("%PDF-1.4"));
+            f.close();
+
+            // Dossier temporaire propre au document, au nom imprévisible, fermé aux autres comptes.
+            extractionDir = parentDirOf(shown);
+            QCOMPARE(QFileInfo(extractionDir).absolutePath(), QDir::cleanPath(tempRoot()));
+            const QString dirName = QFileInfo(extractionDir).fileName();
+            QVERIFY2(dirName.startsWith(QStringLiteral("actcraft-")), qPrintable(dirName));
+            QVERIFY2(!dirName.contains(QStringLiteral("doc1")), qPrintable(dirName)); // clé hachée
+#ifndef Q_OS_WIN
+            const QFileDevice::Permissions others = QFileDevice::ReadGroup | QFileDevice::WriteGroup |
+                                                    QFileDevice::ExeGroup | QFileDevice::ReadOther |
+                                                    QFileDevice::WriteOther | QFileDevice::ExeOther;
+            QVERIFY(!(QFileInfo(extractionDir).permissions() & others)); // 0700
+#endif
+
+            // Marque « venu d'ailleurs » du système sur le fichier extrait.
+#ifdef Q_OS_MACOS
+            char mark[256] = {};
+            const ssize_t size = getxattr(QFile::encodeName(extracted).constData(), "com.apple.quarantine",
+                                          mark, sizeof mark - 1, 0, 0);
+            QVERIFY2(size > 0, "attribut com.apple.quarantine absent");
+            QVERIFY(QByteArray(mark, size).contains(";ActCraft;"));
+#elif defined(Q_OS_WIN)
+            QFile zone(extracted + QStringLiteral(":Zone.Identifier"));
+            QVERIFY(zone.open(QIODevice::ReadOnly));
+            const QByteArray zoneText = zone.readAll();
+            QVERIFY(zoneText.contains("[ZoneTransfer]"));
+            QVERIFY(zoneText.contains("ZoneId=3"));
+#endif
+
+            // Même document : même dossier. Clés que l'ancien filtrage confondait (« doc.1 », « doc/1 ») :
+            // dossiers distincts.
+            l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("b.pdf"), QStringLiteral("doc1"));
+            l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("b.pdf"), QStringLiteral("doc.1"));
+            l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("b.pdf"), QStringLiteral("doc/1"));
+            QCOMPARE(ask.size(), 4);
+            QCOMPARE(parentDirOf(ask[1][0].toString()), extractionDir);
+            QVERIFY(parentDirOf(ask[2][0].toString()) != extractionDir);
+            QVERIFY(parentDirOf(ask[3][0].toString()) != extractionDir);
+            QVERIFY(parentDirOf(ask[3][0].toString()) != parentDirOf(ask[2][0].toString()));
+
+            // Noms de périphérique de Windows, COM0 et LPT0 compris : « _ » en tête.
+            l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("COM0.pdf"), QStringLiteral("doc1"));
+            l.requestStored(QByteArray("texte"), QStringLiteral("lpt0.txt"), QStringLiteral("doc1"));
+            l.requestStored(QByteArray("texte"), QStringLiteral("nul.txt"), QStringLiteral("doc1"));
+            QCOMPARE(ask.size(), 7);
+            QVERIFY2(ask[4][0].toString().endsWith(QStringLiteral("_COM0.pdf")),
+                     qPrintable(ask[4][0].toString()));
+            QVERIFY2(ask[5][0].toString().endsWith(QStringLiteral("_lpt0.txt")),
+                     qPrintable(ask[5][0].toString()));
+            QVERIFY2(ask[6][0].toString().endsWith(QStringLiteral("_nul.txt")),
+                     qPrintable(ask[6][0].toString()));
+
+            QVERIFY(m_opened.isEmpty());
+            l.answer(ask[0][1].toInt(), true);
+            QCOMPARE(m_opened, QList<QUrl>{QUrl::fromLocalFile(extracted)});
+        }
+        QVERIFY(!QFileInfo::exists(extractionDir)); // le dossier part avec le lanceur
     }
     void confirmationShowsTheFullTarget()
     {
         LinkLauncher l;
         fake(l);
         QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+        QSignalSpy refused(&l, &LinkLauncher::refused);
         l.request(QStringLiteral("https://example.org/chemin?q=1"), LinkLauncher::Website);
         QCOMPARE(ask.size(), 1);
         QCOMPARE(ask[0][0].toString(), QStringLiteral("https://example.org/chemin?q=1"));
+
+        // Caractères de mise en forme (Cf, dont U+202E qui retourne l'affichage) et de contrôle (Cc) :
+        // échappés dans la cible montrée comme dans le motif d'un refus.
+        QTemporaryDir dir;
+        const QString reversed =
+            dir.filePath(QStringLiteral("rapport") + QChar(0x202E) + QStringLiteral("fdp.pdf"));
+        touch(reversed);
+        l.request(reversed, LinkLauncher::File);
+        QCOMPARE(ask.size(), 2);
+        const QString shown = ask[1][0].toString();
+        QVERIFY2(!shown.contains(QChar(0x202E)), qPrintable(shown));
+        QVERIFY2(shown.contains(QStringLiteral("<U+202E>")), qPrintable(shown));
+        l.request(dir.filePath(QStringLiteral("a\tb") + QChar(0x200B) + QStringLiteral(".pdf")),
+                  LinkLauncher::File);
+        QCOMPARE(refused.size(), 1);
+        const QString reason = refused[0][0].toString();
+        QVERIFY2(!reason.contains(u'\t') && !reason.contains(QChar(0x200B)), qPrintable(reason));
+        QVERIFY2(reason.contains(QStringLiteral("<U+0009>")) && reason.contains(QStringLiteral("<U+200B>")),
+                 qPrintable(reason));
+
+        // La boîte montre la cible complète ; un refus tardif (fichier retiré entre la demande et « Ouvrir »)
+        // laisse son motif à l'écran.
+        const QString pdf = dir.filePath(QStringLiteral("cours.pdf"));
+        touch(pdf);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport ActCraft.Ui\nWindow {\n"
+                          "  width: 800; height: 600\n"
+                          "  property QtObject dialogue: confirm\n"
+                          "  LinkConfirmDialog { id: confirm }\n"
+                          "}\n",
+                          QUrl());
+        std::unique_ptr<QObject> window(component.create());
+        QVERIFY2(window, qPrintable(component.errorString()));
+        QObject* dialog = window->property("dialogue").value<QObject*>();
+        QVERIFY(dialog);
+        QVERIFY(dialog->setProperty("launcher", QVariant::fromValue(&l)));
+        l.request(pdf, LinkLauncher::File);
+        QVERIFY(dialog->property("visible").toBool());
+        QCOMPARE(dialog->property("shownTarget").toString(), QDir::toNativeSeparators(QDir::cleanPath(pdf)));
+        QVERIFY(QFile::remove(pdf));
+        QVERIFY(QMetaObject::invokeMethod(dialog, "openTarget"));
+        QVERIFY(m_opened.isEmpty());
+        QVERIFY(dialog->property("visible").toBool()); // le motif du refus tardif reste visible
+        QVERIFY(!dialog->property("asking").toBool());
+        QVERIFY2(dialog->property("reason").toString().contains(QStringLiteral("introuvable")),
+                 qPrintable(dialog->property("reason").toString()));
+        window.reset(); // la boîte part avant le lanceur
     }
 };
 

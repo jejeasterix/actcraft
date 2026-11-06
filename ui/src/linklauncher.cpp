@@ -216,6 +216,11 @@ QString LinkLauncher::refusalFor(const QUrl& url, int kind)
     return {};
 }
 
+int LinkLauncher::diskQueries()
+{
+    return 0; // talon du test rouge
+}
+
 void LinkLauncher::ask(const QUrl& url, int kind)
 {
     if (const QString reason = refusalFor(url, kind); !reason.isEmpty()) {
