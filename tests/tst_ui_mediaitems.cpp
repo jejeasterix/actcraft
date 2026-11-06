@@ -353,6 +353,7 @@ private slots:
     void soundFailureIsNotAnUnsupportedAction();
     void addingAMediaKeepsThePlayingVideoDelegate();
     void removingAMediaKeepsThePlayingVideoDelegate();
+    void videoControlsPauseResumeAndStop();
 
 private:
     void wire(ui::ActionRunner& runner, ui::Commands& commands)
@@ -361,6 +362,11 @@ private:
         runner.setDocument(m_controller.get());
         runner.setLinks(m_links.get());
         runner.setMediaItems(m_items.get());
+    }
+    void clickItem(QQuickItem* item)
+    {
+        const QPointF center = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+        QTest::mouseClick(m_scene->window, Qt::LeftButton, Qt::NoModifier, center.toPoint());
     }
     static bool click(ui::ActionRunner& runner, QPointF at)
     {
@@ -1178,6 +1184,47 @@ void TstUiMediaitems::removingAMediaKeepsThePlayingVideoDelegate()
     QCOMPARE(after, before);
     QCOMPARE(after->property("marqueDuDelegue").toInt(), 42);
     QVERIFY(after->property("armed").toBool());
+}
+
+// F-552/F-582 : les commandes de la vidéo répondent au clic. Une vidéo en boucle se met en pause, repart et
+// s'arrête (sans cela, seul un re-clic relançait play() et rien ne l'arrêtait) ; avec l'option « commandes
+// masquées », les boutons ne sont pas montrés.
+void TstUiMediaitems::videoControlsPauseResumeAndStop()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(clipMp4(), "mp4");
+    d.page(0).objects.push_back(mediaObject(11, key, 50, 50, 320, 240));
+    d.page(0).objects.push_back(mediaObject(12, key, 450, 50, 320, 240));
+    mediaOf(d, 0).loop = true;
+    mediaOf(d, 1).controlsHidden = true;
+    open(std::move(d));
+    QVERIFY(m_scene->mount(*m_controller, *m_items));
+    QTRY_COMPARE(m_items->rowCount(), 2);
+    QVERIFY(m_items->play(11));
+    QQuickItem* frame = nullptr;
+    QTRY_VERIFY((frame = m_scene->item(QStringLiteral("mediaFrame-11"))) != nullptr);
+    QObject* player = nullptr;
+    QTRY_VERIFY_WITH_TIMEOUT((player = frame->property("mediaPlayer").value<QObject*>()) != nullptr, 5000);
+    constexpr int stopped = 0;
+    constexpr int playing = 1;
+    constexpr int paused = 2;
+    QTRY_COMPARE_WITH_TIMEOUT(player->property("playbackState").toInt(), playing, 5000);
+    QQuickItem* toggle = nullptr;
+    QQuickItem* stop = nullptr;
+    QTRY_VERIFY((toggle = m_scene->item(QStringLiteral("mediaPlayPause-11"))) != nullptr);
+    QTRY_VERIFY((stop = m_scene->item(QStringLiteral("mediaStop-11"))) != nullptr);
+    QVERIFY(toggle->isVisible() && stop->isVisible());
+
+    clickItem(toggle);
+    QTRY_COMPARE_WITH_TIMEOUT(player->property("playbackState").toInt(), paused, 3000);
+    clickItem(toggle);
+    QTRY_COMPARE_WITH_TIMEOUT(player->property("playbackState").toInt(), playing, 3000);
+    clickItem(stop);
+    QTRY_COMPARE_WITH_TIMEOUT(player->property("playbackState").toInt(), stopped, 3000);
+
+    QQuickItem* hiddenToggle = m_scene->item(QStringLiteral("mediaPlayPause-12"));
+    QVERIFY(hiddenToggle != nullptr);
+    QVERIFY2(!hiddenToggle->isVisible(), "commandes masquées : aucun bouton montré");
 }
 
 // Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du
