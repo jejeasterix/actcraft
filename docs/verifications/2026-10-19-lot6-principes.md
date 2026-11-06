@@ -178,3 +178,93 @@ debug -N`) : un test propre à une plateforme peut faire varier le total.
 Identification des 17 constats et confrontation de P1 à P13 ; D1 à D14, en priorité D2 (taille de l'écran pour
 `en-classe`), D3 (fonctions grisées par le verrou), D4, D5 (chaînes du correcteur), D14 (regroupement : binaire actif
 contre spécification inactive) ; relevé brut `lot6.md` ; `NOMS OK` ; contrôle des titres du corpus ; N6 sous Windows.
+
+## Confrontation au PC (2026-11-06)
+
+Faite au PC avec le corpus (README et 26 fiches), l'ancien dépôt (spécification, documents de rétro-ingénierie) et
+les extractions statiques du binaire 3.5.18 déjà faites par L4-T0 (réglages embarqués, profils fournis, magasin des
+commandes, propriétés, traductions). **Binaire non interrogé** : serveur REA coupé, aucune observation à l'écran.
+Relevé brut hors dépôt : `…\docs\re\lots\lot6.md`. Rien n'a été modifié dans ce dépôt ; le code livré a seulement
+été lu. Le lot 6 étant déjà livré, chaque amendement ci-dessous est une **correction** du livré.
+
+### Les 17 constats (identifiés par élimination)
+
+Retirés : ceux que nomment les lots 3, 4, 5, 7 et 8, les imports (packs, présentation) et l'exclusion. Restent :
+
+| # | Constat (nos mots) | Source | Exigence pour ActCraft | Tâche | Scénario | État du livré ou écart |
+|---|---|---|---|---|---|---|
+| C1 | Survoler un bouton de la palette, à la souris ou au stylet en proximité, montre son info-bulle. | V100 | info-bulle aussi au survol du stylet | L6-T7 | S9.1 | à vérifier |
+| C2 | La palette ancrée peut cacher la barre de défilement de la page. | V49 | la palette ne masque jamais la barre de défilement | L6-T7 | S9.1 | piège de l'original, à ne pas reproduire |
+| C3 | Verrou de classe : on déverrouille par le même chemin et le même mot de passe ; une partie seulement des outils est grisée. | V20 | voir D3 | L6-T3, L6-T31 | S19 | **écart** (D3) |
+| C4 | Un document s'ouvre dans l'une ou l'autre apparence de l'original. | V84 | — | — | — | sans objet : une seule apparence (apparence simplifiée exclue, H6-8) |
+| C5 | Ajouter une commande l'insère en fin de liste ; la palette suit tout de suite. | V26 | ajout en fin, effet immédiat | L6-T26 | S9.7 | à vérifier |
+| C6 | Un raccourci vers un programme se supprime depuis l'éditeur. | V94 | suppression | L6-T30 | S20 | conforme au scénario |
+| C7 | Une rangée de poignées vidée n'affiche plus rien au-dessus de l'objet. | V137 | liste vide : aucune poignée | L6-T26 | S9.7 | P1 |
+| C8 | Une forme au fond opaque remplit de la couleur du fond les espaces de son contour tireté. | V114 ; F-574 | propriété de fond (couleur, opaque) et rendu entre les tirets | aucune | S9.4 | **absent** : le fond opaque ne vaut que pour les motifs de remplissage ; le navigateur de propriétés n'a pas de section fond. Attribution probable (autre candidat : V103, déjà P11) |
+| C9 | La couleur de page par défaut ne vaut que pour les documents créés ensuite et leurs pages. | V54 | réglage sans effet sur le document ouvert | L6-T27 | S9.7 | à vérifier ; la couleur autour de la page est grise en 3.5.18 (la spécification dit bleue) |
+| C10 | Le dossier personnel des ressources est un dossier ordinaire du disque ; il range aussi les profils et les messages défilants. | V27, V75, V113 ; F-881 | racine personnelle sur le disque, vue à jour | L6-T20 | S9.6 | à vérifier |
+| C11 | Plusieurs objets glissés ensemble dans un dossier forment une seule ressource. | V28 | fragment de plusieurs objets | L6-T19, L6-T21 | S9.6 | conforme au plan (fragment d'une page) |
+| C12 | Le tampon de la palette sert aussi à copier un objet sélectionné de la page. | V29 | tampon sur la sélection | L6-T21 | S9.6 | à vérifier |
+| C13 | Choisir l'outil Sélection arrête le tampon. | V29 | arrêt par Sélection | L6-T21 | S9.6 | à vérifier |
+| C14 | Les dossiers de ressources sont triés par ordre alphabétique ; un élément ajouté va dans le dossier sélectionné. | V33, V67 | tri, destination de l'ajout | L6-T20, L6-T21 | S9.6 | à vérifier |
+| C15 | Chaque ligne du navigateur d'objet ouvre le même menu que l'objet. | V113 ; F-770 | menu de ligne = menu d'objet | L6-T15 | S9.3 | rejoint P13 et L6-P2 |
+| C16 | La couleur clé d'une image se règle dans les propriétés. La vidéo croit à trois réglages liés ; en 3.5.18 deux suffisent (couleur, activation), le troisième est une propriété sans rapport. | V64 ; F-581 | couleur clé et activation dans la section des propriétés diverses | L6-T12 | S9.4 | **absent du navigateur** : le modèle porte déjà la couleur clé, aucune propriété ne l'édite |
+| C17 | La couleur clé n'a pas de tolérance réglable ; le détourage d'un fond blanc est médiocre. | V64 (déduit) | correspondance exacte, sans réglage | — | — | non tranché : rendu exact à confirmer à l'écran |
+
+Écarts du cadrage : E3 → D4, E4 → D2.
+
+### P1 à P13
+
+| # | Verdict | Ce qui change ou la preuve |
+|---|---|---|
+| P1 | confirmé, précisé | le profil porte deux rangées : la palette et les poignées de l'objet (V26, V30, V137 ; profils fournis) |
+| P2 | confirmé | V106 ; corbeille visible dans les cinq profils fournis |
+| P3 | confirmé | réglage à trois valeurs, défaut au-dessus (réglages embarqués ; F-201 ; V50) |
+| P4 | **amendé** | regroupement automatique **actif** par défaut en 3.5.18 → D14 |
+| P5 | **amendé** | le troisième réglage vise le déplacement d'objets ; il n'est pas exposé dans les réglages de la 3.5.18 → D14 |
+| P6 | confirmé | V114 ; neuf réglages du mode Création, tous actifs |
+| P7 | confirmé | compteur par page (relevé du lot 4) |
+| P8 | confirmé, précisé | réglage de la section Outils (F-930), absent des profils fournis ; écart maintenu |
+| P9 | confirmé | ordre du lot 4 ; panneau flottant (V25) ; à gauche par défaut |
+| P10 | confirmé | V67 |
+| P11 | confirmé | V103, plusieurs textes à la fois ; L6-P1 maintenu |
+| P12 | confirmé | section des réglages tactiles : gestes de tourne-page actifs, zoom à deux doigts inactif, outil tactile par défaut Sélection ; lot 6 ou 11 : orchestrateur |
+| P13 | confirmé, élargi | C15 : L6-P2 couvre aussi le menu des lignes du navigateur d'objet |
+
+### D1 à D14
+
+| # | Verdict | Ce qui diffère, et source |
+|---|---|---|
+| D1 | **amendé** | profils fournis de la 3.5.18 : corbeille visible dans les **cinq** ; pastilles **16** pour `preparation` (livré 24) et **8** pour les quatre autres (livré 16) ; plein écran au démarrage pour les quatre autres (livré : non) ; icônes de 32 px (livré 24) ; navigateurs masqués **et non épinglés** dans les quatre autres ; `en-classe` épingle les navigateurs de pages et de ressources (livré : ressources et quatre outils de présentation) ; `lecture-ecriture` ajoute le texte et le navigateur web ; `son-image` ajoute les enregistreurs d'écran et de son et l'insertion d'un fichier ; `preparation` épingle l'insertion d'un fichier et le texte ; `calcul-geometrie` conforme |
+| D2 | confirmé | 1024 × 768 partout : aucun profil fourni ne change la taille de page ; V144 montre un profil modifié par l'auteure |
+| D3 | **amendé** | sous verrou, l'original garde actifs les outils de l'élève (sélection, stylo, marqueur, gomme, texte, formes, pot, édition d'objets, couper-copier-coller, annuler, pages suivante et précédente, navigateur de pages, outils de mesure, orthographe, effacer) et grise la gestion (fichiers, insertions, profils, réglages, autres navigateurs, plein écran, bureau, caméra, enregistreurs, web, mode Création ; quitter et aide supposés grisés). Le livré fait l'inverse : 19 commandes libres, tout le reste verrouillé |
+| D4 | non tranché | place du bouton non lisible en statique ; V94 (haut, version ancienne) contre F-142 (bas) ; F-142 gardé ; suppression confirmée (V94) |
+| D5 | confirmé | cinq règles d'ignorance à non, mots répétés à oui, vérification à la demande seulement ; écart mineur : la 3.5.18 offre l'édition du dictionnaire de l'utilisateur dans ses réglages, le livré non |
+| D6 | non tranché | aucune source sur la grille étendue ; 8, 16 ou 24 pastilles confirmé (V25) |
+| D7 | **amendé** | la palette désépinglée se replie quand on touche la page (V25), pas après la sortie du pointeur ; délai non relevé |
+| D8 | non tranché | V84 confirme l'accès au tableau de bord ; rien sur les récents ; défaut gardé |
+| D9 | confirmé, précisé | contour, remplissage et fond sont des sous-sections d'Apparence ; section fond et couleur clé absentes du livré (C8, C16) |
+| D10 | confirmé | changement de couche par glisser (V113) ; menu de ligne : C15 ; colonnes : aucune source |
+| D11 | confirmé | neuf réglages, tous actifs ; tourne-page suspendu (F-560) |
+| D12 | confirmé, précisé | deux comportements (toujours visible, au survol), délai 0 à 5 s, police 8 à 64 points, contour et fond de l'étiquette |
+| D13 | confirmé, complété | C12 et C13 (tampon sur la sélection, arrêt par Sélection) ; fond glissé depuis les ressources (V67) |
+| D14 | **amendé** | regroupement automatique **vrai** par défaut : la 3.5.18 fait foi (cadrage, amendement 1, § 3) ; haute qualité pendant l'édition d'objets : défaut non relevable, « faux » gardé comme choix d'ActCraft |
+
+### Ce qui amende le plan ou le livré (pour l'orchestrateur)
+
+1. **D3** : refaire la liste des commandes libres sous verrou sur le modèle de l'original (outils de l'élève libres,
+   gestion verrouillée) ; `actions/data/commands.json` et `tests/tst_actions_lockable.cpp`, scénario S19.
+2. **D1** : aligner les cinq profils fournis (`actions/data/profiles/*.json`) ; ou consigner chaque écart gardé.
+3. **D14** : regroupement automatique actif par défaut (L6-T27, H6-12).
+4. **D7** : repli au contact de la page (L6-T7).
+5. **C8, C16** : proposition **L6-P3** — section fond (couleur, opaque, rendu entre les tirets) et couleur clé des
+   images dans le navigateur de propriétés (`core`, `render`, `ui`), scénario S9.4.
+6. **D5** : édition du dictionnaire de l'utilisateur depuis les réglages (L6-T27, L6-T34).
+7. **C1, C2, C5, C9, C10, C12 à C14** : à contrôler sur le livré ; corriger ce qui manque.
+
+### Reste
+
+`NOMS OK` et contrôle des titres du corpus : rejoués par la passe Windows (`docs/mesures/2026-11-06-lots-6-7-passe-windows.md`).
+N sous Windows : mesuré sur la tête de la branche, lot 8 en cours compris (même rapport). À l'écran : D4, D7, C17.
+Par désassemblage : sort exact des commandes sans marquage sous verrou (D3). Les corrections du livré (D1, D3, D5,
+D7, D14, L6-P3) ne sont pas faites par la passe Windows : elles reviennent à l'orchestrateur du chantier.

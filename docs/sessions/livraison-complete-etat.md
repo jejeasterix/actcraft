@@ -298,6 +298,26 @@ Suite de la tête (145807e, après L6-C3, L6-T11, L6-T7 ; 739 étapes reconstrui
 ### Pièges trouvés (lot 6, Mac)
 - ccache avec `base_dir` rend `__FILE__` relatif : `tst_modules::toolsSeeNoRenderItem` échoue (`build-mac/tests/../tools/include` introuvable). `base_dir` retiré (cache par chemin absolu, pas de partage entre worktrees).
 
+### Passe Windows des lots 6 et 7 (PC, 2026-11-06, interrompue à la fermeture du PC)
+Branches : `feat/livraison-complete--pc-lot6-preuves` (base e4aa3e94, tête de A avec le lot 8 en cours) et
+`feat/livraison-complete-b--pc-lot7-preuves` (base 8807a6eb). Aucune PR ouverte, aucune release.
+- Lot 6, fait : `NOMS OK` (910 fichiers) après renommages (57d10f6c ; cinq noms hérités du lot 6, déjà sur `main`, et
+  trois du lot 8 : `ratioX`/`ratioY`, `fitLeavesAFixedObjectUnmoved`, trois libellés d'action d'objet qui reprenaient
+  des titres du corpus) ; titres du corpus vides ; `test.ps1` release **235/235, `TESTS OK`, 0 avertissement**
+  (N Windows = 235, lot 8 en cours compris) ; debug 234/235 avant le correctif du scénario `proprietes`
+  (0e5efff1, 9823c651 : moyenne 3 × 3 sur un bord antialiasé), tests touchés rejoués verts ; `namesAreOurs` vert
+  avec `ACTCRAFT_REFERENCE_NAMES` (liste hors dépôt) ; `captures.ps1 -Scenario tous -Rendu d3d11` 41/42, puis
+  `proprietes` vert en logiciel et D3D11 après 9823c651 ; confrontation de L6-T0 au corpus écrite
+  (`docs/verifications/2026-10-19-lot6-principes.md`, § « Confrontation au PC » ; relevé brut `lot6.md` hors dépôt) :
+  **D3 inversé par rapport à l'original** (outils de l'élève libres sous verrou), D1, D5, D7, D14 amendés, L6-P3
+  proposée : à l'orchestrateur, D3 à soumettre à Jérôme.
+- Lot 6, en cours ou à faire : banc D3D11 plein écran (lancé, coupé par la fermeture), `test.ps1` debug complet sur
+  la tête finale, `PAQUET OK`, `verifier-licences.ps1`, rapport `docs/mesures/`, PR relue vers `feat/livraison-complete`.
+- Lot 7 : `NOMS` du lot propre (les 6 échecs viennent de la base c1046b9, corrigés sur `main` et par la PR du lot 6) ;
+  titres vides ; test de la caméra au rapport de pixels 2 écrit, **non construit ni joué**
+  (`tst_ui_camera_ratio2`) ; restent toutes les suites, captures, banc (S22, S23), `keyinjector_win`, garde M4 à
+  l'écran, mutant `desktopCaptureKeepsTheSelection`, PR.
+
 ### Restes pour le PC (lot 6)
 - L6-T0 : confrontation des 17 constats au corpus vidéo et à REA ; D1 à D14 (d'abord D2, D3, D5, D14) ; relevé brut `REA - Activinspire\docs\re\lots\lot6.md` ; `NOMS OK` ; titres du corpus ; N6 sous Windows.
 - L6-T1 : `NOMS OK`, titres du corpus, `TESTS OK` MSVC `/W4 /WX`, `captures.ps1 premiers-pas`.
