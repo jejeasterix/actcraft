@@ -1,6 +1,9 @@
+#include "support/richdocument.h"
+
 #include <actcraft/core/interactivity.h>
 #include <actcraft/formats/nativejson.h>
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QtTest>
@@ -66,14 +69,27 @@ private slots:
         plain.catalogId = "link.open";
         plain.parameters = "texte libre"; // pas du JSON : écrit comme une chaîne
         d.page(0).objects[0].common.actions.push_back(plain);
+        core::Action unordered; // JSON lisible mais pas sous sa forme compacte : écrit comme une chaîne
+        unordered.catalogId = "page.goto";
+        unordered.parameters = R"({"b":1,"a":2})";
+        d.page(0).objects[0].common.actions.push_back(unordered);
+        core::Action list; // tableau JSON compact : inséré tel quel
+        list.catalogId = "page.goto";
+        list.parameters = "[1,2]";
+        d.page(0).objects[0].common.actions.push_back(list);
         core::Document back = roundTrip(d);
         QCOMPARE(core::fingerprint(back), core::fingerprint(d));
         auto& actions = back.page(0).objects[0].common.actions;
-        QCOMPARE(actions.size(), std::size_t{2});
+        QCOMPARE(actions.size(), std::size_t{4});
         QCOMPARE(QString::fromStdString(actions[0].catalogId), u"page.goto"_s);
         QCOMPARE(QString::fromStdString(actions[0].parameters), uR"({"page":3})"_s);
         QVERIFY(actions[0].dragDrop);
         QCOMPARE(QString::fromStdString(actions[1].parameters), u"texte libre"_s);
+        QCOMPARE(QString::fromStdString(actions[2].parameters), uR"({"b":1,"a":2})"_s);
+        QCOMPARE(QString::fromStdString(actions[3].parameters), u"[1,2]"_s);
+        const QByteArray asText = "\"parameters\":\"{\\\"b\\\":1,\\\"a\\\":2}\"";
+        QVERIFY(toJson(d).contains(asText));
+        QVERIFY(toJson(d).contains(R"("parameters":[1,2])"));
         // Paramètres objet : insérés tels quels, pas en chaîne échappée.
         QVERIFY(toJson(d).contains(R"("parameters":{"page":3})"));
         QVERIFY2(actions[0].unknownKeys.empty(), actions[0].unknownKeys.c_str());
@@ -249,6 +265,33 @@ private slots:
         for (const char* key : {"container", "catalog-id", "drag-drop", "travel", "turning", "blocks-others",
                                 "broadcast", "controls-hidden"})
             QVERIFY2(!json.contains(key), key);
+
+        // Hors défaut, noms figés des clés et des valeurs du lot 8 : une clé renommée des deux côtés
+        // garderait l'aller-retour, pas les fichiers déjà écrits.
+        const QJsonObject root = formats::documentToJson(richdoc::richInteractiveDocument());
+        const QJsonArray objects =
+            root.value(u"pages"_s).toArray().at(0).toObject().value(u"objects"_s).toArray();
+        const QJsonObject o1 = objects.at(0).toObject();
+        const QJsonObject jr = o1.value(u"restrictions"_s).toObject();
+        QCOMPARE(jr.value(u"travel"_s).toString(), u"along-track"_s);
+        QCOMPARE(jr.value(u"turning"_s).toString(), u"counter-clockwise"_s);
+        QCOMPARE(jr.value(u"turn-step"_s).toDouble(), 15.0);
+        QCOMPARE(jr.value(u"pivot"_s).toString(), u"other-object"_s);
+        QCOMPARE(jr.value(u"magnet-mark"_s).toString(), u"bottom-right"_s);
+        QVERIFY(jr.value(u"blocks-others"_s).toBool());
+        const QJsonObject box = o1.value(u"container"_s).toObject();
+        QVERIFY(box.value(u"bounce-back"_s).toBool());
+        QCOMPARE(box.value(u"accepts"_s).toString(), u"keywords"_s);
+        QCOMPARE(box.value(u"fit"_s).toString(), u"fully-inside"_s);
+        const QJsonObject action = o1.value(u"actions"_s).toArray().at(0).toObject();
+        QCOMPARE(action.value(u"catalog-id"_s).toString(), u"page.goto"_s);
+        QVERIFY(action.value(u"drag-drop"_s).toBool());
+        const QJsonObject clip = objects.at(6).toObject();
+        QVERIFY(clip.value(u"controls-hidden"_s).toBool() && clip.value(u"aspect-locked"_s).toBool() &&
+                clip.value(u"clear-background"_s).toBool() && clip.value(u"wrap-text"_s).toBool());
+        const QJsonObject rules = root.value(u"broadcast"_s).toObject();
+        QVERIFY(rules.value(u"no-copy"_s).toBool() && rules.value(u"no-camera"_s).toBool());
+        QCOMPARE(rules.value(u"author"_s).toString(), u"Auteur"_s);
     }
     void olderFileReadsWithDefaults()
     {
