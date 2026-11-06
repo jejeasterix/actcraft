@@ -13,6 +13,7 @@
 #include <actcraft/actions/objectactions.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/objectedits.h>
 #include <actcraft/core/shapegeometry.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/actionbrowser.h>
@@ -450,8 +451,8 @@ private slots:
 
         // Cible supprimée : la remise à jour la ramène à 0.
         f.model.setTarget(f.shape3);
-        f.select({f.shape3});
-        f.tools.deleteSelection();
+        f.controller.execute(
+            std::make_unique<core::RemoveObjectsCommand>(0, std::vector<core::ObjectId>{f.shape3}));
         QCoreApplication::processEvents();
         QVERIFY(!objectOf(f.controller, f.shape3));
         QCOMPARE(f.model.target(), quint64(0));
@@ -460,8 +461,8 @@ private slots:
         // objet absent.
         f.model.setTarget(f.shape2);
         f.model.setContactActive(true);
-        f.tools.selectObjects({f.shape2});
-        f.tools.deleteSelection();
+        f.controller.execute(
+            std::make_unique<core::RemoveObjectsCommand>(0, std::vector<core::ObjectId>{f.shape2}));
         QVERIFY(!objectOf(f.controller, f.shape2));
         f.tools.selectObjects({f.shape1});
         QVERIFY(f.model.apply());

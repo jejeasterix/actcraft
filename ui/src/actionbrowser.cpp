@@ -330,13 +330,27 @@ bool ActionBrowserModel::apply()
     if (!info || ids.empty()) {
         return false; // liste grisée : rien à faire
     }
-    core::Action action; // créée par ActCraft : kind, sourceType et command restent nuls
+    dropVanishedTarget(); // objet supprimé, page changée : aucune action vers un objet absent
+    core::Action action;  // créée par ActCraft : kind, sourceType et command restent nuls
     action.catalogId = info->id.toStdString();
     action.parameters = encodeParameters(m_parameters, *info);
     action.target = info->target ? static_cast<core::ObjectId>(m_target) : 0; // 0 : l'objet cliqué
-    m_document->execute(
-        std::make_unique<core::SetObjectActionsCommand>(static_cast<std::size_t>(m_document->currentIndex()),
-                                                        ids, std::vector<core::Action>{std::move(action)}));
+    std::vector<core::Action> list{std::move(action)};
+    std::vector<core::ObjectId> changing;
+    const core::Page& page =
+        m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
+    for (const core::ObjectId id : ids) {
+        const auto it = std::find_if(page.objects.begin(), page.objects.end(),
+                                     [id](const core::PageObject& object) { return object.common.id == id; });
+        if (it != page.objects.end() && !core::sameActions(it->common.actions, list)) {
+            changing.push_back(id);
+        }
+    }
+    if (changing.empty()) {
+        return false; // tous portent déjà cette liste : aucune étape vide
+    }
+    m_document->execute(std::make_unique<core::SetObjectActionsCommand>(
+        static_cast<std::size_t>(m_document->currentIndex()), std::move(changing), std::move(list)));
     return true;
 }
 
@@ -368,8 +382,8 @@ bool ActionBrowserModel::removeExisting()
 
 void ActionBrowserModel::pickTarget()
 {
-    if (!m_tools) {
-        return;
+    if (!allowed()) {
+        return; // fermé par défaut, refusé sous le verrou : l'outil courant ne change pas
     }
     if (m_tools->currentTool() != QLatin1String("select")) {
         m_tools->activate(
@@ -480,7 +494,26 @@ void ActionBrowserModel::flush()
     m_rows = std::move(rows);
     endResetModel();
     m_hasSelection = !ids.empty();
+    dropVanishedTarget();
     updateEnabled();
+}
+
+void ActionBrowserModel::dropVanishedTarget()
+{
+    if (m_target == 0) {
+        return;
+    }
+    bool present = false;
+    if (m_document && m_document->pageCount() > 0) {
+        const core::Page& page =
+            m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
+        const auto id = static_cast<core::ObjectId>(m_target);
+        present = std::any_of(page.objects.begin(), page.objects.end(),
+                              [id](const core::PageObject& object) { return object.common.id == id; });
+    }
+    if (!present) {
+        setTarget(0);
+    }
 }
 
 void ActionBrowserModel::onSelectionChanged()
@@ -489,10 +522,22 @@ void ActionBrowserModel::onSelectionChanged()
         const std::vector<core::ObjectId>& selection = m_tools->user().selection();
         // Un clic sur un objet : il devient la cible. Une sélection vide (clic hors objet) ou republiée à
         // l'identique ne choisit rien.
-        if (!selection.empty() && selection != m_beforePick) {
+        // Ctrl ou Maj+clic ajoute en fin : la cible est le premier identifiant absent de la sélection d'avant
+        // ; un clic sur un objet déjà sélectionné le laisse seul et le choisit.
+        core::ObjectId picked = 0;
+        for (const core::ObjectId id : selection) {
+            if (std::find(m_beforePick.begin(), m_beforePick.end(), id) == m_beforePick.end()) {
+                picked = id;
+                break;
+            }
+        }
+        if (picked == 0 && selection.size() == 1 && selection != m_beforePick) {
+            picked = selection.front();
+        }
+        if (picked != 0) {
             m_picking = false;
             emit pickingChanged();
-            setTarget(static_cast<quint64>(selection.front()));
+            setTarget(static_cast<quint64>(picked));
             m_restorePending = true;
             if (!m_contactActive) {
                 QMetaObject::invokeMethod(this, &ActionBrowserModel::restoreAfterPick, Qt::QueuedConnection);
@@ -508,8 +553,8 @@ void ActionBrowserModel::restoreAfterPick()
         return; // pendant un contact : repris à sa fin
     }
     m_restorePending = false;
-    if (!m_tools) {
-        return;
+    if (!m_tools || !m_commands || m_commands->registry().isLocked()) {
+        return; // sous le verrou (ou fermé) : rien n'est réactivé
     }
     if (m_beforePick.empty()) {
         m_tools->clearSelection();
@@ -520,6 +565,10 @@ void ActionBrowserModel::restoreAfterPick()
 
 void ActionBrowserModel::updateEnabled()
 {
+    if (!m_commands || m_commands->registry().isLocked()) {
+        cancelPick(); // inactif : aucun choix de cible ouvert, aucune sélection rétablie
+        m_restorePending = false;
+    }
     const bool enabled = m_commands && !m_commands->registry().isLocked() && m_hasSelection;
     if (m_enabled == enabled) {
         return;

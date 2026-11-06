@@ -22,6 +22,15 @@ Change noPixelChange(std::size_t page, ObjectId id)
 
 } // namespace
 
+bool sameActions(const std::vector<Action>& a, const std::vector<Action>& b) noexcept
+{
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(), [](const Action& x, const Action& y) {
+        return x.kind == y.kind && x.sourceType == y.sourceType && x.command == y.command &&
+               x.target == y.target && x.resource == y.resource && x.unknownKeys == y.unknownKeys &&
+               x.catalogId == y.catalogId && x.parameters == y.parameters && x.dragDrop == y.dragDrop;
+    });
+}
+
 SetObjectActionsCommand::SetObjectActionsCommand(std::size_t page, std::vector<ObjectId> ids,
                                                  std::vector<Action> actions)
     : m_page(page), m_ids(std::move(ids)), m_actions(std::move(actions))
@@ -36,8 +45,8 @@ void SetObjectActionsCommand::redo(Document& document, Changes& changes)
     Page& page = document.page(m_page);
     for (const ObjectId id : m_ids) {
         PageObject* object = findObject(page, id);
-        if (!object) {
-            continue;
+        if (!object || sameActions(object->common.actions, m_actions)) {
+            continue; // absent, ou déjà cette liste : ni changement ni retour
         }
         m_before.emplace_back(id, object->common.actions);
         object->common.actions = m_actions;
@@ -51,7 +60,8 @@ void SetObjectActionsCommand::undo(Document& document, Changes& changes)
         return;
     }
     Page& page = document.page(m_page);
-    for (auto& [id, before] : m_before) {
+    for (auto it = m_before.rbegin(); it != m_before.rend(); ++it) { // ordre inverse de redo
+        const auto& [id, before] = *it;
         if (PageObject* object = findObject(page, id)) {
             object->common.actions = before;
             changes.push_back(noPixelChange(m_page, id));

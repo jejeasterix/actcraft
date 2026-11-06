@@ -118,7 +118,8 @@ private:
     void onSelectionChanged();
     void restoreAfterPick();
     void updateEnabled();
-    bool allowed(); // fermé par défaut ; émet refused
+    void dropVanishedTarget(); // cible absente de la page courante : ramenée à 0
+    bool allowed();            // fermé par défaut ; émet refused
     std::vector<core::ObjectId> selectedOnPage() const;
     const actions::ObjectActionInfo* currentInfo() const;
 
