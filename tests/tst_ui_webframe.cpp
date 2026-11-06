@@ -30,10 +30,12 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
+#include <QThreadPool>
 #include <QtTest>
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <memory>
 
 #if ACTCRAFT_WEBFRAME
@@ -160,7 +162,11 @@ private slots:
     void prepareHtmlLeavesNoUndecidedAddress_data();
     void prepareHtmlLeavesNoUndecidedAddress();
     void prepareHtmlKeepsDecidedAddresses();
-    void prepareHtmlStaysLinearOn16MB();
+    void prepareHtmlKeepsRawTextAsText();
+    void prepareHtmlDropsScripts();
+    void prepareHtmlStaysLinear();
+    void rewriteLeavesTheInterfaceThreadAtOnce();
+    void staleRewriteIsDropped();
     void engineNavigationAlwaysReturnsToTheModel();
     void receivedCodeFrameUnblocks();
 };
@@ -209,6 +215,36 @@ QString addressBearing(const QString& html)
     }
     out += QStringView(kept).mid(last);
     return out.replace(QStringLiteral("&amp;"), QStringLiteral("&")).toLower();
+}
+
+// Seconde lecture, naïve, de toute la sortie : sans rendre les entités (`&lt;meta` est du texte), sans suivre
+// les guillemets ni l'état du moteur, chaque segment d'un `<` littéral au `>` suivant, en minuscules. Elle
+// voit ce qu'un moteur en état RCDATA, RAWTEXT ou étranger lirait comme balise là où la première lecture suit
+// les guillemets comme la réécriture. La règle posée en tête par la réécriture (CSP, referrer) est retirée.
+QStringList naiveTags(const QString& html)
+{
+    const QString head = QStringLiteral("<meta name=\"referrer\" content=\"no-referrer\">");
+    const qsizetype at = html.indexOf(head);
+    const QString body = (at < 0 ? html : html.mid(at + head.size())).toLower();
+    QStringList spans;
+    for (qsizetype lt = body.indexOf(u'<'); lt >= 0; lt = body.indexOf(u'<', lt + 1)) {
+        const qsizetype gt = body.indexOf(u'>', lt);
+        spans.append(gt < 0 ? body.mid(lt) : body.mid(lt, gt - lt + 1));
+    }
+    return spans;
+}
+
+// Page ordinaire d'au moins `size` caractères, finie par `marker` dans un paragraphe.
+QString bigPage(qsizetype size, const QString& marker)
+{
+    const QString chunk = QStringLiteral(
+        R"h(<p a=1/b=2 c='3'>t</p><img/src="/a.png" srcset="/b.png 1x"><style>.x{background:url("/c.png")}</style>)h"
+        R"h(<a href="/d">d</a><!-- c -->)h");
+    QString big;
+    big.reserve(size + chunk.size() + marker.size() + 7);
+    while (big.size() < size)
+        big += chunk;
+    return big + QStringLiteral("<p>") + marker + QStringLiteral("</p>");
 }
 
 } // namespace
@@ -294,7 +330,8 @@ void TstUiWebFrame::receivedRemoteFrameSendsNoRequest()
     Fixture reader;
     QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("recu.actcraft"))));
     QCOMPARE(reader.frames.count(), 2);
-    QCOMPARE(reader.frames.blockedCount(), 2);
+    // Code HTML : repère posé au retour de la réécriture, faite hors du fil de l'interface.
+    QTRY_COMPARE_WITH_TIMEOUT(reader.frames.blockedCount(), 2, 10000);
     QVERIFY(role(reader.frames, 0, ui::WebFrameItems::BlockedRole).toBool());
     QVERIFY(!content(reader.frames, 0).contains(QStringLiteral("distant")));
     QVERIFY(role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
@@ -379,6 +416,7 @@ void TstUiWebFrame::insertFromTypedHtml()
     QCOMPARE(f.frames.blockedCount(), 0);
     QCOMPARE(role(f.frames, 0, ui::WebFrameItems::HtmlRole).toString(),
              QStringLiteral("<h1>Bonjour</h1><img src=\"http://192.0.2.1/x.png\">"));
+    QTRY_VERIFY_WITH_TIMEOUT(!content(f.frames, 0).isEmpty(), 10000); // réécrit hors du fil de l'interface
     const QString html = content(f.frames, 0);
     QVERIFY2(html.contains(QStringLiteral("<h1>Bonjour</h1>")), qPrintable(html));
     QVERIFY2(!html.contains(QStringLiteral("192.0.2.1")), qPrintable(html)); // origine jamais saisie
@@ -583,6 +621,25 @@ void TstUiWebFrame::prepareHtmlLeavesNoUndecidedAddress_data()
         R"h(<body background="https://evil.example/b.png"><table background="https://evil.example/t.png"></table>)h");
     row("input image", R"h(<input type=image src="https://evil.example/in.png">)h");
     row("cdata", R"h(<svg><![CDATA[<img src="https://evil.example/cd.png">]]></svg>)h");
+    // Éléments où le moteur ne lit aucune balise, seulement leur fin (RCDATA : textarea, title ; RAWTEXT :
+    // xmp, noembed, noframes, iframe, script) : une valeur d'attribut qui porte cette fin puis une balise
+    // n'en fait sortir aucune.
+    for (const char* element : {"textarea", "title", "xmp", "noembed", "noframes", "iframe", "script"}) {
+        const QString name = QString::fromLatin1(element);
+        QTest::newRow(qPrintable(QStringLiteral("fin de %1 dans une valeur").arg(name)))
+            << QString::fromUtf8(
+                   R"h(<%1><a title="</%1><meta http-equiv=refresh content='0;url=https://evil.example/r'>">x</a></%1>)h")
+                   .arg(name);
+    }
+    row("meta quelconque",
+        R"h(<meta name="description" content="d"><meta property="og:image" content="https://evil.example/og.png">)h");
+    // Contenu étranger (SVG, MathML) : le moteur y rend les entités du <style>.
+    row("style svg entite",
+        R"h(<svg><style>.x{background:u&#114;l(https://evil.example/f.png)}</style></svg>)h");
+    row("style svg entite nommee",
+        R"h(<svg><style>.x{background:url&lpar;https://evil.example/n.png&rpar;}</style></svg>)h");
+    row("style mathml",
+        R"h(<math><mtext><table><mglyph><style>&#64;import "https://evil.example/m.css";</style></mglyph></table></mtext></math>)h");
 }
 
 void TstUiWebFrame::prepareHtmlLeavesNoUndecidedAddress()
@@ -593,6 +650,10 @@ void TstUiWebFrame::prepareHtmlLeavesNoUndecidedAddress()
         const auto prepared = ui::WebFrameItems::prepareHtml(html, base, std::ref(decide));
         const QString read = addressBearing(prepared.html);
         QVERIFY2(!read.contains(QStringLiteral("evil")), qPrintable(prepared.html));
+        for (const QString& span : naiveTags(prepared.html)) { // aucune balise meta hors de la règle de tête
+            QVERIFY2(!span.startsWith(QStringLiteral("<meta")), qPrintable(prepared.html));
+            QVERIFY2(!span.contains(QStringLiteral("evil")), qPrintable(prepared.html));
+        }
         for (const QUrl& link : prepared.links)
             QVERIFY(link.isValid()); // cible d'un renvoi interne : décidée au clic, jamais dans la sortie
     }
@@ -619,31 +680,114 @@ void TstUiWebFrame::prepareHtmlKeepsDecidedAddresses()
     QCOMPARE(prepared.links, QVector<QUrl>{QUrl(QStringLiteral("https://ok.example/b"))});
 }
 
-// Page de 16 Mo, piégée pour les motifs à retour arrière (commentaires, styles et balises jamais fermés) : la
-// réécriture reste linéaire. Le temps est imprimé (preuve), la borne est large (construction de débogage).
-void TstUiWebFrame::prepareHtmlStaysLinearOn16MB()
+// Contenu d'un élément RCDATA (textarea, title) : du texte pour le moteur, rendu ici en texte (`<` en `&lt;`,
+// entités gardées), jamais lu comme balise ni demandé ; xmp (RAWTEXT, montré) devient un pre de texte échappé
+// ; une valeur d'attribut ne garde ni `<` ni `>` ni guillemet ; une feuille sans entité garde ses `&` (CSS
+// imbriqué).
+void TstUiWebFrame::prepareHtmlKeepsRawTextAsText()
 {
-    const QString chunk = QStringLiteral(
-        R"h(<p a=1/b=2 c='3'>t</p><img/src="/a.png" srcset="/b.png 1x"><style>.x{background:url("/c.png")}</style>)h"
-        R"h(<a href="/d">d</a><!-- c -->)h");
-    const QString trap = QStringLiteral("<a b=c/d/e/f/g <style x <!--x url(\"q ");
-    QString big;
-    big.reserve(16 * 1024 * 1024 + chunk.size() + trap.size());
-    while (big.size() < 8 * 1024 * 1024)
-        big += chunk;
-    while (big.size() < 16 * 1024 * 1024)
-        big += trap;
+    const QString html = QString::fromUtf8(
+        R"h(<textarea><img src="/t.png"> 1 < 2 &amp; 3</textarea><title>a<b</title><xmp><b>&</b></xmp>)h"
+        R"h(<p title="x<y>z" lang='l"m'>p</p><style>.a{&:hover{color:red}}</style>)h");
     OnlyOk decide;
+    const auto prepared =
+        ui::WebFrameItems::prepareHtml(html, QUrl(QStringLiteral("https://ok.example/")), std::ref(decide));
+    const QString& out = prepared.html;
+    QVERIFY2(decide.asked.isEmpty(), qPrintable(decide.asked.join(u' ') + QStringLiteral(" | ") + out));
+    for (const char* expected :
+         {R"h(<textarea>&lt;img src="/t.png"> 1 &lt; 2 &amp; 3</textarea>)h", "<title>a&lt;b</title>",
+          "<pre>&lt;b&gt;&amp;&lt;/b&gt;</pre>", R"h(title="x&lt;y&gt;z")h", R"h(lang="l&quot;m")h",
+          "<style>.a{&:hover{color:red}}</style>"})
+        QVERIFY2(out.contains(QString::fromUtf8(expected)),
+                 qPrintable(QString::fromUtf8(expected) + QStringLiteral(" | ") + out));
+}
+
+// JavaScript coupé : un script n'est jamais demandé, ni par src ni par href (SVG), même vers une origine
+// autorisée ; rien de lui n'entre dans la règle de sécurité du contenu (img-src compris).
+void TstUiWebFrame::prepareHtmlDropsScripts()
+{
+    const QString html = QString::fromUtf8(
+        R"h(<svg><script href="/s.js" xlink:href="/t.js">a()</script></svg><script src="/u.js"></script><p>reste</p>)h");
+    OnlyOk decide;
+    const auto prepared =
+        ui::WebFrameItems::prepareHtml(html, QUrl(QStringLiteral("https://ok.example/")), std::ref(decide));
+    QVERIFY2(decide.asked.isEmpty(), qPrintable(decide.asked.join(u' ')));
+    QVERIFY2(prepared.allowed.isEmpty(), qPrintable(prepared.allowed.join(u' ')));
+    QVERIFY2(!prepared.html.contains(QStringLiteral(".js")), qPrintable(prepared.html));
+    QVERIFY2(prepared.html.contains(QStringLiteral("<p>reste</p>")), qPrintable(prepared.html));
+}
+
+// Réécriture linéaire, mesurée sur N puis 2N caractères d'une page piégée pour les motifs à retour arrière
+// (commentaires, styles et balises jamais fermés) : le temps double, il ne quadruple pas (rapport < 3,
+// meilleure de deux passes, plancher de 20 ms). Les temps sont imprimés (preuve).
+void TstUiWebFrame::prepareHtmlStaysLinear()
+{
+    const QString trap = QStringLiteral("<a b=c/d/e/f/g <style x <!--x url(\"q ");
+    const auto page = [&trap](qsizetype size) {
+        QString big = bigPage(size / 2, QStringLiteral("x"));
+        big.reserve(size + trap.size());
+        while (big.size() < size)
+            big += trap;
+        return big;
+    };
+    const auto best = [](const QString& html) {
+        qint64 ms = std::numeric_limits<qint64>::max();
+        for (int pass = 0; pass < 2; ++pass) {
+            OnlyOk decide;
+            QElapsedTimer timer;
+            timer.start();
+            const auto prepared = ui::WebFrameItems::prepareHtml(
+                html, QUrl(QStringLiteral("https://ok.example/")), std::ref(decide));
+            ms = std::min(ms, timer.elapsed());
+            if (!prepared.html.contains(QStringLiteral("https://ok.example/c.png")) ||
+                prepared.html.contains(QStringLiteral("<!--")))
+                return qint64(-1);
+        }
+        return ms;
+    };
+    const qsizetype n = 2 * 1024 * 1024;
+    const qint64 once = best(page(n));
+    const qint64 twice = best(page(2 * n));
+    qInfo("prepareHtml : %lld ms pour %lld caracteres, %lld ms pour le double", static_cast<long long>(once),
+          static_cast<long long>(n), static_cast<long long>(twice));
+    QVERIFY(once >= 0 && twice >= 0);
+    QVERIFY2(twice < 3 * std::max<qint64>(once, 20),
+             qPrintable(QStringLiteral("%1 ms puis %2 ms").arg(once).arg(twice)));
+}
+
+// Page de 4 Mo saisie : insertFrame rend la main avant la réécriture, faite hors du fil de l'interface (BRIEF
+// § 4.1) ; le contenu réécrit arrive ensuite par le modèle.
+void TstUiWebFrame::rewriteLeavesTheInterfaceThreadAtOnce()
+{
+    const QString big = bigPage(4 * 1024 * 1024, QStringLiteral("FIN-DE-PAGE"));
+    Fixture f;
     QElapsedTimer timer;
     timer.start();
-    const auto prepared =
-        ui::WebFrameItems::prepareHtml(big, QUrl(QStringLiteral("https://ok.example/")), std::ref(decide));
+    QVERIFY(f.frames.insertFrame(big, {}));
     const qint64 ms = timer.elapsed();
-    qInfo("prepareHtml : %lld ms pour %lld caracteres", static_cast<long long>(ms),
+    qInfo("insertFrame : %lld ms pour %lld caracteres", static_cast<long long>(ms),
           static_cast<long long>(big.size()));
-    QVERIFY2(ms < 20000, qPrintable(QString::number(ms)));
-    QVERIFY(prepared.html.contains(QStringLiteral("https://ok.example/c.png")));
-    QVERIFY(!prepared.html.contains(QStringLiteral("<!--")));
+    QVERIFY2(ms < 50, qPrintable(QString::number(ms)));
+    QCOMPARE(f.frames.count(), 1);
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("<p>FIN-DE-PAGE</p>")), 60000);
+    QVERIFY(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool());
+}
+
+// Cadre retiré pendant la réécriture, un autre posé à sa place : le résultat arrivé après coup est abandonné
+// (même règle que la réponse réseau d'un cadre passé à une autre adresse).
+void TstUiWebFrame::staleRewriteIsDropped()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(bigPage(2 * 1024 * 1024, QStringLiteral("PREMIER")), {}));
+    f.document.undo();
+    QCOMPARE(f.frames.count(), 0);
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>SECOND</p>"), {}));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("SECOND")), 60000);
+    QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
+    QTest::qWait(100); // résultats en file livrés
+    QCOMPARE(f.frames.count(), 1);
+    QVERIFY(content(f.frames, 0).contains(QStringLiteral("SECOND")));
+    QVERIFY(!content(f.frames, 0).contains(QStringLiteral("PREMIER")));
 }
 
 // Navigation que le moteur prendrait de lui-même, même vers la page affichée : rendue au modèle (vrai : la
@@ -678,18 +822,20 @@ void TstUiWebFrame::receivedCodeFrameUnblocks()
     Fixture writer;
     QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
     QVERIFY(writer.frames.insertFrame(QStringLiteral("<p>code</p><img src=\"%1\">").arg(image), {}));
-    QVERIFY2(content(writer.frames, 1).contains(image),
-             qPrintable(content(writer.frames, 1))); // origine saisie
+    QTRY_VERIFY2_WITH_TIMEOUT(content(writer.frames, 1).contains(image),
+                              qPrintable(content(writer.frames, 1)),
+                              10000); // origine saisie
     QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 1, 5000);
     Fixture reader;
     QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("code.actcraft"))));
-    QVERIFY(role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
+    QTRY_VERIFY_WITH_TIMEOUT(role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool(), 10000);
     QVERIFY(!content(reader.frames, 1).contains(image));
     reader.frames.requestUnblock(1);
     QVERIFY(reader.frames.unblockPending());
     reader.frames.answer(true);
     QVERIFY(!role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
-    QVERIFY2(content(reader.frames, 1).contains(image), qPrintable(content(reader.frames, 1)));
+    QTRY_VERIFY2_WITH_TIMEOUT(content(reader.frames, 1).contains(image),
+                              qPrintable(content(reader.frames, 1)), 10000);
 }
 
 int main(int argc, char** argv)
