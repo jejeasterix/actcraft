@@ -16,12 +16,17 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QDataStream>
+#include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include <cmath>
@@ -200,6 +205,52 @@ core::Media& mediaOf(core::Document& d, std::size_t i)
     return std::get<core::Media>(static_cast<core::ObjectVariant&>(d.page(0).objects[i]));
 }
 
+// QMediaPlayer d'une piste du lecteur intégré (enfant du Player, dans l'ordre des pistes). Qt Multimedia
+// n'est pas lié au test : on lit ses propriétés par leur nom (`loops` : -1 en boucle, 1 sinon ; `source` :
+// QUrl).
+QObject* channelOf(Player* player, Player::Track track)
+{
+    int seen = 0;
+    for (QObject* child : player->children())
+        if (child->inherits("QMediaPlayer") && seen++ == static_cast<int>(track))
+            return child;
+    return nullptr;
+}
+
+QString playedFile(Player* player, Player::Track track)
+{
+    QObject* channel = channelOf(player, track);
+    return channel ? channel->property("source").toUrl().toLocalFile() : QString();
+}
+
+// Action d'objet « jouer un son » : ressource du document et/ou fichier.
+core::Action playSoundAction(const std::string& resource, const QString& file = {})
+{
+    core::Action action;
+    action.catalogId = "document.play-sound";
+    action.resource = resource;
+    QJsonObject parameters;
+    if (!file.isEmpty())
+        parameters.insert(QStringLiteral("file"), file);
+    action.parameters = QJsonDocument(parameters).toJson(QJsonDocument::Compact).toStdString();
+    return action;
+}
+
+// Image porteuse d'une action (n'est pas un média de la page), cadre (100, 100, 200, 200).
+core::PageObject actionCarrier(core::ObjectId id, core::Action action)
+{
+    core::ImageObject box;
+    box.bounds.x = 100;
+    box.bounds.y = 100;
+    box.bounds.width = 200;
+    box.bounds.height = 200;
+    core::PageObject object = std::move(box);
+    object.common.id = id;
+    object.common.layer = core::Layer::Middle;
+    object.common.actions.push_back(std::move(action));
+    return object;
+}
+
 // Par l'arbre visuel : les délégués d'un Repeater n'ont pas de parent QObject, findChild ne les voit pas.
 QQuickItem* findItem(QQuickItem* root, const QString& name)
 {
@@ -282,8 +333,27 @@ private slots:
     void soundControllerToggles();
     void playSoundActionUsesPlayer();
     void hiddenObjectsIgnored();
+    void clickOnVideoPlaysItInItsFrame();
+    void clickOnLoopingSoundKeepsTheLoop();
+    void soundActionFileIsRelativeToTheDocument();
+    void soundActionOnMissingFileIsRefused();
+    void replacingTheDocumentStopsSoundsAndDropsFiles();
+    void extractionWaitsForPlay();
 
 private:
+    void wire(ui::ActionRunner& runner, ui::Commands& commands)
+    {
+        runner.setCommands(&commands);
+        runner.setDocument(m_controller.get());
+        runner.setLinks(m_links.get());
+        runner.setMediaItems(m_items.get());
+    }
+    static bool click(ui::ActionRunner& runner, QPointF at)
+    {
+        const bool taken = runner.press(at, Qt::LeftButton);
+        runner.release(at);
+        return taken;
+    }
     void open(core::Document document)
     {
         m_controller->replaceDocument(std::move(document), QUrl(), QStringLiteral("medias"));
@@ -398,17 +468,22 @@ void TstUiMediaitems::loopOption()
     QSignalSpy finished(player, &Player::finished);
     QVERIFY(m_items->play(21));
     QTRY_VERIFY_WITH_TIMEOUT(player->isPlaying(Player::First), 5000);
+    // La boucle se lit là où elle est posée (`loops`) : elle discrimine aussi sous macOS, où la fin d'un
+    // média n'est jamais signalée (H8-17) et où isPlaying reste vrai même sans boucle.
+    QObject* channel = channelOf(player, Player::First);
+    QVERIFY(channel);
+    QCOMPARE(channel->property("loops").toInt(), -1); // QMediaPlayer::Infinite
     QTest::qWait(3 * 400 + 200);
     QVERIFY2(player->isPlaying(Player::First), "le son en boucle doit jouer encore après 3 fois sa durée");
     QCOMPARE(finished.count(), 0);
-#if !defined(Q_OS_MACOS)
-    // Fin d'un son sans boucle : sous macOS hors écran, sans répartiteur Core Foundation (H8-17), le moteur
-    // darwin ne signale pas la fin d'un média ; ce contraste n'est prouvé que sous Windows.
     QVERIFY(m_items->play(22));
     QTRY_VERIFY_WITH_TIMEOUT(player->isPlaying(Player::First), 5000);
+    QCOMPARE(channel->property("loops").toInt(), 1); // QMediaPlayer::Once : la boucle ne déborde pas
+#if defined(Q_OS_MACOS)
+    QSKIP("fin d'un son sans boucle non signalée hors écran sous macOS (H8-17) ; prouvée sous Windows");
+#endif
     QTRY_VERIFY_WITH_TIMEOUT(!player->isPlaying(Player::First), 5000);
     QVERIFY(finished.count() >= 1);
-#endif
 }
 
 // « Lecture auto » démarre le lecteur intégré à l'affichage de la page ; jamais LinkLauncher. Sans l'option,
@@ -504,6 +579,12 @@ void TstUiMediaitems::chimePlaysOnAcceptedDrop()
     emit tools.containerAccepted(51, true);
     QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::Second), 5000);
     QVERIFY(!m_items->player()->isPlaying(Player::First));
+    // Le son joué est celui du conteneur (revue L8-T25) : le son par défaut ne suffit pas à passer.
+    const QString played = playedFile(m_items->player(), Player::Second);
+    QFile chosen(played);
+    QVERIFY2(chosen.open(QIODevice::ReadOnly), qPrintable(played));
+    QCOMPARE(chosen.readAll(), toneWav(1500));
+    QVERIFY(QFileInfo(played).fileName() != QLatin1String("chime.wav"));
     m_items->setTools(nullptr);
 }
 
@@ -585,6 +666,164 @@ void TstUiMediaitems::hiddenObjectsIgnored()
     open(std::move(d));
     QTRY_COMPARE(m_items->rowCount(), 1);
     QCOMPARE(m_items->data(m_items->index(0), MediaItems::IdRole).toULongLong(), 72ULL);
+}
+
+// Revue L8-T25 (bloquant). Une vidéo insérée porte « jouer un son » sur sa propre ressource : le clic la joue
+// dans son cadre (MediaItems::play, seul chemin vers videoPlayRequested), jamais en son seul sur la piste 1.
+// Sous l'ancien chemin (runSound -> playResource -> startSound), videoPlayRequested ne part jamais et le
+// lecteur de sons s'ouvre sur le fichier de la vidéo.
+void TstUiMediaitems::clickOnVideoPlaysItInItsFrame()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(clipMp4(), "mp4");
+    core::PageObject object = mediaObject(11, key, 100, 120, 320, 240);
+    object.common.actions.push_back(playSoundAction(key));
+    d.page(0).objects.push_back(std::move(object));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    ui::Commands commands;
+    ui::ActionRunner runner;
+    wire(runner, commands);
+    QSignalSpy video(m_items.get(), &MediaItems::videoPlayRequested);
+    QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+    QSignalSpy refused(&runner, &ui::ActionRunner::actionRefused);
+    QVERIFY(click(runner, QPointF(260, 240)));
+    QTRY_COMPARE(video.count(), 1);
+    QCOMPARE(video.first().at(0).toULongLong(), 11ULL);
+    QCOMPARE(started.count(), 0);
+    QVERIFY(!m_items->player()->isPlaying(Player::First));
+    QCOMPARE(refused.count(), 0);
+}
+
+// Revue L8-T25 (bloquant). Un son en boucle cliqué garde sa boucle. La fin d'un média n'étant pas signalée
+// sous macOS hors écran (H8-17), on lit la boucle là où elle est posée : `loops` du QMediaPlayer de la piste.
+// Sous l'ancien chemin (startSound(path, false)), elle vaut 1.
+void TstUiMediaitems::clickOnLoopingSoundKeepsTheLoop()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(toneWav(400), "wav");
+    core::PageObject object = mediaObject(21, key, 100, 100, 200, 200);
+    object.common.actions.push_back(playSoundAction(key));
+    d.page(0).objects.push_back(std::move(object));
+    mediaOf(d, 0).loop = true;
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    ui::Commands commands;
+    ui::ActionRunner runner;
+    wire(runner, commands);
+    QVERIFY(click(runner, QPointF(200, 200)));
+    QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::First), 5000);
+    QObject* channel = channelOf(m_items->player(), Player::First);
+    QVERIFY(channel);
+    QCOMPARE(channel->property("loops").toInt(), -1); // QMediaPlayer::Infinite
+}
+
+// Branche `file` de « jouer un son » (sans ressource) : un chemin relatif se lit depuis le dossier du
+// document ; une URL de fichier locale se joue telle quelle.
+void TstUiMediaitems::soundActionFileIsRelativeToTheDocument()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString relative = dir.filePath(QStringLiteral("relatif.wav"));
+    const QString other = dir.filePath(QStringLiteral("autre.wav"));
+    for (const QString& path : {relative, other}) {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(toneWav(1500));
+    }
+    core::Document d(1024, 768);
+    d.page(0).objects.push_back(actionCarrier(61, playSoundAction({}, QStringLiteral("relatif.wav"))));
+    m_controller->replaceDocument(std::move(d),
+                                  QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.flipchart"))),
+                                  QStringLiteral("cours"));
+    m_items->setDocument(m_controller.get());
+    ui::Commands commands;
+    ui::ActionRunner runner;
+    wire(runner, commands);
+    QSignalSpy refused(&runner, &ui::ActionRunner::actionRefused);
+    QVERIFY(click(runner, QPointF(200, 200)));
+    QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::First), 5000);
+    QCOMPARE(playedFile(m_items->player(), Player::First), relative);
+
+    core::Document e(1024, 768);
+    e.page(0).objects.push_back(
+        actionCarrier(62, playSoundAction({}, QUrl::fromLocalFile(other).toString())));
+    m_controller->replaceDocument(std::move(e),
+                                  QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.flipchart"))),
+                                  QStringLiteral("cours"));
+    QVERIFY(click(runner, QPointF(200, 200)));
+    QTRY_COMPARE_WITH_TIMEOUT(playedFile(m_items->player(), Player::First), other, 5000);
+    QCOMPARE(refused.count(), 0);
+}
+
+// Revue L8-T25 (majeur). Fichier absent ou chemin réseau : l'action est refusée (actionRefused) et le lecteur
+// de sons ne s'ouvre pas. Sous l'ancien chemin, startSound rendait toujours vrai et l'échec était avalé.
+void TstUiMediaitems::soundActionOnMissingFileIsRefused()
+{
+    ui::Commands commands;
+    ui::ActionRunner runner;
+    wire(runner, commands);
+    for (const QString& file : {QStringLiteral("absent.wav"), QStringLiteral("//serveur/partage/son.wav")}) {
+        core::Document d(1024, 768);
+        d.page(0).objects.push_back(actionCarrier(63, playSoundAction({}, file)));
+        open(std::move(d));
+        QSignalSpy refused(&runner, &ui::ActionRunner::actionRefused);
+        QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+        QVERIFY(click(runner, QPointF(200, 200)));
+        QTRY_COMPARE_WITH_TIMEOUT(refused.count(), 1, 5000);
+        QCOMPARE(started.count(), 0);
+        QVERIFY(!m_items->player()->isPlaying(Player::First));
+    }
+}
+
+// Revue L8-T25 (majeur). Document remplacé : les lectures s'arrêtent (même un son en boucle) et les fichiers
+// extraits de l'ancien document disparaissent. Avant, stopAll() n'était appelé que par le destructeur.
+void TstUiMediaitems::replacingTheDocumentStopsSoundsAndDropsFiles()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(toneWav(400), "wav");
+    d.page(0).objects.push_back(mediaObject(21, key, 50, 50, 64, 64));
+    mediaOf(d, 0).loop = true;
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QVERIFY(m_items->play(21));
+    QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::First), 5000);
+    const QString extracted = playedFile(m_items->player(), Player::First);
+    QVERIFY(QFileInfo::exists(extracted));
+    open(core::Document(1024, 768));
+    QTRY_VERIFY_WITH_TIMEOUT(!m_items->player()->isPlaying(Player::First), 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(!QFileInfo::exists(extracted), 5000);
+    QCOMPARE(m_items->rowCount(), 0);
+}
+
+// Revue L8-T25 (majeur). Aucune ressource vidéo n'est écrite sur le fil principal à l'affichage de la page :
+// la vidéo n'est extraite qu'à sa première lecture. Le GIF animé, lui, est montré dès l'affichage.
+void TstUiMediaitems::extractionWaitsForPlay()
+{
+    core::Document d(1024, 768);
+    const std::string clip = d.addResource(clipMp4(), "mp4");
+    d.page(0).objects.push_back(mediaObject(81, clip, 50, 50, 320, 240));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QVERIFY2(m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty(),
+             "la vidéo ne doit pas être extraite avant sa première lecture");
+    QVERIFY(m_items->play(81));
+    const QString source = m_items->data(m_items->index(0), MediaItems::SourceRole).toString();
+    QVERIFY(!source.isEmpty());
+    QVERIFY(QFileInfo::exists(QUrl(source).toLocalFile()));
+
+    core::Document g(1024, 768);
+    const std::string gif = g.addResource(twoFrameGif(), "gif");
+    core::ImageObject image;
+    image.bounds.width = 160;
+    image.bounds.height = 160;
+    image.resource = gif;
+    core::PageObject object = std::move(image);
+    object.common.id = 82;
+    g.page(0).objects.push_back(std::move(object));
+    open(std::move(g));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QVERIFY(!m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty());
 }
 
 // Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du
