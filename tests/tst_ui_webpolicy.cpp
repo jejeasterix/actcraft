@@ -122,6 +122,7 @@ private slots:
     {
         WebContentPolicy p;
         p.setReceived(QStringLiteral("d"), true);
+        p.setReceived(QStringLiteral("e"), true); // H8-13 : chaque document a son état
         p.unblock(QStringLiteral("d"), 2);
         QCOMPARE(p.decide(QUrl(QStringLiteral("http://127.0.0.1:8765/")), QStringLiteral("d"), 2), V::Load);
         QCOMPARE(p.decide(QUrl(QStringLiteral("http://127.0.0.1:8765/")), QStringLiteral("d"), 3),

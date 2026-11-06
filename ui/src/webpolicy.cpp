@@ -121,6 +121,8 @@ bool isAllowedFile(const QUrl& url, const QString& resourceFolder)
         return false;
     const QString realFolder =
         QFileInfo(folder).canonicalFilePath(); // le dossier du document, pas la demande
+    if (!isInside(path, folder) && !isInside(path, realFolder))
+        return false;
     return isInside(realPath(path), realFolder);
 }
 
@@ -128,23 +130,23 @@ bool isAllowedFile(const QUrl& url, const QString& resourceFolder)
 
 void WebContentPolicy::setResourceFolder(const QString& documentKey, const QString& folder)
 {
-    m_documents[QString()].folder = folder;
+    m_documents[documentKey].folder = folder;
 }
 
 void WebContentPolicy::setReceived(const QString& documentKey, bool received)
 {
-    m_documents[QString()].received = received;
+    m_documents[documentKey].received = received;
 }
 
 void WebContentPolicy::typedByUser(const QString& documentKey, const QUrl& address)
 {
     if (isAcceptableRemote(address))
-        m_documents[QString()].typed.insert(originOf(address));
+        m_documents[documentKey].typed.insert(originOf(address));
 }
 
 void WebContentPolicy::unblock(const QString& documentKey, int page)
 {
-    m_documents[QString()].unblocked.insert(page);
+    m_documents[documentKey].unblocked.insert(page);
 }
 
 void WebContentPolicy::forget(const QString& documentKey)
@@ -162,8 +164,8 @@ WebContentPolicy::Verdict WebContentPolicy::decide(const QUrl& url, const QStrin
 {
     if (!url.isValid())
         return Verdict::Refuse;
-    const DocumentState state = m_documents.value(QString()); // clé inconnue : document de la session, vide
-    const QString scheme = url.scheme();                      // QUrl rend le schéma en minuscules
+    const DocumentState state = m_documents.value(documentKey); // clé inconnue : document de la session, vide
+    const QString scheme = url.scheme();                        // QUrl rend le schéma en minuscules
     if (scheme == QLatin1String("about"))
         return url.path() == QLatin1String("blank") ? Verdict::Load : Verdict::Refuse;
     if (scheme == QLatin1String("data"))
