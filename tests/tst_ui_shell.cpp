@@ -407,6 +407,23 @@ private slots:
         QCOMPARE(indicator(s), QStringLiteral("1 / 2"));
     }
 
+    void firstAndLastPageCommands()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(ready(s));
+        QVERIFY(run(s, QStringLiteral("page.next")));
+        QVERIFY(ready(s));
+        QCOMPARE(indicator(s), QStringLiteral("3 / 3"));
+        QVERIFY(run(s, QStringLiteral("page.first")));
+        QVERIFY(ready(s));
+        QCOMPARE(indicator(s), QStringLiteral("1 / 3"));
+        QVERIFY(run(s, QStringLiteral("page.last")));
+        QVERIFY(ready(s));
+        QCOMPARE(indicator(s), QStringLiteral("3 / 3"));
+    }
+
     void penCommandsSetColorAndWidth()
     {
         Shell s;

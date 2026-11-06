@@ -199,7 +199,7 @@ private slots:
         // lot 5 suivent (53 de L5-T1, plus connector.caps, extrémités du connecteur, de L5-C18).
         // Les 45 du lot 6 (L6-T1) terminent le fichier.
         QCOMPARE(r.ids().mid(0, expected.size()), expected);
-        QCOMPARE(r.ids().size(), expected.size() + 62 + 47 + 54 + 46 + 23); // 23 du lot 8 (L8-T1)
+        QCOMPARE(r.ids().size(), expected.size() + 62 + 47 + 54 + 46 + 25); // 23 du lot 8 (L8-T1) + 2 (L8-C0)
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
         QVERIFY(r.find(QStringLiteral("pen.width"))->argument == ArgumentKind::Number);
@@ -226,6 +226,27 @@ private slots:
         QVERIFY(argumentIsValid(ArgumentKind::Text, QVariant(QStringLiteral("fade"))));
         QVERIFY(!argumentIsValid(ArgumentKind::Text, QVariant(QStringLiteral("  "))));
         QVERIFY(!argumentIsValid(ArgumentKind::Text, QVariant()));
+    }
+
+    void firstAndLastPageDeclared()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY2(r.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const QStringList ids = r.ids();
+        QCOMPARE(ids.mid(ids.size() - 2),
+                 (QStringList{QStringLiteral("page.first"), QStringLiteral("page.last")}));
+        const auto* first = r.find(QStringLiteral("page.first"));
+        const auto* last = r.find(QStringLiteral("page.last"));
+        QVERIFY(first && last);
+        QCOMPARE(first->label, QStringLiteral("Première page"));
+        QCOMPARE(last->label, QStringLiteral("Dernière page"));
+        for (const auto* c : {first, last}) {
+            QVERIFY(c->lockable);
+            QVERIFY(!c->restrictable);
+            QVERIFY(c->shortcut.isEmpty());
+            QCOMPARE(c->argument, ArgumentKind::None);
+        }
     }
 
     void lot7CommandsDeclared()
