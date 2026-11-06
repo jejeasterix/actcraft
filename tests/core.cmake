@@ -136,3 +136,9 @@ actcraft_add_test(tst_core_containers
 actcraft_add_test(tst_core_restrictors
     SOURCES tst_core_restrictors.cpp
     LIBS ActCraft::core)
+
+# Lot 8 (L8-T21) : talon ; ACTCRAFT_SOURCE_DIR sur le patron d'ACTCRAFT_TESTS_DIR.
+actcraft_add_test(tst_core_broadcast
+    SOURCES tst_core_broadcast.cpp
+    LIBS ActCraft::core)
+target_compile_definitions(tst_core_broadcast PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

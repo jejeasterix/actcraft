@@ -299,6 +299,20 @@ qt_add_qml_module(actcraft_ui
         icons/diffuser.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
+        include/actcraft/ui/linkdialogs.h
+        src/linkdialogs.cpp
+        include/actcraft/ui/mediainsert.h
+        src/mediainsert.cpp
+        include/actcraft/ui/mediaitems.h
+        src/mediaitems.cpp
+        include/actcraft/ui/recorders.h
+        src/recorders.cpp
+        include/actcraft/ui/webpolicy.h
+        src/webpolicy.cpp
+        include/actcraft/ui/webframeitem.h
+        src/webframeitem.cpp
+        include/actcraft/ui/broadcastgate.h
+        src/broadcastgate.cpp
         include/actcraft/ui/actionrunner.h
         src/actionrunner.cpp
         include/actcraft/ui/linklauncher.h
@@ -373,6 +387,12 @@ target_include_directories(actcraft_ui
 target_link_libraries(actcraft_ui PUBLIC
     Qt6::Quick ActCraft::actions ActCraft::formats ActCraft::input ActCraft::render ActCraft::tools
     ActCraft::features ActCraft::export ActCraft::print Qt6::Concurrent Qt6::Network)
+if(ACTCRAFT_MEDIA)
+    target_link_libraries(actcraft_ui PUBLIC ActCraft::media)
+endif()
+if(ACTCRAFT_WEBFRAME)
+    target_link_libraries(actcraft_ui PUBLIC Qt6::WebView)
+endif()
 actcraft_set_warnings(actcraft_ui)
 
 # Version affichée par « À propos » (décision 31).
