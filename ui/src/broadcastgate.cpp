@@ -89,6 +89,26 @@ void BroadcastGate::setTextEditing(TextEditing* editing)
     emit wiringChanged();
 }
 
+QObject* BroadcastGate::notesEditor() const noexcept
+{
+    return m_notesEditor.data();
+}
+
+void BroadcastGate::setNotesEditor(QObject* editor)
+{
+    if (m_notesEditor == editor) {
+        return;
+    }
+    if (m_notesEditor) {
+        m_notesEditor->removeEventFilter(this);
+    }
+    m_notesEditor = editor;
+    if (m_notesEditor) {
+        m_notesEditor->installEventFilter(this);
+    }
+    emit wiringChanged();
+}
+
 // Chaque document du texte a pour parent le TextEdit qui le porte : le filtre ne voit que leurs événements.
 void BroadcastGate::watchTextField()
 {
@@ -111,8 +131,8 @@ void BroadcastGate::watchTextField()
 
 bool BroadcastGate::eventFilter(QObject* watched, QEvent* event)
 {
-    const bool watchedField =
-        watched != nullptr && (watched == m_textFields[0] || watched == m_textFields[1]);
+    const bool watchedField = watched != nullptr && (watched == m_textFields[0] ||
+                                                     watched == m_textFields[1] || watched == m_notesEditor);
     if (!watchedField || !m_rules.noCopy ||
         (event->type() != QEvent::ShortcutOverride && event->type() != QEvent::KeyPress)) {
         return QObject::eventFilter(watched, event);

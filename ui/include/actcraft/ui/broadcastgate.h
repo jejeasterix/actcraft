@@ -32,6 +32,8 @@ class BroadcastGate : public QObject
     // texte).
     Q_PROPERTY(
         actcraft::ui::TextEditing* textEditing READ textEditing WRITE setTextEditing NOTIFY wiringChanged)
+    // Éditeur des notes de la page (NotesBrowser.qml, H8-16) : même filtre de Copier et Couper du clavier.
+    Q_PROPERTY(QObject* notesEditor READ notesEditor WRITE setNotesEditor NOTIFY wiringChanged)
     Q_PROPERTY(bool active READ active NOTIFY rulesChanged)
     Q_PROPERTY(bool copyRestricted READ copyRestricted NOTIFY rulesChanged)
     Q_PROPERTY(bool saveRestricted READ saveRestricted NOTIFY rulesChanged)
@@ -48,6 +50,8 @@ public:
     void setDocument(DocumentController* document);
     TextEditing* textEditing() const noexcept;
     void setTextEditing(TextEditing* editing);
+    QObject* notesEditor() const noexcept;
+    void setNotesEditor(QObject* editor);
 
     bool active() const noexcept;
     bool copyRestricted() const noexcept;
@@ -86,6 +90,7 @@ private:
     QPointer<TextEditing> m_textEditing;
     std::array<QPointer<QObject>, 2> m_textFields; // champ horizontal, colonne verticale
     QMetaObject::Connection m_textConnection;
+    QPointer<QObject> m_notesEditor;
 };
 
 } // namespace actcraft::ui

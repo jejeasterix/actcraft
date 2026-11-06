@@ -330,6 +330,7 @@ Window {
             profile: appProfile
             preferences: appPreferences
             actionModel: appActionBrowser
+            broadcast: appBroadcast // L8-T32 : les notes de la page sont du contenu protégé (H8-16)
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
