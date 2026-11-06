@@ -392,9 +392,10 @@ bool Insertion::acceptDrop(const QVariantList& urls, const QString& text, QPoint
         job.center = pagePoint;
         jobs.push_back(std::move(job));
     }
-    if (!jobs.empty())
+    const bool started = !jobs.empty(); // avant le déplacement : `jobs` est vidé par start()
+    if (started)
         start(std::move(jobs));
-    if (!jobs.empty() || routed)
+    if (started || routed)
         return true;
     if (text.trimmed().isEmpty())
         return false;

@@ -357,17 +357,22 @@ void MediaItems::onContainerAccepted(quint64 container, bool chime)
         return;
     const core::Page& page =
         m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
-    QString path;
+    std::string key;
     for (const core::PageObject& object : page.objects) {
         if (object.common.id == container) {
-            path = fileFor(object.common.container.chimeSound);
+            key = object.common.container.chimeSound;
             break;
         }
     }
-    if (path.isEmpty())
-        path = defaultChime();
-    if (!path.isEmpty())
-        m_player->play(path, media::Player::Second, false); // piste 2 : le son de la piste 1 continue
+    // Piste 2 : le son de la piste 1 continue. Écriture hors du fil principal, comme play() : le son du
+    // conteneur passe par extract(), le son par défaut par playDefaultChime().
+    const auto onTrack2 = [this, epoch = m_epoch](const QString& path) {
+        if (epoch == m_epoch && !path.isEmpty())
+            m_player->play(path, media::Player::Second, false);
+    };
+    if (!key.empty() && extract(key, 0, onTrack2))
+        return;
+    playDefaultChime();
 }
 
 void MediaItems::scheduleRefresh(bool pageShown)
@@ -550,6 +555,7 @@ void MediaItems::resetForDocument()
     m_player->stopAll();
     m_files.clear();
     m_chime.clear();
+    m_chimeWriting = false;
     ++m_epoch; // les écritures en cours sont périmées : leur résultat sera jeté
     m_writing.clear();
     retireDirectory(); // les fichiers extraits de l'ancien document partent, mais pas avant les délégués
@@ -586,28 +592,6 @@ QString MediaItems::knownFile(const std::string& key) const
 {
     const auto known = m_files.find(key);
     return known != m_files.end() && QFileInfo::exists(known->second) ? known->second : QString();
-}
-
-QString MediaItems::fileFor(const std::string& key)
-{
-    if (key.empty() || !m_document || m_writing.contains(key))
-        return {};
-    const core::Resource* stored = m_document->document().resource(key);
-    if (!stored)
-        return {};
-    if (const QString known = knownFile(key); !known.isEmpty())
-        return known;
-    if (!m_dir)
-        m_dir = std::make_shared<QTemporaryDir>();
-    if (!m_dir->isValid())
-        return {};
-    const QString path = m_dir->filePath(extractedName(key, stored->extension));
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly) || file.write(stored->data) != stored->data.size())
-        return {};
-    file.close();
-    m_files[key] = path;
-    return path;
 }
 
 bool MediaItems::extract(const std::string& key, quint64 requester, Ready done)
@@ -721,22 +705,43 @@ void MediaItems::retireDirectory()
     m_dir.reset();
 }
 
-QString MediaItems::defaultChime()
+// Son de confirmation par défaut : écrit une fois, hors du fil principal, puis joué sur la piste 2.
+void MediaItems::playDefaultChime()
 {
-    if (!m_chime.isEmpty() && QFileInfo::exists(m_chime))
-        return m_chime;
+    if (!m_chime.isEmpty() && QFileInfo::exists(m_chime)) {
+        m_player->play(m_chime, media::Player::Second, false);
+        return;
+    }
+    if (m_chimeWriting)
+        return; // écriture en cours : la confirmation en cours de préparation suffit
     if (!m_dir)
         m_dir = std::make_shared<QTemporaryDir>();
     if (!m_dir->isValid())
-        return {};
+        return;
     const QString path = m_dir->filePath(QStringLiteral("chime.wav"));
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly))
-        return {};
-    file.write(chimeWave());
-    file.close();
-    m_chime = path;
-    return m_chime;
+    m_chimeWriting = true;
+    auto* watcher = new QFutureWatcher<bool>(this);
+    connect(watcher, &QFutureWatcherBase::finished, this, [this, watcher, path, epoch = m_epoch] {
+        const bool ok = watcher->result();
+        watcher->deleteLater();
+        if (epoch != m_epoch)
+            return; // document remplacé pendant l'écriture : résultat jeté
+        m_chimeWriting = false;
+        if (!ok)
+            return;
+        m_chime = path;
+        m_player->play(path, media::Player::Second, false);
+    });
+    watcher->setFuture(QtConcurrent::run([dir = m_dir, path]() -> bool {
+        static_cast<void>(dir); // retient le dossier jusqu'à la fin de l'écriture
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly))
+            return false;
+        const QByteArray wave = chimeWave();
+        const bool ok = file.write(wave) == wave.size();
+        file.close();
+        return ok;
+    }));
 }
 
 void MediaItems::updateSound()
