@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "glisser-deposer",
-  "description": "S11.3 : l'icône du stylo glissée de l'onglet sur un rectangle lui donne l'action, dessinée en surimpression à son coin haut droit ; le clic sur le rectangle active le stylo.",
+  "description": "S11.3 : l'icône du stylo glissée de l'onglet sur un rectangle lui donne l'action, dessinée en surimpression à son coin haut droit ; le clic sur le rectangle active le stylo ; l'icône glissée vers la corbeille retire l'action (l'icône disparaît, le bleu du rectangle reparaît).",
   "steps": [
     {
       "waitReady": true
@@ -81,6 +81,34 @@
     {
       "expect": "appTools.currentTool",
       "value": "pen"
+    },
+    {
+      "pointer": [
+        [
+          876,
+          312
+        ],
+        [
+          56,
+          765
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "capture": "apres-corbeille"
+    },
+    {
+      "checkPixel": "icone-retiree",
+      "at": [
+        876,
+        312
+      ],
+      "color": "#1E88E5",
+      "tolerance": 40
     }
   ]
 }
