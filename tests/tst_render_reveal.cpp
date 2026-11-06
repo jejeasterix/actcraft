@@ -42,15 +42,11 @@ core::PageObject rect(core::Layer layer, double x, double y, double w, double h,
 {
     core::Shape s;
     s.kind = core::ShapeKind::Rectangle;
-    s.width = w;
-    s.height = h;
-    s.fill.color = color;
-    s.line.width = 0;
-    core::PageObject o;
+    s.bounds = core::RectF{x, y, w, h};
+    s.fill = color;
+    s.outlineWidth = 0;
+    core::PageObject o = std::move(s);
     o.common.layer = layer;
-    o.common.transform.dx = x;
-    o.common.transform.dy = y;
-    o.content = std::move(s);
     return o;
 }
 
@@ -69,10 +65,9 @@ core::Stroke revealerStroke()
 
 core::PageObject revealer(double dy = 0)
 {
-    core::PageObject o;
+    core::PageObject o = revealerStroke();
     o.common.layer = core::Layer::Top;
     o.common.transform.dy = dy;
-    o.content = revealerStroke();
     return o;
 }
 
@@ -81,6 +76,8 @@ core::Page page200(std::vector<core::PageObject> objects)
     core::Page p;
     p.width = 200;
     p.height = 200;
+    p.background.fill.kind = core::FillKind::Solid; // fond opaque : une découpe qui le percerait se voit
+    p.background.fill.color = 0xFFFFFFFFu;
     p.objects = std::move(objects);
     return p;
 }
