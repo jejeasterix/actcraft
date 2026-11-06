@@ -340,6 +340,13 @@ private slots:
     void replacingTheDocumentStopsSoundsAndDropsFiles();
     void extractionWaitsForPlay();
     void unreadableVideoFallsBackAsStoredFile();
+    void hiddenSoundCarrierStillPlays();
+    void retargetedSoundActionPlaysTheTargetedSound();
+    void playHandsBackBeforeTheFileIsWritten();
+    void repeatedClickDuringTheWriteStartsOnce();
+    void replacingDuringTheWriteDiscardsTheResult();
+    void replacedFilesOutliveTheModelReset();
+    void soundFailureIsNotAnUnsupportedAction();
 
 private:
     void wire(ui::ActionRunner& runner, ui::Commands& commands)
@@ -854,6 +861,175 @@ void TstUiMediaitems::unreadableVideoFallsBackAsStoredFile()
     const QString shown = asked.first().at(0).toString();
     QVERIFY2(shown.contains(QLatin1String("ma-video.mp4")), qPrintable(shown));
     QVERIFY2(!shown.contains(extracted), qPrintable(shown));
+}
+
+// Seconde revue L8-T25 (majeur, régression D5). Un son inséré puis masqué sert de zone cachée : il reste
+// cliquable et se joue. MediaItems::play(id) ne connaît que les médias visibles (collect) : passer le porteur
+// à play seul refuse l'action (« média indisponible ») au lieu de la jouer.
+void TstUiMediaitems::hiddenSoundCarrierStillPlays()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(toneWav(3000), "wav");
+    core::PageObject object = mediaObject(31, key, 100, 100, 200, 200);
+    object.common.actions.push_back(playSoundAction(key));
+    object.common.visible = false;
+    d.page(0).objects.push_back(std::move(object));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 0); // masqué : hors du modèle, donc inconnu de play(id)
+    ui::Commands commands;
+    ui::ActionRunner runner;
+    wire(runner, commands);
+    QSignalSpy refused(&runner, &ui::ActionRunner::actionRefused);
+    QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+    QVERIFY(click(runner, QPointF(200, 200)));
+    QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::First), 5000);
+    QCOMPARE(started.count(), 1);
+    QCOMPARE(refused.count(), 0);
+}
+
+// Seconde revue L8-T25 (mineur). L'action « jouer un son » d'une vidéo, re-ciblée sur un autre son du
+// document, joue le son visé (piste 1), pas la vidéo porteuse : MediaItems::play(porteur) n'est appelé que si
+// l'action vise la ressource du média lui-même.
+void TstUiMediaitems::retargetedSoundActionPlaysTheTargetedSound()
+{
+    core::Document d(1024, 768);
+    const std::string clip = d.addResource(clipMp4(), "mp4");
+    const std::string tone = d.addResource(toneWav(3000), "wav");
+    core::PageObject object = mediaObject(41, clip, 100, 120, 320, 240);
+    object.common.actions.push_back(playSoundAction(tone));
+    d.page(0).objects.push_back(std::move(object));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    ui::Commands commands;
+    ui::ActionRunner runner;
+    wire(runner, commands);
+    QSignalSpy video(m_items.get(), &MediaItems::videoPlayRequested);
+    QSignalSpy refused(&runner, &ui::ActionRunner::actionRefused);
+    QVERIFY(click(runner, QPointF(260, 240)));
+    QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::First), 5000);
+    QVERIFY(playedFile(m_items->player(), Player::First).endsWith(QLatin1String(".wav")));
+    QCOMPARE(video.count(), 0);
+    QCOMPARE(refused.count(), 0);
+}
+
+// Seconde revue L8-T25 (majeur, BRIEF § 4 règle 1). play(id) n'écrit rien sur le fil principal : il rend la main,
+// puis la lecture démarre (signal livré par la boucle) une fois le fichier prêt. Le signal ne peut pas partir
+// pendant l'appel, quelle que soit la vitesse du disque : sous l'ancien chemin (écriture dans l'appel), il part
+// avant le retour de play.
+void TstUiMediaitems::playHandsBackBeforeTheFileIsWritten()
+{
+    core::Document d(1024, 768);
+    QByteArray big = clipMp4();
+    big.append(QByteArray(32 * 1024 * 1024, '\0'));
+    const std::string clip = d.addResource(big, "mp4");
+    const std::string tone = d.addResource(toneWav(400), "wav");
+    d.page(0).objects.push_back(mediaObject(51, clip, 50, 50, 320, 240));
+    d.page(0).objects.push_back(mediaObject(52, tone, 450, 50, 64, 64));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 2);
+    QSignalSpy video(m_items.get(), &MediaItems::videoPlayRequested);
+    QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+    QVERIFY(m_items->play(51));
+    QCOMPARE(video.count(), 0);
+    QVERIFY(m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty());
+    QTRY_COMPARE_WITH_TIMEOUT(video.count(), 1, 10000);
+    const QString source = m_items->data(m_items->index(0), MediaItems::SourceRole).toString();
+    QVERIFY(QFileInfo::exists(QUrl(source).toLocalFile()));
+    QVERIFY(m_items->play(52));
+    QCOMPARE(started.count(), 0);
+    QVERIFY(!m_items->player()->isPlaying(Player::First));
+    QTRY_COMPARE_WITH_TIMEOUT(started.count(), 1, 10000);
+}
+
+// Seconde revue L8-T25. Un clic répété pendant l'écriture ne lance pas une seconde écriture ni une seconde
+// lecture : la demande en cours suffit.
+void TstUiMediaitems::repeatedClickDuringTheWriteStartsOnce()
+{
+    core::Document d(1024, 768);
+    QByteArray big = clipMp4();
+    big.append(QByteArray(32 * 1024 * 1024, '\0'));
+    const std::string clip = d.addResource(big, "mp4");
+    d.page(0).objects.push_back(mediaObject(61, clip, 50, 50, 320, 240));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QSignalSpy video(m_items.get(), &MediaItems::videoPlayRequested);
+    QVERIFY(m_items->play(61));
+    QVERIFY(m_items->play(61));
+    QCOMPARE(video.count(), 0);
+    QTRY_COMPARE_WITH_TIMEOUT(video.count(), 1, 10000);
+    QTest::qWait(300);
+    QCOMPARE(video.count(), 1);
+}
+
+// Seconde revue L8-T25. Document remplacé pendant l'écriture : le résultat est jeté (ni vidéo montrée, ni
+// son lancé pour un document qui n'est plus là).
+void TstUiMediaitems::replacingDuringTheWriteDiscardsTheResult()
+{
+    core::Document d(1024, 768);
+    QByteArray big = clipMp4();
+    big.append(QByteArray(32 * 1024 * 1024, '\0'));
+    const std::string clip = d.addResource(big, "mp4");
+    const std::string tone = d.addResource(toneWav(400), "wav");
+    d.page(0).objects.push_back(mediaObject(71, clip, 50, 50, 320, 240));
+    d.page(0).objects.push_back(mediaObject(72, tone, 450, 50, 64, 64));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 2);
+    QSignalSpy video(m_items.get(), &MediaItems::videoPlayRequested);
+    QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+    QVERIFY(m_items->play(71));
+    QVERIFY(m_items->play(72));
+    open(core::Document(1024, 768));
+    QCOMPARE(video.count(), 0);
+    QCOMPARE(started.count(), 0);
+    QTRY_COMPARE(m_items->rowCount(), 0);
+    QTest::qWait(500);
+    QCOMPARE(video.count(), 0);
+    QCOMPARE(started.count(), 0);
+    QVERIFY(!m_items->player()->isPlaying(Player::First));
+}
+
+// Seconde revue L8-T25 (mineur, Windows). Les fichiers extraits de l'ancien document ne sont pas supprimés
+// avant la fin de la remise à zéro du modèle : les délégués QML (MediaPlayer, AnimatedImage) tiennent leur
+// fichier ouvert jusqu'à leur destruction, et Windows refuse alors de supprimer le dossier. Ils sont encore là
+// quand le modèle signale ses nouveaux éléments, et supprimés peu après.
+void TstUiMediaitems::replacedFilesOutliveTheModelReset()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(toneWav(400), "wav");
+    d.page(0).objects.push_back(mediaObject(21, key, 50, 50, 64, 64));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QVERIFY(m_items->play(21));
+    QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::First), 5000);
+    const QString extracted = playedFile(m_items->player(), Player::First);
+    QVERIFY(QFileInfo::exists(extracted));
+    bool reset = false;
+    bool stillThere = false;
+    QObject scope; // déconnecte le lambda à la sortie, même sur un QVERIFY raté
+    connect(m_items.get(), &MediaItems::itemsChanged, &scope, [&] {
+        reset = true;
+        stillThere = QFileInfo::exists(extracted);
+    });
+    open(core::Document(1024, 768));
+    QTRY_VERIFY(reset);
+    QVERIFY2(stillThere, "le dossier extrait a été supprimé avant la fin de la remise à zéro du modèle");
+    QTRY_VERIFY_WITH_TIMEOUT(!QFileInfo::exists(extracted), 5000);
+}
+
+// Seconde revue L8-T25 (mineur). Un échec de lecture du lecteur de sons (soundFailed) n'est pas « Action non
+// prise en charge » : le son d'une ouverture de page (lecture auto) n'a aucune action, et même pour un clic
+// l'action est prise en charge, c'est la lecture qui échoue. Le motif reste dit.
+void TstUiMediaitems::soundFailureIsNotAnUnsupportedAction()
+{
+    ui::Commands commands;
+    ui::ActionRunner runner;
+    wire(runner, commands);
+    QSignalSpy refused(&runner, &ui::ActionRunner::actionRefused);
+    emit m_items->soundFailed(QStringLiteral("format illisible"));
+    QCOMPARE(refused.count(), 1);
+    const QString text = refused.first().at(0).toString();
+    QVERIFY2(!text.contains(QLatin1String("Action non prise en charge")), qPrintable(text));
+    QVERIFY2(text.contains(QLatin1String("format illisible")), qPrintable(text));
 }
 
 // Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du
