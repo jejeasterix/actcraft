@@ -1,6 +1,7 @@
 #pragma once
 
 #include <actcraft/core/containers.h>
+#include <actcraft/core/lift.h>
 #include <actcraft/tools/interactionpolicy.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/toolcontext.h>
@@ -97,11 +98,17 @@ private:
     core::Transform gestureTransform(core::PointF point);
     bool restrictionsOn() const noexcept;
     bool blockersOn() const noexcept;
-    // Page d'essai du glisser (L8-T16), prise avant le soulèvement s'il y a une règle à suivre.
+    // Revue L8-T16 : hors mode conception, une sélection de plusieurs objets dont l'un a une rotation réglée
+    // (bloquée, à sens, à pas, à pivot) ne tourne pas ; le bouton de rotation quitte la barre.
+    bool turnRefused(const core::Page& page, const std::vector<core::ObjectId>& selection) const;
+    QStringList barCommands(const core::Page& page, const std::vector<core::ObjectId>& selection) const;
+    // Règles du glisser (L8-T16), prises avant le soulèvement : limiteurs, boîtes des bloquants, rangs des
+    // soulevés s'il faudra une page d'essai. Sans règle, rien n'est copié.
     void prepareRules(const core::Page& page, const std::vector<core::ObjectId>& ids);
     // Déplacement permis (limiteurs puis objets bloquants) pour le déplacement voulu, depuis le départ.
     core::PointF allowedDelta(core::PointF wanted) const;
-    // Verdict du dépôt sur la page d'essai (resolveDrop) ; accrochage ajouté à `delta` s'il y a lieu.
+    // Verdict du dépôt sur la page d'essai, construite ici (resolveDrop) ; accrochage ajouté à `delta` s'il
+    // passe les limiteurs et les bloquants et ne change pas le verdict.
     core::DropResult settle(core::Transform& delta);
     void updateDrag(core::PointF point);
     void endDrag(core::PointF point, bool cancelled);
@@ -138,15 +145,21 @@ private:
     int m_modifiers = 0;
     const InteractionPolicy* m_policy = nullptr;
     ContainerAccepted m_containerAccepted;
-    std::optional<core::Page> m_probe;  // page avant le soulèvement, objets soulevés compris (L8-T16)
-    std::vector<std::size_t> m_limited; // index dans m_probe des soulevés à déplacement limité
-    bool m_probeBlockers = false;       // un objet bloquant est sur la page d'essai
-    bool m_force = false;               // « déplacer librement » : limiteurs de déplacement ignorés
-    bool m_turning = false;             // rotation à règle (pas, sens, pivot) d'un objet seul
-    double m_turnBase = 0;              // angle de l'objet au départ (degrés)
-    double m_turnFrom = 0;              // dernier angle permis (allowedTurn)
-    core::PointF m_pivot;               // pivot de la rotation à règle (page)
-    std::size_t m_probePagesBuilt = 0;  // probePagesBuilt()
+    // Règles du glisser (L8-T16), prises avant le soulèvement ; rien n'y est recalculé pendant les
+    // mouvements.
+    core::Page m_travelPage;                 // soulevés limités, leurs chemins et membres (closureForCopy)
+    std::vector<std::size_t> m_limited;      // index dans m_travelPage des soulevés à déplacement limité
+    std::vector<core::RectF> m_movingBoxes;  // boîtes de départ des soulevés (s'il y a un bloquant)
+    std::vector<core::RectF> m_blockerBoxes; // boîtes des objets bloquants non soulevés
+    bool m_settle = false;                   // conteneur ou aimant : page d'essai au relâché
+    std::vector<std::size_t> m_liftRanks;    // rangs d'origine des soulevés (m_settle)
+    std::vector<core::LiftedObject> m_liftedAll; // copies des soulevés à leur rang, pour la page d'essai
+    bool m_force = false;                        // « déplacer librement » : limiteurs de déplacement ignorés
+    bool m_turning = false;                      // rotation à règle (pas, sens, pivot) d'un objet seul
+    double m_turnBase = 0;                       // angle de l'objet au départ (degrés)
+    double m_turnFrom = 0;                       // dernier angle permis (allowedTurn)
+    core::PointF m_pivot;                        // pivot de la rotation à règle (page)
+    std::size_t m_probePagesBuilt = 0;           // probePagesBuilt()
 };
 
 } // namespace actcraft::tools

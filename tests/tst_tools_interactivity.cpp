@@ -3,6 +3,7 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/lift.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/restrictors.h>
 #include <actcraft/tools/interactionpolicy.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/userstate.h>
@@ -407,6 +408,44 @@ private slots:
         r.release(at(50).x, at(50).y);
         QCOMPARE(r.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
         QVERIFY(closeTo(angleOf(r.editor.find(1)->common.transform), 45, 1e-6));
+
+        // Revue L8-T16, point 4 : sens horaire et pas de 45°, départ à 30°, pivot en haut à gauche
+        // (décentré). Le pas porte sur l'angle de l'objet ; un retour en arrière n'est pas suivi, la reprise
+        // l'est.
+        Rig t;
+        core::PageObject turned = rectangle(1, 100, 100, 200, 100);
+        turned.common.transform = core::rotationAbout({200, 150}, 30);
+        turned.common.restrictions.turnStep = 45;
+        turned.common.restrictions.turning = core::Turning::Clockwise;
+        turned.common.restrictions.pivot = core::Mark::TopLeft;
+        t.page().objects.push_back(std::move(turned));
+        const core::PointF pivotPoint = core::pivotOf(t.page(), t.page().objects.front());
+        QVERIFY(!closePoint(pivotPoint, 200, 150));
+        t.user.setSelection({1});
+        t.tool.refresh();
+        const core::PointF grip = t.barSpot(QStringLiteral("object.rotate"));
+        QVERIFY(grip.x > -1e8);
+        const auto around = [&](double degrees) {
+            return core::rotationAbout(pivotPoint, degrees).map(grip);
+        };
+        const auto turnedBy = [&]() { return angleOf(t.lift.last); };
+        t.press(grip.x, grip.y);
+        t.move(around(20).x, around(20).y); // 50° voulus : 45°
+        QVERIFY2(closeTo(turnedBy(), 15, 1e-6), qPrintable(QString::number(turnedBy())));
+        t.move(around(50).x, around(50).y); // 80° : 90°
+        QVERIFY2(closeTo(turnedBy(), 60, 1e-6), qPrintable(QString::number(turnedBy())));
+        t.move(around(20).x, around(20).y); // retour à 50° : refusé, reste à 90°
+        QVERIFY2(closeTo(turnedBy(), 60, 1e-6), qPrintable(QString::number(turnedBy())));
+        t.move(around(-10).x, around(-10).y); // 20° : refusé
+        QVERIFY2(closeTo(turnedBy(), 60, 1e-6), qPrintable(QString::number(turnedBy())));
+        t.move(around(80).x, around(80).y);   // 110° : 90°
+        t.move(around(100).x, around(100).y); // 130° : 135°
+        QVERIFY2(closeTo(turnedBy(), 105, 1e-6), qPrintable(QString::number(turnedBy())));
+        QVERIFY(closePoint(t.lift.last.map(pivotPoint), pivotPoint.x, pivotPoint.y)); // le pivot ne bouge pas
+        t.release(around(100).x, around(100).y);
+        QCOMPARE(t.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
+        QVERIFY2(closeTo(angleOf(t.editor.find(1)->common.transform), 135, 1e-6),
+                 qPrintable(QString::number(angleOf(t.editor.find(1)->common.transform))));
     }
 
     // Mode conception, restrictions désactivées : la carotte reste dans le panier (une étape, sans signal),
@@ -480,9 +519,9 @@ private slots:
         QVERIFY(r.accepted.front().chime);
     }
 
-    // Le test qui distingue (revue L8-T16, point 1) : en multi-sélection, un objet à rotation réglée (bloquée,
-    // à sens, à pas ou à pivot décentré) retire le bouton de rotation de la barre, comme un objet non
-    // pivotable ; tiré à l'endroit où il serait, rien ne tourne. Mode conception : la sélection tourne.
+    // Le test qui distingue (revue L8-T16, point 1) : en multi-sélection, un objet à rotation réglée
+    // (bloquée, à sens, à pas ou à pivot décentré) retire le bouton de rotation de la barre, comme un objet
+    // non pivotable ; tiré à l'endroit où il serait, rien ne tourne. Mode conception : la sélection tourne.
     void multiSelectionRefusesRuledRotation()
     {
         const auto fixed = [](core::Restrictions& r) { r.turning = core::Turning::Fixed; };
@@ -557,8 +596,8 @@ private slots:
         QVERIFY(closePoint(plain.centre(1), 225, 205));
     }
 
-    // Revue L8-T16, point 3 : l'aimantation passe par les limiteurs et les bloquants, et un dépôt accepté reste
-    // dans son conteneur, même si le point d'aimantation (Mark::Point) est ailleurs.
+    // Revue L8-T16, point 3 : l'aimantation passe par les limiteurs et les bloquants, et un dépôt accepté
+    // reste dans son conteneur, même si le point d'aimantation (Mark::Point) est ailleurs.
     void magnetObeysRulesAndContainer()
     {
         {
@@ -579,14 +618,16 @@ private slots:
             QCOMPARE(r.accepted.front().container, kBasket);
         }
         {
-            Rig r; // aimant dans le panier : la pomme s'y pose
+            Rig r; // aimant dans la tolérance du panier (CentresMatch) : la pomme s'y pose
             r.basket();
             core::Restrictions& apple = r.page().objects[1].common.restrictions;
             apple.magnet = true;
             apple.magnetMark = core::Mark::Point;
-            apple.magnetPoint = {450, 250};
-            r.drag(70, 70, 400, 200, 4);
-            QVERIFY(closePoint(r.centre(kApple), 450, 250));
+            apple.magnetPoint = {403, 197};
+            r.drag(70, 70, 396, 204, 4);
+            const core::PointF c = r.centre(kApple);
+            QVERIFY2(closePoint(c, 403, 197),
+                     qPrintable(QString::number(c.x) + QLatin1Char(',') + QString::number(c.y)));
             QCOMPARE(r.accepted.size(), std::size_t(1));
         }
         {

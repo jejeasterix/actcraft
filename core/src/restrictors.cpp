@@ -304,18 +304,23 @@ PointF stopAtBlockers(const Page& page, const std::vector<ObjectId>& moving, Poi
     // Une boîte par objet soulevé : leur union recouvrirait un bloquant placé entre eux.
     std::vector<RectF> boxes;
     boxes.reserve(moving.size());
+    std::vector<RectF> blockers;
     for (const PageObject& o : page.objects) {
         if (contains(moving, o.common.id) && hasExtent(page, o)) {
             boxes.push_back(boundsOnPage(page, o));
+        } else if (isBlocker(o)) {
+            blockers.push_back(boundsOnPage(page, o));
         }
     }
+    return stopBoxesAtBlockers(boxes, blockers, wanted);
+}
+
+PointF stopBoxesAtBlockers(const std::vector<RectF>& moving, const std::vector<RectF>& blockers,
+                           PointF wanted) noexcept
+{
     double t = 1;
-    for (const PageObject& o : page.objects) {
-        if (!isBlocker(o)) {
-            continue;
-        }
-        const RectF blocker = boundsOnPage(page, o);
-        for (const RectF& box : boxes) {
+    for (const RectF& blocker : blockers) {
+        for (const RectF& box : moving) {
             t = std::min(t, firstContact(box, blocker, wanted));
         }
     }
