@@ -14,6 +14,7 @@
 #include <actcraft/render/pagepainter.h>
 
 #include <QByteArray>
+#include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QHash>
 #include <QHostAddress>
@@ -23,6 +24,7 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTcpServer>
@@ -31,6 +33,7 @@
 #include <QtTest>
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 
 #if ACTCRAFT_WEBFRAME
@@ -154,7 +157,61 @@ private slots:
     void roundTripKeepsTheFrame();
     void paintedAsANeutralFrame();
     void viewFetchesOnlyDecidedSubResources();
+    void prepareHtmlLeavesNoUndecidedAddress_data();
+    void prepareHtmlLeavesNoUndecidedAddress();
+    void prepareHtmlKeepsDecidedAddresses();
+    void prepareHtmlStaysLinearOn16MB();
+    void engineNavigationAlwaysReturnsToTheModel();
+    void receivedCodeFrameUnblocks();
 };
+
+namespace {
+
+// Politique d'essai de prepareHtml : seul l'hôte ok.example passe ; chaque adresse demandée est notée.
+struct OnlyOk
+{
+    QStringList asked;
+    Verdict operator()(const QUrl& url)
+    {
+        asked.append(url.toString());
+        return url.host() == QLatin1String("ok.example") ? Verdict::Load : Verdict::Refuse;
+    }
+};
+
+// Ce que le moteur lirait comme adresses dans la sortie de prepareHtml : les balises et le contenu des
+// feuilles de style (le texte n'est jamais demandé), entités numériques et échappements CSS rendus, en
+// minuscules.
+QString addressBearing(const QString& html)
+{
+    static const QRegularExpression tagRe(
+        QStringLiteral(R"re(<[^>"']*(?:"[^"]*"[^>"']*|'[^']*'[^>"']*)*>)re"));
+    static const QRegularExpression styleRe(QStringLiteral(R"re(<style\b[^>]*>(.*?)</style)re"),
+                                            QRegularExpression::CaseInsensitiveOption |
+                                                QRegularExpression::DotMatchesEverythingOption);
+    static const QRegularExpression escapeRe(
+        QStringLiteral(R"h(&#([xX]?)([0-9a-fA-F]+);?|\\([0-9a-fA-F]{1,6})\s?)h"));
+    QString kept;
+    for (auto it = tagRe.globalMatch(html); it.hasNext();)
+        kept += it.next().captured(0) + QLatin1Char('\n');
+    for (auto it = styleRe.globalMatch(html); it.hasNext();)
+        kept += it.next().captured(1) + QLatin1Char('\n');
+    QString out;
+    qsizetype last = 0;
+    for (auto it = escapeRe.globalMatch(kept); it.hasNext();) {
+        const QRegularExpressionMatch m = it.next();
+        out += QStringView(kept).mid(last, m.capturedStart() - last);
+        bool ok = false;
+        const char32_t code = m.capturedLength(3) > 0
+                                  ? m.captured(3).toUInt(&ok, 16)
+                                  : m.captured(2).toUInt(&ok, m.captured(1).isEmpty() ? 10 : 16);
+        out += ok ? QString::fromUcs4(&code, 1) : m.captured(0);
+        last = m.capturedEnd();
+    }
+    out += QStringView(kept).mid(last);
+    return out.replace(QStringLiteral("&amp;"), QStringLiteral("&")).toLower();
+}
+
+} // namespace
 
 void TstUiWebFrame::initTestCase()
 {
@@ -228,14 +285,20 @@ void TstUiWebFrame::receivedRemoteFrameSendsNoRequest()
     QVERIFY(dir.isValid());
     Fixture writer;
     QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
+    // Cadre en code HTML qui vise le même serveur : dans le document reçu, repère et rien de demandé.
+    QVERIFY(writer.frames.insertFrame(
+        QStringLiteral("<p>code</p><img src=\"%1\">").arg(server.url(QStringLiteral("/img.png")).toString()),
+        {}));
     QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 1, 5000); // saisi dans la session : lu
     server.reset(); // avant la réouverture : une requête du lecteur serait comptée
     Fixture reader;
     QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("recu.actcraft"))));
-    QCOMPARE(reader.frames.count(), 1);
-    QCOMPARE(reader.frames.blockedCount(), 1);
+    QCOMPARE(reader.frames.count(), 2);
+    QCOMPARE(reader.frames.blockedCount(), 2);
     QVERIFY(role(reader.frames, 0, ui::WebFrameItems::BlockedRole).toBool());
     QVERIFY(!content(reader.frames, 0).contains(QStringLiteral("distant")));
+    QVERIFY(role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
+    QVERIFY2(!content(reader.frames, 1).contains(server.origin()), qPrintable(content(reader.frames, 1)));
     QTest::qWait(1000);
     QCOMPARE(server.requests(), 0);
 }
@@ -453,6 +516,180 @@ void TstUiWebFrame::viewFetchesOnlyDecidedSubResources()
     QTest::qWait(500);
     QCOMPARE(other.requests(), 0);
 #endif
+}
+
+// Contenu piégé : chaque forme que le parseur HTML du moteur lit comme une balise (séparateur `/`, attributs
+// collés, casse, entités, fin de style en `</style/`) ou que CSS lit comme une adresse (`url()` à parenthèse
+// dans la chaîne, `@import` collé ou commenté, échappements, image-set) ne laisse aucune adresse
+// d'evil.example dans les balises ni les feuilles de style de la sortie. Un `<` que la réécriture ne
+// reconnaît pas devient du texte : il ne demande rien.
+void TstUiWebFrame::prepareHtmlLeavesNoUndecidedAddress_data()
+{
+    QTest::addColumn<QString>("html");
+    const auto row = [](const char* name, const char* html) {
+        QTest::newRow(name) << QString::fromUtf8(html);
+    };
+    row("meta refresh /", R"h(<meta/http-equiv="refresh" content="0;url=https://evil.example/r">)h");
+    row("meta refresh casse", R"h(<META HTTP-EQUIV=Refresh CONTENT="0; URL=https://evil.example/r">)h");
+    row("meta http-equiv",
+        R"h(<meta http-equiv="content-security-policy" content="img-src https://evil.example">)h");
+    row("link preconnect /", R"h(<link/rel=preconnect href=https://evil.example/>)h");
+    row("link dns-prefetch", R"h(<link rel="dns-prefetch" href="//evil.example">)h");
+    row("link preload",
+        R"h(<link rel=preload as=image href="https://evil.example/p.png" imagesrcset="https://evil.example/q.png 2x">)h");
+    row("link prefetch", R"h(<link rel="prefetch" href="https://evil.example/p">)h");
+    row("a /", R"h(<a/href="https://evil.example/a">x</a>)h");
+    row("attributs colles", R"h(<a href="#x"onclick="y"ping="https://evil.example/ping">x</a>)h");
+    row("img /src", R"h(<img/src="https://evil.example/i.png">)h");
+    row("srcset", R"h(<img src="/ok.png" srcset="https://evil.example/s.png 1x, /ok2.png 2x">)h");
+    row("source",
+        R"h(<picture><source srcset="https://evil.example/s.png"><source src="https://evil.example/v"></picture>)h");
+    row("object", R"h(<object data="https://evil.example/o"></object>)h");
+    row("embed", R"h(<embed src="https://evil.example/e">)h");
+    row("iframe srcdoc", R"h(<iframe srcdoc="&lt;img src=https://evil.example/sd.png&gt;"></iframe>)h");
+    row("iframe /srcdoc", R"h(<iframe/srcdoc='<img src="https://evil.example/sd.png">'></iframe>)h");
+    row("style url", R"h(<div style="background:url(https://evil.example/bg.png)">x</div>)h");
+    row("style url parenthese", R"h(<div style='background:url("https://evil.example/a)b.png")'>x</div>)h");
+    row("style url entite", R"h(<div style="background:u&#114;l(https://evil.example/bg.png)">x</div>)h");
+    row("style url echappement", R"h(<div style="background:u\72l(https://evil.example/bg.png)">x</div>)h");
+    row("@import", R"h(<style>@import "https://evil.example/a.css";</style>)h");
+    row("@import colle", R"h(<style>@import'https://evil.example/a.css';</style>)h");
+    row("@import commentaire", R"h(<style>@import/**/"https://evil.example/a.css";</style>)h");
+    row("@import url", R"h(<style>@import url(https://evil.example/a.css);</style>)h");
+    row("@import echappement", R"h(<style>@\69mport "https://evil.example/a.css";</style>)h");
+    row("image-set", R"h(<style>.x{background-image:image-set("https://evil.example/a.png" 1x)}</style>)h");
+    row("url parenthese", R"h(<style>.y{background:url('https://evil.example/q)q.png')}</style>)h");
+    row("fin de style /", R"h(<style>a{}</style/><img src=https://evil.example/st.png></style>)h");
+    row("style svg", R"h(<svg><style><img src="https://evil.example/br.png"></style></svg>)h");
+    row("base", R"h(<base href="https://evil.example/"><img src="/ok.png">)h");
+    row("formulaire",
+        R"h(<form action="https://evil.example/f"><button formaction="https://evil.example/fa">x</button></form>)h");
+    row("svg xlink",
+        R"h(<svg><image xlink:href="https://evil.example/x.png"/><a xlink:href="https://evil.example/l"><text>t</text></a></svg>)h");
+    row("svg set",
+        R"h(<svg><a href="#t"><set attributeName="href" to="https://evil.example/set"/><text>t</text></a></svg>)h");
+    row("svg animate",
+        R"h(<svg><a href="#t"><animate attributeName="xlink:href" values="https://evil.example/n"/></a></svg>)h");
+    row("svg fill", R"h(<svg><rect fill="url(https://evil.example/f.svg#p)"/></svg>)h");
+    row("casse", R"h(<IMG SRC="HTTPS://EVIL.EXAMPLE/UP.PNG"><A HREF="HTTPS://EVIL.EXAMPLE/UP">x</A>)h");
+    row("entites",
+        R"h(<img src="&#x68;ttps://&#101;vil.example/e.png"><img src="https&colon;//evil.example/c.png">)h");
+    row("commentaire", R"h(<!-- <img src="https://evil.example/c.png"> --><!--><img src="/ok.png">)h");
+    row("balise ouverte", R"h(<img src="/ok.png"><img src="https://evil.example/u.png")h");
+    row("tabulation verticale", "<img\vsrc=\"https://evil.example/vt.png\">");
+    row("video",
+        R"h(<video poster="https://evil.example/p.png" src="https://evil.example/v"><track src="https://evil.example/t"></video>)h");
+    row("background",
+        R"h(<body background="https://evil.example/b.png"><table background="https://evil.example/t.png"></table>)h");
+    row("input image", R"h(<input type=image src="https://evil.example/in.png">)h");
+    row("cdata", R"h(<svg><![CDATA[<img src="https://evil.example/cd.png">]]></svg>)h");
+}
+
+void TstUiWebFrame::prepareHtmlLeavesNoUndecidedAddress()
+{
+    QFETCH(QString, html);
+    for (const QUrl& base : {QUrl(QStringLiteral("https://ok.example/dir/page.html")), QUrl()}) {
+        OnlyOk decide;
+        const auto prepared = ui::WebFrameItems::prepareHtml(html, base, std::ref(decide));
+        const QString read = addressBearing(prepared.html);
+        QVERIFY2(!read.contains(QStringLiteral("evil")), qPrintable(prepared.html));
+        for (const QUrl& link : prepared.links)
+            QVERIFY(link.isValid()); // cible d'un renvoi interne : décidée au clic, jamais dans la sortie
+    }
+}
+
+// Témoin du précédent : les formes ordinaires et à séparateur `/` gardent leurs adresses décidées, absolues ;
+// une valeur d'attribut garde ses entités telles quelles (ni doublées ni perdues).
+void TstUiWebFrame::prepareHtmlKeepsDecidedAddresses()
+{
+    const QString html = QStringLiteral(
+        R"h(<img/src="/a.png"><a/href="/b">l</a><link rel=stylesheet href=/s.css>)h"
+        R"h(<div style="background:url('/bg.png')">x</div><style>@import "/i.css"; .c{background:url(/c.png)}</style>)h"
+        R"h(<img src="/x.png" srcset="/s1.png 1x, /s2.png 2x"><p title="a &amp; b &eacute;">t</p>)h");
+    OnlyOk decide;
+    const auto prepared = ui::WebFrameItems::prepareHtml(
+        html, QUrl(QStringLiteral("https://ok.example/dir/")), std::ref(decide));
+    const QString& out = prepared.html;
+    for (const char* expected :
+         {"src=\"https://ok.example/a.png\"", "href=\"#actcraft-link-0\"", "https://ok.example/s.css",
+          "https://ok.example/bg.png", "@import \"https://ok.example/i.css\"", "https://ok.example/c.png",
+          "https://ok.example/s1.png 1x, https://ok.example/s2.png 2x", "title=\"a &amp; b &eacute;\""})
+        QVERIFY2(out.contains(QString::fromUtf8(expected)),
+                 qPrintable(QString::fromUtf8(expected) + QStringLiteral(" | ") + out));
+    QCOMPARE(prepared.links, QVector<QUrl>{QUrl(QStringLiteral("https://ok.example/b"))});
+}
+
+// Page de 16 Mo, piégée pour les motifs à retour arrière (commentaires, styles et balises jamais fermés) : la
+// réécriture reste linéaire. Le temps est imprimé (preuve), la borne est large (construction de débogage).
+void TstUiWebFrame::prepareHtmlStaysLinearOn16MB()
+{
+    const QString chunk = QStringLiteral(
+        R"h(<p a=1/b=2 c='3'>t</p><img/src="/a.png" srcset="/b.png 1x"><style>.x{background:url("/c.png")}</style>)h"
+        R"h(<a href="/d">d</a><!-- c -->)h");
+    const QString trap = QStringLiteral("<a b=c/d/e/f/g <style x <!--x url(\"q ");
+    QString big;
+    big.reserve(16 * 1024 * 1024 + chunk.size() + trap.size());
+    while (big.size() < 8 * 1024 * 1024)
+        big += chunk;
+    while (big.size() < 16 * 1024 * 1024)
+        big += trap;
+    OnlyOk decide;
+    QElapsedTimer timer;
+    timer.start();
+    const auto prepared =
+        ui::WebFrameItems::prepareHtml(big, QUrl(QStringLiteral("https://ok.example/")), std::ref(decide));
+    const qint64 ms = timer.elapsed();
+    qInfo("prepareHtml : %lld ms pour %lld caracteres", static_cast<long long>(ms),
+          static_cast<long long>(big.size()));
+    QVERIFY2(ms < 20000, qPrintable(QString::number(ms)));
+    QVERIFY(prepared.html.contains(QStringLiteral("https://ok.example/c.png")));
+    QVERIFY(!prepared.html.contains(QStringLiteral("<!--")));
+}
+
+// Navigation que le moteur prendrait de lui-même, même vers la page affichée : rendue au modèle (vrai : la
+// vue s'arrête), sinon la page serait chargée par le moteur, sans la règle de sécurité du contenu. Seuls le
+// contenu donné (about:blank) et ses renvois de fragment restent à la vue.
+void TstUiWebFrame::engineNavigationAlwaysReturnsToTheModel()
+{
+    TestServer typed;
+    QVERIFY(typed.listening());
+    typed.page(QStringLiteral("/page"), "<p>distant</p>");
+    Fixture f;
+    QVERIFY(f.frames.insertFrame({}, typed.url(QStringLiteral("/page")).toString()));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("distant")), 5000);
+    QVERIFY(!f.frames.followLink(0, QUrl(QStringLiteral("about:blank"))));
+    QVERIFY(!f.frames.followLink(0, QUrl(QStringLiteral("about:blank#haut"))));
+    typed.reset();
+    const QUrl shown = typed.url(QStringLiteral("/page"));
+    QVERIFY(f.frames.followLink(0, shown));
+    QVERIFY(f.frames.followLink(0, QUrl(shown.toString() + QStringLiteral("#ancre"))));
+    QTRY_VERIFY_WITH_TIMEOUT(typed.paths().contains(QStringLiteral("/page")), 5000); // relue par le modèle
+}
+
+// Cadre en code HTML d'un document reçu : repère, puis déblocage confirmé → ses sous-ressources passent.
+void TstUiWebFrame::receivedCodeFrameUnblocks()
+{
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/page"), "<p>distant</p>");
+    const QString image = server.url(QStringLiteral("/img.png")).toString();
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Fixture writer;
+    QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
+    QVERIFY(writer.frames.insertFrame(QStringLiteral("<p>code</p><img src=\"%1\">").arg(image), {}));
+    QVERIFY2(content(writer.frames, 1).contains(image),
+             qPrintable(content(writer.frames, 1))); // origine saisie
+    QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 1, 5000);
+    Fixture reader;
+    QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("code.actcraft"))));
+    QVERIFY(role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
+    QVERIFY(!content(reader.frames, 1).contains(image));
+    reader.frames.requestUnblock(1);
+    QVERIFY(reader.frames.unblockPending());
+    reader.frames.answer(true);
+    QVERIFY(!role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
+    QVERIFY2(content(reader.frames, 1).contains(image), qPrintable(content(reader.frames, 1)));
 }
 
 int main(int argc, char** argv)
