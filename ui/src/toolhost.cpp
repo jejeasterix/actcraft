@@ -10,6 +10,7 @@
 #include <actcraft/tools/filltool.h>
 #include <actcraft/tools/penshapetool.h>
 #include <actcraft/tools/pentool.h>
+#include <actcraft/tools/revealinktool.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/toolregistry.h>
 #include <actcraft/ui/toolhost.h>
@@ -55,6 +56,10 @@ const tools::ToolRegistry& registry()
                   [](tools::ToolContext& context) { return std::make_unique<tools::PenShapeTool>(context); });
         built.add(QStringLiteral("connector"), [](tools::ToolContext& context) {
             return std::make_unique<tools::ConnectorTool>(context);
+        });
+        // Lot 8 (L8-T18) : encre révélatrice, sur les échantillons du stylo.
+        built.add(QStringLiteral("reveal-ink"), [](tools::ToolContext& context) {
+            return std::make_unique<tools::RevealInkTool>(context.ink, context.strokes);
         });
         return built;
     }();
