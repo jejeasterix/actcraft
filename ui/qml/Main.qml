@@ -790,6 +790,8 @@ Window {
         appCommands.setHandler("browsers.dock-left", function () { browserPanel.side = "left" })
         appCommands.setHandler("browsers.dock-right", function () { browserPanel.side = "right" })
         appCommands.setHandler("page.goto", function (number) { appPages.goTo(number - 1) })
+        appCommands.setHandler("page.first", function () { appDocument.showPage(0) })
+        appCommands.setHandler("page.last", function () { appDocument.showPage(appDocument.pageCount - 1) })
         appCommands.setHandler("page.insert-before", function () { appPages.insertBlank(false) })
         appCommands.setHandler("page.insert-after", function () { appPages.insertBlank(true) })
         appCommands.setHandler("page.cut", function () { appPages.cutSelection() })

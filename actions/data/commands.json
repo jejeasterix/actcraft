@@ -255,6 +255,8 @@
   { "id": "webframe.reload", "label": "Recharger le cadre", "icon": "cadre-web", "lockable": false, "restrictable": false },
   { "id": "webframe.snapshot", "label": "Poser une image du cadre", "icon": "cadre-web", "lockable": true, "restrictable": true },
   { "id": "webframe.unblock", "label": "Débloquer le contenu du cadre", "icon": "cadre-web", "lockable": true, "restrictable": false },
-  { "id": "file.publish", "label": "Diffuser en protégé…", "icon": "diffuser", "lockable": true, "restrictable": true }
+  { "id": "file.publish", "label": "Diffuser en protégé…", "icon": "diffuser", "lockable": true, "restrictable": true },
+  { "id": "page.first", "label": "Première page", "lockable": true, "restrictable": false },
+  { "id": "page.last", "label": "Dernière page", "lockable": true, "restrictable": false }
   ]
 }
