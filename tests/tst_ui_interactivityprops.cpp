@@ -465,9 +465,14 @@ void TstUiInteractivityprops::resizableInRestrictors()
 void TstUiInteractivityprops::pointFollowsMark()
 {
     Fixture f;
-    const core::ObjectId shape = addObject(f.controller, shapeAt(100));
+    // Repère de l'objet distinct de celui de la page : une translation (le centre de l'objet n'a pas les
+    // mêmes coordonnées dans les deux), puis une rotation.
+    core::PageObject moved = shapeAt(100);
+    moved.common.transform.dx = 50;
+    moved.common.transform.dy = 20;
+    const core::ObjectId shape = addObject(f.controller, moved);
     f.select({shape});
-    QVERIFY(f.set(QStringLiteral("angle"), 30)); // repère de l'objet distinct de celui de la page
+    QVERIFY(f.set(QStringLiteral("angle"), 30));
     const core::PointF center =
         core::boundsOnPage(f.controller.document().page(0), *objectOf(f.controller, shape)).center();
 
@@ -497,6 +502,7 @@ void TstUiInteractivityprops::pointFollowsMark()
         const core::PointF onPage = turned.common.transform.map(turned.common.restrictions.pivotPoint);
         QVERIFY2(near(onPage, center), qPrintable(text(onPage) + QStringLiteral(" ≠ ") + text(center)));
         const core::PointF stored = turned.common.restrictions.pivotPoint;
+        QVERIFY2(!near(stored, center), qPrintable(text(stored))); // sinon ce test ne distingue rien
         QCOMPARE(valueOf(f.model, pivotPoint).toPointF(), QPointF(stored.x, stored.y));
     }
     QVERIFY(f.noRedraw());
