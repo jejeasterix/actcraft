@@ -81,6 +81,8 @@ private:
     void move(const input::Sample& sample);
     void release(const input::Sample& sample);
     void beginDrag(bool force);
+    // À l'appui sur un objet à chemin hors de son trait : le glisser commence, l'objet saute sur son trait.
+    void jumpOntoTrackAtPress();
     void beginTransform(State kind);
     void beginSmartPoint();
     void updateSmartPoint(core::PointF point);

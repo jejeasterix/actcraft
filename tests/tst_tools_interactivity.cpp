@@ -478,30 +478,49 @@ private slots:
     }
 
     // L8-C6 (revue de L8-T16) : sur un rail courbe, un bloquant raccourcit le déplacement, mais l'objet reste
-    // sur son rail. Rail en équerre (100, 300) → (500, 300) → (500, 600) ; l'objet part de (100, 300) vers
-    // (500, 500), un mur en travers de la corde, loin du rail. Rouge sous l'arrêt en ligne droite : l'objet
-    // s'arrête sur la corde, à y = 377,5, hors du rail.
+    // sur son rail : dans l'aperçu soulevé pendant le geste, et au dépôt sans accrochage. (Avec l'accrochage,
+    // le dépôt repasse par les limiteurs sur le delta déjà raccourci et masque le défaut : il ne prouve
+    // rien.) Rail en équerre (100, 300) -> (500, 300) -> (500, 600) ; l'objet part de (100, 300) vers (500,
+    // 500), un mur en travers de la corde, loin du rail. Rouge sous l'arrêt en ligne droite : l'aperçu
+    // s'arrête sur la corde (dy = 77,5) et le dépôt sans accrochage de même, hors du rail.
     void blockerStopsOnTheRailNotOnTheChord()
     {
-        Rig r;
-        core::Line line;
-        line.points = {{100, 300}, {500, 300}, {500, 600}};
-        core::PageObject track{line};
-        track.common.id = 20;
-        r.page().objects.push_back(std::move(track));
-        core::PageObject object = rectangle(1, 75, 275, 50, 50); // centre (100, 300), sur le rail
-        object.common.restrictions.travel = core::Travel::AlongTrack;
-        object.common.restrictions.track = 20;
-        r.page().objects.push_back(std::move(object));
-        core::PageObject wall = rectangle(30, 280, 390, 40, 40);
-        wall.common.restrictions.blocksOthers = true;
-        r.page().objects.push_back(std::move(wall));
-        r.drag(100, 300, 500, 500, 8);
-        QCOMPARE(r.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
-        const core::PointF c = r.centre(1);
-        QVERIFY2(closeTo(c.y, 300, 1e-4),
-                 qPrintable(QStringLiteral("hors du rail : (%1, %2)").arg(c.x).arg(c.y)));
-        QVERIFY2(c.x > 100 && c.x < 400, qPrintable(QStringLiteral("arrêté avant le mur : x = %1").arg(c.x)));
+        const auto build = [](Rig& r) {
+            core::Line line;
+            line.points = {{100, 300}, {500, 300}, {500, 600}};
+            core::PageObject track{line};
+            track.common.id = 20;
+            r.page().objects.push_back(std::move(track));
+            core::PageObject object = rectangle(1, 75, 275, 50, 50); // centre (100, 300), sur le rail
+            object.common.restrictions.travel = core::Travel::AlongTrack;
+            object.common.restrictions.track = 20;
+            r.page().objects.push_back(std::move(object));
+            core::PageObject wall = rectangle(30, 280, 390, 40, 40);
+            wall.common.restrictions.blocksOthers = true;
+            r.page().objects.push_back(std::move(wall));
+        };
+        {
+            Rig r;
+            build(r);
+            r.dragTo(100, 300, 500, 500, 8);
+            const core::Transform& preview = r.lift.last;
+            QVERIFY2(closeTo(preview.dy, 0, 1e-4),
+                     qPrintable(QStringLiteral("aperçu hors du rail : dy = %1").arg(preview.dy)));
+            QVERIFY2(preview.dx > 0 && preview.dx < 300,
+                     qPrintable(QStringLiteral("arrêté avant le mur : dx = %1").arg(preview.dx)));
+        }
+        {
+            Rig r;
+            r.context.snapDisabled = true;
+            build(r);
+            r.drag(100, 300, 500, 500, 8);
+            QCOMPARE(r.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
+            const core::PointF c = r.centre(1);
+            QVERIFY2(closeTo(c.y, 300, 1e-4),
+                     qPrintable(QStringLiteral("dépôt hors du rail : (%1, %2)").arg(c.x).arg(c.y)));
+            QVERIFY2(c.x > 100 && c.x < 400,
+                     qPrintable(QStringLiteral("arrêté avant le mur : x = %1").arg(c.x)));
+        }
     }
 
     // L8-C6 (revue de L8-T16) : l'objet à chemin saute sur son trait à l'appui (plan L8-T16), pas au premier

@@ -5,6 +5,7 @@
 #include <actcraft/core/gridsnap.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/propertyedits.h>
 #include <actcraft/core/restrictors.h>
 #include <actcraft/core/shapeedits.h>
 #include <actcraft/core/shapegeometry.h>
@@ -28,6 +29,8 @@ namespace {
 
 // Glissement : au-delà de 2 px d'écran (D6, P27) ; un clic ne soulève rien.
 constexpr double kDragThresholdScreen = 2.0;
+// Unités de page : en deçà, l'objet est déjà sur son trait (jumpOntoTrackAtPress).
+constexpr double kTrackJumpTolerance = 0.01;
 constexpr int kExtendModifiers = Qt::ShiftModifier | Qt::ControlModifier;
 constexpr double kSnapStepDegrees = 15.0; // rotation avec Maj
 constexpr double kMinExtent = 1.0; // plus petite largeur ou hauteur d'un redimensionnement (pixels de page)
@@ -140,12 +143,6 @@ std::optional<std::size_t> shapePointAt(const std::vector<core::PointF>& points,
         }
     }
     return found;
-}
-
-// Angle d'une transformation (degrés, sens de core::rotation).
-double angleOf(const core::Transform& t) noexcept
-{
-    return toDegrees(std::atan2(t.m12, t.m11));
 }
 
 // Rotation à règle (L8-T15) : un pas, un sens, ou un pivot autre que le centre.
@@ -675,6 +672,7 @@ void SelectTool::press(const input::Sample& sample)
             m_grabbed = {*hit};
             m_pendingSelect = *hit; // sélectionné seulement si ce n'est qu'un clic
         }
+        jumpOntoTrackAtPress();
         return;
     }
     const SelectionView frame = layoutSelection(page, selection, zoom, {}, m_context.lockIgnored);
@@ -682,6 +680,7 @@ void SelectTool::press(const input::Sample& sample)
         m_grab = Grab::Drag; // dans le cadre, hors de tout objet : déplace la sélection
         m_grabbed = selection;
         m_dragSelection = true;
+        jumpOntoTrackAtPress();
         return;
     }
     m_grab = Grab::Band;
@@ -769,6 +768,37 @@ void SelectTool::beginDrag(bool force)
     liftForGesture(std::move(ids), State::Dragging);
 }
 
+// Plan L8-T16 : un objet à chemin (AlongTrack) saute sur son trait à l'appui, pas au premier déplacement de
+// 2 px. Le glisser commence alors à l'appui (même soulèvement, même aperçu, delta nul depuis le départ) ;
+// relâché sans bouger, le dépôt pose l'objet sur son trait, en une étape. Un objet déjà sur son trait ne
+// change rien : le clic le sélectionne, comme avant.
+void SelectTool::jumpOntoTrackAtPress()
+{
+    if (!restrictionsOn()) {
+        return;
+    }
+    const core::Page& page = m_context.document.page();
+    for (const core::ObjectId id : m_grabbed) {
+        const std::size_t index = core::indexOf(page, id);
+        if (index == page.objects.size()) {
+            continue;
+        }
+        const core::PageObject& object = page.objects[index];
+        const core::Restrictions& r = object.common.restrictions;
+        if (r.travel != core::Travel::AlongTrack || r.track == 0 || !movable(object, m_context.lockIgnored)) {
+            continue;
+        }
+        const core::PointF jump = core::allowedTravel(page, object, {0, 0});
+        if (std::hypot(jump.x, jump.y) > kTrackJumpTolerance) {
+            beginDrag(false);
+            if (m_state == State::Dragging) {
+                updateDrag(m_start);
+            }
+            return;
+        }
+    }
+}
+
 void SelectTool::beginTransform(State kind)
 {
     const core::Page& page = m_context.document.page();
@@ -797,7 +827,9 @@ void SelectTool::beginTransform(State kind)
         const core::PageObject& object = page.objects[core::indexOf(page, ids.front())];
         if (turnsByRule(object.common.restrictions)) {
             m_turning = true;
-            m_turnBase = angleOf(object.common.transform);
+            // L8-C6 : l'angle de l'objet, celui de la propriété Rotation (core::objectAngle retire le
+            // demi-tour d'un objet reflété), jamais atan2(m12, m11) : le pas porte sur lui.
+            m_turnBase = core::objectAngle(object.common.transform);
             m_turnFrom = m_turnBase;
             m_pivot = core::pivotOf(page, object);
         }
