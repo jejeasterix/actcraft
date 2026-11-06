@@ -1,2 +1,17 @@
-// Talon L8 : rempli par L8-T27.
-#include <QtGlobal> // une unité de traduction jamais vide (C4206 sous /W4 /WX)
+#include "actcraft/media/displayrecorder.h"
+
+namespace actcraft::media {
+
+// Hors Windows, le module est construit sans moteur d'écran : la commande est absente et l'enregistreur se
+// dit indisponible.
+std::unique_ptr<DisplayEngine> DisplayRecorder::createScreenEngine()
+{
+    return nullptr;
+}
+
+QString DisplayRecorder::unavailableReason()
+{
+    return tr("Enregistrement de l'écran : Windows seulement.");
+}
+
+} // namespace actcraft::media
