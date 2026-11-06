@@ -55,8 +55,8 @@ class TstCoreObjectactionsEdit : public QObject
     static Document page(const char* html = "<p>5</p>")
     {
         Document d(1024, 768);
-        d.page(0).objects.push_back(shape(1));
-        d.page(0).objects.push_back(text(2, html));
+        d.page(0).objects.push_back(shape(d.allocateId()));      // 1 ; nextId suit, comme un document réel
+        d.page(0).objects.push_back(text(d.allocateId(), html)); // 2
         return d;
     }
     static const PageObject* find(const Document& d, ObjectId id)
@@ -263,7 +263,7 @@ private slots:
     void clearAnnotationsOnlyTopStrokes()
     {
         Document d = page();
-        d.page(0).objects.push_back(topStroke(3));
+        d.page(0).objects.push_back(topStroke(d.allocateId())); // 3
         const Document before = d;
         auto c = command(d, "object.clear-annotations", "{}", 1);
         QVERIFY(c);
@@ -313,7 +313,7 @@ private slots:
         };
         Document start = page();
         start.page(0).objects[0].common.translucency = 64;
-        start.page(0).objects.push_back(topStroke(3));
+        start.page(0).objects.push_back(topStroke(start.allocateId())); // 3
         for (const Case& k : cases) {
             QVERIFY2(isEditAction(k.id), k.id);
             QVERIFY2(!isGeometryAction(k.id), k.id);

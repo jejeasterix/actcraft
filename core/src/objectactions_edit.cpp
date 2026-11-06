@@ -26,13 +26,14 @@
 #include <variant>
 #include <vector>
 
-// Actions d'objet d'édition (L8-T8). Aucune commande neuve : chaque action délègue, en une étape, à la commande
-// que l'écran emploie déjà pour la même fonction — superposition et couches comme le menu Organiser
-// (ui/src/objectediting.cpp, arrange), masquer et verrouiller comme le menu Verrouiller / Masquer (D9 : propagés
-// aux membres d'un groupe), translucidité bornée comme le navigateur de propriétés, effacements par Effacer ▸,
-// suppression comme l'outil Sélection, duplication par makeDuplicateCommand, texte par SetTextCommand et
-// AddObjectCommand comme l'éditeur de texte (ui/src/textediting.cpp). Copier, couper et coller passent par le
-// presse-papiers, hors de core (A18) : le moteur ne les connaît pas, l'exécuteur (L8-T9) déclenche edit.*.
+// Actions d'objet d'édition (L8-T8). Aucune commande neuve : chaque action délègue, en une étape, à la
+// commande que l'écran emploie déjà pour la même fonction — superposition et couches comme le menu Organiser
+// (ui/src/objectediting.cpp, arrange), masquer et verrouiller comme le menu Verrouiller / Masquer (D9 :
+// propagés aux membres d'un groupe), translucidité bornée comme le navigateur de propriétés, effacements par
+// Effacer ▸, suppression comme l'outil Sélection, duplication par makeDuplicateCommand, texte par
+// SetTextCommand et AddObjectCommand comme l'éditeur de texte (ui/src/textediting.cpp). Copier, couper et
+// coller passent par le presse-papiers, hors de core (A18) : le moteur ne les connaît pas, l'exécuteur
+// (L8-T9) déclenche edit.*.
 namespace actcraft::core {
 
 std::unique_ptr<UndoCommand> editActionCommand(const Document& document, const std::string& id,
@@ -41,7 +42,8 @@ std::unique_ptr<UndoCommand> editActionCommand(const Document& document, const s
 namespace {
 
 constexpr int kTranslucencyStep = 32;
-// Emprise d'un texte neuf quand la cible n'est pas un texte : core ne mesure pas le texte (aucun QTextDocument).
+// Emprise d'un texte neuf quand la cible n'est pas un texte : core ne mesure pas le texte (aucun
+// QTextDocument).
 constexpr double kCharWidth = 14;
 constexpr double kLineHeight = 30;
 
@@ -55,8 +57,8 @@ struct Target
 
 using Builder = std::function<std::unique_ptr<UndoCommand>(const Target&)>;
 
-// Une action, une étape : SetTranslucencyCommand fusionne avec la précédente de sa famille (réglette glissée) ;
-// deux clics sur « plus translucide » font ici deux étapes.
+// Une action, une étape : SetTranslucencyCommand fusionne avec la précédente de sa famille (réglette glissée)
+// ; deux clics sur « plus translucide » font ici deux étapes.
 class OneStepCommand final : public UndoCommand
 {
 public:
@@ -106,9 +108,8 @@ bool isBlank(char c) noexcept
 std::string lowered(const std::string& s)
 {
     std::string out = s;
-    std::transform(out.begin(), out.end(), out.begin(), [](char c) {
-        return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
-    });
+    std::transform(out.begin(), out.end(), out.begin(),
+                   [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
     return out;
 }
 
@@ -151,8 +152,8 @@ QString decodedEntities(const QString& s)
 }
 
 // Parcours du HTML d'un texte : en-tête, styles et scripts sautés ; [first, last) couvre le texte visible (du
-// premier au dernier caractère hors blancs, hors balises), npos s'il n'y en a pas ; plain : le texte lu, entités
-// décodées, une fin de ligne par <br> et par fin de paragraphe.
+// premier au dernier caractère hors blancs, hors balises), npos s'il n'y en a pas ; plain : le texte lu,
+// entités décodées, une fin de ligne par <br> et par fin de paragraphe.
 struct Scan
 {
     std::size_t first = std::string::npos;
@@ -212,7 +213,8 @@ std::string escaped(const QString& plain)
     return html.toStdString();
 }
 
-// Le texte visible de `html` remplacé par `plain`, échappé : la mise en forme qui l'ouvre et le ferme est gardée.
+// Le texte visible de `html` remplacé par `plain`, échappé : la mise en forme qui l'ouvre et le ferme est
+// gardée.
 std::string replacedText(const std::string& html, const QString& plain)
 {
     const Scan s = scan(html);
@@ -267,8 +269,9 @@ std::pair<int, qsizetype> lineShape(const QString& plain)
     return {lines, longest};
 }
 
-// Emprise estimée d'un texte neuf (core ne mesure pas : aucun QTextDocument) : largeur au prorata des caractères
-// de la ligne la plus longue du texte de départ, hauteur de ses lignes ; l'éditeur la remesure à la validation.
+// Emprise estimée d'un texte neuf (core ne mesure pas : aucun QTextDocument) : largeur au prorata des
+// caractères de la ligne la plus longue du texte de départ, hauteur de ses lignes ; l'éditeur la remesure à
+// la validation.
 RectF estimatedBounds(const Text* source, const QString& plain)
 {
     double perChar = kCharWidth;
@@ -281,7 +284,8 @@ RectF estimatedBounds(const Text* source, const QString& plain)
         }
     }
     const auto [lines, longest] = lineShape(plain);
-    return {0, 0, std::max(1.0, perChar * static_cast<double>(longest)), std::max(1.0, perLine * std::max(1, lines))};
+    return {0, 0, std::max(1.0, perChar * static_cast<double>(longest)),
+            std::max(1.0, perLine * std::max(1, lines))};
 }
 
 QString numberText(double value)
@@ -377,7 +381,9 @@ std::unordered_map<std::string, Builder> makeTable()
         return translucency(t, *value);
     };
     table["object.more-translucent"] = [](const Target& t) { return translucencyStep(t, kTranslucencyStep); };
-    table["object.less-translucent"] = [](const Target& t) { return translucencyStep(t, -kTranslucencyStep); };
+    table["object.less-translucent"] = [](const Target& t) {
+        return translucencyStep(t, -kTranslucencyStep);
+    };
     table["object.add-text"] = [](const Target& t) -> std::unique_ptr<UndoCommand> {
         const Text* text = asText(t.object);
         const std::optional<QString> added = textParameter(t.parameters, "text");
@@ -429,7 +435,8 @@ std::unordered_map<std::string, Builder> makeTable()
         for (const QString& word : list) {
             added.push_back(newText(t, word, added.size()));
         }
-        return std::make_unique<ReplaceObjectsCommand>(t.context.page, std::vector<ObjectId>{}, std::move(added));
+        return std::make_unique<ReplaceObjectsCommand>(t.context.page, std::vector<ObjectId>{},
+                                                       std::move(added));
     };
     table["object.clear-annotations"] = [](const Target& t) { return clear(t, ClearKind::Annotations); };
     table["object.clear-background"] = [](const Target& t) { return clear(t, ClearKind::Background); };
