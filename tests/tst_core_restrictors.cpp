@@ -1,9 +1,11 @@
+#include <actcraft/core/edits.h>
 #include <actcraft/core/interactivity.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/restrictors.h>
 
 #include <QtTest>
 
+#include <cmath>
 #include <utility>
 
 using namespace actcraft::core;
@@ -154,6 +156,13 @@ private slots:
         // Coin haut gauche de la forme sur celui du conteneur 3 (300, 400) : centre en (320, 420).
         QCOMPARE(qRound(centre.x), 320);
         QCOMPARE(qRound(centre.y), 420);
+
+        // Point précis (coordonnées de page) : le centre s'y pose, conteneur ou non sous le point.
+        restrictionsOfShape(page).magnetMark = Mark::Point;
+        restrictionsOfShape(page).magnetPoint = {500, 600};
+        centre = landingPoint(page, page.objects[0], {330, 430});
+        QCOMPARE(qRound(centre.x), 500);
+        QCOMPARE(qRound(centre.y), 600);
     }
 
     void fixedSizeHasNoHandles()
@@ -221,6 +230,99 @@ private slots:
         travel = stopAtBlockers(outlined, {1}, {150, 0});
         QCOMPARE(qRound(travel.x), 59);
         QCOMPARE(qRound(travel.y), 0);
+
+        // Glisser le long du bord bas du bloquant (aucun déplacement vertical) : rien ne l'arrête.
+        Page beside = montage();
+        beside.objects[0].common.transform = translation(100, 140);
+        travel = stopAtBlockers(beside, {1}, {150, 0});
+        QCOMPARE(qRound(travel.x), 150);
+        QCOMPARE(qRound(travel.y), 0);
+    }
+
+    void secondDragStaysAtTheEdge()
+    {
+        // Après un arrêt bord contre bord, la position t·wanted peut recouvrir le bloquant d'un ulp : les
+        // glissers suivants dans le même sens ne le traversent pas, quelle que soit la position de départ.
+        for (int i = 0; i < 200; ++i) {
+            Page page = montage();
+            PageObject& shape = page.objects[0];
+            shape.common.transform = translation(100 + i * 0.0137, 100.3 + i * 0.011);
+            const PointF wanted{150.3 + i * 0.071, 0};
+            for (int drag = 0; drag < 3; ++drag) {
+                const PointF travel = stopAtBlockers(page, {1}, wanted);
+                shape.common.transform.dx += travel.x;
+                shape.common.transform.dy += travel.y;
+            }
+            const RectF box = boundsOnPage(page, shape);
+            QVERIFY2(box.x + box.width <= 200 + 1e-5, qPrintable(QStringLiteral("départ %1").arg(i)));
+        }
+    }
+
+    void eachMovingObjectStops()
+    {
+        // Deux objets soulevés de part et d'autre du bloquant 4 : la boîte de chacun compte, pas leur union
+        // (qui recouvre déjà le bloquant).
+        Page page = montage();
+        page.objects.push_back(shapeAt(6, 300, 100, 40, 40));
+        const PointF travel = stopAtBlockers(page, {1, 6}, {150, 0});
+        QCOMPARE(qRound(travel.x), 60);
+        QCOMPARE(qRound(travel.y), 0);
+    }
+
+    void fullTurnInOneDrag()
+    {
+        // Contrat : `fromDegrees` est le dernier angle permis (rendu au mouvement précédent). L'angle voulu
+        // est celui du pointeur, ramené dans ]-180, 180] : il saute de 360° au passage de ±180°. Le résultat
+        // reste continu avec le précédent.
+        Page page = montage();
+        setTurning(restrictionsOfShape(page), Turning::Clockwise);
+        const PageObject& shape = page.objects[0];
+        double allowed = 0;
+        for (int k = 1; k <= 36; ++k) {
+            allowed = allowedTurn(shape, allowed, std::remainder(k * 10.0, 360.0));
+            QCOMPARE(qRound(allowed), k * 10);
+        }
+        // À rebours (jusqu'à 170°), rien ne tourne.
+        allowed = 0;
+        for (int k = 1; k <= 17; ++k) {
+            allowed = allowedTurn(shape, allowed, -k * 10.0);
+            QCOMPARE(qRound(allowed), 0);
+        }
+        // Avec un pas de 45° : chaque angle permis est le multiple le plus proche, tour complet compris.
+        restrictionsOfShape(page).turnStep = 45;
+        allowed = 0;
+        for (int k = 1; k <= 36; ++k) {
+            allowed = allowedTurn(shape, allowed, std::remainder(k * 10.0, 360.0));
+            QCOMPARE(qRound(allowed), qRound(45 * std::round(k * 10 / 45.0)));
+        }
+    }
+
+    void counterClockwiseOnly()
+    {
+        Page page = montage();
+        setTurning(restrictionsOfShape(page), Turning::CounterClockwise);
+        const PageObject& shape = page.objects[0];
+        QCOMPARE(qRound(allowedTurn(shape, 10, 30)), 10);
+        QCOMPARE(qRound(allowedTurn(shape, 10, 0)), 0);
+        double allowed = 0;
+        for (int k = 1; k <= 36; ++k) {
+            allowed = allowedTurn(shape, allowed, std::remainder(-k * 10.0, 360.0));
+            QCOMPARE(qRound(allowed), -k * 10);
+        }
+    }
+
+    void pivotOnPoint()
+    {
+        Page page = montage();
+        restrictionsOfShape(page).pivot = Mark::Point;
+        restrictionsOfShape(page).pivotPoint = {10, 30}; // coordonnées de l'objet
+        PointF pivot = pivotOf(page, page.objects[0]);
+        QCOMPARE(qRound(pivot.x), 110);
+        QCOMPARE(qRound(pivot.y), 130);
+        restrictionsOfShape(page).pivot = Mark::BottomRight;
+        pivot = pivotOf(page, page.objects[0]);
+        QCOMPARE(qRound(pivot.x), 140);
+        QCOMPARE(qRound(pivot.y), 140);
     }
 };
 
