@@ -316,12 +316,13 @@ Outils de l'orchestrateur (hors dépôt, `~/pilotage-mac/`) : `wt-lot8.sh <id>` 
 **H8-10** (orchestrateur, 2026-11-06, L8-T7) — l'action d'objet `object.mirror-*` reflète en place (test du plan `mirrorIsOneStep`), selon le même axe que le menu (`-x` = haut/bas) ; la copie miroir reste au menu (`transform.mirror-*`). À confronter au PC.
 **H8-11** (orchestrateur, 2026-11-06, revue de L8-T7) — une action d'objet agit aussi sur un objet verrouillé (le verrou garde contre la main de l'utilisateur) ; règle unique pour toutes les actions. À confronter au PC.
 **H8-12** (orchestrateur, 2026-11-06, L8-T17) — le plan se contredit (L8-T14 ligne 2277 : `rule.keywords` ; L8-T17 : `ObjectCommon::keywords` du conteneur) : les mots **acceptés** par un conteneur sont `ContainerRule::keywords` (modèle, format, règles déjà livrés) ; `ObjectCommon::keywords` (lot 6) décrit l'objet et sert côté candidat. L8-T17 s'aligne. À confronter au PC.
+**H8-13** (orchestrateur, 2026-11-06, revue de L8-T29) — la politique de contenu du cadre web est tenue **par document** (origines saisies, déblocages, drapeau « reçu », dossier de ressources) : une origine saisie dans un document ne vaut jamais pour un autre. L8-T30 l'emploie ainsi.
 **H8-8** (orchestrateur, 2026-11-06) — `page.copy`, `page.cut` restent non restreignables (D10, défaut) ; la diffusion protégée (8b L8-T31) les refuse au titre de la copie, sans passer par `restrictable`.
 Suite de la tête 62fc5288 (L8-T0 à T6, C0 mergées ; orchestrateur, 2026-11-06) : 229/229, 0 avertissement. Deux agents écrivent en parallèle, le jeton sérialise les constructions (P = 1).
 Référence de la tête après L8-T21 : 245 tests (N8 + 37).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
 Tâche : L8-T24 — media : lecteur intégré (8b, V12) — depuis 2026-11-06
-Tâche : L8-T29 — ui : politique de contenu du cadre web (8b, V12) — depuis 2026-11-06
+Tâche : L8-T29 — ui : politique de contenu du cadre web (8b, V12, correctifs de la revue) — depuis 2026-11-06
 Tâche : L8-T16 — tools : sélection, limiteurs, rotation, conteneurs (V7) — depuis 2026-11-06
 
 ### Tâches du lot 8
