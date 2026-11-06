@@ -13,10 +13,12 @@
 // jamais
 //   ObjectChanged (patron de propertyedits.cpp, changeFor ; SetObjectActionsCommand).
 // - Une modification sur plusieurs objets est une seule étape : un undo les rétablit tous.
+#include <actcraft/actions/objectactions.h>
 #include <actcraft/core/containers.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/interactivity.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/restrictors.h>
 #include <actcraft/core/shapegeometry.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/ui/commands.h>
@@ -26,14 +28,17 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QCoreApplication>
+#include <QPointF>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
@@ -179,9 +184,30 @@ struct Fixture
     }
 };
 
+const ui::InteractivityRow* rowNamed(std::string_view key)
+{
+    for (const ui::InteractivityRow& row : ui::interactivityRows()) {
+        if (key == row.key) {
+            return &row;
+        }
+    }
+    return nullptr;
+}
+
+bool near(core::PointF a, core::PointF b)
+{
+    return std::abs(a.x - b.x) < 1e-6 && std::abs(a.y - b.y) < 1e-6;
+}
+
+QString text(core::PointF p)
+{
+    return QStringLiteral("(%1, %2)").arg(p.x).arg(p.y);
+}
+
 constexpr int kVertical = static_cast<int>(core::Travel::Vertical);
 constexpr int kAlongTrack = static_cast<int>(core::Travel::AlongTrack);
 constexpr int kFixed = static_cast<int>(core::Travel::Fixed);
+constexpr int kPointMark = static_cast<int>(core::Mark::Point);
 
 } // namespace
 
@@ -195,6 +221,10 @@ private slots:
     void fixedTravelGreysTheTrack();
     void keywordsFromLot6();
     void refusedWhileLocked();
+    void resizableInRestrictors();
+    void pointFollowsMark();
+    void actionsShowCatalogLabels();
+    void commandRefusals();
 };
 
 // Un objet média sélectionné : les cinq sections de l'interactivité suivent celles du lot 6, dans l'ordre.
@@ -288,6 +318,7 @@ void TstUiInteractivityprops::editIsOneStep()
     QCOMPARE(restrictionsOf(f.controller, free).travel, core::Travel::Free);
     QVERIFY(restrictionsOf(f.controller, free).movable);
     QVERIFY(!restrictionsOf(f.controller, blocked).movable);
+    QCOMPARE(f.seen.size(), std::size_t{2}); // un changement rétabli par objet
     QVERIFY(f.noRedraw());
 }
 
@@ -393,6 +424,148 @@ void TstUiInteractivityprops::refusedWhileLocked()
     f.model.setCommands(&f.commands);
     QVERIFY(f.set(QStringLiteral("travel"), kVertical));
     QCOMPARE(restrictionsOf(f.controller, shape).travel, core::Travel::Vertical);
+}
+
+// F-579, E6 : « Taille » dans Limiteurs, en choix « Libre » / « Bloquée », écrit Restrictions::resizable
+// (celui que lit core::sizeHandlesShown) ; une étape, sans redessin.
+void TstUiInteractivityprops::resizableInRestrictors()
+{
+    Fixture f;
+    const core::ObjectId shape = addObject(f.controller, shapeAt(100));
+    f.select({shape});
+
+    const QString key = QStringLiteral("resizable");
+    QCOMPARE(roleOf(f.model, key, ui::PropertyModel::SectionRole).toString(), QStringLiteral("restrictors"));
+    QCOMPARE(roleOf(f.model, key, ui::PropertyModel::EditorRole).toString(), QStringLiteral("choice"));
+    QCOMPARE(roleOf(f.model, key, ui::PropertyModel::ChoicesRole).toStringList(),
+             (QStringList{QStringLiteral("Libre"), QStringLiteral("Bloquée")}));
+    QVERIFY(roleOf(f.model, key, ui::kEnabledRole).toBool());
+    QCOMPARE(valueOf(f.model, key).toInt(), 0);
+
+    QVERIFY(f.set(key, 1));
+    QVERIFY(!restrictionsOf(f.controller, shape).resizable);
+    QVERIFY(!core::sizeHandlesShown(*objectOf(f.controller, shape)));
+    QCOMPARE(f.seen.size(), std::size_t{1});
+    QVERIFY(f.noRedraw());
+    QCOMPARE(valueOf(f.model, key).toInt(), 1);
+
+    f.seen.clear();
+    f.controller.undo();
+    f.settle();
+    QVERIFY(restrictionsOf(f.controller, shape).resizable);
+    QCOMPARE(valueOf(f.model, key).toInt(), 0);
+    QVERIFY(!f.set(key, 2)); // choix inconnu
+}
+
+// Point choisi : le pivot est en coordonnées de l'objet (restrictors.cpp, transform.map), le repère de pose
+// en coordonnées de page (landingPoint : le centre s'y pose). L'éditeur « point » n'est actif que sur « Point
+// choisi » ; passer à « Point choisi » pose le centre de l'objet dans la convention du champ. Un point laissé
+// à (0, 0) poserait l'objet dans le coin de la page ; un pivot écrit en coordonnées de page serait décalé par
+// la transformation de l'objet.
+void TstUiInteractivityprops::pointFollowsMark()
+{
+    Fixture f;
+    const core::ObjectId shape = addObject(f.controller, shapeAt(100));
+    f.select({shape});
+    QVERIFY(f.set(QStringLiteral("angle"), 30)); // repère de l'objet distinct de celui de la page
+    const core::PointF center =
+        core::boundsOnPage(f.controller.document().page(0), *objectOf(f.controller, shape)).center();
+
+    const QString pivotPoint = QStringLiteral("pivot-point");
+    const QString magnetPoint = QStringLiteral("magnet-point");
+    QCOMPARE(roleOf(f.model, pivotPoint, ui::PropertyModel::EditorRole).toString(), QStringLiteral("point"));
+    QCOMPARE(roleOf(f.model, magnetPoint, ui::PropertyModel::EditorRole).toString(), QStringLiteral("point"));
+    QCOMPARE(roleOf(f.model, pivotPoint, ui::PropertyModel::SectionRole).toString(),
+             QStringLiteral("rotation"));
+    QCOMPARE(roleOf(f.model, magnetPoint, ui::PropertyModel::SectionRole).toString(),
+             QStringLiteral("restrictors"));
+    // Les libellés disent la convention.
+    QVERIFY(roleOf(f.model, pivotPoint, ui::PropertyModel::LabelRole)
+                .toString()
+                .contains(QStringLiteral("objet")));
+    QVERIFY(roleOf(f.model, magnetPoint, ui::PropertyModel::LabelRole)
+                .toString()
+                .contains(QStringLiteral("page")));
+    QVERIFY(!roleOf(f.model, pivotPoint, ui::kEnabledRole).toBool());  // pivot au centre
+    QVERIFY(!roleOf(f.model, magnetPoint, ui::kEnabledRole).toBool()); // pas d'aimant
+
+    // Pivot : « Point choisi » sans saisie, le pivot reste au centre de l'objet sur la page.
+    QVERIFY(f.set(QStringLiteral("pivot"), kPointMark));
+    QVERIFY(roleOf(f.model, pivotPoint, ui::kEnabledRole).toBool());
+    {
+        const core::PageObject& turned = *objectOf(f.controller, shape);
+        const core::PointF onPage = turned.common.transform.map(turned.common.restrictions.pivotPoint);
+        QVERIFY2(near(onPage, center), qPrintable(text(onPage) + QStringLiteral(" ≠ ") + text(center)));
+        const core::PointF stored = turned.common.restrictions.pivotPoint;
+        QCOMPARE(valueOf(f.model, pivotPoint).toPointF(), QPointF(stored.x, stored.y));
+    }
+    QVERIFY(f.noRedraw());
+    QVERIFY(f.set(pivotPoint, QPointF(5, 6))); // saisie : écrite telle quelle, coordonnées de l'objet
+    QVERIFY(near(restrictionsOf(f.controller, shape).pivotPoint, {5, 6}));
+    QVERIFY(f.set(QStringLiteral("pivot"), static_cast<int>(core::Mark::TopLeft)));
+    QVERIFY(!roleOf(f.model, pivotPoint, ui::kEnabledRole).toBool());
+
+    // Repère de pose : « Point choisi » sans saisie, l'objet se pose sur son propre centre, jamais en (0, 0).
+    QVERIFY(f.set(QStringLiteral("magnet"), true));
+    QVERIFY(!roleOf(f.model, magnetPoint, ui::kEnabledRole).toBool()); // repère : centre
+    QVERIFY(f.set(QStringLiteral("magnet-mark"), kPointMark));
+    QVERIFY(roleOf(f.model, magnetPoint, ui::kEnabledRole).toBool());
+    const core::PointF landed =
+        core::landingPoint(f.controller.document().page(0), *objectOf(f.controller, shape), {500, 500});
+    QVERIFY2(near(landed, center), qPrintable(text(landed) + QStringLiteral(" ≠ ") + text(center)));
+    QCOMPARE(valueOf(f.model, magnetPoint).toPointF(), QPointF(center.x, center.y));
+    QVERIFY(f.set(magnetPoint, QPointF(400, 300))); // coordonnées de page
+    QVERIFY(
+        near(core::landingPoint(f.controller.document().page(0), *objectOf(f.controller, shape), {500, 500}),
+             {400, 300}));
+    QVERIFY(!f.set(magnetPoint, QStringLiteral("ailleurs"))); // valeur illisible
+    QVERIFY(f.noRedraw());
+}
+
+// Actions : la liste montre le libellé du catalogue (ObjectActionCatalog), jamais l'identifiant à nous.
+void TstUiInteractivityprops::actionsShowCatalogLabels()
+{
+    namespace actions = actcraft::actions;
+    actions::ObjectActionCatalog catalog;
+    QString error;
+    QVERIFY2(catalog.load(actions::defaultObjectActionsJson(), error), qPrintable(error));
+    const QList<const actions::ObjectActionInfo*> pages = catalog.inCategory(actions::ActionCategory::Page);
+    QVERIFY(!pages.isEmpty());
+    const actions::ObjectActionInfo& info = *pages.first();
+    QVERIFY(info.label != info.id); // sinon ce test ne distingue rien
+
+    Fixture f;
+    core::PageObject shape = shapeAt(100);
+    core::Action known;
+    known.catalogId = info.id.toStdString();
+    const core::Action unsupported; // lue d'un fichier, hors du catalogue
+    shape.common.actions = {known, unsupported};
+    const core::ObjectId id = addObject(f.controller, shape);
+    f.select({id});
+
+    const QStringList expected = {info.label, QStringLiteral("Action non prise en charge")};
+    QCOMPARE(valueOf(f.model, QStringLiteral("actions")).toStringList(), expected);
+}
+
+// Refus d'interactivityCommand, chacun avec son témoin accepté : nombre hors bornes (refusé, jamais écrêté),
+// objet visé parmi la sélection, chemin qui n'est ni un trait ni une ligne.
+void TstUiInteractivityprops::commandRefusals()
+{
+    Fixture f;
+    const core::ObjectId track = addObject(f.controller, strokeObject());
+    const core::ObjectId shape = addObject(f.controller, shapeAt(100));
+    const core::ObjectId other = addObject(f.controller, shapeAt(300));
+    const core::Page& page = f.controller.document().page(0);
+    const ui::InteractivityRow* tolerance = rowNamed("tolerance");
+    const ui::InteractivityRow* path = rowNamed("track");
+    QVERIFY(tolerance != nullptr && path != nullptr);
+
+    QVERIFY(ui::interactivityCommand(page, 0, {shape}, *tolerance, QVariant(1001.0)) == nullptr);
+    QVERIFY(ui::interactivityCommand(page, 0, {shape}, *tolerance, QVariant(1000.0)) != nullptr);
+    QVERIFY(ui::interactivityCommand(page, 0, {shape}, *path, QVariant(qulonglong{shape})) == nullptr);
+    QVERIFY(ui::interactivityCommand(page, 0, {shape, other}, *path, QVariant(qulonglong{other})) == nullptr);
+    QVERIFY(ui::interactivityCommand(page, 0, {shape}, *path, QVariant(qulonglong{other})) == nullptr);
+    QVERIFY(ui::interactivityCommand(page, 0, {shape}, *path, QVariant(qulonglong{track})) != nullptr);
 }
 
 QTEST_MAIN(TstUiInteractivityprops)
