@@ -32,6 +32,8 @@ class TstCoreObjectActions : public QObject
         Document d(1024, 768);
         Shape s;
         s.bounds = {0, 0, 100, 50};
+        s.outlineWidth = 0; // boundsOnPage compte l'épaisseur (edits.h) : boîte = 100 × 50 exactement
+
         PageObject o{s};
         o.common.id = 1;
         o.common.transform = translated(200, 100);
@@ -96,11 +98,14 @@ private slots:
         Document d = page();
         auto c = objectActionCommand(d, "object.mirror-x", "{}", ActionContext{0, 1, 0, 1024, 768});
         QVERIFY(c);
-        // Une seule étape, par le chemin des transformations de la sélection (A10), pas une commande de plus.
-        QVERIFY(dynamic_cast<const TransformObjectsCommand*>(c.get()));
         Changes changes;
         c->redo(d, changes);
-        QVERIFY(fingerprint(d) != fingerprint(page()));
+        // Reflet en place, en une étape, par le chemin des transformations (A10) et non par une commande de
+        // plus : la boîte ne bouge pas, la largeur est renversée.
+        QVERIFY(dynamic_cast<const TransformObjectsCommand*>(c.get()));
+        QCOMPARE(d.page(0).objects.size(), std::size_t{1});
+        QCOMPARE(qRound(box(d).x), 200);
+        QVERIFY(d.page(0).objects[0].common.transform.m11 < 0);
         c->undo(d, changes);
         QCOMPARE(fingerprint(d), fingerprint(page()));
     }
