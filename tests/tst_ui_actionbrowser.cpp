@@ -57,7 +57,8 @@ std::vector<core::ObjectId> idsOnPage(const ui::DocumentController& controller)
 
 core::ObjectId addShape(ui::DocumentController& controller, double x)
 {
-    core::PageObject object = core::makeShapeObject("rectangle", core::RectF{x, 100, 80, 60}, core::ShapeStyle{});
+    core::PageObject object =
+        core::makeShapeObject("rectangle", core::RectF{x, 100, 80, 60}, core::ShapeStyle{});
     object.common.layer = core::Layer::Middle;
     const std::vector<core::ObjectId> before = idsOnPage(controller);
     controller.execute(std::make_unique<core::AddObjectCommand>(0, std::move(object)));
@@ -79,8 +80,7 @@ const core::PageObject* objectOf(const ui::DocumentController& controller, core:
     return nullptr;
 }
 
-template <typename T>
-QString text(const T& value)
+template <typename T> QString text(const T& value)
 {
     if constexpr (std::is_convertible_v<T, std::string>) {
         return QString::fromStdString(std::string(value));
@@ -122,8 +122,9 @@ const actions::ObjectActionCatalog& catalog()
 
 QString firstTargetAction()
 {
-    for (const actions::ActionCategory category : {actions::ActionCategory::Command, actions::ActionCategory::Page,
-                                                   actions::ActionCategory::Object, actions::ActionCategory::Document}) {
+    for (const actions::ActionCategory category :
+         {actions::ActionCategory::Command, actions::ActionCategory::Page, actions::ActionCategory::Object,
+          actions::ActionCategory::Document}) {
         for (const actions::ObjectActionInfo* info : catalog().inCategory(category)) {
             if (info->target) {
                 return info->id;
@@ -273,20 +274,22 @@ private slots:
     void categoriesInOrder()
     {
         Fixture f;
-        QCOMPARE(f.model.categoryLabels(), (QStringList{QStringLiteral("Toutes"), QStringLiteral("Commandes"),
-                                                        QStringLiteral("Pages"), QStringLiteral("Objets"),
-                                                        QStringLiteral("Document")}));
+        QCOMPARE(f.model.categoryLabels(),
+                 (QStringList{QStringLiteral("Toutes"), QStringLiteral("Commandes"), QStringLiteral("Pages"),
+                              QStringLiteral("Objets"), QStringLiteral("Document")}));
         QCOMPARE(f.model.category(), 0);
         const int all = f.model.rowCount();
         QVERIFY(all > 0);
         QCOMPARE(qsizetype(all), catalog().size());
         int sum = 0;
-        const actions::ActionCategory order[] = {actions::ActionCategory::Command, actions::ActionCategory::Page,
-                                                 actions::ActionCategory::Object, actions::ActionCategory::Document};
+        const actions::ActionCategory order[] = {
+            actions::ActionCategory::Command, actions::ActionCategory::Page, actions::ActionCategory::Object,
+            actions::ActionCategory::Document};
         for (int category = 1; category <= 4; ++category) {
             f.model.setCategory(category);
             QCOMPARE(f.model.category(), category);
-            const QList<const actions::ObjectActionInfo*> expected = catalog().inCategory(order[category - 1]);
+            const QList<const actions::ObjectActionInfo*> expected =
+                catalog().inCategory(order[category - 1]);
             QCOMPARE(f.model.rowCount(), int(expected.size()));
             for (int row = 0; row < f.model.rowCount(); ++row) {
                 QCOMPARE(idAt(f.model, row), expected[row]->id);
@@ -353,7 +356,8 @@ private slots:
         QVERIFY(f.model.removeExisting());
         QVERIFY(actionsOf(f.controller, f.shape1).isEmpty());
         QVERIFY(actionsOf(f.controller, f.shape2).isEmpty());
-        QCOMPARE(actionsOf(f.controller, f.shape3), QStringList{QStringLiteral("page.next")}); // hors sélection
+        QCOMPARE(actionsOf(f.controller, f.shape3),
+                 QStringList{QStringLiteral("page.next")}); // hors sélection
         QVERIFY2(v.cacheUntouchedSince(refreshes), "retirer les actions a redessiné le cache");
 
         f.controller.undo(); // une seule étape pour les deux objets
@@ -389,7 +393,8 @@ private slots:
         f.model.setCurrentId(targeted);
         const QVariantList targetedRows = f.model.propertyRows();
         QCOMPARE(targetedRows.size(), catalog().find(targeted)->parameters.size() + 1);
-        QCOMPARE(targetedRows.last().toMap().value(QStringLiteral("name")).toString(), QStringLiteral("target"));
+        QCOMPARE(targetedRows.last().toMap().value(QStringLiteral("name")).toString(),
+                 QStringLiteral("target"));
         QCOMPARE(targetedRows.last().toMap().value(QStringLiteral("label")).toString(),
                  QStringLiteral("Objet visé"));
 
