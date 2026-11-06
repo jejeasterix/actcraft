@@ -1,8 +1,8 @@
 // Exécuteur d'actions (lot 8, L8-T9) : une action s'exécute au relâché d'un clic, jamais à l'appui ni pendant
 // un contact ; un glisser, un clic droit ou le mode conception laissent tout à l'outil de sélection.
 #include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
-#include <actcraft/input/sample.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/liftlayeritem.h>
 #include <actcraft/tools/tool.h>
@@ -114,7 +114,7 @@ double roundX(const core::Document& document)
 {
     for (const core::PageObject& o : document.page(0).objects) {
         if (o.common.id == kRound) {
-            return std::get<core::Shape>(core::body(o)).bounds.x;
+            return core::boundsOnPage(document.page(0), o).x;
         }
     }
     return -1;
@@ -162,26 +162,12 @@ struct ViewMount
     }
 };
 
-// Appui gauche tel que le filtre de l'application le voit (ToolHost::armGate), avant que la vue n'en fasse
-// un échantillon.
-void armAt(const ui::PageView& view, QPointF page)
+// Point de la fenêtre (scène) sous un point de page : le geste réel passe par le filtre de l'hôte
+// (ToolHost::armGate, fenêtre de la vue seulement), puis par PageView::currentTool, donc
+// activeTool()->onSample.
+QPoint windowPoint(const ui::PageView& view, QPointF page)
 {
-    const QPointF scene = view.pageToScene(page);
-    QMouseEvent press(QEvent::MouseButtonPress, scene, scene, scene, Qt::LeftButton, Qt::LeftButton,
-                      Qt::NoModifier);
-    QObject receiver;
-    QCoreApplication::sendEvent(&receiver, &press);
-}
-
-// Échantillon en coordonnées de page, comme ToolDispatch le rend à l'outil actif.
-input::Sample sampleAt(QPointF page, input::Phase phase)
-{
-    input::Sample sample{};
-    sample.x = static_cast<decltype(sample.x)>(page.x());
-    sample.y = static_cast<decltype(sample.y)>(page.y());
-    sample.phase = phase;
-    sample.pointer = 0; // souris
-    return sample;
+    return view.pageToScene(page).toPoint();
 }
 
 } // namespace
@@ -643,8 +629,9 @@ void TstUiActionrunner::textActionRemeasuresBounds()
     QCOMPARE(undone->bounds.width, before);
 }
 
-// Constat bloquant de la revue : à l'appui, la porte se désarmait (drop appelait done) ; le relâché allait à
-// la sélection nue, l'exécuteur ne le voyait jamais. Sous ce patron, l'étiquette reste visible.
+// Constat bloquant de la revue : à l'appui, la porte se désarmait (drop appelait done) ; activeTool() rendait
+// la sélection nue, le relâché ne passait jamais par l'exécuteur. Sous ce patron, l'étiquette reste visible
+// et l'outil actif, après l'appui, est l'outil nu.
 void TstUiActionrunner::gateClickRunsThroughActiveTool()
 {
     load(documentWith({action("object.toggle-hidden", kLabel)}));
@@ -656,19 +643,23 @@ void TstUiActionrunner::gateClickRunsThroughActiveTool()
     tools.setActionRunner(m_runner.get());
     tools.selectObjects({}); // l'outil de sélection
     QCOMPARE(tools.currentTool(), QStringLiteral("select"));
+    const tools::Tool* bare = tools.activeTool();
+    QVERIFY(bare != nullptr);
+    const QPoint at = windowPoint(*mount.view, kOnRound);
     m_runner->setContactActive(true);
-    armAt(*mount.view, kOnRound);
-    QVERIFY(tools.activeTool() != nullptr);
-    tools.activeTool()->onSample(sampleAt(kOnRound, input::Phase::Press));
-    tools.activeTool()->onSample(sampleAt(kOnRound, input::Phase::Release));
+    QTest::mousePress(mount.window, Qt::LeftButton, Qt::NoModifier, at);
+    QVERIFY2(tools.activeTool() != bare, "le geste armé reste à la porte de l'exécuteur");
+    QTest::mouseRelease(mount.window, Qt::LeftButton, Qt::NoModifier, at);
+    QCOMPARE(tools.activeTool(), bare); // fin du geste : désarmée
     m_runner->setContactActive(false);
     QCoreApplication::processEvents();
     QVERIFY2(hidden(kLabel), "le clic exécute l'action");
+    QCOMPARE(tools.selectionCount(), 0); // ni l'appui ni le relâché ne sont allés à la sélection
     tools.setActionRunner(nullptr);
 }
 
 // Même constat : les déplacements allaient à une sélection qui n'avait pas reçu l'appui ; le glisser ne
-// démarrait pas. Sous ce patron, le rond reste à 100.
+// démarrait pas. Sous ce patron, le rond reste en place.
 void TstUiActionrunner::gateDragMovesWithoutRunning()
 {
     load(documentWith({action("object.toggle-hidden", kLabel)}));
@@ -680,20 +671,21 @@ void TstUiActionrunner::gateDragMovesWithoutRunning()
     tools.setActionRunner(m_runner.get());
     tools.selectObjects({});
     QCOMPARE(tools.currentTool(), QStringLiteral("select"));
-    QCOMPARE(roundX(m_controllerOwner->document()), 100.0);
+    const double before = roundX(m_controllerOwner->document());
+    const QPoint at = windowPoint(*mount.view, kOnRound);
+    const QPoint end = windowPoint(*mount.view, kOnRound + QPointF(60, 0));
     m_runner->setContactActive(true);
-    armAt(*mount.view, kOnRound);
-    QVERIFY(tools.activeTool() != nullptr);
-    const QPointF end = kOnRound + QPointF(30, 0);
-    tools.activeTool()->onSample(sampleAt(kOnRound, input::Phase::Press));
-    tools.activeTool()->onSample(sampleAt(kOnRound + QPointF(10, 0), input::Phase::Move));
-    tools.activeTool()->onSample(sampleAt(kOnRound + QPointF(20, 0), input::Phase::Move));
-    tools.activeTool()->onSample(sampleAt(end, input::Phase::Move));
-    tools.activeTool()->onSample(sampleAt(end, input::Phase::Release));
+    QTest::mousePress(mount.window, Qt::LeftButton, Qt::NoModifier, at);
+    for (int dx = 10; dx <= end.x() - at.x(); dx += 10) {
+        QTest::mouseMove(mount.window, at + QPoint(dx, 0));
+    }
+    QTest::mouseMove(mount.window, end);
+    QTest::mouseRelease(mount.window, Qt::LeftButton, Qt::NoModifier, end);
     m_runner->setContactActive(false);
     QCoreApplication::processEvents();
     QVERIFY(!hidden(kLabel)); // aucune action
-    QVERIFY2(roundX(m_controllerOwner->document()) > 110.0, "le glisser déplace le rond");
+    QVERIFY2(roundX(m_controllerOwner->document()) > before + 30, "le glisser déplace le rond");
+    QVERIFY(m_controllerOwner->canUndo()); // le déplacement, seule étape
     tools.setActionRunner(nullptr);
 }
 

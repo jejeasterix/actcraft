@@ -171,7 +171,8 @@ void writeShapeSettings(const QString& file, const tools::ShapeSettings& setting
 // d'abord à ActionRunner::press ; pris, il est retenu avec les déplacements que l'exécuteur prend (moins de 4
 // px) ; au premier refus (un glisser), l'outil reçoit l'appui retenu, les déplacements retenus, puis la suite
 // : aucun échantillon perdu. Le relâché d'un clic va à ActionRunner::release, qui exécute après la retombée
-// du contact, jamais ici. Fin du geste : `done` désarme, activeTool() rend de nouveau l'outil de sélection.
+// du contact, jamais ici. Fin du geste (clic, glisser rendu, appui refusé, annulation) : `done` désarme,
+// activeTool() rend de nouveau l'outil de sélection ; jamais à l'appui, sinon la suite irait à l'outil nu.
 class ActionGate final : public tools::Tool
 {
 public:
@@ -208,7 +209,7 @@ public:
         const bool mine = m_owning && sample.pointer == m_pointer;
         switch (sample.phase) {
         case input::Phase::Press:
-            drop();
+            reset(); // sans `done` : le geste qui commence est celui que le filtre vient d'armer
             if (m_runner->press(point, Qt::LeftButton)) {
                 m_owning = true;
                 m_pointer = sample.pointer;
@@ -242,13 +243,17 @@ public:
     }
 
 private:
-    void drop()
+    void reset() // abandonne un appui retenu ; la porte reste armée
     {
         if (m_owning) {
             m_runner->cancel();
         }
         m_owning = false;
         m_held.clear();
+    }
+    void drop() // fin du geste : désarme
+    {
+        reset();
         m_done();
     }
     void replay() // glisser : la suite va directement à l'outil (désarmé)
