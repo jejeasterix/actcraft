@@ -1,6 +1,7 @@
 #include "actcraft/media/player.h"
 
 #include <QAudioOutput>
+#include <QDesktopServices>
 #include <QFileInfo>
 #include <QMediaPlayer>
 #include <QUrl>
@@ -115,8 +116,7 @@ void Player::fallBack(int track)
     const QString path = channel.path;
     channel.path.clear(); // l'erreur et l'état « illisible » arrivent tous deux : un seul repli
     emit fellBack(path);
-    if (m_fallback)
-        m_fallback(path);
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path)); // MUTATION 1
 }
 
 } // namespace actcraft::media
