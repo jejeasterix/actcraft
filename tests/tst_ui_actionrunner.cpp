@@ -8,25 +8,38 @@
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/linklauncher.h>
 #include <actcraft/ui/pagehistory.h>
+#include <actcraft/ui/toolhost.h>
 
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QTextDocument>
+#include <QTextDocumentFragment>
 #include <QtTest>
 
+#include <cmath>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
 using namespace actcraft;
 
+namespace actcraft::ui {
+// Fonctions libres de ui/src/textediting.cpp (comme tst_ui_text) : le document isolé du peintre et de la
+// mesure.
+QString safeTextHtml(const QString& html, const std::function<void(const QUrl&, const QVariant&)>& observer);
+std::unique_ptr<QTextDocument>
+isolatedTextDocument(std::function<void(const QUrl&, const QVariant&)> observer);
+} // namespace actcraft::ui
+
 namespace {
 
 constexpr core::ObjectId kRound = 1;
 constexpr core::ObjectId kLabel = 2;
-const QPointF kOnRound(150, 150);  // rond 1 : 100…200
-const QPointF kOnLabel(430, 120);  // étiquette 2 : 400…480 × 100…140
+const QPointF kOnRound(150, 150); // rond 1 : 100…200
+const QPointF kOnLabel(430, 120); // étiquette 2 : 400…480 × 100…140
 const QPointF kNowhere(900, 700);
 
 core::Action action(const std::string& catalogId, core::ObjectId target = 0,
@@ -42,7 +55,7 @@ core::Action action(const std::string& catalogId, core::ObjectId target = 0,
 core::PageObject roundObject(std::vector<core::Action> actions)
 {
     core::Shape shape;
-    shape.kind = core::ShapeKind::Ellipse;
+    shape.kind = core::ShapeKind::Rectangle;
     shape.bounds = core::RectF{100, 100, 100, 100};
     core::PageObject object{shape};
     object.common.id = kRound;
@@ -54,13 +67,21 @@ core::PageObject labelObject(const std::string& text, std::vector<core::Action> 
 {
     core::Text label;
     label.bounds = core::RectF{400, 100, 80, 40};
-    core::TextSpan span;
-    span.text = text;
-    label.spans.push_back(span);
+    label.html = text;
     core::PageObject object{label};
     object.common.id = kLabel;
     object.common.actions = std::move(actions);
     return object;
+}
+
+// Emprise mesurée comme le peintre la dessine (marge 0, largeur naturelle + 1).
+core::RectF measured(const QString& html, double x, double y)
+{
+    std::unique_ptr<QTextDocument> doc = ui::isolatedTextDocument({});
+    doc->setHtml(ui::safeTextHtml(html, {}));
+    const double width = std::ceil(doc->idealWidth()) + 1;
+    doc->setTextWidth(width);
+    return core::RectF{x, y, width, std::ceil(doc->size().height())};
 }
 
 // Une page : le rond 1 porteur des actions, l'étiquette 2 ; `pages` pages en tout.
@@ -71,7 +92,7 @@ core::Document documentWith(std::vector<core::Action> roundActions, int pages = 
     document.page(0).objects.push_back(roundObject(std::move(roundActions)));
     document.page(0).objects.push_back(labelObject("Étiquette", std::move(labelActions)));
     for (int i = 1; i < pages; ++i) {
-        document.addPage();
+        document.insertPage(document.pageCount(), core::Page{});
     }
     return document;
 }
@@ -105,6 +126,7 @@ private slots:
     void editActionsTriggerEditCommands();
     void commandWithoutHandlerIsUnsupported();
     void textActionRemeasuresBounds();
+    void alignGroupAndSelectAllUseRegistry();
 
 private:
     void load(core::Document document);
@@ -152,6 +174,9 @@ void TstUiActionrunner::init()
         return true;
     });
     m_commands->setNativeHandler(QStringLiteral("tool.pen"), [this](const QVariant&) { ++m_penCalls; });
+    // Gestionnaires de Main.qml pour la navigation des pages.
+    m_commands->setNativeHandler(QStringLiteral("page.next"),
+                                 [this](const QVariant&) { m_controllerOwner->nextPage(); });
     m_runner = std::make_unique<ui::ActionRunner>();
     m_runner->setCommands(m_commands.get());
     m_runner->setDocument(m_controllerOwner.get());
@@ -189,7 +214,7 @@ const core::PageObject* TstUiActionrunner::object(core::ObjectId id, std::size_t
 bool TstUiActionrunner::hidden(core::ObjectId id) const
 {
     const core::PageObject* o = object(id);
-    return o != nullptr && o->common.hidden;
+    return o != nullptr && !o->common.visible;
 }
 
 void TstUiActionrunner::click(QPointF point, Qt::MouseButton button)
@@ -204,8 +229,8 @@ void TstUiActionrunner::click(QPointF point, Qt::MouseButton button)
 core::Document TstUiActionrunner::linkedDocument() const
 {
     core::Document document(1024, 768);
-    document.page(0).objects.push_back(roundObject(
-        {action("document.open-website", 0, R"({"url":"https://example.org/"})")}));
+    document.page(0).objects.push_back(
+        roundObject({action("document.open-website", 0, R"({"url":"https://example.org/"})")}));
     return document;
 }
 
@@ -232,7 +257,7 @@ void TstUiActionrunner::dragDoesNotRun()
     m_runner->setContactActive(true);
     QVERIFY(m_runner->press(kOnRound, Qt::LeftButton));
     QVERIFY(!hidden(kLabel));
-    QVERIFY(m_runner->move(kOnRound + QPointF(2, 2))); // sous 4 px : l'échantillon reste au runner
+    QVERIFY(m_runner->move(kOnRound + QPointF(2, 2)));   // sous 4 px : l'échantillon reste au runner
     QVERIFY(!m_runner->move(kOnRound + QPointF(10, 0))); // au-delà : rendu à l'outil
     QVERIFY(!m_runner->move(kOnRound + QPointF(20, 0)));
     QVERIFY(!m_runner->release(kOnRound + QPointF(20, 0)));
@@ -258,7 +283,7 @@ void TstUiActionrunner::rightClickSelectsWithoutRunning()
 void TstUiActionrunner::designModeSelectsInstead()
 {
     load(documentWith({action("object.toggle-hidden", kLabel)}));
-    m_design->setSetting(ui::DesignMode::DisableActions, true);
+    m_design->setSetting(ui::DesignMode::Setting::DisableActions, true);
     m_design->setActive(true);
     QVERIFY(m_design->actionsDisabled());
     m_runner->setContactActive(true);
@@ -278,7 +303,7 @@ void TstUiActionrunner::lockedCommandActionRefused()
     load(documentWith({action("command.tool.pen")}));
     click(kOnRound);
     QCOMPARE(m_penCalls, 1); // déverrouillé : la commande passe par le registre
-    m_commands->registry().setLocked(true);
+    m_commands->setLocked(true);
     QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
     click(kOnRound);
     QCOMPARE(m_penCalls, 1);
@@ -331,7 +356,7 @@ void TstUiActionrunner::neverDuringContact()
 void TstUiActionrunner::hiddenObjectStillClickable()
 {
     core::Document document = documentWith({action("object.toggle-hidden", kLabel)});
-    document.page(0).objects[0].common.hidden = true;
+    document.page(0).objects[0].common.visible = false;
     load(std::move(document));
     click(kOnRound);
     QVERIFY(hidden(kLabel));
@@ -438,17 +463,58 @@ void TstUiActionrunner::refusedWithoutCommands()
 // Copier, couper, coller ne sont pas des actions du moteur : l'exécuteur déclenche edit.* du registre.
 void TstUiActionrunner::editActionsTriggerEditCommands()
 {
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    tools.setActionRunner(m_runner.get());
     QStringList fired;
-    for (const QString& id : {QStringLiteral("edit.copy"), QStringLiteral("edit.cut"), QStringLiteral("edit.paste")}) {
-        m_commands->setNativeHandler(id, [&fired, id](const QVariant&) { fired.append(id); });
+    QList<int> selected; // sélection au moment de la commande : la cible seule
+    for (const QString& id :
+         {QStringLiteral("edit.copy"), QStringLiteral("edit.cut"), QStringLiteral("edit.paste")}) {
+        m_commands->setNativeHandler(id, [&, id](const QVariant&) {
+            fired.append(id);
+            selected.append(tools.selectionCount());
+        });
     }
     load(documentWith({action("object.copy", kLabel), action("object.cut", kLabel), action("object.paste")}));
     click(kOnRound);
     QCOMPARE(fired, (QStringList{QStringLiteral("edit.copy"), QStringLiteral("edit.cut"),
                                  QStringLiteral("edit.paste")}));
+    QCOMPARE(selected.at(0), 1);
+    QCOMPARE(selected.at(1), 1);
+    QCOMPARE(tools.currentTool(), QStringLiteral("select"));
+    tools.setActionRunner(nullptr);
 }
 
-// H8-7 : une commande déclarée sans gestionnaire sur la tête (lot 7 absent) est une action non prise en charge.
+// Aligner, grouper, tout sélectionner : aucune table du moteur, les commandes existantes du registre.
+void TstUiActionrunner::alignGroupAndSelectAllUseRegistry()
+{
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    tools.setActionRunner(m_runner.get());
+    QStringList fired;
+    for (const QString& id :
+         {QStringLiteral("align.left"), QStringLiteral("object.group"), QStringLiteral("edit.select-all")}) {
+        m_commands->setNativeHandler(id, [&fired, id](const QVariant&) { fired.append(id); });
+    }
+    load(documentWith({action("object.align-left", kLabel), action("object.toggle-group", kLabel),
+                       action("object.select-all")}));
+    QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
+    click(kOnRound);
+    QCOMPARE(fired, (QStringList{QStringLiteral("align.left"), QStringLiteral("object.group"),
+                                 QStringLiteral("edit.select-all")}));
+    QCOMPARE(refused.size(), 0);
+    // Sans hôte des outils, la cible ne peut être sélectionnée : non prise en charge, rien de déclenché.
+    tools.setActionRunner(nullptr);
+    fired.clear();
+    click(kOnRound);
+    QCOMPARE(fired, QStringList{QStringLiteral("edit.select-all")});
+    QCOMPARE(refused.size(), 2);
+}
+
+// H8-7 : une commande déclarée sans gestionnaire sur la tête (lot 7 absent) est une action non prise en
+// charge.
 void TstUiActionrunner::commandWithoutHandlerIsUnsupported()
 {
     load(documentWith({action("command.present.curtain"), action("object.toggle-hidden", kLabel)}));
@@ -458,22 +524,30 @@ void TstUiActionrunner::commandWithoutHandlerIsUnsupported()
     QVERIFY(hidden(kLabel)); // l'action suivante tourne quand même
 }
 
-// « 9 » + 1 → « 10 » : l'emprise du texte est remesurée (le peintre découpe le texte à son cadre), dans la même
-// étape d'annulation que la valeur.
+// « 9 » + 1 → « 10 » : l'emprise du texte est remesurée (le peintre découpe le texte à son cadre), dans la
+// même étape d'annulation que la valeur.
 void TstUiActionrunner::textActionRemeasuresBounds()
 {
-    core::Document document = documentWith({action("object.text-add", kLabel, R"({"value":1})")});
-    core::Text& label = std::get<core::Text>(document.page(0).objects[1]);
-    label.spans.front().text = "9";
+    core::Document document = documentWith({action("object.text-value", kLabel, R"({"value":1})")});
+    auto* label = std::get_if<core::Text>(&core::body(document.page(0).objects[1]));
+    QVERIFY(label != nullptr);
+    label->html = "9";
+    label->bounds = measured(QStringLiteral("9"), 400, 100); // cadre juste à « 9 »
+    const double before = label->bounds.width;
     load(std::move(document));
-    const double before = std::get<core::Text>(*object(kLabel)).bounds.width;
     click(kOnRound);
-    const core::Text& after = std::get<core::Text>(*object(kLabel));
-    QCOMPARE(QString::fromStdString(after.spans.front().text), QStringLiteral("10"));
-    QVERIFY(after.bounds.width > before);
-    m_controllerOwner->undo();
+    const auto* after = std::get_if<core::Text>(&core::body(*object(kLabel)));
+    QVERIFY(after != nullptr);
+    QCOMPARE(QTextDocumentFragment::fromHtml(QString::fromStdString(after->html)).toPlainText().trimmed(),
+             QStringLiteral("10"));
+    const core::RectF ten = measured(QString::fromStdString(after->html), 400, 100);
+    QVERIFY2(after->bounds.width > before, "emprise élargie");
+    QVERIFY(after->bounds.width >= ten.width); // « 10 » entier dans son cadre
+    QVERIFY(after->bounds.height >= ten.height);
+    m_controllerOwner->undo(); // valeur et remesure : une seule étape
     QVERIFY(!m_controllerOwner->canUndo());
-    QCOMPARE(std::get<core::Text>(*object(kLabel)).bounds.width, before);
+    const auto* undone = std::get_if<core::Text>(&core::body(*object(kLabel)));
+    QCOMPARE(undone->bounds.width, before);
 }
 
 QTEST_MAIN(TstUiActionrunner)

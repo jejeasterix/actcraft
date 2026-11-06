@@ -31,6 +31,7 @@
 #include <QVariantList>
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -163,6 +164,101 @@ void writeShapeSettings(const QString& file, const tools::ShapeSettings& setting
 
 } // namespace
 
+// L8-T9 : outil de sélection précédé de l'exécuteur d'actions. L'appui va d'abord à ActionRunner::press ;
+// pris, il est retenu avec les déplacements que l'exécuteur prend (moins de 4 px) ; au premier refus (un
+// glisser), l'outil reçoit l'appui retenu, les déplacements retenus, puis la suite : aucun échantillon perdu.
+// Le relâché d'un clic va à ActionRunner::release, qui exécute après la retombée du contact, jamais ici.
+class ActionGate final : public tools::Tool
+{
+public:
+    ActionGate(tools::Tool& inner, ActionRunner& runner) : m_inner(&inner), m_runner(&runner) {}
+
+    tools::Tool* inner() const noexcept { return m_inner; }
+    ActionRunner* runner() const noexcept { return m_runner; }
+
+    QString id() const override { return m_inner->id(); }
+    void activate() override { m_inner->activate(); }
+    void deactivate() override
+    {
+        drop();
+        m_inner->deactivate();
+    }
+    bool isBusy() const noexcept override { return m_owning || m_inner->isBusy(); }
+    void cancel() override
+    {
+        drop();
+        m_inner->cancel();
+    }
+    void abandon() override
+    {
+        drop();
+        m_inner->abandon();
+    }
+    bool onKey(int key, int modifiers) override { return m_inner->onKey(key, modifiers); }
+
+    void onSample(const input::Sample& sample) override
+    {
+        const QPointF point(sample.x, sample.y);
+        const bool mine = m_owning && sample.pointer == m_pointer;
+        switch (sample.phase) {
+        case input::Phase::Press:
+            drop();
+            if (m_runner->press(point, Qt::LeftButton)) {
+                m_owning = true;
+                m_pointer = sample.pointer;
+                m_held.push_back(sample);
+                return;
+            }
+            break;
+        case input::Phase::Move:
+            if (mine) {
+                if (m_runner->move(point)) {
+                    m_held.push_back(sample);
+                    return;
+                }
+                replay();
+            }
+            break;
+        case input::Phase::Release:
+            if (mine) {
+                m_owning = false;
+                if (m_runner->release(point)) {
+                    m_held.clear(); // clic : ni l'appui ni le relâché ne vont à l'outil
+                    return;
+                }
+                replay();
+            }
+            break;
+        }
+        m_inner->onSample(sample);
+    }
+
+private:
+    void drop()
+    {
+        if (m_owning) {
+            m_runner->cancel();
+        }
+        m_owning = false;
+        m_held.clear();
+    }
+    void replay()
+    {
+        m_owning = false;
+        const std::vector<input::Sample> held = std::move(m_held);
+        m_held.clear();
+        for (const input::Sample& sample : held) {
+            m_inner->onSample(sample);
+        }
+    }
+
+    tools::Tool* m_inner;
+    ActionRunner* m_runner;
+    std::vector<input::Sample> m_held;
+    std::uint64_t m_pointer = 0;
+    bool m_owning = false;
+};
+
 ToolHost::ToolHost(QObject* parent) : QObject(parent), m_selectionFrame(hiddenFrame()) {}
 
 ToolHost::~ToolHost()
@@ -170,6 +266,7 @@ ToolHost::~ToolHost()
     if (m_controller && m_observer != 0) {
         m_controller->removeChangeObserver(m_observer); // l'observateur tient `this`
     }
+    m_gate.reset();     // il regarde l'outil de sélection
     m_adapters.reset(); // les outils avant les adaptateurs qu'ils regardent
 }
 
@@ -684,6 +781,9 @@ void ToolHost::cancelGesture()
         return;
     }
     tools::Tool* tool = existingTool(m_user->currentTool());
+    if (m_gate && tool != nullptr && m_gate->inner() == tool) {
+        tool = m_gate.get(); // un appui retenu par l'exécuteur est abandonné avec l'outil
+    }
     if (tool && tool->isBusy()) {
         tool->cancel();
     }
@@ -691,7 +791,30 @@ void ToolHost::cancelGesture()
 
 tools::Tool* ToolHost::activeTool(input::UserId) const
 {
-    return toolFor(currentTool());
+    tools::Tool* tool = toolFor(currentTool());
+    if (tool == nullptr || !m_actionRunner || currentTool() != QLatin1String("select")) {
+        return tool;
+    }
+    if (!m_gate || m_gate->inner() != tool || m_gate->runner() != m_actionRunner.data()) {
+        m_gate = std::make_unique<ActionGate>(*tool, *m_actionRunner);
+    }
+    return m_gate.get();
+}
+
+void ToolHost::setActionRunner(ActionRunner* runner)
+{
+    if (runner == m_actionRunner) {
+        return;
+    }
+    cancelGesture();
+    if (m_actionRunner) {
+        m_actionRunner->setTools(nullptr);
+    }
+    m_gate.reset();
+    m_actionRunner = runner;
+    if (runner != nullptr) {
+        runner->setTools(this);
+    }
 }
 
 tools::UserState& ToolHost::user(input::UserId)
