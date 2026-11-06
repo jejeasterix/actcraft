@@ -20,8 +20,8 @@
 using namespace actcraft;
 
 namespace {
-// Empreinte SHA-256 (hexadécimale) du paperboard n° 13, calculée sur le PC et à renseigner ici ; vide : le test
-// se saute. Le fichier n'est jamais nommé ni copié.
+// Empreinte SHA-256 (hexadécimale) du paperboard n° 13, calculée sur le PC et à renseigner ici ; vide : le
+// test se saute. Le fichier n'est jamais nommé ni copié.
 constexpr const char* kPaperboardSha256 = "";
 } // namespace
 

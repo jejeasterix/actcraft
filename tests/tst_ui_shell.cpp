@@ -851,8 +851,8 @@ private slots:
         }
     }
 
-    // L8-T19 : les contrôleurs du lot 8 sont de vrais types C++ (plus aucun QtObject talon), câblés entre eux ;
-    // le navigateur d'actions reçoit son modèle du panneau, jamais par une recherche à la racine.
+    // L8-T19 : les contrôleurs du lot 8 sont de vrais types C++ (plus aucun QtObject talon), câblés entre eux
+    // ; le navigateur d'actions reçoit son modèle du panneau, jamais par une recherche à la racine.
     void lot8ControllersWired()
     {
         Shell s;
@@ -881,7 +881,8 @@ private slots:
                  s.window->findChild<QObject*>(QStringLiteral("appActionBrowser")));
         QObject* browser = item(s, "actionBrowser");
         QVERIFY(browser);
-        QCOMPARE(browser->property("model").value<QObject*>(), panel->property("actionModel").value<QObject*>());
+        QCOMPARE(browser->property("model").value<QObject*>(),
+                 panel->property("actionModel").value<QObject*>());
     }
 
     // L8-T2 : un gestionnaire par commande du lot (talon jusqu'à la tâche propriétaire).
