@@ -37,13 +37,16 @@ private slots:
         for (auto c : kCategories)
             for (const auto* a : m_catalog.inCategory(c))
                 if (!a->command.isEmpty())
-                    QVERIFY2(m_registry.find(a->command), qPrintable(a->id + QStringLiteral(" -> ") + a->command));
-        QVERIFY(!m_catalog.find(QStringLiteral("page.duplicate-next"))); // commande non déclarée : pas d'entrée
+                    QVERIFY2(m_registry.find(a->command),
+                             qPrintable(a->id + QStringLiteral(" -> ") + a->command));
+        QVERIFY(
+            !m_catalog.find(QStringLiteral("page.duplicate-next"))); // commande non déclarée : pas d'entrée
     }
     void parametersAreTyped()
     {
-        const QSet<QString> types = {QStringLiteral("number"), QStringLiteral("angle"), QStringLiteral("text"),
-                                     QStringLiteral("url"),    QStringLiteral("file"),  QStringLiteral("page"),
+        const QSet<QString> types = {QStringLiteral("number"),      QStringLiteral("angle"),
+                                     QStringLiteral("text"),        QStringLiteral("url"),
+                                     QStringLiteral("file"),        QStringLiteral("page"),
                                      QStringLiteral("translucency")};
         const auto* gotoPage = m_catalog.find(QStringLiteral("page.goto"));
         QVERIFY(gotoPage);
@@ -62,7 +65,8 @@ private slots:
     void labelsAreOurs()
     {
         QVERIFY(m_catalog.find(QStringLiteral("command.tool.reveal-ink")));
-        QCOMPARE(m_catalog.find(QStringLiteral("command.tool.reveal-ink"))->label, QStringLiteral("Encre révélatrice"));
+        QCOMPARE(m_catalog.find(QStringLiteral("command.tool.reveal-ink"))->label,
+                 QStringLiteral("Encre révélatrice"));
         QVERIFY(!m_catalog.find(QStringLiteral("command.planet")));
     }
     void idsAreUnique()

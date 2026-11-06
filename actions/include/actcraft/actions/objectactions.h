@@ -5,7 +5,13 @@
 
 namespace actcraft::actions {
 
-enum class ActionCategory { Command, Page, Object, Document };
+enum class ActionCategory
+{
+    Command,
+    Page,
+    Object,
+    Document
+};
 
 struct ActionParameter
 {
@@ -21,8 +27,8 @@ struct ObjectActionInfo
     ActionCategory category = ActionCategory::Command;
     QString label;
     QString icon;
-    QString command; // commande du registre déclenchée ; vide : exécutée par le moteur de core/
-    bool target = false; // vise un objet (choisi par le sélecteur ; défaut : l'objet cliqué)
+    QString command;       // commande du registre déclenchée ; vide : exécutée par le moteur de core/
+    bool target = false;   // vise un objet (choisi par le sélecteur ; défaut : l'objet cliqué)
     bool dragDrop = false; // proposée dans l'onglet glisser-déposer
     QList<ActionParameter> parameters;
 };
