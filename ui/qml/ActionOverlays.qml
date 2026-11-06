@@ -1,4 +1,5 @@
 import QtQuick
+import ActCraft.Ui
 // Surcouches des actions du lot 8 et gestionnaires des commandes qu'aucun autre fichier ne porte.
 Item {
     id: overlays
@@ -27,8 +28,22 @@ Item {
     readonly property bool highlighted: design !== null && design.actionsHighlighted
     // Curseur d'action (F-890) : sous l'outil de sélection, pointeur sur un objet d'action.
     readonly property bool pointing: runner !== null && runner.hovering && host.currentTool === "select"
-    // Hors de la scène que le cache photographie : rien n'est dessiné tant que la mise en évidence est éteinte.
-    visible: highlighted
+    // Hors de la scène que le cache photographie : les cadres ne sont dessinés que si la mise en évidence est
+    // allumée, les icônes de glisser-déposer (L8-T13) toujours.
+    // Modèle du glisser-déposer : posé par le parent, sinon cherché à la racine de la fenêtre (objectName
+    // « appDragDrop »).
+    property var dragDrop: null
+
+    function findDragDrop() {
+        let top = overlays
+        while (top.parent)
+            top = top.parent
+        for (let i = 0; i < top.data.length; ++i) {
+            if (top.data[i].objectName === "appDragDrop")
+                return top.data[i]
+        }
+        return null
+    }
 
     function frameRect(frame) {
         if (!view)
@@ -53,6 +68,69 @@ Item {
             color: "transparent"
             border.color: "#d22a2a"
             border.width: 2
+        }
+    }
+
+    // Icônes de glisser-déposer en surimpression (F-892), au coin haut droit de l'objet. Glissée vers la corbeille,
+    // l'icône retire l'action en une étape. Elle prend l'entrée là où elle est (couverture de la vue).
+    Repeater {
+        model: overlays.dragDrop ? overlays.dragDrop.overlays : []
+        delegate: Rectangle {
+            id: badge
+            objectName: "dragDropBadge"
+            required property var modelData
+            readonly property rect box: overlays.frameRect(
+                Qt.rect(modelData.x, modelData.y, modelData.width, modelData.height))
+            width: 28
+            height: 28
+            radius: 6
+            color: Theme.palette
+            border.color: Theme.contour
+            border.width: 1
+            x: box.x + box.width - width - 2
+            y: box.y + 2
+            Accessible.name: modelData.label
+            Image {
+                anchors.centerIn: parent
+                source: "qrc:/qt/qml/ActCraft/Ui/icons/" + badge.modelData.icon + ".svg"
+                sourceSize.width: 20
+                sourceSize.height: 20
+                width: 20
+                height: 20
+            }
+            Rectangle { // copie qui suit le pointeur pendant le glisser
+                id: ghost
+                width: badge.width
+                height: badge.height
+                radius: badge.radius
+                visible: dragger.active
+                color: badge.color
+                border.color: Theme.surfaceActive
+                border.width: 2
+                Image {
+                    anchors.centerIn: parent
+                    source: "qrc:/qt/qml/ActCraft/Ui/icons/" + badge.modelData.icon + ".svg"
+                    sourceSize.width: 20
+                    sourceSize.height: 20
+                    width: 20
+                    height: 20
+                }
+            }
+            DragHandler {
+                id: dragger
+                target: ghost
+                onActiveChanged: {
+                    if (active)
+                        return
+                    const scene = ghost.mapToItem(null, ghost.width / 2, ghost.height / 2)
+                    ghost.x = 0
+                    ghost.y = 0
+                    const trash = overlays.host ? overlays.host.trashArea : Qt.rect(0, 0, 0, 0)
+                    if (trash.width > 0 && trash.contains(Qt.point(scene.x, scene.y)))
+                        overlays.dragDrop.dropOnTrash(badge.modelData.objectId)
+                }
+            }
+            Component.onCompleted: if (overlays.view) overlays.view.addInputCover(badge)
         }
     }
 
@@ -87,6 +165,8 @@ Item {
 
     Component.onCompleted: {
         attachHover()
+        if (!dragDrop)
+            dragDrop = findDragDrop()
         if (!commands)
             return
         // Lot 8 (L8-T18, F-255) : encre révélatrice.

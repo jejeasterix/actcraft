@@ -32,6 +32,8 @@ constexpr QLatin1StringView kContainers("conteneurs");
 // L8-T12 (S11.2) : deux pages ; un rond gris en page 1 (centre en 300, 300), un rectangle bleu en page 2
 // (centre en 600, 300).
 constexpr QLatin1StringView kActionBrowser("navigateur-actions");
+// L8-T13 (S11.3) : une page, un rectangle bleu (centre en 750, 400) qui reçoit l'icône du stylo.
+constexpr QLatin1StringView kDragDrop("glisser-deposer");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -217,6 +219,23 @@ bool buildActionBrowser(const QString& path, QString& error)
     return writeActcraft(document, path, error);
 }
 
+bool buildDragDrop(const QString& path, QString& error)
+{
+    std::vector<core::Page> pages(1);
+    core::Shape rect;
+    rect.kind = core::ShapeKind::Rectangle;
+    rect.bounds = {600, 300, 300, 200};
+    rect.fill = 0xFF1E88E5u;
+    core::PageObject blue = rect;
+    blue.common.id = 1;
+    blue.common.layer = core::Layer::Middle;
+    pages[0].objects.push_back(blue);
+
+    core::Document document(std::move(pages));
+    document.setTitle("Glisser-déposer");
+    return writeActcraft(document, path, error);
+}
+
 // Table des fixtures : nom, écriture du fichier (un seul endroit pour la liste et pour la construction).
 struct FixtureEntry
 {
@@ -232,6 +251,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kLockedObject, buildLockedObject},
     {kContainers, buildContainers},
     {kActionBrowser, buildActionBrowser},
+    {kDragDrop, buildDragDrop},
 };
 
 } // namespace
