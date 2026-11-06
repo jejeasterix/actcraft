@@ -862,8 +862,9 @@ void TstUiWebFrame::hrefOutsideSvgResourceBecomesALink()
 {
     OnlyOk decide;
     const auto prepared = ui::WebFrameItems::prepareHtml(
-        QStringLiteral(R"h(<math><mi href="https://ok.example/m" xlink:href="https://ok.example/x">clic</mi></math>)h"
-                       R"h(<svg><image href="https://ok.example/i.png"/></svg>)h"),
+        QStringLiteral(
+            R"h(<math><mi href="https://ok.example/m" xlink:href="https://ok.example/x">clic</mi></math>)h"
+            R"h(<svg><image href="https://ok.example/i.png"/></svg>)h"),
         QUrl(QStringLiteral("https://ok.example/")), std::ref(decide));
     const qsizetype from = prepared.html.indexOf(QStringLiteral("<math"));
     const QString mathml = prepared.html.mid(from, prepared.html.indexOf(QStringLiteral("</math>")) - from);

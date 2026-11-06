@@ -566,6 +566,13 @@ public:
                                              QStringLiteral("script")};
         static const QSet<QString> media = {QStringLiteral("video"), QStringLiteral("audio"),
                                             QStringLiteral("source"), QStringLiteral("track")};
+        static const QSet<QString> svgResource = {
+            // éléments SVG dont href est une ressource, non un lien
+            QStringLiteral("image"),          QStringLiteral("use"),
+            QStringLiteral("feimage"),        QStringLiteral("pattern"),
+            QStringLiteral("lineargradient"), QStringLiteral("radialgradient"),
+            QStringLiteral("filter"),         QStringLiteral("textpath"),
+            QStringLiteral("mpath"),          QStringLiteral("cursor")};
         const QString lower = name.toLower();
         if (droppedElements.contains(lower))
             return {}; // la base est celle du modèle ; une animation SVG pourrait poser une adresse ; un
@@ -612,8 +619,10 @@ public:
                     value = allowed(target, rel.contains(QLatin1String("stylesheet")) ? m_styles : m_images);
                 else if (target.trimmed().startsWith(u'#'))
                     value = target.trimmed(); // élément de ce document (SVG) : rien demandé
+                else if (svgResource.contains(lower))
+                    value = allowed(target, m_images); // ressource d'un élément SVG
                 else
-                    value = allowed(target, m_images); // image d'un SVG
+                    value = link(target); // lien pour le moteur (MathML, SVG a…) : navigation décidée au clic
                 if (value.isEmpty())
                     continue;
             } else if (key == QLatin1String("src") || key == QLatin1String("data") ||
