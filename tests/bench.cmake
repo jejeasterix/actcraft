@@ -537,3 +537,10 @@ actcraft_add_lot8_capture(tst_captures_glisser_deposer glisser-deposer)
 actcraft_add_lot8_capture(tst_captures_conteneurs conteneurs)
 actcraft_add_lot8_capture(tst_captures_encre_revelatrice encre-revelatrice)
 actcraft_add_lot8_capture(tst_captures_interactivite interactivite)
+
+# Lot 8 (L8-T21) : cinq scénarios de 8b, même mécanisme de talon.
+actcraft_add_lot8_capture(tst_captures_liens liens)
+actcraft_add_lot8_capture(tst_captures_medias medias)
+actcraft_add_lot8_capture(tst_captures_enregistreurs enregistreurs)
+actcraft_add_lot8_capture(tst_captures_cadre_web cadre-web)
+actcraft_add_lot8_capture(tst_captures_diffusion_protegee diffusion-protegee)
