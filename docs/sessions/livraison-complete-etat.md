@@ -342,6 +342,7 @@ Tâche : L8-T11 — core + ui : modèle du navigateur d'actions (V5) — depuis 
 ### À porter aux tâches suivantes (lot 8)
 - **L8-T16** : `landingPoint` (L8-T15) aimante au conteneur le plus haut sans règle d'acceptation : L8-T16 choisit le conteneur par `resolveDrop` (L8-T14) ; pivot commun : `pivotOf` (L8-T15) et le pivot local de L8-T7 à regrouper (simplification de fin de lot).
 - **L8-T9** : remesurer l'emprise d'un texte modifié par une action (valeur, ajouter, remplacer, nouveau, extraire), même règle que `measuredBounds` / `textediting.cpp:725`, test 9 → 10 (revue de L8-T8) ; `object.toggle-group`, `object.select-all` et `object.align-*` (catalogue) : déclencher les commandes existantes (aucune table du moteur ne les traite) ; déclencher les commandes `edit.*` pour `object.copy/cut/paste` (catalogue à `command` vide) ; contrôle d'occurrences de L8-T19 sur `answer`/`systemOpener`.
+- **L8-T13** : `SetObjectActionsCommand` (L8-T11) remplace toute la liste d'actions : appliquer une action au clic ne doit pas effacer une action de glisser-déposer (et l'inverse) — à tester.
 - **Fin de lot (3.8)** : libellés du catalogue `object.flip-*` contraires aux axes du menu.
 
 ### Restes pour le PC (lot 8)
