@@ -310,13 +310,15 @@ Dépôt **privé** depuis le 2026-11-06 (décision de Jérôme) : minutes CI au 
 H8-6 : réponse de Jérôme du 2026-10-21 « H8-6 > ok » → pas de repli ; Qt Homebrew 6.12.0 porte QtMultimedia et QtWebView (vérifié le 2026-11-06). Sous Windows, l'installation des modules reste au PC (reste PC).
 Ancien dépôt REA, corpus vidéo et paperboards réels : absents du Mac → confrontation de L8-T0 et S11 local au PC.
 Questions à Jérôme (lot 8) : aucune ouverte.
+**H8-7** (orchestrateur, 2026-11-06) — le lot 7 (B) n'est pas fusionné dans la tête (613 commits sur `feat/livraison-complete-b`, passe PC à faire, consigne « ne pas y toucher ») : le lot 8 part sans lui ; ce qui suppose le rideau, le projecteur, les outils de maths, l'ouvreur de `tool.web-browser` ou les épinglages du lot 7 se raccorde à la fusion des deux lots (conflits de `commands.json`, `layout.json`, `Main.qml`, `tests/*.cmake` attendus, résolus des deux côtés). À revoir par Jérôme : ordre des PR des lots 7 et 8.
+**H8-8** (orchestrateur, 2026-11-06) — `page.copy`, `page.cut` restent non restreignables (D10, défaut) ; la diffusion protégée (8b L8-T31) les refuse au titre de la copie, sans passer par `restrictable`.
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
-Tâche : L8-T0 — Ouverture du lot 8 (Mac, sans REA) — depuis 2026-11-06
 Tâche : L8-T1 — Réservation 8a — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
 |----|--------|--------|-------------------|------|
+| L8-T0 | terminée | 1/3 | 42b9fb4b, 8e724b02 (wip du filet, limite de tours), c1ecddbc → merge 1c3c465d | rapport `docs/verifications/2026-10-21-lot8-principes.md` ; N8 = 208 (+1 vs lot 6 : `tst_ui_launcherspage`) ; 31 API : 25 conformes, 6 écarts (A8, A12, A14, A19, A26, A29) ; D1-D16 au défaut du plan ; amendement 3 du plan (e05ed5b7, relu : 0 bloquant, 2 majeurs et 3 mineurs appliqués en f202a395) ; L8-C0 ajoutée (V1b) |
 
 ### Pièges trouvés (lot 8, Mac)
 
