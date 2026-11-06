@@ -101,12 +101,14 @@ Write-Output 'palette : visible au bord droit'
 # que la moitié de chaque rectangle, en triangle. Ces pixels tombent dans la moitié qui manquerait (tablette 2560 × 1600).
 # Pastille : point étalonné sur l'émulateur au lot 5 (0,26 H = 416 px, barre d'état comprise), décalé du seul
 # déplacement de la pastille dans la fenêtre depuis : +76 points (+152 px) = barre de titre de la palette (28, L6-T7)
-# + deuxième rangée du groupe « commandes » (48, profile.choose et mode.design). Même place dans la pastille quelle
+# + deuxième rangée du groupe « commandes » (48, profile.choose et mode.design) + deuxième rangée du groupe
+# « pages » (48, page.history-back et page.history-forward, L8-T2) : +124 points au total, 0,415 H = 664 px à la
+# densité 320 (2 px par point). Même place dans la pastille quelle
 # que soit la barre d'état ; tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) le rejoue hors écran.
 $coins = @(
     @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.765); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
     @{ Nom = 'fond de palette, bas-gauche'; X = $largeur - 192; Y = [int]($hauteur * 0.72); Attendu = $fondPalette; Tol = 16 },
-    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.355); Attendu = @(229, 57, 53); Tol = 40 }
+    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.415); Attendu = @(229, 57, 53); Tol = 40 }
 )
 foreach ($coin in $coins) {
     $lu = Pixel $avant $coin.X $coin.Y

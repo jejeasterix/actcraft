@@ -32,10 +32,10 @@
   ],
   "palette": [
     { "group": "commandes", "items": ["menu.main", "menu.tools", "profile.choose", "mode.design"] },
-    { "group": "pages", "items": ["page.previous", "page.next"] },
+    { "group": "pages", "items": ["page.previous", "page.next", "page.history-back", "page.history-forward"] },
     { "group": "couleurs" },
     { "group": "epaisseur" },
-    { "group": "outils", "items": ["tool.select", "tool.pen", "tool.highlighter", "tool.eraser"] },
+    { "group": "outils", "items": ["tool.select", "tool.pen", "tool.highlighter", "tool.reveal-ink", "tool.eraser"] },
     { "group": "edition", "items": ["edit.undo", "edit.redo", "edit.delete"] },
     { "group": "presentation", "items": ["present.curtain", "present.spotlight-circle", "view.page-zoom", "math.ruler", "tool.clock"] },
     { "group": "formes-texte", "items": ["tool.shape", "tool.text", "tool.fill", "tool.connector"] }

@@ -100,7 +100,7 @@ Rectangle {
         { id: "objets", label: qsTr("Objets"), icon: "nav-objets", enabled: true },
         { id: "notes", label: qsTr("Notes"), icon: "nav-notes", enabled: true },
         { id: "proprietes", label: qsTr("Propriétés"), icon: "nav-proprietes", enabled: true },
-        { id: "actions", label: qsTr("Actions"), icon: "nav-actions", enabled: false }
+        { id: "actions", label: qsTr("Actions"), icon: "nav-actions", enabled: true }
     ]
 
     Flow {
@@ -192,7 +192,10 @@ Rectangle {
             profile: root.profile
             preferences: root.preferences
         }
-        Item {} // actions (lot 8)
+        ActionBrowser {
+            commands: root.commands
+            enabled: true
+        }
     }
 
     // Bord intérieur : glissé, il règle la largeur (160 à 480).

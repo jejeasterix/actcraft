@@ -835,6 +835,78 @@ private slots:
         }
     }
 
+    // L8-T2 : chaque emplacement de la coquille du lot 8 existe, nommé, en talon.
+    void lot8ShellPlaceholders()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name : {"appActionRunner", "appLinks", "appActionBrowser", "appDragDrop",
+                                 "actionOverlays", "mediaLayer", "webFrameLayer", "soundController",
+                                 "recorderPalette", "recordingIndicator", "linkDialog", "linkConfirmDialog",
+                                 "webFrameDialog", "publishDialog", "actionBrowser", "dragDropActions"}) {
+            const QString objectName = QString::fromLatin1(name);
+            QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
+                         findItem(s.window->contentItem(), objectName),
+                     name);
+        }
+    }
+
+    // L8-T2 : un gestionnaire par commande du lot (talon jusqu'à la tâche propriétaire).
+    void everyLot8CommandHasAHandler()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* commands = s.window->findChild<ui::Commands*>();
+        QVERIFY(commands);
+        for (const char* id : {"tool.reveal-ink",      "browser.actions",
+                               "action.apply",         "action.remove",
+                               "action.pick-target",   "link.file",
+                               "link.website",         "page.history-back",
+                               "page.history-forward", "media.sound-controller",
+                               "record.sound",         "record.pause",
+                               "record.stop",          "record.cancel",
+                               "insert.web-frame",     "webframe.back",
+                               "webframe.forward",     "webframe.reload",
+                               "webframe.snapshot",    "webframe.unblock",
+                               "file.publish"}) {
+            QVERIFY2(commands->registry().hasHandler(QString::fromLatin1(id)), id);
+        }
+#ifdef Q_OS_WIN
+        QVERIFY(commands->registry().hasHandler(QStringLiteral("record.screen-full")));
+        QVERIFY(commands->registry().hasHandler(QStringLiteral("record.screen-area")));
+#endif
+    }
+
+    // L8-T2 : l'onglet « actions » du panneau est actif et son contenu aussi.
+    void actionsTabEnabled()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QObject* panel = s.window->findChild<QObject*>(QStringLiteral("browserPanel"));
+        if (!panel) {
+            panel = item(s, "browserPanel");
+        }
+        QVERIFY(panel);
+        QVERIFY(
+            QMetaObject::invokeMethod(panel, "showNavigator", Q_ARG(QVariant, QStringLiteral("actions"))));
+        QCOMPARE(panel->property("current").toString(), QStringLiteral("actions"));
+        QObject* browser = s.window->findChild<QObject*>(QStringLiteral("actionBrowser"));
+        if (!browser) {
+            browser = item(s, "actionBrowser");
+        }
+        QVERIFY(browser);
+        QVERIFY(browser->property("enabled").toBool());
+        const QVariantList navigators = panel->property("navigators").toList();
+        bool found = false;
+        for (const QVariant& entry : navigators) {
+            if (entry.toMap().value(QStringLiteral("id")).toString() == QStringLiteral("actions")) {
+                found = true;
+                QVERIFY(entry.toMap().value(QStringLiteral("enabled")).toBool());
+            }
+        }
+        QVERIFY(found);
+    }
+
     // Les 47 commandes du lot 4 : du bloc « tool.shape » à « page.zones » du fichier des commandes.
     void everyLot4CommandHasAHandler()
     {
