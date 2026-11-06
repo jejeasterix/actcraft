@@ -141,6 +141,7 @@ private:
     void scheduleRefresh(bool pageShown);
     void refresh();
     std::vector<Entry> collect(bool pageShown);
+    void applyRows(std::vector<Entry> next); // mise à jour par identifiant (insertion, retrait, rang)
     // Écriture synchrone d'une ressource (son de confirmation seulement : court, et sans attente possible).
     QString fileFor(const std::string& key);           // vide : absente, ou écriture en cours
     using Ready = std::function<void(const QString&)>; // chemin du fichier ; vide : écriture impossible

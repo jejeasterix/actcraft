@@ -397,31 +397,18 @@ void MediaItems::refresh()
                                           [&e](const Entry& o) { return o.id == e.id; });
             if (old == m_entries.end())
                 continue;
-            e.autoPlay = old->autoPlay;
             if (old->resource == e.resource) {
+                e.autoPlay = old->autoPlay;
                 if (e.source.isEmpty())
                     e.source = old->source; // déjà extrait à la demande : la vidéo qui joue n'est pas touchée
                 e.needsFile = e.source.isEmpty() && (e.needsFile || old->needsFile); // écriture en cours
             }
         }
         if (next == m_entries)
-            return; // trait, édition d'un autre objet : la vidéo qui joue n'est pas touchée
-        const bool sameRows =
-            next.size() == m_entries.size() &&
-            std::equal(next.begin(), next.end(), m_entries.begin(), [](const Entry& a, const Entry& b) {
-                return a.id == b.id && a.kind == b.kind && a.resource == b.resource;
-            });
-        if (sameRows) {
-            for (std::size_t i = 0; i < next.size(); ++i) {
-                if (!(next[i] == m_entries[i])) {
-                    m_entries[i] = next[i];
-                    const QModelIndex at = index(static_cast<int>(i));
-                    emit dataChanged(at, at);
-                }
-            }
-            fetchFiles();
-            return;
-        }
+            return;                 // trait, édition d'un autre objet : la vidéo qui joue n'est pas touchée
+        applyRows(std::move(next)); // par identifiant : la vidéo qui joue garde sa ligne et son délégué
+        fetchFiles();
+        return;
     }
     beginResetModel();
     m_entries = std::move(next);
@@ -436,6 +423,69 @@ void MediaItems::refresh()
             }
         }
     }
+}
+
+// Mise à jour du modèle par identifiant (jamais de remise à zéro hors changement de page ou de document) :
+// le Repeater de MediaLayer garde le délégué d'une vidéo qui joue quand un autre média arrive, part, est
+// masqué ou change de rang. Un média dont l'identifiant reste mais dont le type ou la ressource change est
+// un autre média : retiré puis inséré.
+void MediaItems::applyRows(std::vector<Entry> next)
+{
+    const auto sameMedia = [](const Entry& a, const Entry& b) {
+        return a.id == b.id && a.kind == b.kind && a.resource == b.resource;
+    };
+    const auto wanted = [&](const Entry& e) {
+        return std::any_of(next.begin(), next.end(), [&](const Entry& n) { return sameMedia(n, e); });
+    };
+    bool structural = false;
+    // Retraits, de la fin vers le début, par plages contiguës.
+    int row = static_cast<int>(m_entries.size()) - 1;
+    while (row >= 0) {
+        if (wanted(m_entries[static_cast<std::size_t>(row)])) {
+            --row;
+            continue;
+        }
+        const int last = row;
+        while (row > 0 && !wanted(m_entries[static_cast<std::size_t>(row - 1)]))
+            --row;
+        beginRemoveRows({}, row, last);
+        m_entries.erase(m_entries.begin() + row, m_entries.begin() + last + 1);
+        endRemoveRows();
+        structural = true;
+        --row;
+    }
+    // Ne restent que des médias voulus, dans l'ancien ordre : on les place un à un, on insère les nouveaux.
+    for (std::size_t i = 0; i < next.size(); ++i) {
+        const int at = static_cast<int>(i);
+        if (i >= m_entries.size() || !sameMedia(m_entries[i], next[i])) {
+            const auto found =
+                std::find_if(m_entries.begin() + static_cast<std::ptrdiff_t>(std::min(i, m_entries.size())),
+                             m_entries.end(), [&](const Entry& e) { return sameMedia(e, next[i]); });
+            if (found != m_entries.end()) {
+                const int from = static_cast<int>(found - m_entries.begin());
+                beginMoveRows({}, from, from, {}, at);
+                std::rotate(m_entries.begin() + at, found, found + 1);
+                endMoveRows();
+            } else {
+                beginInsertRows({}, at, at);
+                m_entries.insert(m_entries.begin() + at, next[i]);
+                endInsertRows();
+            }
+            structural = true;
+        }
+        if (!(m_entries[i] == next[i])) {
+            m_entries[i] = next[i];
+            emit dataChanged(index(at), index(at));
+        }
+    }
+    if (m_entries.size() > next.size()) { // identifiants en double dans un document abîmé : jamais de reste
+        beginRemoveRows({}, static_cast<int>(next.size()), static_cast<int>(m_entries.size()) - 1);
+        m_entries.resize(next.size());
+        endRemoveRows();
+        structural = true;
+    }
+    if (structural)
+        emit itemsChanged();
 }
 
 std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
