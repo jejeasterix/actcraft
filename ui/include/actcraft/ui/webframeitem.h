@@ -106,6 +106,9 @@ public:
     bool unblockPending() const noexcept { return m_pendingRow >= 0; }
     QString documentKey() const { return m_key; }
     static bool engineBuilt() noexcept { return ACTCRAFT_WEBFRAME != 0; }
+    // Conversions du HTML enregistré (std::string) en QString faites par rebuild(), depuis le début du
+    // processus (fil de l'interface seulement) : la mesure que lisent les tests.
+    static std::uint64_t htmlConversionCount() noexcept;
 
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;

@@ -1068,6 +1068,23 @@ void WebFrameItems::documentReplaced()
     emit documentKeyChanged();
 }
 
+namespace {
+
+std::uint64_t g_htmlConversions = 0; // fil de l'interface seulement (rebuild)
+
+QString htmlOf(const core::WebFrame& frame)
+{
+    ++g_htmlConversions;
+    return QString::fromStdString(frame.html);
+}
+
+} // namespace
+
+std::uint64_t WebFrameItems::htmlConversionCount() noexcept
+{
+    return g_htmlConversions;
+}
+
 void WebFrameItems::rebuild()
 {
     if (!m_document) {
@@ -1097,7 +1114,7 @@ void WebFrameItems::rebuild()
             Row row;
             row.id = object.common.id;
             row.bounds = pageBox(object, *frame);
-            row.html = QString::fromStdString(frame->html);
+            row.html = htmlOf(*frame);
             row.address = QString::fromStdString(frame->address);
             fresh.append(row);
         }

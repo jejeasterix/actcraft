@@ -67,8 +67,28 @@ public:
     int requests() const { return static_cast<int>(m_paths.size()); }
     QStringList paths() const { return m_paths; }
     void reset() { m_paths.clear(); }
+    // Les requêtes de ce chemin sont comptées mais leur réponse est retenue jusqu'à release() : une réponse
+    // en vol, que le test relâche à son heure.
+    void hold(const QString& path) { m_holds.append(path); }
+    void release()
+    {
+        m_holds.clear();
+        for (const Held& held : std::as_const(m_held)) {
+            if (!held.socket)
+                continue;
+            held.socket->write(held.response);
+            held.socket->disconnectFromHost();
+        }
+        m_held.clear();
+    }
 
 private:
+    struct Held
+    {
+        QPointer<QTcpSocket> socket;
+        QByteArray response;
+    };
+
     void accept()
     {
         while (QTcpSocket* socket = m_server.nextPendingConnection()) {
@@ -97,10 +117,16 @@ private:
         } else {
             response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
         }
+        if (m_holds.contains(path)) {
+            m_held.append(Held{socket, response});
+            return;
+        }
         socket->write(response);
         socket->disconnectFromHost();
     }
 
+    QStringList m_holds;
+    QList<Held> m_held;
     QTcpServer m_server;
     bool m_listening = false;
     QHash<QString, QByteArray> m_pages;
@@ -171,6 +197,9 @@ private slots:
     void receivedCodeFrameUnblocks();
     void unblockDuringRewriteHolds();
     void hrefOutsideSvgResourceBecomesALink();
+    void navigationToLocalContentDropsTheInFlightReply_data();
+    void navigationToLocalContentDropsTheInFlightReply();
+    void rebuildConvertsOnlyChangedHtml();
 };
 
 namespace {
@@ -254,6 +283,89 @@ QString bigPage(qsizetype size, const QString& marker)
 void TstUiWebFrame::initTestCase()
 {
     QStandardPaths::setTestModeEnabled(true);
+}
+
+void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply_data()
+{
+    QTest::addColumn<bool>("local");
+    QTest::newRow("fichier local") << true;
+    QTest::newRow("about:blank") << false;
+}
+
+// L8-C12, constat 5. `fetched` jugeait une réponse périmée sur le seul `serial`, que la navigation vers un
+// fichier local ou about: ne faisait pas avancer : une réponse réseau en vol écrasait le contenu neuf. Le
+// test retient la réponse du serveur, revient au contenu local, puis la relâche : elle ne doit rien changer.
+// Sous l'ancien contrôle (serial seul), le contenu devient « reseau » et l'adresse celle du serveur.
+void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply()
+{
+    QFETCH(bool, local);
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/slow"), "<p>reseau</p>");
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("local.html"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("<p>local</p>");
+    }
+    Fixture f;
+    // Rang 0 : saisit l'adresse du serveur, ce qui l'autorise pour le document (les rangs suivants y
+    // naviguent) ; il charge /slow tant que le serveur répond.
+    const QUrl slow = server.url(QStringLiteral("/slow"));
+    QVERIFY(f.frames.insertFrame({}, slow.toString()));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("reseau")), 5000);
+    // Rang 1 : le cadre éprouvé, sur du contenu local.
+    const QString start = local ? QUrl::fromLocalFile(path).toString() : QStringLiteral("about:blank");
+    QVERIFY(f.frames.insertFrame({}, start));
+    QCOMPARE(f.frames.count(), 2);
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 1, ui::WebFrameItems::LoadingRole).toBool(), 5000);
+    QVERIFY(!role(f.frames, 1, ui::WebFrameItems::RefusedRole).toBool());
+    QVERIFY(!role(f.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
+    if (local)
+        QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 1).contains(QStringLiteral("local")), 5000);
+
+    server.hold(QStringLiteral("/slow"));
+    server.reset();
+    QVERIFY(f.frames.followLink(1, slow)); // navigation du moteur : décidée, puis demandée
+    QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/slow")), 5000);
+    QVERIFY(role(f.frames, 1, ui::WebFrameItems::LoadingRole).toBool()); // la réponse est en vol
+
+    f.frames.goBack(1); // retour au contenu local, réponse toujours en vol
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 1, ui::WebFrameItems::LoadingRole).toBool(), 5000);
+    QVERIFY(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl() != slow);
+    server.release();
+    QTest::qWait(500); // la réponse périmée arrive ; elle doit être abandonnée
+    const QString shown = content(f.frames, 1);
+    QVERIFY2(!shown.contains(QStringLiteral("reseau")), qPrintable(shown));
+    QVERIFY(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl() != slow);
+    if (local)
+        QVERIFY2(shown.contains(QStringLiteral("local")), qPrintable(shown));
+}
+
+// L8-C12, constat 6. `rebuild` reconvertissait en QString le HTML de chaque cadre à chaque commande, même
+// inchangé. Le compteur de conversions du modèle le montre : une poignée relâchée n'en fait aucune, une
+// insertion une seule (le cadre neuf). Sous l'ancienne boucle : deux, puis trois.
+void TstUiWebFrame::rebuildConvertsOnlyChangedHtml()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>un</p>"), {}));
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>deux</p>"), {}));
+    QCOMPARE(f.frames.count(), 2);
+
+    const std::uint64_t beforeResize = ui::WebFrameItems::htmlConversionCount();
+    const QRectF old = role(f.frames, 0, ui::WebFrameItems::BoundsRole).toRectF();
+    QVERIFY(f.frames.resizeFrame(0, QRectF(old.x(), old.y(), old.width() + 40, old.height() + 20)));
+    QTRY_COMPARE(role(f.frames, 0, ui::WebFrameItems::BoundsRole).toRectF().width(), old.width() + 40);
+    QCOMPARE(ui::WebFrameItems::htmlConversionCount() - beforeResize, std::uint64_t{0});
+
+    const std::uint64_t beforeInsert = ui::WebFrameItems::htmlConversionCount();
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>trois</p>"), {}));
+    QCOMPARE(f.frames.count(), 3);
+    QCOMPARE(role(f.frames, 2, ui::WebFrameItems::HtmlRole).toString(), QStringLiteral("<p>trois</p>"));
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::HtmlRole).toString(), QStringLiteral("<p>un</p>"));
+    QCOMPARE(ui::WebFrameItems::htmlConversionCount() - beforeInsert, std::uint64_t{1});
 }
 
 // Le cœur de la tâche : la page saisie est lue par le modèle (le serveur la voit sans moteur), la
