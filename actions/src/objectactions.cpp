@@ -74,6 +74,11 @@ bool ObjectActionCatalog::load(const QByteArray& json, QString& error)
             param.type = p.value(QStringLiteral("type")).toString();
             param.minimum = p.value(QStringLiteral("minimum")).toDouble();
             param.maximum = p.value(QStringLiteral("maximum")).toDouble();
+            param.exclusiveMinimum = p.value(QStringLiteral("exclusive-minimum")).toBool();
+            param.hasDefault = p.contains(QStringLiteral("default"));
+            param.defaultValue = p.value(QStringLiteral("default")).toDouble();
+            param.decimals = p.value(QStringLiteral("decimals")).toInt();
+            param.step = p.contains(QStringLiteral("step")) ? p.value(QStringLiteral("step")).toDouble() : 1.0;
             info.parameters.append(param);
         }
         actions.append(info);

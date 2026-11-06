@@ -109,6 +109,10 @@ private:
     {
         const actions::ObjectActionInfo* info = nullptr;
         bool existing = false;
+        bool operator==(const Row& other) const noexcept
+        {
+            return info == other.info && existing == other.existing;
+        }
     };
 
     void attachDocument();

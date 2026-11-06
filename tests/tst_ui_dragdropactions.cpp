@@ -211,6 +211,17 @@ private slots:
         QCOMPARE(actionsOf(f.controller, f.second).size(), std::size_t(1));
     }
 
+    // Revue L8-C13 : la tolérance est en pixels d'écran, donc plus étroite en page quand on zoome.
+    void dropAtToleranceFollowsTheZoom()
+    {
+        Fixture f;
+        const QPointF outside(483, 130); // 3 px hors du bord droit de la seconde forme (400..480)
+        QVERIFY(!f.model.dropAt(outside, QStringLiteral("command.tool.pen"), 4.0)); // 6 / 4 = 1,5 px
+        QVERIFY(actionsOf(f.controller, f.second).empty());
+        QVERIFY(f.model.dropAt(outside, QStringLiteral("command.tool.pen"), 1.0)); // 6 px
+        QCOMPARE(actionsOf(f.controller, f.second).size(), std::size_t(1));
+    }
+
     void closedByDefault()
     {
         {

@@ -15,6 +15,8 @@
 #include <QFile>
 #include <QTest>
 
+#include <algorithm>
+#include <cstdint>
 #include <string>
 
 using namespace actcraft;
@@ -57,33 +59,38 @@ private slots:
         const formats::flipchart::FlipchartReadResult read = formats::flipchart::readFlipchart(bytes);
         QVERIFY2(read.ok, qPrintable(read.error));
 
-        // Premier objet portant « masquer ou afficher » vers une cible présente sur sa page.
+        // Toutes les actions « masquer ou afficher » de l'échantillon (type d'origine 184) doivent être
+        // traduites en object.toggle-hidden et viser un objet présent sur leur page (revue L8-C13) ; la
+        // première sert au scénario qui suit.
+        constexpr std::uint16_t kToggleHiddenSourceType = 184;
         std::size_t pageIndex = 0;
         const core::PageObject* source = nullptr;
         core::ObjectId target = 0;
-        for (std::size_t p = 0; p < read.document.pageCount() && !source; ++p) {
+        int toggles = 0;
+        for (std::size_t p = 0; p < read.document.pageCount(); ++p) {
             const core::Page& page = read.document.page(p);
             for (const core::PageObject& o : page.objects) {
                 for (const core::Action& a : o.common.actions) {
-                    if (a.catalogId != "object.toggle-hidden") {
+                    if (a.sourceType != kToggleHiddenSourceType) {
                         continue;
                     }
-                    for (const core::PageObject& t : page.objects) {
-                        if (t.common.id == a.target && a.target != 0) {
-                            source = &o;
-                            target = a.target;
-                            pageIndex = p;
-                        }
+                    ++toggles;
+                    QCOMPARE(QString::fromStdString(a.catalogId), QStringLiteral("object.toggle-hidden"));
+                    const bool present =
+                        a.target != 0 && std::any_of(page.objects.begin(), page.objects.end(),
+                                                     [&a](const core::PageObject& t) {
+                                                         return t.common.id == a.target;
+                                                     });
+                    QVERIFY2(present, "cible absente de la page");
+                    if (!source) {
+                        source = &o;
+                        target = a.target;
+                        pageIndex = p;
                     }
-                    if (source) {
-                        break;
-                    }
-                }
-                if (source) {
-                    break;
                 }
             }
         }
+        QVERIFY2(toggles > 0, "aucune action masquer/afficher dans l'échantillon");
         QVERIFY2(source, "aucune action object.toggle-hidden avec cible");
 
         ui::DocumentController controller;
