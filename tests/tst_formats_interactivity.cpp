@@ -102,6 +102,15 @@ private slots:
         QVERIFY2(object.unknownKeys.empty(), object.unknownKeys.c_str());
         object.common.container = core::ContainerRule{};
         verifyAbsent(toJson(back), {"container", "bounce-back"});
+        // Un drapeau à la fois : deux champs frères échangés dans l'écrivain ou le lecteur garderaient
+        // l'empreinte d'une règle où les deux sont vrais.
+        for (int k = 0; k < 2; ++k) {
+            core::Document one = base();
+            auto& only = one.page(0).objects[0].common.container;
+            only.bounceBack = k == 0;
+            only.chime = k == 1;
+            QCOMPARE(core::fingerprint(roundTrip(one)), core::fingerprint(one));
+        }
     }
     void restrictorsRoundTrip()
     {
@@ -129,6 +138,13 @@ private slots:
         verifyAbsent(toJson(back),
                      {"travel", "track", "turning", "turn-step", "pivot", "pivot-point", "pivot-object",
                       "blocks-others", "magnet", "magnet-mark", "magnet-point"});
+        for (int k = 0; k < 2; ++k) { // un drapeau à la fois (champs frères)
+            core::Document one = base();
+            auto& only = one.page(0).objects[0].common.restrictions;
+            only.blocksOthers = k == 0;
+            only.magnet = k == 1;
+            QCOMPARE(core::fingerprint(roundTrip(one)), core::fingerprint(one));
+        }
 
         // Objet bloqué du lot 2 (déplacement et rotation interdits) : mode Fixed, aucune clé du lot 8.
         core::Document locked = base();
@@ -164,6 +180,18 @@ private slots:
         QVERIFY(media->controlsHidden && media->aspectLocked && media->clearBackground && media->wrapText);
         *media = core::Media{};
         verifyAbsent(toJson(back), {"controls-hidden", "aspect-locked", "clear-background", "wrap-text"});
+        for (int k = 0; k < 4; ++k) { // un drapeau à la fois (champs frères)
+            core::Document one = base();
+            core::Media only;
+            only.controlsHidden = k == 0;
+            only.aspectLocked = k == 1;
+            only.clearBackground = k == 2;
+            only.wrapText = k == 3;
+            core::PageObject po{only};
+            po.common.id = 2;
+            one.page(0).objects.push_back(po);
+            QCOMPARE(core::fingerprint(roundTrip(one)), core::fingerprint(one));
+        }
     }
     void webFrameRoundTrip()
     {
@@ -204,6 +232,16 @@ private slots:
         QVERIFY2(back.unknownKeys().empty(), back.unknownKeys().c_str());
         back.setBroadcast(core::BroadcastRules{});
         verifyAbsent(toJson(back), {"broadcast", "no-copy"});
+        for (int k = 0; k < 4; ++k) { // un drapeau à la fois (champs frères)
+            core::Document one = base();
+            core::BroadcastRules only;
+            only.noCopy = k == 0;
+            only.noSave = k == 1;
+            only.noPrint = k == 2;
+            only.noCamera = k == 3;
+            one.setBroadcast(only);
+            QCOMPARE(core::fingerprint(roundTrip(one)), core::fingerprint(one));
+        }
     }
     void defaultsAreOmitted()
     {
