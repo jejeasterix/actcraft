@@ -62,7 +62,11 @@ private slots:
         QCOMPARE(store.load(QStringLiteral("son-image"), error)->pinned,
                  (QStringList{QStringLiteral("tool.camera-area"), QStringLiteral("tool.camera-polygon"),
                               QStringLiteral("tool.camera-freehand"), QStringLiteral("tool.camera-window"),
-                              QStringLiteral("tool.camera-screen"), QStringLiteral("insert.image")}));
+                              QStringLiteral("tool.camera-screen"), QStringLiteral("insert.image"),
+                              QStringLiteral("media.sound-controller"), QStringLiteral("record.sound"),
+                              QStringLiteral("record.screen-full"), QStringLiteral("record.screen-area"),
+                              QStringLiteral("insert.web-frame"), QStringLiteral("link.file"),
+                              QStringLiteral("link.website")}));
     }
     void pinnedFilteredByPlatform()
     {
@@ -79,6 +83,31 @@ private slots:
                     ++filtered;
         }
         QVERIFY(filtered >= 1); // au moins le clavier à l'écran ou la reconnaissance d'écriture
+        // L'enregistreur d'écran n'existe que sous Windows (lot 8).
+        for (const QString& id : {QStringLiteral("record.screen-full"), QStringLiteral("record.screen-area")}) {
+            QVERIFY2(registry.isAvailable(id, actions::Platform::Windows), qPrintable(id));
+            QVERIFY2(!registry.isAvailable(id, actions::Platform::Android), qPrintable(id));
+        }
+    }
+    void soundAndImagePinsLot8()
+    {
+        actions::CommandRegistry registry;
+        QString error;
+        QVERIFY(registry.loadDeclarations(actions::defaultCommandsJson(), error));
+        const auto p = builtins().load(QStringLiteral("son-image"), error);
+        QVERIFY2(p, qPrintable(error));
+        const QStringList lot8{QStringLiteral("media.sound-controller"), QStringLiteral("record.sound"),
+                               QStringLiteral("record.screen-full"),     QStringLiteral("record.screen-area"),
+                               QStringLiteral("insert.web-frame"),       QStringLiteral("link.file"),
+                               QStringLiteral("link.website")};
+        for (const QString& id : lot8) {
+            QVERIFY2(p->pinned.contains(id), qPrintable(id + QStringLiteral(" : non épinglé")));
+            QVERIFY2(registry.find(id), qPrintable(id + QStringLiteral(" : non déclaré")));
+            const bool windowsOnly = id.startsWith(QStringLiteral("record.screen-"));
+            QCOMPARE(registry.isAvailable(id, actions::Platform::Android), !windowsOnly);
+            QVERIFY2(registry.isAvailable(id, actions::Platform::Windows), qPrintable(id));
+        }
+        QCOMPARE(p->pinned.count(QStringLiteral("insert.image")), 1); // l'épinglage du lot 6 reste
     }
     void namesAreOurs()
     {
