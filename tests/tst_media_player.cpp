@@ -110,7 +110,7 @@ private slots:
         QTRY_VERIFY(player.position(Player::First) > 0);
         QVERIFY(player.isPlaying(Player::First));
         QVERIFY(!player.isPlaying(Player::Second));
-        QVERIFY(!positions.isEmpty());
+        QTRY_VERIFY(!positions.isEmpty()); // signal périodique : il suit la position, sans lui être synchrone
         QCOMPARE(positions.last().at(0).toInt(), int(Player::First));
     }
 
@@ -316,5 +316,18 @@ private slots:
     }
 };
 
-QTEST_MAIN(TstMediaPlayer)
+// Sans interface et, sous macOS, sur le répartiteur Core Foundation : le moteur darwin de Qt Multimedia livre
+// ses chargements par la file principale de GCD, que ni le répartiteur de la plateforme « offscreen » ni
+// celui de QCoreApplication par défaut (QEventDispatcherUNIX) ne vident : rien n'arriverait jamais. Le
+// lecteur n'a besoin d'aucun écran ; l'application, sous la plateforme cocoa, vide cette file d'elle-même.
+int main(int argc, char* argv[])
+{
+#if defined(Q_OS_DARWIN)
+    qputenv("QT_EVENT_DISPATCHER_CORE_FOUNDATION", "1");
+#endif
+    QCoreApplication app(argc, argv);
+    TstMediaPlayer test;
+    QTEST_SET_MAIN_SOURCE_PATH
+    return QTest::qExec(&test, argc, argv);
+}
 #include "tst_media_player.moc"
