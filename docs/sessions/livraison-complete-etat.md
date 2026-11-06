@@ -337,6 +337,11 @@ Tâche : L8-T15 — core : limiteurs et rotation (V4) — depuis 2026-11-06
 ### Pièges trouvés (lot 8, Mac)
 - La notification de fin d'une commande Bash en tâche de fond ne réveille pas un sous-agent sur ce poste (L8-T1, deux fois ; reprise par `SendMessage`). Règle du lot : constructions et suites des sous-agents au premier plan (`timeout: 600000`), construction puis suite séparées (`regles-tache-lot8-mac.md`, § « Attendre »).
 
+### À porter aux tâches suivantes (lot 8)
+- **L8-T16** : `landingPoint` (L8-T15) aimante au conteneur le plus haut sans règle d'acceptation : L8-T16 choisit le conteneur par `resolveDrop` (L8-T14) ; pivot commun : `pivotOf` (L8-T15) et le pivot local de L8-T7 à regrouper (simplification de fin de lot).
+- **L8-T9** : déclencher les commandes `edit.*` pour `object.copy/cut/paste` (catalogue à `command` vide) ; contrôle d'occurrences de L8-T19 sur `answer`/`systemOpener`.
+- **Fin de lot (3.8)** : libellés du catalogue `object.flip-*` contraires aux axes du menu.
+
 ### Restes pour le PC (lot 8)
 - **L8-T5-PC** (décision de A, 2026-11-06 : numéros du format non établis sans l'ancien dépôt, D2 « non tranché » du rapport de L8-T0) : relever au PC (REA, `docs/re/format-flipchart.md`) les numéros des modes de déplacement et de rotation, du pivot, de l'accrochage, des règles de conteneur et des options de média, et le sens de « mode non » face au booléen 13 ; puis écrire `travelModesKept`, `containerRead`, `mediaOptionsRead` dans `tests/tst_formats_flipchart_interactivity.cpp` et la lecture dans `formats/src/flipchart.cpp`. Même passe : ligne `page.goto` de `kCommandToCatalog` (clé qui porte n pour le genre 23, `parameters` `{"page": n}`), paramètres de `document.open-file`, confirmation de 270 = ouverture de fichier au genre 26, type d'action 27 (D1). Les numéros au-delà de 36 sont propres à chaque genre (45 = ressource d'un média).
 - Toutes les tâches : `NOMS OK`, preuve MSVC `/W4 /WX` (CI de la PR), `graphify update .`, `captures.ps1` à l'écran D3D11, banc.
