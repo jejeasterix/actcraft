@@ -561,6 +561,32 @@ inline Obj rectangle(quint32 storage, const char* name, qint32 layer, double z, 
     return o;
 }
 
+// Lot 8 (L8-T5) : limiteurs du lot 2, seuls numéros des restrictions établis par notre documentation :
+// déplacement (13), dimension (14), rotation (15).
+inline Obj limited(Obj o, bool movable, bool resizable, bool rotatable)
+{
+    o.boolean(13, movable).boolean(14, resizable).boolean(15, rotatable);
+    return o;
+}
+
+// Action sur un objet (genre 28) : cible en 2 (pointeur vers le nœud de l'objet visé), commande en 5. Le nœud
+// d'action est frère de l'objet qui la déclenche et le suit dans l'arbre de la page.
+inline Obj objectAction(quint32 storage, qint32 command, quint32 targetNode, quint32 targetStorage,
+                        quint16 targetKind)
+{
+    Obj o(28, storage);
+    o.pointer(2, targetNode, targetStorage, targetKind).integer(5, command);
+    return o;
+}
+
+// Ouverture d'un fichier (genre 26) : commande en 10, sans ressource jointe.
+inline Obj openFileAction(quint32 storage, qint32 command)
+{
+    Obj o(26, storage);
+    o.integer(10, command);
+    return o;
+}
+
 // Une page : nœud `node`, objet de page rangé sous node − 1, arbre et objets de son conteneur.
 struct Sheet
 {

@@ -46,6 +46,33 @@ inline constexpr bool isActionKind(quint16 k) noexcept
            k == kind::kTextAction || k == kind::kLaunchAction;
 }
 
+// Actions vers notre catalogue (lot 8, D1 du rapport L8-T0) : table écrite à la main, réduite aux paires
+// (genre, commande) dont le sens est établi. Le genre seul ne désigne pas une action : une commande absente
+// de la table laisse l'action sans identifiant (« action non prise en charge »), son numéro gardé. Le type 27
+// n'est pas un genre d'action lu (isActionKind).
+struct CommandToCatalog
+{
+    quint16 genre;
+    qint32 command;
+    const char* catalogId;
+};
+
+inline constexpr CommandToCatalog kCommandToCatalog[] = {
+    {kind::kObjectAction, 184, "object.toggle-hidden"},
+    {kind::kOpenFileAction, 270, "document.open-file"},
+};
+
+// Identifiant de notre catalogue, ou nullptr.
+inline constexpr const char* catalogIdOf(quint16 genre, qint32 command) noexcept
+{
+    for (const CommandToCatalog& entry : kCommandToCatalog) {
+        if (entry.genre == genre && entry.command == command) {
+            return entry.catalogId;
+        }
+    }
+    return nullptr;
+}
+
 // Paperboard (§ 5).
 namespace docKeys {
 inline constexpr quint16 kFallbackTitle = 2;  // titre de secours, si le titre est vide
