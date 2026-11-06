@@ -11,7 +11,7 @@ import ActCraft.Ui
 // photographie : miniatures, exports et page fixe montrent le repère neutre de paintPage. La vue native passe
 // au-dessus de tout le QML : elle est masquée tant qu'une boîte de la fenêtre est ouverte.
 Item {
-    id: layer
+    id: frameLayer
     objectName: "webFrameLayer"
     anchors.fill: parent
     property var commands: null
@@ -30,7 +30,7 @@ Item {
     WebFrameItems {
         id: appWebFrames
         objectName: "appWebFrames"
-        document: layer.pageArea ? layer.pageArea.documentController : null
+        document: frameLayer.pageArea ? frameLayer.pageArea.documentController : null
     }
 
     function findArea() {
@@ -41,7 +41,7 @@ Item {
         return null
     }
     function findDialog() {
-        let top = layer
+        let top = frameLayer
         while (top.parent)
             top = top.parent
         for (let i = 0; i < top.data.length; ++i) {
@@ -59,8 +59,8 @@ Item {
         // Dépendances : le cadre suit le zoom et le défilement de la vue.
         const zoom = view.zoom
         const pan = view.pan
-        const a = layer.mapFromItem(null, view.pageToScene(Qt.point(b.x, b.y)))
-        const c = layer.mapFromItem(null, view.pageToScene(Qt.point(b.x + b.width, b.y + b.height)))
+        const a = frameLayer.mapFromItem(null, view.pageToScene(Qt.point(b.x, b.y)))
+        const c = frameLayer.mapFromItem(null, view.pageToScene(Qt.point(b.x + b.width, b.y + b.height)))
         return Qt.rect(Math.min(a.x, c.x), Math.min(a.y, c.y), Math.abs(c.x - a.x), Math.abs(c.y - a.y))
     }
     function cover(item) {
@@ -84,20 +84,20 @@ Item {
         commands.setHandler("insert.web-frame", function (arg) {
             if (arg && (arg.html || arg.address)) {
                 appWebFrames.insertFrame(arg.html || "", arg.address || "")
-            } else if (layer.dialog) {
-                layer.dialog.open(appWebFrames)
+            } else if (frameLayer.dialog) {
+                frameLayer.dialog.open(appWebFrames)
             }
         })
-        commands.setHandler("webframe.back", function (arg) { appWebFrames.goBack(layer.rowOf(arg)) })
-        commands.setHandler("webframe.forward", function (arg) { appWebFrames.goForward(layer.rowOf(arg)) })
-        commands.setHandler("webframe.reload", function (arg) { appWebFrames.reload(layer.rowOf(arg)) })
+        commands.setHandler("webframe.back", function (arg) { appWebFrames.goBack(frameLayer.rowOf(arg)) })
+        commands.setHandler("webframe.forward", function (arg) { appWebFrames.goForward(frameLayer.rowOf(arg)) })
+        commands.setHandler("webframe.reload", function (arg) { appWebFrames.reload(frameLayer.rowOf(arg)) })
         commands.setHandler("webframe.snapshot", function (arg) {
-            const ok = appWebFrames.snapshot(layer.rowOf(arg))
+            const ok = appWebFrames.snapshot(frameLayer.rowOf(arg))
             console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
         })
         // Déblocage : confirmation, puis cette page de ce document seulement.
         commands.setHandler("webframe.unblock", function (arg) {
-            appWebFrames.requestUnblock(layer.rowOf(arg))
+            appWebFrames.requestUnblock(frameLayer.rowOf(arg))
             if (appWebFrames.unblockPending)
                 confirm.open()
         })
@@ -121,7 +121,7 @@ Item {
 
             // Glisser de la poignée : aperçu sans étape ; l'étape part au relâché.
             property point resizeBy: Qt.point(0, 0)
-            readonly property rect box: layer.frameRect(bounds)
+            readonly property rect box: frameLayer.frameRect(bounds)
             readonly property bool showsView: !blocked && !refused && content.length > 0
             x: box.x
             y: box.y
@@ -132,7 +132,7 @@ Item {
                 id: viewHost
                 anchors.fill: parent
                 clip: true
-                visible: frame.showsView && !layer.covered
+                visible: frame.showsView && !frameLayer.covered
                 property var web: null
                 function show() {
                     if (!frame.showsView || !appWebFrames.engineBuilt)
@@ -192,16 +192,16 @@ Item {
                         visible: frame.blocked
                         text: qsTr("Débloquer…")
                         onClicked: {
-                            layer.currentRow = frame.index
-                            if (layer.commands)
-                                layer.commands.trigger("webframe.unblock", frame.index)
+                            frameLayer.currentRow = frame.index
+                            if (frameLayer.commands)
+                                frameLayer.commands.trigger("webframe.unblock", frame.index)
                         }
                     }
                 }
                 // Couverture d'entrée tant qu'il est montré : ailleurs, la page reste aux outils.
-                onVisibleChanged: visible ? layer.cover(blockedMark) : layer.uncover(blockedMark)
-                Component.onCompleted: if (visible) layer.cover(blockedMark)
-                Component.onDestruction: layer.uncover(blockedMark)
+                onVisibleChanged: visible ? frameLayer.cover(blockedMark) : frameLayer.uncover(blockedMark)
+                Component.onCompleted: if (visible) frameLayer.cover(blockedMark)
+                Component.onDestruction: frameLayer.uncover(blockedMark)
             }
 
             // Barre du cadre, au-dessus de son bord haut.
@@ -222,24 +222,24 @@ Item {
                         text: "‹"
                         enabled: frame.canGoBack
                         height: parent.height
-                        onClicked: if (layer.commands) layer.commands.trigger("webframe.back", frame.index)
+                        onClicked: if (frameLayer.commands) frameLayer.commands.trigger("webframe.back", frame.index)
                     }
                     ToolButton {
                         text: "›"
                         enabled: frame.canGoForward
                         height: parent.height
-                        onClicked: if (layer.commands) layer.commands.trigger("webframe.forward", frame.index)
+                        onClicked: if (frameLayer.commands) frameLayer.commands.trigger("webframe.forward", frame.index)
                     }
                     ToolButton {
                         text: "↻"
                         height: parent.height
-                        onClicked: if (layer.commands) layer.commands.trigger("webframe.reload", frame.index)
+                        onClicked: if (frameLayer.commands) frameLayer.commands.trigger("webframe.reload", frame.index)
                     }
                     ToolButton {
                         text: qsTr("Image fixe")
                         height: parent.height
                         enabled: frame.showsView
-                        onClicked: if (layer.commands) layer.commands.trigger("webframe.snapshot", frame.index)
+                        onClicked: if (frameLayer.commands) frameLayer.commands.trigger("webframe.snapshot", frame.index)
                     }
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
@@ -249,10 +249,10 @@ Item {
                     }
                 }
                 TapHandler {
-                    onTapped: layer.currentRow = frame.index
+                    onTapped: frameLayer.currentRow = frame.index
                 }
-                Component.onCompleted: layer.cover(bar)
-                Component.onDestruction: layer.uncover(bar)
+                Component.onCompleted: frameLayer.cover(bar)
+                Component.onDestruction: frameLayer.uncover(bar)
             }
 
             // Poignée : coin bas droit.
@@ -270,19 +270,19 @@ Item {
                     target: null
                     onTranslationChanged: if (active) frame.resizeBy = Qt.point(translation.x, translation.y)
                     onActiveChanged: {
-                        if (active || !layer.view)
+                        if (active || !frameLayer.view)
                             return
-                        const end = layer.mapToItem(null, frame.x + frame.width, frame.y + frame.height)
-                        const corner = layer.view.sceneToPage(Qt.point(end.x, end.y))
+                        const end = frameLayer.mapToItem(null, frame.x + frame.width, frame.y + frame.height)
+                        const corner = frameLayer.view.sceneToPage(Qt.point(end.x, end.y))
                         frame.resizeBy = Qt.point(0, 0)
-                        layer.currentRow = frame.index
+                        frameLayer.currentRow = frame.index
                         appWebFrames.resizeFrame(frame.index, Qt.rect(frame.bounds.x, frame.bounds.y,
                                                                       Math.max(1, corner.x - frame.bounds.x),
                                                                       Math.max(1, corner.y - frame.bounds.y)))
                     }
                 }
-                Component.onCompleted: layer.cover(handle)
-                Component.onDestruction: layer.uncover(handle)
+                Component.onCompleted: frameLayer.cover(handle)
+                Component.onDestruction: frameLayer.uncover(handle)
             }
         }
     }

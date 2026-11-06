@@ -1,9 +1,17 @@
 {
     "format": "actcraft-scenario/1",
     "name": "cadre-web",
-    "description": "S27 : un document reçu dont le cadre web pointe vers une adresse locale s'ouvre bloqué (repère et bouton Débloquer), sans requête avant la décision de la politique.",
+    "description": "S27 : un cadre web à notre code HTML, posé en une étape, puis son image fixe ; un document reçu dont le cadre pointe vers une adresse locale s'ouvre bloqué (repère et bouton Débloquer), sans requête avant la décision de la politique.",
     "steps": [
         {"waitReady": true},
+        {"command": "insert.web-frame", "argument": {"html": "<!doctype html><html><head><title>Cadre d'essai</title></head><body style=\"margin:0;background:#1E88E5;color:#FFFFFF;font:32px sans-serif\"><p>Cadre d'essai ActCraft</p></body></html>"}},
+        {"waitReady": true},
+        {"expect": "webFrameLayer.count", "value": 1},
+        {"expect": "webFrameLayer.blockedCount", "value": 0},
+        {"capture": "cadre"},
+        {"command": "webframe.snapshot"},
+        {"waitReady": true},
+        {"capture": "image-fixe"},
         {"fixture": "cadre-web", "path": "${SORTIE}/cadre-web.actcraft"},
         {"command": "file.open", "argument": "${SORTIE}/cadre-web.actcraft"},
         {"waitFor": "documentController.busy", "value": false},
