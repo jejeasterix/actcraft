@@ -310,6 +310,9 @@ Dépôt **privé** depuis le 2026-11-06 (décision de Jérôme) : minutes CI au 
 H8-6 : réponse de Jérôme du 2026-10-21 « H8-6 > ok » → pas de repli ; Qt Homebrew 6.12.0 porte QtMultimedia et QtWebView (vérifié le 2026-11-06). Sous Windows, l'installation des modules reste au PC (reste PC).
 Ancien dépôt REA, corpus vidéo et paperboards réels : absents du Mac → confrontation de L8-T0 et S11 local au PC.
 Questions à Jérôme (lot 8) : aucune ouverte.
+Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
+Tâche : L8-T0 — Ouverture du lot 8 (Mac, sans REA) — depuis 2026-11-06
+Tâche : L8-T1 — Réservation 8a — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
