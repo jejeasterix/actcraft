@@ -284,8 +284,9 @@ bool CommandRegistry::isEnabled(const QString& id) const
     if (!e) {
         return false;
     }
-    // Porte du verrou (D6-7) : un état à part, combiné ici, jamais écrit dans l'état propre.
-    return e->enabled && !(m_locked && e->info.lockable);
+    // Porte du verrou (D6-7) et de la diffusion protégée (F-680) : deux états à part, combinés ici, jamais
+    // écrits dans l'état propre. La restriction ne lit pas `restrictable` (H8-8) : la porte a déjà choisi.
+    return e->enabled && !(m_locked && e->info.lockable) && !m_restricted.contains(id);
 }
 
 bool CommandRegistry::isOwnEnabled(const QString& id) const
@@ -310,6 +311,16 @@ bool CommandRegistry::isChecked(const QString& id) const
 bool CommandRegistry::trigger(const QString& id, const QVariant& argument, Platform platform) const
 {
     const Entry* e = entry(id);
+    // Refus de la seule restriction : rappel de la porte (message), puis refus comme pour le grisage.
+    if (e && m_restricted.contains(id) && e->enabled && !(m_locked && e->info.lockable) &&
+        isAvailable(id, platform)) {
+        if (m_refusedByRestriction) {
+            const RefusalHandler refused =
+                m_refusedByRestriction; // copie : le rappel peut modifier le registre
+            refused(id);
+        }
+        return false;
+    }
     // isEnabled() et non e->enabled : trigger() passe par la même porte du verrou que le grisage.
     if (!e || !isAvailable(id, platform) || !isEnabled(id) || !e->handler ||
         !(argumentIsValid(e->info.argument, argument) || (e->info.argumentOptional && !argument.isValid()))) {

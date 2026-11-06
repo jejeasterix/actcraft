@@ -1,5 +1,5 @@
-// Diffusion protégée II (L8-T32, S18) : la porte du registre refuse les commandes des catégories interdites par
-// le document ouvert, comme le verrou de classe (D6-7), sans jamais écrire l'état propre des commandes.
+// Diffusion protégée II (L8-T32, S18) : la porte du registre refuse les commandes des catégories interdites
+// par le document ouvert, comme le verrou de classe (D6-7), sans jamais écrire l'état propre des commandes.
 #include <actcraft/actions/commandregistry.h>
 #include <actcraft/core/model.h>
 #include <actcraft/ui/broadcastgate.h>
@@ -59,8 +59,8 @@ void TstUiBroadcast::restrictedCommandsGreyed()
     }
 }
 
-// Un contrôleur (sélection, mode conception) qui rouvre edit.copy par setEnabled ne lève pas la restriction ; à
-// la levée des règles, l'état propre posé par ce contrôleur revient tel quel, ni forcé à vrai ni à faux.
+// Un contrôleur (sélection, mode conception) qui rouvre edit.copy par setEnabled ne lève pas la restriction ;
+// à la levée des règles, l'état propre posé par ce contrôleur revient tel quel, ni forcé à vrai ni à faux.
 void TstUiBroadcast::enableCannotBypassTheRestriction()
 {
     actions::CommandRegistry registry;

@@ -96,11 +96,19 @@ public:
     bool allowsWhileLocked(const QString& id) const;
     // Idem pour un possesseur dont les commandes peuvent manquer (absentes : permis).
     static bool allowsWhileLocked(const Commands* commands, const char* id);
+    // Diffusion protégée (L8-T32) : identifiants refusés par les règles du document ouvert, posés par la
+    // seule BroadcastGate (C++), gardés à travers reload() ; l'état propre des commandes n'est pas touché.
+    void setRestricted(const QSet<QString>& ids);
+    bool isRestricted(const QString& id) const;
+    // Un geste hors registre refusé par la diffusion (glisser vers les ressources) : même signal qu'un essai.
+    void reportRestrictionRefusal(const QString& id);
 
 signals:
     void layoutChanged();
     void stateChanged();
     void triggered(const QString& id, const QVariant& argument);
+    // Essai d'une commande refusée par la seule diffusion protégée (menu, raccourci, action d'objet).
+    void refusedByRestriction(const QString& id);
 
 private:
     // Éléments d'un menu : `submenus` nul = pas de sous-menu possible (sous-menu lui-même, menu contextuel).
