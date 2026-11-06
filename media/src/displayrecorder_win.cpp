@@ -18,17 +18,20 @@ namespace {
 // Chaîne de Qt Multimedia, en deux sessions : la première capture l'écran principal et le livre à un puits
 // d'images (frameCaptured) ; la seconde reçoit, par une entrée d'images, ce que DisplayRecorder en a tiré
 // (zone découpée, temps hors pause) et l'écrit en MP4 (H.264). L'arrêt est rendu quand l'enregistreur repasse
-// à l'état « arrêté », c'est-à-dire fichier fermé.
+// à l'état « arrêté », c'est-à-dire fichier fermé : après une panne aussi, failed() puis stopped().
 class ScreenEngine final : public DisplayEngine
 {
 public:
     ScreenEngine()
     {
         m_screen.setScreen(QGuiApplication::primaryScreen());
+        // Au plus 30 i/s livrées au fil principal : un écran à 60 ou 144 Hz en donnerait deux à cinq fois
+        // plus, et DisplayRecorder en sauterait la plupart après les avoir reçues.
+        m_screen.setMaximumFrameRate(30.0);
         m_capture.setScreenCapture(&m_screen);
         m_capture.setVideoSink(&m_sink);
         connect(&m_sink, &QVideoSink::videoFrameChanged, this, [this](const QVideoFrame& frame) {
-            if (m_open && frame.isValid())
+            if (m_open && !m_failed && frame.isValid())
                 emit frameCaptured(frame);
         });
         connect(&m_screen, &QScreenCapture::errorOccurred, this,
@@ -45,11 +48,8 @@ public:
         m_recorder.setQuality(QMediaRecorder::HighQuality);
         connect(&m_recorder, &QMediaRecorder::recorderStateChanged, this,
                 [this](QMediaRecorder::RecorderState state) {
-                    if (state != QMediaRecorder::StoppedState || !m_open)
-                        return;
-                    m_open = false;
-                    const QUrl actual = m_recorder.actualLocation();
-                    emit stopped(actual.isLocalFile() ? actual.toLocalFile() : m_path);
+                    if (state == QMediaRecorder::StoppedState)
+                        close();
                 });
         connect(&m_recorder, &QMediaRecorder::errorOccurred, this,
                 [this](QMediaRecorder::Error error, const QString& text) {
@@ -63,13 +63,14 @@ public:
     {
         m_path = path;
         m_open = true;
+        m_failed = false;
         m_recorder.setOutputLocation(QUrl::fromLocalFile(path));
         m_recorder.record(); // rend la main ; l'encodeur prend la taille de la première image reçue
         m_screen.setActive(true);
     }
     void encode(const QVideoFrame& frame) override
     {
-        if (m_open)
+        if (m_open && !m_failed)
             m_input.sendVideoFrame(frame); // file pleine : l'image est perdue, jamais attendue
     }
     void stop() override
@@ -80,13 +81,27 @@ public:
     QMediaFormat mediaFormat() const override { return m_recorder.mediaFormat(); }
 
 private:
-    void fail(const QString& reason)
+    // Fichier fermé : l'enregistreur est « arrêté ». Une seule fois par enregistrement.
+    void close()
     {
         if (!m_open)
             return;
         m_open = false;
-        m_screen.setActive(false);
+        const QUrl actual = m_recorder.actualLocation();
+        emit stopped(actual.isLocalFile() ? actual.toLocalFile() : m_path);
+    }
+
+    // Panne de la capture ou de l'encodeur : on le dit, puis on ferme le fichier. stopped() suit quand
+    // l'enregistreur est arrêté (tout de suite s'il l'est déjà : aucun changement d'état ne viendrait).
+    void fail(const QString& reason)
+    {
+        if (!m_open || m_failed)
+            return;
+        m_failed = true;
         emit failed(reason);
+        stop();
+        if (m_recorder.recorderState() == QMediaRecorder::StoppedState)
+            close();
     }
 
     QMediaCaptureSession m_capture;
@@ -97,6 +112,7 @@ private:
     QMediaRecorder m_recorder;
     QString m_path;
     bool m_open = false;
+    bool m_failed = false;
 };
 
 } // namespace

@@ -166,15 +166,18 @@ void writeFile(const QString& path, const QByteArray& content)
 class SimulatedScreen : public DisplayEngine
 {
 public:
-    SimulatedScreen(QString defaultFolder, int failAfterMs)
-        : m_defaultFolder(std::move(defaultFolder)), m_failAfterMs(failAfterMs), m_pattern(positionPattern())
+    SimulatedScreen(QString defaultFolder, int failAfterMs, bool hangs)
+        : m_defaultFolder(std::move(defaultFolder)), m_failAfterMs(failAfterMs), m_hangs(hangs),
+          m_pattern(positionPattern())
     {
         m_timer.setInterval(20);
         connect(&m_timer, &QTimer::timeout, this, [this] { emit frameCaptured(QVideoFrame(m_pattern)); });
+        setAbandonTimeout(
+            1500); // largement au-delà des 80 ms de fermeture, sans attendre 30 s un moteur bloqué
     }
     ~SimulatedScreen() override
     {
-        if (!m_open)
+        if (!m_open || m_hangs)
             return;
         const QString path = target();
         const QByteArray content = this->content();
@@ -188,6 +191,8 @@ public:
         m_open = true;
         m_finishing = false;
         m_lines.clear();
+        if (m_hangs)
+            writeFile(target(), {}); // fichier ouvert dès le début, jamais fermé
         m_timer.start();
         if (m_failAfterMs > 0) {
             QTimer::singleShot(m_failAfterMs, this, [this] {
@@ -215,6 +220,8 @@ public:
             return; // déjà demandé (panne puis abandon) : une seule fermeture
         m_finishing = true;
         m_timer.stop();
+        if (m_hangs)
+            return; // moteur bloqué : stopped() ne vient jamais
         QTimer::singleShot(closeDelayMs, this, [this] {
             if (!m_open)
                 return;
@@ -233,6 +240,7 @@ private:
 
     QString m_defaultFolder;
     int m_failAfterMs = 0;
+    bool m_hangs = false;
     QImage m_pattern;
     QTimer m_timer;
     QString m_path;
@@ -241,10 +249,15 @@ private:
     bool m_finishing = false;
 };
 
-// Capture réelle de l'écran principal : sous Windows seulement (QScreenCapture et MP4 du moteur Windows).
+// Capture réelle de l'écran principal : sous Windows seulement (QScreenCapture et MP4 du moteur Windows), et
+// sur demande. Elle filme l'écran du poste pendant une douzaine de secondes, et un serveur de CI n'a ni écran
+// ni forcément d'encodeur : ACTCRAFT_TEST_ECRAN=1 la joue, comme ACTCRAFT_TEST_MICRO joue le micro réel de
+// tst_media_soundrecorder. Sans elle, les lignes « ecran » sautent.
 QString screenUnavailable()
 {
 #if defined(Q_OS_WIN)
+    if (!qEnvironmentVariableIsSet("ACTCRAFT_TEST_ECRAN"))
+        return QStringLiteral("écran réel : ACTCRAFT_TEST_ECRAN=1 pour filmer l'écran principal (~13 s)");
     return {};
 #else
     return QStringLiteral("Windows seulement");
@@ -283,6 +296,7 @@ class TstMediaDisplayrecorder : public QObject
     QPointer<DisplayEngine> m_lastEngine;
     int m_enginesMade = 0;
     int m_failAfterMs = 0;
+    bool m_hangs = false;
     int m_case = 0;
 
     std::unique_ptr<DisplayRecorder> makeRecorder(bool screen)
@@ -298,7 +312,7 @@ class TstMediaDisplayrecorder : public QObject
         } else {
             engines = [this]() -> std::unique_ptr<DisplayEngine> {
                 ++m_enginesMade;
-                auto engine = std::make_unique<SimulatedScreen>(m_elsewhere, m_failAfterMs);
+                auto engine = std::make_unique<SimulatedScreen>(m_elsewhere, m_failAfterMs, m_hangs);
                 m_lastEngine = engine.get();
                 return engine;
             };
@@ -355,6 +369,7 @@ private slots:
         m_lastEngine.clear();
         m_enginesMade = 0;
         m_failAfterMs = 0;
+        m_hangs = false;
     }
 
     // Hors Windows, le module est construit sans moteur d'écran : enregistreur indisponible, message.
@@ -371,7 +386,9 @@ private slots:
         const QMediaFormat format = engine->mediaFormat();
         QCOMPARE(format.fileFormat(), QMediaFormat::MPEG4);
         QCOMPARE(format.videoCodec(), QMediaFormat::VideoCodec::H264);
-        QVERIFY2(format.isSupported(QMediaFormat::Encode), "MP4 H.264 non encodable par Qt Multimedia");
+        // Un serveur de CI peut ne pas avoir d'encodeur H.264 : ce n'est pas un défaut du module.
+        if (!format.isSupported(QMediaFormat::Encode))
+            QSKIP("MP4 H.264 non encodable par Qt Multimedia sur ce poste");
 #else
         QVERIFY(!recorder.isAvailable());
         QVERIFY2(recorder.message().contains(QStringLiteral("Windows seulement")),
@@ -552,8 +569,8 @@ private slots:
         QVERIFY(!recorder->isRecording());
     }
 
-    // Panne en cours d'enregistrement : message, aucun rappel ; le fichier, réécrit par la fermeture tardive
-    // ou par la destruction du moteur, est effacé après elles.
+    // Panne en cours d'enregistrement : message, aucun rappel ; le fichier, écrit par la fermeture tardive du
+    // moteur, est effacé après elle (jamais avant : il n'existe pas encore).
     void engineFailureLeavesNothing()
     {
         m_failAfterMs = 300;
@@ -635,6 +652,44 @@ private slots:
         QVERIFY(filesIn(m_elsewhere).isEmpty());
     }
 
+    // Garde du délai : un moteur qui ne ferme jamais son fichier ne reste pas vivant indéfiniment ; abandonné
+    // par la destruction de l'enregistreur, il est libéré à l'expiration du délai, fichier effacé.
+    void abandonedEngineThatNeverClosesIsReleased()
+    {
+        m_hangs = true;
+        auto recorder = makeRecorder(false);
+        recorder->toggle();
+        QVERIFY(recorder->isRecording());
+        QTest::qWait(200);
+        QCOMPARE(filesIn(m_folder).size(), 1); // le fichier partiel est là
+        recorder.reset();
+        QVERIFY2(!m_lastEngine.isNull(),
+                 "moteur détruit avant la fermeture de son fichier ni le délai de garde");
+        QTRY_VERIFY_WITH_TIMEOUT(m_lastEngine.isNull(), 15000);
+        QVERIFY2(filesIn(m_folder).isEmpty(), qPrintable(filesIn(m_folder).join(u' ')));
+    }
+
+    // Découpe d'une zone sans image de l'écran entier : mêmes pixels, au bon endroit, en pixels de 4 octets
+    // (lignes copiées une à une) comme en niveaux de gris (repli par toImage()).
+    void cropFrameKeepsOnlyTheZone()
+    {
+        const QRect zone(100, 60, 320, 240);
+        const QVideoFrame cropped = actcraft::media::cropFrame(QVideoFrame(positionPattern()), zone);
+        QVERIFY(cropped.isValid());
+        QCOMPARE(cropped.size(), zone.size());
+        const QImage image = cropped.toImage();
+        QCOMPARE(positionAt(image, 0, 0), zone.topLeft());
+        QCOMPARE(positionAt(image, zone.width() - 1, zone.height() - 1), zone.bottomRight());
+        QCOMPARE(positionAt(image, 17, 33), QPoint(117, 93));
+
+        const QImage gray = positionPattern().convertToFormat(QImage::Format_Grayscale8);
+        const QVideoFrame croppedGray = actcraft::media::cropFrame(QVideoFrame(gray), zone);
+        QVERIFY(croppedGray.isValid());
+        QCOMPARE(croppedGray.size(), zone.size());
+        const QImage grayImage = croppedGray.toImage().convertToFormat(QImage::Format_Grayscale8);
+        QCOMPARE(qGray(grayImage.pixel(17, 33)), qGray(gray.pixel(117, 93)));
+    }
+
     // Discrimine le patron écarté : tout encoder à la cadence de l'écran (60 ou 144 Hz). L'écran simulé livre
     // 50 images/s ; l'enregistreur saute les images à moins de 30 ms de la dernière écrite.
     void framesAreCappedAtThirtyPerSecond()
@@ -657,8 +712,9 @@ private slots:
 };
 
 // Sous macOS, sur le répartiteur Core Foundation (voir tst_media_player.cpp) : le moteur darwin de Qt
-// Multimedia ne livre rien sinon. Sous Windows, la capture vise l'écran principal réel : greffon de
-// plateforme Windows (le greffon hors écran n'a pas d'écran à capturer) ; aucune fenêtre n'est ouverte.
+// Multimedia ne livre rien sinon. Sous Windows, la capture réelle (ACTCRAFT_TEST_ECRAN=1 seulement) vise
+// l'écran principal : greffon de plateforme Windows (le greffon hors écran n'a pas d'écran à capturer) ;
+// aucune fenêtre n'est ouverte. Sans la variable, la plateforme reste celle de l'appelant (hors écran en CI).
 // Réglages d'essai (M7) : QStandardPaths en mode test.
 int main(int argc, char* argv[])
 {
@@ -666,7 +722,8 @@ int main(int argc, char* argv[])
     qputenv("QT_EVENT_DISPATCHER_CORE_FOUNDATION", "1");
 #endif
 #if defined(Q_OS_WIN)
-    qputenv("QT_QPA_PLATFORM", "windows");
+    if (qEnvironmentVariableIsSet("ACTCRAFT_TEST_ECRAN"))
+        qputenv("QT_QPA_PLATFORM", "windows");
 #endif
     QGuiApplication app(argc, argv);
     QStandardPaths::setTestModeEnabled(true);

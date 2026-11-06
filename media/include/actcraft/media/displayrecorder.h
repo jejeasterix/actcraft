@@ -12,7 +12,9 @@
 #include <QSize>
 #include <QStandardPaths>
 #include <QString>
+#include <QTimer>
 #include <QVideoFrame>
+#include <QVideoFrameFormat>
 
 #include <functional>
 #include <memory>
@@ -24,7 +26,8 @@ namespace actcraft::media {
 // QVideoFrameInput ; dans les tests : un écran simulé. Le moteur ne recadre ni n'horodate : il livre l'écran
 // entier (frameCaptured) et écrit ce que DisplayRecorder lui rend (encode). Contrat de Qt Multimedia :
 // start() et stop() rendent la main sur-le-champ ; le fichier n'est fermé et complet qu'à l'émission de
-// stopped(), plus tard, sur le fil de l'enregistreur.
+// stopped(), plus tard, sur le fil de l'enregistreur. Détruire le moteur n'est pas fermer son fichier : la
+// finalisation du MP4 survit à QMediaRecorder. Seul stopped() dit que le fichier est libre.
 class DisplayEngine : public QObject
 {
     Q_OBJECT
@@ -36,9 +39,34 @@ public:
     virtual void start(const QString& path) = 0;
     // Image à écrire : zone déjà découpée, horodatée en microsecondes de temps enregistré (pauses exclues).
     virtual void encode(const QVideoFrame& frame) = 0;
+    // Demande la fermeture du fichier ; peut être appelé plusieurs fois (une panne, puis un abandon).
+    // stopped() suit une seule fois, aussi après une panne (failed() puis stopped()).
     virtual void stop() = 0;
     // Format du fichier écrit (vide pour un écran simulé).
     virtual QMediaFormat mediaFormat() const { return {}; }
+
+    // Délai de garde d'un abandon : un moteur qui ne ferme jamais son fichier est libéré après lui.
+    void setAbandonTimeout(int milliseconds) { m_abandonTimeoutMs = milliseconds; }
+
+    // Fin confiée au moteur : l'enregistreur le lâche sans le détruire (document fermé, panne), parce
+    // qu'effacer le fichier avant sa fermeture échoue (fichier ouvert sous Windows) ou le manque (écrit après
+    // coup). Le moteur demande l'arrêt, attend stopped() (ou le délai de garde), efface alors le fichier
+    // partiel, puis se libère par deleteLater. À appeler une fois, par l'enregistreur seulement, sur un
+    // moteur dont le fichier n'est pas fermé ; path est l'emplacement demandé, effacé si le moteur n'a rien
+    // dit à l'expiration du délai.
+    void abandon(const QString& path)
+    {
+        if (m_abandoned)
+            return;
+        m_abandoned = true;
+        setParent(nullptr); // plus rien ne le détruit à la place du moteur
+        connect(this, &DisplayEngine::stopped, this, [this](const QString& closed) { discard(closed); });
+        auto* guard = new QTimer(this);
+        guard->setSingleShot(true);
+        connect(guard, &QTimer::timeout, this, [this, path] { discard(path); });
+        guard->start(m_abandonTimeoutMs);
+        stop();
+    }
 
 signals:
     // Écran principal entier, en pixels de l'image capturée.
@@ -46,6 +74,20 @@ signals:
     // Fichier fermé et complet ; path est l'emplacement réel, qui peut différer de celui demandé.
     void stopped(const QString& path);
     void failed(const QString& reason);
+
+private:
+    void discard(const QString& path)
+    {
+        if (m_discarded)
+            return;
+        m_discarded = true;
+        QFile::remove(path);
+        deleteLater();
+    }
+
+    int m_abandonTimeoutMs = 30'000;
+    bool m_abandoned = false;
+    bool m_discarded = false;
 };
 
 // Zone réellement écrite : coupée aux bords de l'image, côtés ramenés au pair (H.264 en 4:2:0). Zone vide :
@@ -57,6 +99,29 @@ inline QRect recordedArea(const QRect& area, const QSize& frame)
     rect.setWidth(rect.width() & ~1);
     rect.setHeight(rect.height() & ~1);
     return rect;
+}
+
+// Zone d'une image d'écran, sans image de l'écran entier : l'image est mappée en lecture et seules les lignes
+// de la zone sont copiées (pixels de 4 octets : BGRA, BGRX, RGBA…). Les autres formats, ou une image qui ne
+// se mappe pas, passent par toImage(), le chemin général de Qt. rect est contenu dans l'image (recordedArea).
+inline QVideoFrame cropFrame(const QVideoFrame& frame, const QRect& rect)
+{
+    QVideoFrame source(frame);
+    QVideoFrame cropped;
+    if (source.map(QVideoFrame::ReadOnly)) {
+        const QImage::Format format = QVideoFrameFormat::imageFormatFromPixelFormat(source.pixelFormat());
+        constexpr qsizetype bytesPerPixel = 4;
+        const qsizetype stride = source.bytesPerLine(0);
+        if (format != QImage::Format_Invalid && source.planeCount() == 1 &&
+            QImage::toPixelFormat(format).bitsPerPixel() == 8 * bytesPerPixel && source.bits(0) &&
+            stride >= qsizetype(frame.width()) * bytesPerPixel) {
+            const uchar* origin =
+                source.bits(0) + qsizetype(rect.y()) * stride + qsizetype(rect.x()) * bytesPerPixel;
+            cropped = QVideoFrame(QImage(origin, rect.width(), rect.height(), stride, format).copy());
+        }
+        source.unmap();
+    }
+    return cropped.isValid() ? cropped : QVideoFrame(frame.toImage().copy(rect));
 }
 
 // F-292 : enregistreur d'écran (Windows), plein écran ou zone, en MP4. Premier appui : l'enregistrement
@@ -94,14 +159,9 @@ public:
     {}
     ~DisplayRecorder() override
     {
-        if (!m_engine)
-            return;
-        // Document fermé pendant l'enregistrement : le moteur ferme son fichier en se détruisant, puis le
-        // fichier partiel est effacé. Il ne rappelle plus un enregistreur à demi détruit.
-        const QString path = m_path;
-        m_engine->disconnect(this);
-        m_engine.reset();
-        QFile::remove(path);
+        // Document fermé pendant l'enregistrement : le moteur survit à l'enregistreur, ferme son fichier,
+        // l'efface puis se libère. Il ne rappelle plus un enregistreur à demi détruit.
+        abandonEngine();
     }
 
     // Définis par displayrecorder_win.cpp sous Windows, par displayrecorder_other.cpp ailleurs (aucun moteur,
@@ -180,6 +240,11 @@ private:
 
     // Image de la première seconde : durée d'image de 30 i/s, en attendant l'écart entre deux images.
     static constexpr qint64 firstFrameMicroseconds = 33'333;
+    // Cadence écrite au plus de 30 i/s : un écran à 60 ou 144 Hz en livre plus, et chaque image écrite coûte
+    // un découpage et un encodage sur le fil principal. Les images à moins de 30 ms de la dernière écrite
+    // sont sautées avant tout travail ; 30 ms plutôt que 33,3, pour que la gigue de l'horloge ne fasse pas
+    // sauter une image sur deux d'une source déjà à 30 i/s.
+    static constexpr qint64 minFrameGapMicroseconds = 30'000;
 
     void begin()
     {
@@ -236,16 +301,17 @@ private:
         if (m_state != State::Recording || !frame.isValid())
             return;
         const qint64 start = recordedMicroseconds();
-        if (start <= m_lastStart)
-            return;
+        if (m_lastStart >= 0 && start - m_lastStart < minFrameGapMicroseconds)
+            return; // trop proche de la dernière image écrite : ni découpée ni encodée
         const QRect whole(QPoint(0, 0), frame.size());
         const QRect rect = recordedArea(m_recordingArea, frame.size());
         if (rect.isEmpty()) {
             engineFailed(tr("La zone choisie est hors de l'écran."));
             return;
         }
-        // Plein écran : l'image passe telle quelle ; zone : découpée, jamais mise à l'échelle.
-        QVideoFrame out = rect == whole ? frame : QVideoFrame(frame.toImage().copy(rect));
+        // Plein écran : l'image passe telle quelle ; zone : seules ses lignes sont copiées, jamais mise à
+        // l'échelle.
+        QVideoFrame out = rect == whole ? frame : cropFrame(frame, rect);
         if (!out.isValid())
             return;
         out.setStartTime(start);
@@ -259,7 +325,7 @@ private:
         if (!isRecording())
             return;
         const bool cancelled = m_cancelled;
-        retireEngine(false);
+        retireEngine();
         m_path.clear();
         end();
         if (cancelled) {
@@ -275,27 +341,33 @@ private:
     {
         if (!isRecording())
             return;
-        QFile::remove(m_path);
-        retireEngine(true);
+        abandonEngine(); // le moteur efface son fichier partiel quand il l'a fermé
         m_path.clear();
         end();
         emit failed(reason);
     }
 
-    // Le moteur sort par deleteLater (on peut être dans l'un de ses signaux). En échec, son fichier incomplet
-    // s'efface aussi après sa destruction : un moteur ferme son conteneur en se détruisant.
-    void retireEngine(bool removeFile)
+    // Moteur dont le fichier est fermé (stopped() reçu) : il sort par deleteLater, on peut être dans l'un de
+    // ses signaux.
+    void retireEngine()
     {
         if (!m_engine)
             return;
         DisplayEngine* const engine = m_engine.release();
         engine->disconnect(this);
-        if (removeFile) {
-            const QString path = m_path;
-            connect(engine, &QObject::destroyed, engine, [path] { QFile::remove(path); });
-        }
         engine->setParent(this);
         engine->deleteLater();
+    }
+
+    // Moteur dont le fichier n'est pas fermé (panne, destruction de l'enregistreur) : il finit seul, et
+    // efface le fichier partiel après l'avoir fermé. L'effacer d'ici passerait avant la fermeture.
+    void abandonEngine()
+    {
+        if (!m_engine)
+            return;
+        DisplayEngine* const engine = m_engine.release();
+        engine->disconnect(this);
+        engine->abandon(m_path);
     }
 
     void end()
