@@ -79,6 +79,9 @@ Dialog {
     footer: DialogButtonBox {
         Button {
             objectName: "linkConfirmOpen"
+            // Échap est aussi le raccourci de tool.select : la boîte ouverte le garde pour elle (refus, outil intact).
+            Keys.onShortcutOverride: event => { event.accepted = event.key === Qt.Key_Escape }
+            Keys.onEscapePressed: dialog.close()
             enabled: dialog.asking
             text: qsTr("Ouvrir")
             onClicked: dialog.openTarget()
@@ -86,6 +89,9 @@ Dialog {
         Button {
             id: cancelButton
             objectName: "linkConfirmCancel"
+            // Échap est aussi le raccourci de tool.select : la boîte ouverte le garde pour elle (refus, outil intact).
+            Keys.onShortcutOverride: event => { event.accepted = event.key === Qt.Key_Escape }
+            Keys.onEscapePressed: dialog.close()
             text: dialog.asking ? qsTr("Annuler") : qsTr("Fermer")
             onClicked: dialog.close()
         }

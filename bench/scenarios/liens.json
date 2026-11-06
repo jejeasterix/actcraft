@@ -1,1 +1,30 @@
-{"format": "actcraft-scenario/1", "name": "liens", "description": "Talon L8 : rempli par L8-T22.", "steps": [{"waitReady": true}]}
+{
+  "format": "actcraft-scenario/1",
+  "name": "liens",
+  "description": "S11 : un lien vers un site créé par la boîte de dialogue, forme texte ; le clic sur le texte créé demande une confirmation, Annuler (focus par défaut) la refuse, rien ne s'ouvre.",
+  "steps": [
+    { "waitReady": true },
+    { "command": "tool.select" },
+    { "expect": "appTools.currentTool", "value": "select" },
+    { "command": "link.website", "argument": "https://example.org/" },
+    { "waitFor": "linkDialog.visible", "value": true, "timeoutMs": 5000 },
+    { "waitFor": "linkDialog.opened", "value": true, "timeoutMs": 5000 },
+    { "expect": "linkTarget.text", "value": "https://example.org/" },
+    { "capture": "dialogue" },
+    { "key": "Return" },
+    { "waitFor": "linkDialog.visible", "value": false, "timeoutMs": 5000 },
+    { "waitReady": true },
+    { "expect": "documentController.shownObjectCount", "value": 1 },
+    { "expect": "appTools.currentTool", "value": "select" },
+    { "capture": "texte-cree" },
+    { "pointer": [[512, 384]], "space": "page" },
+    { "waitFor": "linkConfirmDialog.visible", "value": true, "timeoutMs": 5000 },
+    { "expect": "linkConfirmDialog.visible", "value": true },
+    { "waitFor": "linkConfirmDialog.opened", "value": true, "timeoutMs": 5000 },
+    { "capture": "confirmation" },
+    { "expect": "linkConfirmCancel.activeFocus", "value": true },
+    { "key": "Space" },
+    { "waitFor": "linkConfirmDialog.visible", "value": false, "timeoutMs": 5000 },
+    { "expect": "appLinks.openedCount", "value": 0 }
+  ]
+}

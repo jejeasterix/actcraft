@@ -4,6 +4,7 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectactions.h>
 #include <actcraft/core/undo.h>
+#include <actcraft/render/pagepainter.h>
 #include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/designmode.h>
@@ -17,10 +18,15 @@
 #include <QJsonObject>
 #include <QLineF>
 #include <QRectF>
+#include <QTextBlock>
+#include <QTextCursor>
+#include <QTextLayout>
 #include <QTimer>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -101,11 +107,12 @@ const core::PageObject* findObject(const core::Page& page, core::ObjectId id)
     return nullptr;
 }
 
-// Texte que la mesure sait reprendre : HTML horizontal sans lignes lues du fichier (`runs` fait foi).
+// Texte que la mesure sait reprendre : HTML sans lignes lues du fichier (`runs` fait foi tant qu'il y en a ;
+// une action de texte le vide, core/src/objectactions_edit.cpp), horizontal ou en colonne (revue L8-C3).
 core::Text* measurableText(core::PageObject* object)
 {
     auto* text = object ? std::get_if<core::Text>(&core::body(*object)) : nullptr;
-    if (text == nullptr || text->vertical || !text->runs.empty() || text->html.empty()) {
+    if (text == nullptr || !text->runs.empty() || text->html.empty()) {
         return nullptr;
     }
     return text;
@@ -134,10 +141,35 @@ qreal fixedWidthOf(const core::Text& text)
     return std::abs(naturalWidth(*measure) - text.bounds.width) > 0.5 ? text.bounds.width : 0;
 }
 
-// Règle de measuredBounds (ui/src/textediting.cpp:717) : le peintre découpe le texte à son cadre.
+// Largeur fixe du texte visé, lue avant l'action (revue L8-C3) : un texte lu avec ses lignes (`runs`) a la
+// largeur de son cadre, que l'action, qui vide `runs`, ne lui retire pas (pas d'élargissement en une ligne) ;
+// un texte écrit horizontal, celle de fixedWidthOf ; une colonne, aucune (sa mesure est sa colonne).
+qreal fixedWidthBefore(core::PageObject* object)
+{
+    const auto* text = object ? std::get_if<core::Text>(&core::body(*object)) : nullptr;
+    if (text == nullptr || text->vertical) {
+        return 0;
+    }
+    if (!text->runs.empty()) {
+        return text->bounds.width;
+    }
+    return text->html.empty() ? 0 : fixedWidthOf(*text);
+}
+
+// Règle de measuredBounds (ui/src/textediting.cpp:717) : le peintre découpe le texte à son cadre. Une colonne
+// (F-301) se mesure par la mise en page du peintre (render::layOutVerticalColumn), comme columnSize de
+// l'éditeur.
 core::RectF measuredBounds(const core::Text& text, qreal fixedWidth)
 {
     std::unique_ptr<QTextDocument> measure = measureDocument(text.html);
+    if (text.vertical) {
+        QTextCursor batch(measure.get());
+        batch.beginEditBlock();
+        render::layOutVerticalColumn(*measure);
+        batch.endEditBlock();
+        return core::RectF{text.bounds.x, text.bounds.y, std::max<qreal>(1.0, measure->textWidth()),
+                           std::ceil(measure->size().height())};
+    }
     const qreal width = fixedWidth > 0 ? fixedWidth : naturalWidth(*measure);
     measure->setTextWidth(width);
     return core::RectF{text.bounds.x, text.bounds.y, width, std::ceil(measure->size().height())};
@@ -146,6 +178,31 @@ core::RectF measuredBounds(const core::Text& text, qreal fixedWidth)
 bool sameRect(const core::RectF& a, const core::RectF& b)
 {
     return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
+}
+
+// Patron de measureFirstBaselines (ui/src/textediting.cpp, firstLineBaseline) : origine de la ligne de base
+// de la première ligne, coordonnées de l'objet, sur le document de mesure à la largeur de l'emprise ; aucune
+// pour une colonne ni pour un document sans ligne (commit de l'éditeur).
+std::optional<core::PointF> firstLineBaseline(const core::Text& text)
+{
+    if (text.vertical) {
+        return std::nullopt;
+    }
+    std::unique_ptr<QTextDocument> measure = measureDocument(text.html);
+    measure->setTextWidth(text.bounds.width);
+    static_cast<void>(measure->size()); // mise en page complète
+    const QTextLayout* layout = measure->firstBlock().layout();
+    if (layout == nullptr || layout->lineCount() == 0) {
+        return std::nullopt;
+    }
+    const QTextLine line = layout->lineAt(0);
+    return core::PointF{text.bounds.x + layout->position().x() + line.naturalTextRect().x(),
+                        text.bounds.y + layout->position().y() + line.y() + line.ascent()};
+}
+
+bool samePoint(const std::optional<core::PointF>& a, const std::optional<core::PointF>& b)
+{
+    return a.has_value() == b.has_value() && (!a || (a->x == b->x && a->y == b->y));
 }
 
 // Action de texte et remesure de l'emprise des textes qu'elle écrit ou crée : une seule étape d'annulation.
@@ -160,9 +217,7 @@ public:
     {
         qreal targetFixed = 0;
         if (m_page < document.pageCount()) {
-            if (const core::Text* before = measurableText(findObject(document.page(m_page), m_target))) {
-                targetFixed = fixedWidthOf(*before);
-            }
+            targetFixed = fixedWidthBefore(findObject(document.page(m_page), m_target));
         }
         const std::size_t first = changes.size();
         m_inner->redo(document, changes);
@@ -182,12 +237,16 @@ public:
                 continue;
             }
             const qreal fixed = changed && change.object == m_target ? targetFixed : 0;
-            const core::RectF bounds = measuredBounds(*text, fixed);
-            if (sameRect(bounds, text->bounds)) {
+            core::Text measured = *text;
+            measured.bounds = measuredBounds(*text, fixed);
+            measured.firstBaseline = firstLineBaseline(measured);
+            if (sameRect(measured.bounds, text->bounds) &&
+                samePoint(measured.firstBaseline, text->firstBaseline)) {
                 continue;
             }
-            m_saved.push_back({change.page, change.object, text->bounds});
-            text->bounds = bounds;
+            m_saved.push_back({change.page, change.object, text->bounds, text->firstBaseline});
+            text->bounds = measured.bounds;
+            text->firstBaseline = measured.firstBaseline;
             changes.push_back({core::Change::Kind::ObjectChanged, change.page, change.object,
                                core::boundsOnPage(page, *object)});
         }
@@ -204,6 +263,7 @@ public:
             if (core::Text* text = measurableText(object)) {
                 const core::RectF wide = core::boundsOnPage(page, *object);
                 text->bounds = it->bounds;
+                text->firstBaseline = it->firstBaseline;
                 changes.push_back({core::Change::Kind::ObjectChanged, it->page, it->object, wide});
             }
         }
@@ -216,6 +276,7 @@ private:
         std::size_t page;
         core::ObjectId object;
         core::RectF bounds; // emprise rendue par la commande du moteur
+        std::optional<core::PointF> firstBaseline;
     };
     std::unique_ptr<core::UndoCommand> m_inner;
     std::size_t m_page;
@@ -252,6 +313,15 @@ QJsonObject parametersOf(const core::Action& action)
     return QJsonDocument::fromJson(QByteArray::fromStdString(action.parameters)).object();
 }
 
+// Refus de la seule diffusion protégée, à la condition de CommandRegistry::trigger : ni l'état propre ni le
+// verrou n'en sont la cause (sous le verrou, aucun message de diffusion, comme le menu).
+bool refusedByRestrictionOnly(const actions::CommandRegistry& registry, const QString& id)
+{
+    const actions::CommandInfo* info = registry.find(id);
+    return info != nullptr && registry.isRestricted(id) && registry.isOwnEnabled(id) &&
+           !(registry.isLocked() && info->lockable);
+}
+
 } // namespace
 
 ActionRunner::ActionRunner(QObject* parent) : QObject(parent)
@@ -263,6 +333,9 @@ ActionRunner::ActionRunner(QObject* parent) : QObject(parent)
 ActionRunner::~ActionRunner()
 {
     bindHistoryHandlers(m_commands.data(), false);
+    if (m_controller && m_changeObserver != 0) {
+        m_controller->removeChangeObserver(m_changeObserver);
+    }
 }
 
 DocumentController* ActionRunner::controller() const
@@ -482,6 +555,9 @@ void ActionRunner::runCommand(const QString& id, const QVariant& argument)
         return;
     }
     if (!registry.isEnabled(id)) {
+        if (refusedByRestrictionOnly(registry, id)) {
+            m_commands->reportRestrictionRefusal(id); // message de la diffusion, comme le menu (V58)
+        }
         refuse(QStringLiteral("Action refusée : %1 est verrouillée ou désactivée").arg(id));
         return;
     }
@@ -498,6 +574,9 @@ void ActionRunner::runOnTarget(const QString& command, core::ObjectId target)
         return;
     }
     if (!registry.isEnabled(command)) { // avant la sélection : sous le verrou, rien ne change
+        if (refusedByRestrictionOnly(registry, command)) {
+            m_commands->reportRestrictionRefusal(command); // message de la diffusion, comme le menu (V58)
+        }
         refuse(QStringLiteral("Action refusée : %1 est verrouillée ou désactivée").arg(command));
         return;
     }
@@ -561,7 +640,7 @@ void ActionRunner::setHovering(bool hovering)
 void ActionRunner::historyBack()
 {
     DocumentController* c = controller();
-    const int page = c ? m_history.back() : -1;
+    const int page = c ? m_history.back(c->pageCount()) : -1; // une page disparue est sautée
     if (page >= 0 && page < c->pageCount()) {
         c->showPage(page); // la page atteinte est l'entrée courante : pas réinscrite
     }
@@ -570,7 +649,7 @@ void ActionRunner::historyBack()
 void ActionRunner::historyForward()
 {
     DocumentController* c = controller();
-    const int page = c ? m_history.forward() : -1;
+    const int page = c ? m_history.forward(c->pageCount()) : -1;
     if (page >= 0 && page < c->pageCount()) {
         c->showPage(page);
     }
@@ -579,7 +658,11 @@ void ActionRunner::historyForward()
 void ActionRunner::pageShown()
 {
     if (DocumentController* c = controller()) {
-        m_history.visited(c->currentIndex());
+        if (c->generation() != m_historyGeneration) {
+            resetHistory(); // un autre document (ouverture, onglet) : son historique part de sa page
+        } else {
+            m_history.visited(c->currentIndex());
+        }
     }
     m_pressed.reset();
     emit actionFramesChanged();
@@ -589,6 +672,7 @@ void ActionRunner::resetHistory()
 {
     m_history.clear();
     if (DocumentController* c = controller()) {
+        m_historyGeneration = c->generation();
         m_history.visited(c->currentIndex());
     }
 }
@@ -656,13 +740,29 @@ void ActionRunner::setDocument(QObject* document)
         return;
     }
     if (m_controller) {
+        if (m_changeObserver != 0) {
+            m_controller->removeChangeObserver(m_changeObserver);
+        }
         disconnect(m_controller, nullptr, this, nullptr);
     }
+    m_changeObserver = 0;
     cancel();
     m_controller = c;
     if (c != nullptr) {
+        // Avant pagesChanged (DocumentController::settle) : les numéros sont recalés quand la page affichée
+        // est réinscrite, chaque changement lu dans l'ordre avec l'indice du moment (core::applyToCache).
+        m_changeObserver =
+            c->addChangeObserver([this](const core::Changes& changes, DocumentController::ChangeOrigin) {
+                for (const core::Change& change : changes) {
+                    if (change.kind == core::Change::Kind::PageInserted) {
+                        m_history.pageInserted(static_cast<int>(change.page));
+                    } else if (change.kind == core::Change::Kind::PageRemoved) {
+                        m_history.pageRemoved(static_cast<int>(change.page));
+                    }
+                }
+            });
         connect(c, &DocumentController::pagesChanged, this, &ActionRunner::pageShown);
-        connect(c, &DocumentController::fileUrlChanged, this, &ActionRunner::resetHistory);
+        // « Enregistrer sous » change fileUrl sans changer de document : l'historique reste (revue L8-C3).
         connect(c, &DocumentController::documentChanged, this, &ActionRunner::actionFramesChanged);
     }
     resetHistory();

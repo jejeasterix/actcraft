@@ -156,6 +156,13 @@ Window {
         document: appDocument
         tools: appTools
     }
+    MediaInsert {
+        id: appMediaInsert
+        objectName: "appMediaInsert"
+        commands: appCommands
+        document: appDocument
+    }
+
     Insertion {
         id: appInsertion
         objectName: "appInsertion"
@@ -329,6 +336,8 @@ Window {
             view: pageArea.view
             profile: appProfile
             preferences: appPreferences
+            actionModel: appActionBrowser
+            broadcast: appBroadcast // L8-T32 : les notes de la page sont du contenu protégé (H8-16)
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -464,6 +473,7 @@ Window {
         printing: appPrint
         exchange: appExchange
         fileExchangeActions: fileExchangeActions
+        commands: appCommands
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -544,9 +554,20 @@ Window {
         panel: browserPanel
         view: pageArea.view
     }
+    LinkDialogs { // L8-T22 : création des liens vers un fichier ou un site (F-550, F-551)
+        id: appLinkDialogs
+        objectName: "appLinkDialogs"
+        commands: appCommands
+        document: appDocument
+        toolHost: appTools
+        links: appLinks
+    }
     LinkDialog {
         id: linkDialog
         commands: appCommands
+        controller: appLinkDialogs
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
     LinkConfirmDialog {
         objectName: "linkConfirmDialog"
@@ -558,6 +579,17 @@ Window {
         commands: appCommands
         document: appDocument
         banner: messageBanner
+    }
+    // L8-T32 : diffusion protégée, porte du registre. Les règles du document ouvert grisent et refusent les
+    // commandes de leurs catégories (verrou de classe compris), la copie du champ de texte aussi ; un essai
+    // refusé s'affiche dans la bannière.
+    BroadcastGate {
+        id: appBroadcast
+        objectName: "appBroadcast"
+        commands: appCommands
+        document: appDocument
+        textEditing: appText
+        onRefused: (id, message) => messageBanner.show(message)
     }
     SoundController {
         id: soundController
@@ -581,6 +613,7 @@ Window {
         tabs: appTabs
         textEditing: appText
         preferences: appPreferences // documents récents gardés (L6-T24)
+        broadcast: appBroadcast // L8-T32 : « Enregistrer les modifications ? » refusé dans un document protégé
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
         onSaveAbandoned: documentTabBar.closeAfterSave = false
@@ -924,7 +957,7 @@ Window {
         appCommands.setHandler("insert.image", root.argumentOrDialog(
             function (url) { appInsertion.insertImage(url) }, function () { fileExchangeActions.chooseImage() }))
         appCommands.setHandler("insert.media", root.argumentOrDialog(
-            function (url) { appInsertion.insertMedia(url) }, function () { fileExchangeActions.chooseMedia() }))
+            function (url) { appMediaInsert.insertFile(url) }, function () { fileExchangeActions.chooseMedia() }))
         appCommands.setHandler("tab.next", function () { appTabs.next() })
         appCommands.setHandler("tab.previous", function () { appTabs.previous() })
         // Sans argument (le clic du menu) : position suivante ; avec argument : seulement une position connue.

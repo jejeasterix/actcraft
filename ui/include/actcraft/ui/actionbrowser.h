@@ -25,7 +25,8 @@ namespace actcraft::ui {
 
 // Onglet « Sélection » du navigateur d'actions (L8-T11, F-850, F-851, D8-10). Une ligne par action du
 // catalogue (actions/data/object-actions.json) de la catégorie choisie ; « Appliquer » pose l'action choisie
-// sur tous les objets sélectionnés en une étape, « Retirer les actions existantes » les retire en une étape.
+// sur tous les objets sélectionnés en une étape, « Retirer les actions existantes » les retire en une étape ;
+// l'un et l'autre ne touchent qu'aux actions au clic : l'action de glisser-déposer (L8-T13) reste.
 // Fermé par défaut : sans `commands`, ou sous le verrou de classe, rien ne change et `refused` est émis.
 // Toute modification passe par DocumentController::execute ; aucune ne change un pixel du cache
 // (SetObjectActionsCommand). La remise à jour est regroupée et reportée pendant un contact (D6-5).

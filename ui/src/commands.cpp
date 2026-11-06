@@ -60,6 +60,7 @@ void Commands::reload()
         }
     }
     const bool locked = m_registry.isLocked();
+    const QSet<QString> restricted = m_registry.restrictedIds();
     m_registry = actions::CommandRegistry{};
     m_layout = actions::Layout{};
     m_errors.clear();
@@ -76,6 +77,8 @@ void Commands::reload()
         }
     }
     m_registry.setLocked(locked);
+    m_registry.setRestricted(restricted);
+    m_registry.setRefusalHandler([this](const QString& id) { emit refusedByRestriction(id); });
     const QString resourceDir = actions::dataResourceDir();
     QString used;
     const QByteArray json =
@@ -424,6 +427,25 @@ void Commands::setLocked(bool locked)
     }
     m_registry.setLocked(locked);
     bumpState();
+}
+
+void Commands::setRestricted(const QSet<QString>& ids)
+{
+    if (m_registry.restrictedIds() == ids) {
+        return; // aucun redessin des menus pour des règles inchangées
+    }
+    m_registry.setRestricted(ids);
+    bumpState();
+}
+
+bool Commands::isRestricted(const QString& id) const
+{
+    return m_registry.isRestricted(id);
+}
+
+void Commands::reportRestrictionRefusal(const QString& id)
+{
+    emit refusedByRestriction(id);
 }
 
 bool Commands::isLocked() const noexcept

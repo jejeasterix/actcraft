@@ -33,7 +33,16 @@ bool sameActions(const std::vector<Action>& a, const std::vector<Action>& b) noe
 
 SetObjectActionsCommand::SetObjectActionsCommand(std::size_t page, std::vector<ObjectId> ids,
                                                  std::vector<Action> actions)
-    : m_page(page), m_ids(std::move(ids)), m_actions(std::move(actions))
+    : m_page(page)
+{
+    m_lists.reserve(ids.size());
+    for (const ObjectId id : ids) {
+        m_lists.emplace_back(id, actions);
+    }
+}
+
+SetObjectActionsCommand::SetObjectActionsCommand(std::size_t page, std::vector<ObjectActions> lists)
+    : m_page(page), m_lists(std::move(lists))
 {}
 
 void SetObjectActionsCommand::redo(Document& document, Changes& changes)
@@ -43,13 +52,13 @@ void SetObjectActionsCommand::redo(Document& document, Changes& changes)
         return;
     }
     Page& page = document.page(m_page);
-    for (const ObjectId id : m_ids) {
+    for (const auto& [id, actions] : m_lists) {
         PageObject* object = findObject(page, id);
-        if (!object || sameActions(object->common.actions, m_actions)) {
+        if (!object || sameActions(object->common.actions, actions)) {
             continue; // absent, ou déjà cette liste : ni changement ni retour
         }
         m_before.emplace_back(id, object->common.actions);
-        object->common.actions = m_actions;
+        object->common.actions = actions;
         changes.push_back(noPixelChange(m_page, id));
     }
 }

@@ -26,6 +26,7 @@
     {"waitReady": true},
     {"command": "resources.insert", "argument": "${dossier}/Ressource1.actcraft"},
     {"waitReady": true},
+    {"waitFor": "documentController.shownObjectCount", "value": 1, "timeoutMs": 10000},
     {"expect": "documentController.shownObjectCount", "value": 1},
     {"capture": "insere"},
     {"command": "resources.stamp"},
@@ -33,6 +34,7 @@
     {"pointer": [[500, 500]]},
     {"pointer": [[800, 500]]},
     {"waitReady": true},
+    {"waitFor": "documentController.shownObjectCount", "value": 4, "timeoutMs": 10000},
     {"expect": "documentController.shownObjectCount", "value": 4},
     {"capture": "tampon"},
     {"command": "resources.stamp"}

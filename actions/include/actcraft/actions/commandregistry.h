@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
@@ -9,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace actcraft::actions {
@@ -77,8 +79,9 @@ public:
     void setHandler(const QString& id, Handler handler);
     bool hasHandler(const QString& id) const;
     void setEnabled(const QString& id, bool enabled);
-    // Vrai par défaut ; faux pour une commande inconnue, et pour une commande verrouillable tant que le
-    // verrou de classe est posé, quel que soit setEnabled().
+    // Vrai par défaut ; faux pour une commande inconnue, pour une commande verrouillable tant que le verrou
+    // de classe est posé, et pour une commande restreinte par la diffusion protégée, quel que soit
+    // setEnabled().
     bool isEnabled(const QString& id) const;
     bool isOwnEnabled(const QString& id) const; // état posé par setEnabled, sans le verrou ; faux si inconnue
     void setChecked(const QString& id, bool checked);
@@ -88,6 +91,19 @@ public:
     // trigger(), quel que soit setEnabled() ; l'état propre de chaque commande est gardé à part.
     void setLocked(bool locked) noexcept { m_locked = locked; }
     bool isLocked() const noexcept { return m_locked; }
+
+    // Diffusion protégée (F-680, S18) : identifiants refusés par les règles du document ouvert, calculés par
+    // la porte (ui::BroadcastGate) d'après la catégorie de chaque commande, sans lire `restrictable` (H8-8 :
+    // page.copy et page.cut sont refusées au titre de la copie). Comme le verrou, un état à part : isEnabled
+    // et trigger le combinent, setEnabled ne le lève pas, l'état propre n'est jamais écrit.
+    void setRestricted(QSet<QString> ids) { m_restricted = std::move(ids); }
+    bool isRestricted(const QString& id) const { return m_restricted.contains(id); }
+    const QSet<QString>& restrictedIds() const noexcept { return m_restricted; }
+    // Rappel d'un essai refusé par la seule restriction (commande connue, disponible, ouverte hors
+    // restriction) : la porte y affiche son message ; jamais appelé pour un refus du verrou ou de l'état
+    // propre.
+    using RefusalHandler = std::function<void(const QString& id)>;
+    void setRefusalHandler(RefusalHandler handler) { m_refusedByRestriction = std::move(handler); }
 
     // Faux, sans rien appeler, si la commande est inconnue, absente de `platform`, désactivée (au sens
     // d'isEnabled : verrou compris), sans gestionnaire, ou si l'argument ne convient pas (un argument absent
@@ -109,6 +125,8 @@ private:
     std::vector<Entry> m_entries;
     QHash<QString, std::size_t> m_index;
     bool m_locked = false;
+    QSet<QString> m_restricted;
+    RefusalHandler m_refusedByRestriction;
 };
 
 // Dossier des données intégrées du module (« :/actcraft/actions »), ressources initialisées.

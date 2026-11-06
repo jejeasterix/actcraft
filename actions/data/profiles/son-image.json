@@ -25,6 +25,13 @@
     "tool.camera-freehand",
     "tool.camera-window",
     "tool.camera-screen",
-    "insert.image"
+    "insert.image",
+    "media.sound-controller",
+    "record.sound",
+    "record.screen-full",
+    "record.screen-area",
+    "insert.web-frame",
+    "link.file",
+    "link.website"
   ]
 }

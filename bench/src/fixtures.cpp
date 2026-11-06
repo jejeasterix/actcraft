@@ -6,6 +6,9 @@
 #include <actcraft/formats/urlio.h>
 
 #include <QBuffer>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QPainter>
 #include <QUrl>
@@ -37,6 +40,15 @@ constexpr QLatin1StringView kDragDrop("glisser-deposer");
 // L8-T30 (S27) : document « reçu » (ouvert depuis un fichier) dont le cadre web pointe vers une adresse
 // locale.
 constexpr QLatin1StringView kWebFrame("cadre-web");
+// L8-T19 (S11.1, S11.4, S11.7) : un rond rouge qui masque une étiquette, un panier « fruit », une carotte, un
+// objet lié à https://example.org/, un média « lecture auto ».
+constexpr QLatin1StringView kInteractivity("interactivite");
+// L8-T32 (S18) : deux pages ; un rond gris en page 1 (centre en 300, 300) qui porte « page suivante » ; copie
+// et impression interdites par les règles de diffusion du document.
+constexpr QLatin1StringView kBroadcast("diffusion-protegee");
+// L8-T23 (S25) : une page vide et, à côté du document, deux sons « son.wav » et « son2.wav » de 0,5 s à
+// insérer.
+constexpr QLatin1StringView kMedias("medias");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -196,6 +208,89 @@ bool buildContainers(const QString& path, QString& error)
     return writeOnePage({std::move(basket), std::move(apple), std::move(carrot)}, "Conteneurs", path, error);
 }
 
+// Page 1024 × 768, tous 100 × 100 : rond rouge (100, 100) qui porte « masquer ou afficher » vers l'étiquette
+// bleue (600, 100) ; panier gris « fruit » (500, 300) qui renvoie ce qu'il refuse ; carotte orange « légume »
+// (100, 450) ; objet vert lié à https://example.org/ (800, 500) ; média « lecture auto » (800, 100).
+bool buildInteractivity(const QString& path, QString& error)
+{
+    core::Shape disc;
+    disc.kind = core::ShapeKind::Ellipse;
+    disc.bounds = {100, 100, 100, 100};
+    disc.fill = 0xFFFF0000u;
+    core::PageObject round = disc;
+    round.common.id = 1;
+    round.common.layer = core::Layer::Middle;
+    core::Action toggle;
+    toggle.catalogId = "object.toggle-hidden";
+    toggle.target = 2;
+    toggle.parameters = "{}";
+    round.common.actions.push_back(toggle);
+
+    core::PageObject label = grayRectangle(2, 0xFF1E88E5u, 600, 100, false);
+    core::PageObject basket = grayRectangle(3, 0xFF808080u, 500, 300, false);
+    basket.common.container.accepts = core::Accepts::Keywords;
+    basket.common.container.keywords = {"fruit"};
+    basket.common.container.bounceBack = true;
+    core::PageObject carrot = grayRectangle(4, 0xFFFF8000u, 100, 450, false);
+    carrot.common.keywords = {"légume"};
+
+    core::PageObject linked = grayRectangle(5, 0xFF00A000u, 800, 500, false);
+    core::Action open;
+    open.catalogId = "document.open-website";
+    open.parameters = R"({"url":"https://example.org/"})";
+    linked.common.actions.push_back(open);
+
+    core::Media media;
+    media.bounds = {800, 100, 100, 100};
+    media.playOnOpen = true;
+    core::PageObject sound = media;
+    sound.common.id = 6;
+    sound.common.layer = core::Layer::Middle;
+
+    return writeOnePage({std::move(round), std::move(label), std::move(basket), std::move(carrot),
+                         std::move(linked), std::move(sound)},
+                        "Interactivité", path, error);
+}
+
+// WAV de 0,5 s (8 kHz, mono, 16 bits, silence) : en-tête RIFF écrit à la main.
+QByteArray silentWav()
+{
+    constexpr quint32 samples = 4000;
+    QByteArray wav("RIFF");
+    const auto put = [&wav](quint32 value, int bytes) {
+        for (int i = 0; i < bytes; ++i)
+            wav.append(static_cast<char>((value >> (8 * i)) & 0xFF));
+    };
+    put(36 + samples * 2, 4);
+    wav += "WAVEfmt ";
+    put(16, 4);
+    put(1, 2);
+    put(1, 2);
+    put(8000, 4);
+    put(16000, 4);
+    put(2, 2);
+    put(16, 2);
+    wav += "data";
+    put(samples * 2, 4);
+    wav += QByteArray(static_cast<qsizetype>(samples * 2), '\0');
+    return wav;
+}
+
+bool buildMedias(const QString& path, QString& error)
+{
+    if (!writeOnePage({}, "Médias", path, error))
+        return false;
+    const QDir folder = QFileInfo(path).dir();
+    for (const char* name : {"son.wav", "son2.wav"}) {
+        QFile file(folder.filePath(QString::fromLatin1(name)));
+        if (!file.open(QIODevice::WriteOnly) || file.write(silentWav()) < 0) {
+            error = QStringLiteral("écriture impossible : %1").arg(file.fileName());
+            return false;
+        }
+    }
+    return true;
+}
+
 bool buildActionBrowser(const QString& path, QString& error)
 {
     std::vector<core::Page> pages(2);
@@ -254,6 +349,31 @@ bool buildWebFrame(const QString& path, QString& error)
     return writeOnePage(std::move(objects), "Cadre web reçu", path, error);
 }
 
+bool buildBroadcast(const QString& path, QString& error)
+{
+    std::vector<core::Page> pages(2);
+    core::Shape disc;
+    disc.kind = core::ShapeKind::Ellipse;
+    disc.bounds = {250, 250, 100, 100};
+    disc.fill = 0xFF808080u;
+    core::PageObject round = disc;
+    round.common.id = 1;
+    round.common.layer = core::Layer::Middle;
+    core::Action next;
+    next.catalogId = "page.next";
+    next.parameters = "{}";
+    round.common.actions.push_back(next);
+    pages[0].objects.push_back(round);
+
+    core::Document document(std::move(pages));
+    document.setTitle("Diffusion protégée");
+    core::BroadcastRules rules;
+    rules.noCopy = true;
+    rules.noPrint = true;
+    document.setBroadcast(rules);
+    return writeActcraft(document, path, error);
+}
+
 // Table des fixtures : nom, écriture du fichier (un seul endroit pour la liste et pour la construction).
 struct FixtureEntry
 {
@@ -271,6 +391,9 @@ constexpr FixtureEntry kFixtures[] = {
     {kActionBrowser, buildActionBrowser},
     {kDragDrop, buildDragDrop},
     {kWebFrame, buildWebFrame},
+    {kInteractivity, buildInteractivity},
+    {kBroadcast, buildBroadcast},
+    {kMedias, buildMedias},
 };
 
 } // namespace

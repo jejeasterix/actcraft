@@ -20,14 +20,18 @@ bool sameActions(const std::vector<Action>& a, const std::vector<Action>& b) noe
 class SetObjectActionsCommand final : public UndoCommand
 {
 public:
+    // Une liste par objet, toujours une seule étape : le navigateur d'actions remplace les actions au clic et
+    // garde l'action de glisser-déposer propre à chaque objet (revue L8-C3, comme DragDropActions::dropOn).
+    using ObjectActions = std::pair<ObjectId, std::vector<Action>>;
+
     SetObjectActionsCommand(std::size_t page, std::vector<ObjectId> ids, std::vector<Action> actions);
+    SetObjectActionsCommand(std::size_t page, std::vector<ObjectActions> lists);
     void redo(Document& document, Changes& changes) override;
     void undo(Document& document, Changes& changes) override;
 
 private:
     std::size_t m_page;
-    std::vector<ObjectId> m_ids;
-    std::vector<Action> m_actions;
+    std::vector<ObjectActions> m_lists;
     // Par objet trouvé au dernier redo, sa liste d'avant ; undo ne rétablit qu'elle.
     std::vector<std::pair<ObjectId, std::vector<Action>>> m_before;
 };
