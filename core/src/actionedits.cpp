@@ -1,2 +1,72 @@
-// Talon L8 : rempli par L8-T11.
-#include <QtGlobal> // une unité de traduction jamais vide (C4206 sous /W4 /WX)
+#include <actcraft/core/actionedits.h>
+#include <actcraft/core/document.h>
+
+#include <algorithm>
+
+namespace actcraft::core {
+
+namespace {
+
+PageObject* findObject(Page& page, ObjectId id)
+{
+    const auto it = std::find_if(page.objects.begin(), page.objects.end(),
+                                 [id](const PageObject& object) { return object.common.id == id; });
+    return it == page.objects.end() ? nullptr : &*it;
+}
+
+// Aucun pixel du cache (L0-S3) : la zone vide ne vaut ici que pour l'interface, applyToCache l'ignore.
+Change noPixelChange(std::size_t page, ObjectId id)
+{
+    return Change{Change::Kind::PageSettingsChanged, page, id, RectF{}};
+}
+
+} // namespace
+
+bool sameActions(const std::vector<Action>& a, const std::vector<Action>& b) noexcept
+{
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(), [](const Action& x, const Action& y) {
+        return x.kind == y.kind && x.sourceType == y.sourceType && x.command == y.command &&
+               x.target == y.target && x.resource == y.resource && x.unknownKeys == y.unknownKeys &&
+               x.catalogId == y.catalogId && x.parameters == y.parameters && x.dragDrop == y.dragDrop;
+    });
+}
+
+SetObjectActionsCommand::SetObjectActionsCommand(std::size_t page, std::vector<ObjectId> ids,
+                                                 std::vector<Action> actions)
+    : m_page(page), m_ids(std::move(ids)), m_actions(std::move(actions))
+{}
+
+void SetObjectActionsCommand::redo(Document& document, Changes& changes)
+{
+    m_before.clear();
+    if (m_page >= document.pageCount()) {
+        return;
+    }
+    Page& page = document.page(m_page);
+    for (const ObjectId id : m_ids) {
+        PageObject* object = findObject(page, id);
+        if (!object || sameActions(object->common.actions, m_actions)) {
+            continue; // absent, ou déjà cette liste : ni changement ni retour
+        }
+        m_before.emplace_back(id, object->common.actions);
+        object->common.actions = m_actions;
+        changes.push_back(noPixelChange(m_page, id));
+    }
+}
+
+void SetObjectActionsCommand::undo(Document& document, Changes& changes)
+{
+    if (m_page >= document.pageCount()) {
+        return;
+    }
+    Page& page = document.page(m_page);
+    for (auto it = m_before.rbegin(); it != m_before.rend(); ++it) { // ordre inverse de redo
+        const auto& [id, before] = *it;
+        if (PageObject* object = findObject(page, id)) {
+            object->common.actions = before;
+            changes.push_back(noPixelChange(m_page, id));
+        }
+    }
+}
+
+} // namespace actcraft::core

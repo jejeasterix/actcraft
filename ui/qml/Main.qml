@@ -515,9 +515,13 @@ Window {
         id: appLinks
         objectName: "appLinks"
     }
-    QtObject { // Talon L8 : rempli par L8-T11.
+    ActionBrowserModel { // L8-T11 : onglet « Sélection » du navigateur d'actions
         id: appActionBrowser
         objectName: "appActionBrowser"
+        commands: appCommands
+        contactActive: pageArea.view.contactActive
+        document: appDocument
+        toolHost: appTools
     }
     QtObject { // Talon L8 : rempli par L8-T13.
         id: appDragDrop
