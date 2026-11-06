@@ -146,6 +146,7 @@ Window {
         liftLayer: pageArea.liftLayer
         lockIgnored: appDesign.lockIgnored
         snapDisabled: appDesign.snapDisabled
+        designMode: appDesign // L8-T16 : restrictions et objets bloquants du mode conception
     }
 
     // Lot 5 : édition des objets, insertion, onglets, échanges de fichiers et impression (types C++ de L5-T1).

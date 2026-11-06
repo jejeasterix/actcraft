@@ -269,6 +269,33 @@ private slots:
         QCOMPARE(qRound(travel.y), 0);
     }
 
+    void blockerBoxesMatchThePage()
+    {
+        // Variante sur boîtes précalculées (L8-T16, revue) : le même arrêt que la variante sur page, boîte
+        // par boîte ; sans bloquant, rien n'est réduit.
+        Page page = montage();
+        page.objects.push_back(shapeAt(6, 300, 100, 40, 40));
+        const std::vector<RectF> moving{boundsOnPage(page, page.objects[0]),
+                                        boundsOnPage(page, page.objects.back())};
+        std::vector<RectF> blockers;
+        for (const PageObject& o : page.objects) {
+            if (o.common.restrictions.blocksOthers && o.common.id != 1 && o.common.id != 6 &&
+                hasExtent(page, o)) {
+                blockers.push_back(boundsOnPage(page, o));
+            }
+        }
+        QVERIFY(!blockers.empty());
+        for (const PointF wanted : {PointF{150, 0}, PointF{40, 0}, PointF{-90, 30}, PointF{150, 12}}) {
+            const PointF byPage = stopAtBlockers(page, {1, 6}, wanted);
+            const PointF byBoxes = stopBoxesAtBlockers(moving, blockers, wanted);
+            QCOMPARE(byBoxes.x, byPage.x);
+            QCOMPARE(byBoxes.y, byPage.y);
+        }
+        const PointF free = stopBoxesAtBlockers(moving, {}, {150, 0});
+        QCOMPARE(free.x, 150.0);
+        QCOMPARE(qRound(stopBoxesAtBlockers(moving, blockers, {150, 0}).x), 60);
+    }
+
     void fullTurnInOneDrag()
     {
         // Contrat : `fromDegrees` est le dernier angle permis (rendu au mouvement précédent). L'angle voulu

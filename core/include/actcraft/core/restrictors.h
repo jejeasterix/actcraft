@@ -28,5 +28,9 @@ double allowedTurn(const PageObject& object, double fromDegrees, double wantedDe
 PointF pivotOf(const Page& page, const PageObject& object); // page
 // Déplacement réduit pour que la boîte des objets `moving` ne passe sur aucun objet bloquant.
 PointF stopAtBlockers(const Page& page, const std::vector<ObjectId>& moving, PointF wanted);
+// La même règle sur des boîtes déjà calculées (boundsOnPage, objets à emprise) : une par objet déplacé, une
+// par bloquant. Sans allocation ni calcul de boîte : appelée à chaque mouvement d'un glisser (L8-T16).
+PointF stopBoxesAtBlockers(const std::vector<RectF>& moving, const std::vector<RectF>& blockers,
+                           PointF wanted) noexcept;
 
 } // namespace actcraft::core
