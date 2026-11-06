@@ -311,7 +311,8 @@ Branches : `feat/livraison-complete--pc-lot6-preuves` (base e4aa3e94, tête de A
   (`docs/verifications/2026-10-19-lot6-principes.md`, § « Confrontation au PC » ; relevé brut `lot6.md` hors dépôt) :
   **D3 inversé par rapport à l'original** (outils de l'élève libres sous verrou), D1, D5, D7, D14 amendés, L6-P3
   proposée : à l'orchestrateur, D3 à soumettre à Jérôme.
-- Lot 6, en cours ou à faire : banc D3D11 plein écran (lancé, coupé par la fermeture), `test.ps1` debug complet sur
+- Lot 6, banc D3D11 : porte tenue sur `stroke`, `zoom`, `scroll` (`docs/mesures/2026-11-06-lot6-passe-windows.md`) ; `pauses`, `onglets`, `zones-zoom` en écart au 2e passage, à rejouer sur machine calme.
+- Lot 6, à faire : `test.ps1` debug complet sur
   la tête finale, `PAQUET OK`, `verifier-licences.ps1`, rapport `docs/mesures/`, PR relue vers `feat/livraison-complete`.
 - Lot 7 : `NOMS` du lot propre (les 6 échecs viennent de la base c1046b9, corrigés sur `main` et par la PR du lot 6) ;
   titres vides ; test de la caméra au rapport de pixels 2 écrit, **non construit ni joué**

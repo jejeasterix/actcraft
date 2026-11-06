@@ -264,7 +264,7 @@ Retirés : ceux que nomment les lots 3, 4, 5, 7 et 8, les imports (packs, prése
 
 ### Reste
 
-`NOMS OK` et contrôle des titres du corpus : rejoués par la passe Windows (`docs/mesures/2026-11-06-lots-6-7-passe-windows.md`).
+`NOMS OK` et contrôle des titres du corpus : rejoués par la passe Windows (`docs/mesures/2026-11-06-lot6-passe-windows.md`).
 N sous Windows : mesuré sur la tête de la branche, lot 8 en cours compris (même rapport). À l'écran : D4, D7, C17.
 Par désassemblage : sort exact des commandes sans marquage sous verrou (D3). Les corrections du livré (D1, D3, D5,
 D7, D14, L6-P3) ne sont pas faites par la passe Windows : elles reviennent à l'orchestrateur du chantier.
