@@ -1,1 +1,15 @@
-{"format": "actcraft-scenario/1", "name": "cadre-web", "description": "Talon L8 : rempli par L8-T30.", "steps": [{"waitReady": true}]}
+{
+    "format": "actcraft-scenario/1",
+    "name": "cadre-web",
+    "description": "S27 : un document reçu dont le cadre web pointe vers une adresse locale s'ouvre bloqué (repère et bouton Débloquer), sans requête avant la décision de la politique.",
+    "steps": [
+        {"waitReady": true},
+        {"fixture": "cadre-web", "path": "${SORTIE}/cadre-web.actcraft"},
+        {"command": "file.open", "argument": "${SORTIE}/cadre-web.actcraft"},
+        {"waitFor": "documentController.busy", "value": false},
+        {"waitReady": true},
+        {"expect": "webFrameLayer.count", "value": 1},
+        {"expect": "webFrameLayer.blockedCount", "value": 1},
+        {"capture": "bloque"}
+    ]
+}
