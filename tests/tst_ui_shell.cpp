@@ -840,10 +840,10 @@ private slots:
     {
         Shell s;
         QVERIFY(start(s));
-        for (const char* name :
-             {"appActionRunner", "appLinks", "appActionBrowser", "appDragDrop", "actionOverlays", "mediaLayer",
-              "webFrameLayer", "soundController", "recorderPalette", "recordingIndicator", "linkDialog",
-              "linkConfirmDialog", "webFrameDialog", "publishDialog", "actionBrowser", "dragDropActions"}) {
+        for (const char* name : {"appActionRunner", "appLinks", "appActionBrowser", "appDragDrop",
+                                 "actionOverlays", "mediaLayer", "webFrameLayer", "soundController",
+                                 "recorderPalette", "recordingIndicator", "linkDialog", "linkConfirmDialog",
+                                 "webFrameDialog", "publishDialog", "actionBrowser", "dragDropActions"}) {
             const QString objectName = QString::fromLatin1(name);
             QVERIFY2(s.window->findChild<QObject*>(objectName) != nullptr ||
                          findItem(s.window->contentItem(), objectName),
@@ -858,12 +858,17 @@ private slots:
         QVERIFY(start(s));
         auto* commands = s.window->findChild<ui::Commands*>();
         QVERIFY(commands);
-        for (const char* id :
-             {"tool.reveal-ink", "browser.actions", "action.apply", "action.remove", "action.pick-target",
-              "link.file", "link.website", "page.history-back", "page.history-forward",
-              "media.sound-controller", "record.sound", "record.pause", "record.stop", "record.cancel",
-              "insert.web-frame", "webframe.back", "webframe.forward", "webframe.reload", "webframe.snapshot",
-              "webframe.unblock", "file.publish"}) {
+        for (const char* id : {"tool.reveal-ink",      "browser.actions",
+                               "action.apply",         "action.remove",
+                               "action.pick-target",   "link.file",
+                               "link.website",         "page.history-back",
+                               "page.history-forward", "media.sound-controller",
+                               "record.sound",         "record.pause",
+                               "record.stop",          "record.cancel",
+                               "insert.web-frame",     "webframe.back",
+                               "webframe.forward",     "webframe.reload",
+                               "webframe.snapshot",    "webframe.unblock",
+                               "file.publish"}) {
             QVERIFY2(commands->registry().hasHandler(QString::fromLatin1(id)), id);
         }
 #ifdef Q_OS_WIN
@@ -882,7 +887,8 @@ private slots:
             panel = item(s, "browserPanel");
         }
         QVERIFY(panel);
-        QVERIFY(QMetaObject::invokeMethod(panel, "showNavigator", Q_ARG(QVariant, QStringLiteral("actions"))));
+        QVERIFY(
+            QMetaObject::invokeMethod(panel, "showNavigator", Q_ARG(QVariant, QStringLiteral("actions"))));
         QCOMPARE(panel->property("current").toString(), QStringLiteral("actions"));
         QObject* browser = s.window->findChild<QObject*>(QStringLiteral("actionBrowser"));
         if (!browser) {
@@ -1542,8 +1548,9 @@ private slots:
                  "page");
         QVERIFY2(near(pixel(largeur - 192, psInt(hauteur * 0.72)), palette, 16), "fond de palette");
         const int swatchX = largeur - swatch.captured(1).toInt();
-        // L8-T2 : la palette porte une rangée de boutons de plus (page.history-back/forward, groupe « pages »),
-        // 48 points : les pastilles descendent de 48 * densite pixels par rapport au point relevé du script.
+        // L8-T2 : la palette porte une rangée de boutons de plus (page.history-back/forward, groupe « pages
+        // »), 48 points : les pastilles descendent de 48 * densite pixels par rapport au point relevé du
+        // script.
         static constexpr int decalagePalette = 48 * densite;
         const int swatchY = psInt(hauteur * swatch.captured(2).toDouble()) + decalagePalette;
         QVERIFY2(near(pixel(swatchX, swatchY), QColor(229, 57, 53), 40),
