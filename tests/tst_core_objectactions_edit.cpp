@@ -4,12 +4,18 @@
 #include <actcraft/core/objectflags.h>
 #include <actcraft/core/undo.h>
 
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 #include <QtTest>
 
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <string>
 #include <variant>
 #include <vector>
@@ -161,6 +167,12 @@ private slots:
         QVERIFY(half);
         apply(decimal, *half);
         QCOMPARE(plain(htmlOf(*find(decimal, 2))), QStringLiteral("3.5"));
+        // Virgule décimale lue, et réécrite.
+        Document comma = page("<p>2,5</p>");
+        auto commaStep = command(comma, "object.text-value", R"({"value":1})", 2);
+        QVERIFY(commaStep);
+        apply(comma, *commaStep);
+        QCOMPARE(plain(htmlOf(*find(comma, 2))), QStringLiteral("3,5"));
         revert(d, *c);
         QCOMPARE(fingerprint(d), fingerprint(page()));
     }
@@ -232,6 +244,21 @@ private slots:
         QCOMPARE(words, (QStringList{QStringLiteral("un"), QStringLiteral("deux"), QStringLiteral("trois")}));
         revert(d, *c);
         QCOMPARE(fingerprint(d), fingerprint(before));
+        // Entités nommées décodées ; mots posés dans la page, même sous un texte au bas de la page.
+        Document low = page("<p>&eacute;t&eacute; hiver</p>");
+        low.page(0).objects[1].common.transform = translation(400, 740);
+        auto split = command(low, "object.extract-text", "{}", 2);
+        QVERIFY(split);
+        apply(low, *split);
+        QCOMPARE(low.page(0).objects.size(), std::size_t{4});
+        QStringList lowWords;
+        for (std::size_t i = 2; i < low.page(0).objects.size(); ++i) {
+            const PageObject& o = low.page(0).objects[i];
+            const RectF r = boundsOnPage(low.page(0), o);
+            QVERIFY(r.x >= 0 && r.y >= 0 && r.x + r.width <= 1024 && r.y + r.height <= 768);
+            lowWords << plain(htmlOf(o));
+        }
+        QCOMPARE(lowWords, (QStringList{QStringLiteral("été"), QStringLiteral("hiver")}));
     }
 
     void translucencyClamped()
@@ -314,22 +341,50 @@ private slots:
         Document start = page();
         start.page(0).objects[0].common.translucency = 64;
         start.page(0).objects.push_back(topStroke(start.allocateId())); // 3
-        for (const Case& k : cases) {
-            QVERIFY2(isEditAction(k.id), k.id);
-            QVERIFY2(!isGeometryAction(k.id), k.id);
+        start.page(0).background.fill = solidFill(0xFF336699u);         // effacer le fond a un effet
+        start.page(0).grid.visible = true;                              // effacer la grille aussi
+        // Identifiants lus dans le catalogue, par QtCore seul (core ne dépend pas d'actions/).
+        QFile file(QFINDTESTDATA("../actions/data/object-actions.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QJsonArray actions =
+            QJsonDocument::fromJson(file.readAll()).object().value(QStringLiteral("actions")).toArray();
+        QVERIFY(!actions.isEmpty());
+        std::size_t checked = 0;
+        for (const QJsonValue& entry : actions) {
+            const std::string id = entry.toObject().value(QStringLiteral("id")).toString().toStdString();
+            if (!isEditAction(id)) {
+                continue;
+            }
+            const auto k =
+                std::find_if(std::begin(cases), std::end(cases), [&](const Case& e) { return id == e.id; });
+            QVERIFY2(k != std::end(cases), id.c_str());
+            QVERIFY2(!isGeometryAction(id), id.c_str());
             Document d = start;
-            auto c = objectActionCommand(d, k.id, k.params, on(k.target));
-            QVERIFY2(c, k.id); // une action permise rend sa commande : le test ne passe pas à vide
+            auto c = objectActionCommand(d, id, k->params, on(k->target));
+            QVERIFY2(c, id.c_str()); // une action permise rend sa commande : le test ne passe pas à vide
             apply(d, *c);
+            QVERIFY2(fingerprint(d) != fingerprint(start), id.c_str()); // un effet
             revert(d, *c);
-            QVERIFY2(fingerprint(d) == fingerprint(start), k.id);
+            QVERIFY2(fingerprint(d) == fingerprint(start), id.c_str()); // en une étape
+            ++checked;
         }
+        QCOMPARE(checked, std::size(cases)); // chaque cas est au catalogue et isEditAction, aucun n'y manque
         // Copier, couper et coller passent par le presse-papiers hors de core (A18) : l'exécuteur (L8-T9)
         // déclenche edit.copy, edit.cut, edit.paste ; le moteur ne les connaît pas.
         for (const char* id : {"object.copy", "object.cut", "object.paste"}) {
             QVERIFY2(!isEditAction(id), id);
             QVERIFY2(!objectActionCommand(start, id, "{}", on(1)), id);
         }
+        // Une action, une étape, sur la pile aussi : deux « plus translucide » font deux annulations
+        // (SetTranslucencyCommand seule fusionnerait, core/src/undo.cpp).
+        Document s = start; // translucidité 64
+        UndoStack stack;
+        static_cast<void>(stack.push(s, objectActionCommand(s, "object.more-translucent", "{}", on(1))));
+        static_cast<void>(stack.push(s, objectActionCommand(s, "object.more-translucent", "{}", on(1))));
+        QCOMPARE(int(find(s, 1)->common.translucency), 128);
+        QCOMPARE(stack.count(), std::size_t{2});
+        static_cast<void>(stack.undo(s));
+        QCOMPARE(int(find(s, 1)->common.translucency), 96);
     }
 };
 
