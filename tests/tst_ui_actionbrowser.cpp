@@ -331,6 +331,7 @@ private slots:
         QCOMPARE(actionsOf(f.controller, f.shape1), QStringList{QStringLiteral("page.next")});
         QCOMPARE(actionsOf(f.controller, f.shape2), QStringList{QStringLiteral("page.next")});
         QVERIFY(actionsOf(f.controller, f.shape3).isEmpty());
+        QVERIFY(!f.model.apply()); // même liste déjà portée par tous : aucune étape (revue, mineur 5)
         // L'invariant de la tâche : aucune demande de redessin du cache (un ObjectChanged en ferait une).
         QVERIFY2(v.cacheUntouchedSince(refreshes), "appliquer une action a redessiné le cache");
 
@@ -410,12 +411,21 @@ private slots:
         f.select({f.shape1});
         f.model.setCurrentId(targeted);
         QSignalSpy targetChanged(&f.model, &ui::ActionBrowserModel::targetChanged);
+        // Vrai chemin : le clic est un contact ; la sélection d'avant ne revient qu'à la retombée.
         f.model.pickTarget();
+        QVERIFY(f.model.picking());
         QCOMPARE(f.model.target(), quint64(0));
+        f.model.setContactActive(true);
         f.select({f.shape3}); // le prochain clic sur la page, par ToolHost
         QCOMPARE(f.model.target(), quint64(f.shape3));
         QCOMPARE(targetChanged.count(), 1);
-        // Le choix de la cible ne change pas les objets auxquels on applique : la sélection d'avant revient.
+        QVERIFY(!f.model.picking());
+        QVERIFY(f.tools.user().selection() ==
+                std::vector<core::ObjectId>{f.shape3}); // pas pendant le contact
+        f.model.setContactActive(false);
+        QCoreApplication::processEvents();
+        QVERIFY(f.tools.user().selection() == std::vector<core::ObjectId>{f.shape1});
+        // Le choix de la cible ne change pas les objets auxquels on applique.
         QVERIFY(f.model.apply());
         QCOMPARE(actionsOf(f.controller, f.shape1), QStringList{targeted});
         QCOMPARE(targetOf(f.controller, f.shape1), f.shape3);
@@ -423,6 +433,41 @@ private slots:
         // Hors choix, un clic ne change plus la cible.
         f.select({f.shape2});
         QCOMPARE(f.model.target(), quint64(f.shape3));
+
+        // Ctrl ou Maj+clic ajoute en fin : la cible est l'objet ajouté, pas le premier de la sélection.
+        f.select({f.shape1});
+        f.model.pickTarget();
+        f.select({f.shape1, f.shape2});
+        QCOMPARE(f.model.target(), quint64(f.shape2));
+
+        // Choix annulé : le clic suivant ne choisit rien.
+        f.select({f.shape1});
+        f.model.pickTarget();
+        f.model.cancelPick();
+        QVERIFY(!f.model.picking());
+        f.select({f.shape3});
+        QCOMPARE(f.model.target(), quint64(f.shape2));
+
+        // Cible supprimée : la remise à jour la ramène à 0.
+        f.model.setTarget(f.shape3);
+        f.select({f.shape3});
+        f.tools.deleteSelection();
+        QCoreApplication::processEvents();
+        QVERIFY(!objectOf(f.controller, f.shape3));
+        QCOMPARE(f.model.target(), quint64(0));
+
+        // Cible supprimée pendant un contact (remise à jour reportée) : apply revalide, aucune action vers un
+        // objet absent.
+        f.model.setTarget(f.shape2);
+        f.model.setContactActive(true);
+        f.tools.selectObjects({f.shape2});
+        f.tools.deleteSelection();
+        QVERIFY(!objectOf(f.controller, f.shape2));
+        f.tools.selectObjects({f.shape1});
+        QVERIFY(f.model.apply());
+        QCOMPARE(targetOf(f.controller, f.shape1), core::ObjectId(0));
+        QCOMPARE(f.model.target(), quint64(0));
+        f.model.setContactActive(false);
     }
 
     void refreshDeferredDuringContact()
@@ -453,16 +498,46 @@ private slots:
         f.select({f.shape1});
         f.model.setCurrentId(QStringLiteral("page.next"));
         QVERIFY(f.model.enabled());
+        // Un choix de cible ouvert se ferme quand le verrou tombe.
+        f.model.pickTarget();
+        QVERIFY(f.model.picking());
         f.commands.setLocked(true);
         QCoreApplication::processEvents();
         QVERIFY(!f.model.enabled());
+        QVERIFY(!f.model.picking());
         QSignalSpy refused(&f.model, &ui::ActionBrowserModel::refused);
         QVERIFY(!f.model.apply());
         QVERIFY(!f.model.removeExisting());
         QCOMPARE(refused.count(), 2);
         QVERIFY(actionsOf(f.controller, f.shape1).isEmpty());
+
+        // Sous le verrou, choisir une cible est refusé : l'outil courant ne change pas.
         f.commands.setLocked(false);
+        f.tools.activate(QStringLiteral("pen"));
         QCoreApplication::processEvents();
+        QCOMPARE(f.tools.currentTool(), QStringLiteral("pen"));
+        f.commands.setLocked(true);
+        QCoreApplication::processEvents();
+        f.model.pickTarget();
+        QVERIFY(!f.model.picking());
+        QCOMPARE(f.tools.currentTool(), QStringLiteral("pen"));
+        QCOMPARE(refused.count(), 3);
+
+        // Verrou posé entre le clic et la retombée : la sélection d'avant ne revient pas (rien n'est
+        // réactivé).
+        f.commands.setLocked(false);
+        f.select({f.shape1});
+        f.model.pickTarget();
+        f.model.setContactActive(true);
+        f.select({f.shape3});
+        QCOMPARE(f.model.target(), quint64(f.shape3));
+        f.commands.setLocked(true);
+        f.model.setContactActive(false);
+        QCoreApplication::processEvents();
+        QVERIFY(f.tools.user().selection() != std::vector<core::ObjectId>{f.shape1});
+
+        f.commands.setLocked(false);
+        f.select({f.shape1});
         QVERIFY(f.model.enabled());
     }
 
