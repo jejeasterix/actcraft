@@ -48,13 +48,79 @@ private slots:
         Page p = basket();
         std::swap(p.objects[0], p.objects[1]); // la pomme passe derrière le panier
         QVERIFY(!isInFront(p, 2, 1));
-        QVERIFY(resolveDrop(p, {2}).outcome != DropOutcome::Contained);
+        QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::Free); // ni contenu, ni renvoyé
         // Couche plus basse, même rangée après le panier : derrière quand même (le rang de couche passe avant
         // l'indice).
         Page q = basket();
         q.objects[1].common.layer = Layer::Bottom;
         QVERIFY(!isInFront(q, 2, 1));
-        QVERIFY(resolveDrop(q, {2}).outcome != DropOutcome::Contained);
+        QCOMPARE(resolveDrop(q, {2}).outcome, DropOutcome::Free);
+    }
+    // Un groupe est rangé au sommet de sa couche, mais seuls ses membres sont dessinés, à leur rang : membres
+    // A et B sous le panier, groupe G = {A, B} après lui dans la page → G est derrière le panier.
+    void movedGroupJudgedOnItsMembers()
+    {
+        Page p;
+        PageObject a = box(10, {90, 90, 20, 20});
+        PageObject b = box(11, {90, 90, 20, 20});
+        PageObject c = box(1, {0, 0, 200, 200});
+        c.common.container.accepts = Accepts::Anything;
+        c.common.container.bounceBack = true;
+        PageObject g{Group{{10, 11}}};
+        g.common.id = 12;
+        p.objects = {a, b, c, g};
+        QVERIFY(!isInFront(p, 12, 1));
+        QCOMPARE(resolveDrop(p, {12}).outcome, DropOutcome::Free);
+        // Le même groupe, membres dessinés devant le panier : contenu.
+        p.objects = {c, a, b, g};
+        QVERIFY(isInFront(p, 12, 1));
+        QCOMPARE(resolveDrop(p, {12}).outcome, DropOutcome::Contained);
+    }
+    // Miroir : conteneur groupe, membres sous la pomme, groupe rangé après elle → la pomme est devant.
+    void groupContainerJudgedOnItsMembers()
+    {
+        Page p;
+        PageObject m1 = box(20, {0, 0, 200, 200});
+        PageObject m2 = box(21, {0, 0, 200, 200});
+        PageObject apple = box(2, {80, 80, 40, 40});
+        PageObject cg{Group{{20, 21}}};
+        cg.common.id = 22;
+        cg.common.container.accepts = Accepts::Anything;
+        p.objects = {m1, m2, apple, cg};
+        QVERIFY(isInFront(p, 2, 22));
+        const DropResult r = resolveDrop(p, {2});
+        QCOMPARE(r.outcome, DropOutcome::Contained);
+        QCOMPARE(r.container, ObjectId(22));
+        // Pomme dessinée sous les membres : derrière.
+        p.objects = {apple, m1, m2, cg};
+        QVERIFY(!isInFront(p, 2, 22));
+        QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::Free);
+    }
+    // Plusieurs objets déplacés : tous acceptés, sinon refus ; la règle porte sur l'union de leurs emprises.
+    void severalMovedAllAccepted()
+    {
+        Page p = basket();
+        QCOMPARE(resolveDrop(p, {2, 3}).outcome, DropOutcome::BounceBack); // la carotte est refusée
+        p.objects[2].common.keywords = {"fruit"};
+        QCOMPARE(resolveDrop(p, {2, 3}).outcome, DropOutcome::Contained);
+        p.objects[2] = box(3, {80 + 30, 80, 40, 40}); // union centrée à 15 px du panier
+        p.objects[2].common.keywords = {"fruit"};
+        QCOMPARE(resolveDrop(p, {2, 3}).outcome, DropOutcome::BounceBack);
+    }
+    // Un membre d'un groupe déplacé ne contient pas ce qu'il accompagne.
+    void movedGroupMembersAreNotContainers()
+    {
+        Page p = basket();
+        p.objects[0].common.container.accepts = Accepts::Anything;
+        PageObject inner = box(6, {60, 60, 80, 80});
+        inner.common.container.accepts = Accepts::Anything;
+        p.objects.insert(p.objects.begin() + 1, inner);
+        PageObject g{Group{{6, 2}}};
+        g.common.id = 7;
+        p.objects.push_back(g);
+        const DropResult r = resolveDrop(p, {7});
+        QCOMPARE(r.outcome, DropOutcome::Contained);
+        QCOMPARE(r.container, ObjectId(1));
     }
     void oneObjectOnly()
     {
@@ -66,9 +132,13 @@ private slots:
     }
     void commonKeyword()
     {
-        const Page p = basket();
+        Page p = basket();
         QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::Contained);
         QCOMPARE(resolveDrop(p, {2}).container, ObjectId(1));
+        QVERIFY(!resolveDrop(p, {2}).chime);
+        p.objects[0].common.container.chime = true; // son du gagnant transmis
+        QVERIFY(resolveDrop(p, {2}).chime);
+        QVERIFY(!resolveDrop(p, {3}).chime); // renvoyé : aucun son
     }
     void centresWithinTolerance()
     {
@@ -91,7 +161,12 @@ private slots:
         p.objects[1].common.keywords = {"fruit"};
         QCOMPARE(resolveDrop(p, {2}).outcome, DropOutcome::BounceBack);
     }
-    void refusedBouncesBack() { QCOMPARE(resolveDrop(basket(), {3}).outcome, DropOutcome::BounceBack); }
+    void refusedBouncesBack()
+    {
+        const DropResult r = resolveDrop(basket(), {3});
+        QCOMPARE(r.outcome, DropOutcome::BounceBack);
+        QCOMPARE(r.container, ObjectId(1)); // le conteneur qui renvoie
+    }
     void refusedWithoutBounceStays() { QCOMPARE(resolveDrop(basket(false), {3}).outcome, DropOutcome::Free); }
     void nestedTopmostWins()
     {
@@ -113,6 +188,23 @@ private slots:
         p.objects.push_back(o);
         const auto inside = containedIn(p, 1);
         QVERIFY(std::find(inside.begin(), inside.end(), ObjectId(5)) != inside.end());
+    }
+    // containedIn ne rend ni un objet dehors, ni un objet derrière, ni le contenu d'un conteneur imbriqué.
+    void containedInListsDirectContentsOnly()
+    {
+        Page p = basket();
+        p.objects[0].common.container.accepts = Accepts::Anything;
+        p.objects[2] = box(3, {500, 500, 40, 40}); // carotte dehors
+        QCOMPARE(containedIn(p, 1), std::vector<ObjectId>{2});
+        std::swap(p.objects[0], p.objects[1]); // pomme derrière le panier
+        QVERIFY(containedIn(p, 1).empty());
+        Page q = basket();
+        PageObject inner = box(4, {60, 60, 80, 80});
+        inner.common.container.accepts = Accepts::Anything;
+        q.objects.insert(q.objects.begin() + 1, inner);
+        QVERIFY(
+            containedIn(q, 1).empty()); // pomme et carotte dans l'imbriqué, lui-même refusé (sans mot-clé)
+        QCOMPARE(containedIn(q, 4), (std::vector<ObjectId>{2, 3}));
     }
     void leavingIsOneGesture()
     {

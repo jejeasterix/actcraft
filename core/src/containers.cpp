@@ -23,6 +23,49 @@ bool inFrontAt(const Page& page, std::size_t candidate, std::size_t container) n
     return a != b ? a > b : candidate > container;
 }
 
+// Indices des objets dessinés pour l'objet d'indice `index` : lui-même, ou pour un groupe ses membres sur la
+// page (groupes imbriqués compris, cycle protégé). Un groupe est rangé au sommet de sa couche mais n'est pas
+// dessiné à ce rang : seuls ses membres le sont, chacun au sien.
+std::vector<std::size_t> drawnAt(const Page& page, std::size_t index)
+{
+    std::vector<std::size_t> drawn;
+    std::vector<std::size_t> seen;
+    std::vector<std::size_t> pending{index};
+    while (!pending.empty()) {
+        const std::size_t i = pending.back();
+        pending.pop_back();
+        if (std::find(seen.begin(), seen.end(), i) != seen.end()) {
+            continue;
+        }
+        seen.push_back(i);
+        const auto* group = std::get_if<Group>(&body(page.objects[i]));
+        if (group == nullptr) {
+            drawn.push_back(i);
+            continue;
+        }
+        for (const ObjectId member : group->members) {
+            const std::size_t m = indexOf(page, member);
+            if (m < page.objects.size()) {
+                pending.push_back(m);
+            }
+        }
+    }
+    return drawn;
+}
+
+// Tout ce qui est dessiné pour le candidat est devant tout ce qui est dessiné pour le conteneur.
+bool drawnInFront(const Page& page, const std::vector<std::size_t>& candidate,
+                  const std::vector<std::size_t>& container)
+{
+    if (candidate.empty() || container.empty()) {
+        return false;
+    }
+    return std::all_of(candidate.begin(), candidate.end(), [&](std::size_t a) {
+        return std::all_of(container.begin(), container.end(),
+                           [&](std::size_t b) { return inFrontAt(page, a, b); });
+    });
+}
+
 bool shareKeyword(const std::vector<std::string>& a, const std::vector<std::string>& b)
 {
     return std::any_of(a.begin(), a.end(),
@@ -89,7 +132,7 @@ bool isInFront(const Page& page, ObjectId candidate, ObjectId container)
     if (i >= page.objects.size() || j >= page.objects.size()) {
         return false;
     }
-    return inFrontAt(page, i, j);
+    return drawnInFront(page, drawnAt(page, i), drawnAt(page, j));
 }
 
 bool accepts(const PageObject& container, const PageObject& candidate)
@@ -108,17 +151,10 @@ bool accepts(const PageObject& container, const PageObject& candidate)
     return false;
 }
 
-bool fits(const PageObject& container, const PageObject& candidate)
-{
-    if (!hasExtent(container) || !hasExtent(candidate)) {
-        return false;
-    }
-    return fitsArea(container.common.container, boundsOnPage(container), boundsOnPage(candidate));
-}
-
 DropResult resolveDrop(const Page& page, const std::vector<ObjectId>& moved)
 {
     std::vector<std::size_t> movedAt;
+    std::vector<std::size_t> movedDrawn;
     std::optional<RectF> area;
     for (const ObjectId id : moved) {
         const std::size_t index = indexOf(page, id);
@@ -126,6 +162,8 @@ DropResult resolveDrop(const Page& page, const std::vector<ObjectId>& moved)
             continue;
         }
         movedAt.push_back(index);
+        const std::vector<std::size_t> drawn = drawnAt(page, index);
+        movedDrawn.insert(movedDrawn.end(), drawn.begin(), drawn.end());
         const PageObject& object = page.objects[index];
         if (hasExtent(page, object)) {
             const RectF r = boundsOnPage(page, object);
@@ -146,8 +184,7 @@ DropResult resolveDrop(const Page& page, const std::vector<ObjectId>& moved)
             contains(moving, candidateContainer.common.id) || !hasExtent(page, candidateContainer)) {
             continue;
         }
-        const bool inFront = std::all_of(movedAt.begin(), movedAt.end(),
-                                         [&](std::size_t index) { return inFrontAt(page, index, k); });
+        const bool inFront = drawnInFront(page, movedDrawn, drawnAt(page, k));
         if (!inFront) {
             continue; // un objet derrière le conteneur n'y entre jamais, quelle que soit sa position
         }
@@ -173,7 +210,7 @@ std::vector<ObjectId> containedIn(const Page& page, ObjectId container)
         return inside;
     }
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
-        if (!inFrontAt(page, i, at)) {
+        if (i == at) {
             continue;
         }
         const ObjectId id = page.objects[i].common.id;

@@ -20,12 +20,13 @@ struct DropResult
     bool chime = false;     // son de confirmation à jouer (L8-T25)
 };
 // Vrai si `candidate` est devant `container` : couche plus haute, ou même couche et plus haut dans l'ordre.
-// Faux si l'un des deux n'est pas sur la page.
+// Jugé sur les objets dessinés : un groupe, rangé au sommet de sa couche, ne l'est pas à ce rang ; ses
+// membres (groupes imbriqués compris) le sont au leur. Faux si l'un des deux n'est pas sur la page ou ne
+// dessine rien.
 bool isInFront(const Page& page, ObjectId candidate, ObjectId container);
 // Règle d'acceptation seule (Accepts) : rien, tout, un objet désigné, ou un mot-clé en commun
 // (ObjectCommon::keywords, comparaison exacte).
 bool accepts(const PageObject& container, const PageObject& candidate);
-bool fits(const PageObject& container, const PageObject& candidate); // règle FitRule, en coordonnées de page
 // Verdict au relâché ; `moved` est déjà à sa position de dépôt dans `page`. Le conteneur visible le plus haut
 // dans la superposition qui accepte et contient l'emporte (imbrication). Refusé par tous et l'un d'eux sous
 // le point de dépôt a `bounceBack` : BounceBack. Plusieurs objets déplacés : chacun doit être devant le
