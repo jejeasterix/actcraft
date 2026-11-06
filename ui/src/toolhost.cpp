@@ -59,7 +59,9 @@ const tools::ToolRegistry& registry()
         });
         // Lot 8 (L8-T18) : encre révélatrice, sur les échantillons du stylo.
         built.add(QStringLiteral("reveal-ink"), [](tools::ToolContext& context) {
-            return std::make_unique<tools::RevealInkTool>(context.ink, context.strokes);
+            auto tool = std::make_unique<tools::RevealInkTool>(context.ink, context.strokes);
+            tool->setBaseWidth(context.user.settings(tool->id()).width);
+            return tool;
         });
         return built;
     }();
@@ -493,6 +495,8 @@ void ToolHost::setWidth(qreal width)
                                 static_cast<double>(kMaxInkWidth));
     if (auto* pen = dynamic_cast<tools::PenTool*>(existingTool(id))) {
         pen->setBaseWidth(settings.width);
+    } else if (auto* reveal = dynamic_cast<tools::RevealInkTool*>(existingTool(id))) {
+        reveal->setBaseWidth(settings.width);
     }
     storeSettings(id, settings);
     configureTool(existingTool(currentTool()));
@@ -669,6 +673,8 @@ void ToolHost::configureTool(tools::Tool* tool) const
         pen.width = ink.width;
         penShape->setShape(core::penShapeFromId(m_penShape.toStdString()).value_or(core::PenShape::Free));
         penShape->setPen(pen, m_lastInk == QStringLiteral("highlighter"));
+    } else if (auto* reveal = dynamic_cast<tools::RevealInkTool*>(tool)) {
+        reveal->setBaseWidth(settingsOf(QStringLiteral("reveal-ink")).width);
     }
 }
 

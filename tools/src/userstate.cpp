@@ -11,6 +11,9 @@ InkSettings defaultSettings(const QString& toolId)
         // Opacité 128 sur 255 de l'original : translucidité 255 − 128 = 127 (0 opaque … 255 invisible).
         return InkSettings{0xFFFFFF00u, 20, 127};
     }
+    if (toolId == QStringLiteral("reveal-ink")) {
+        return InkSettings{0xFF000000u, 50, 0}; // lot 8 (F-255) : épaisseur de la référence
+    }
     if (toolId == QStringLiteral("eraser")) {
         return InkSettings{0xFF000000u, 50, 0};
     }
