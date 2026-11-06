@@ -23,10 +23,10 @@ namespace actcraft::ui {
 // Actions par glisser-déposer (L8-T13, F-892, D8-11). Une ligne par entrée du catalogue marquée « drag-drop »
 // (dragDropList(), jamais recopiée ici) ; une icône déposée sur un objet lui donne l'action en une étape
 // (SetObjectActionsCommand), l'icône glissée de l'objet vers la corbeille la lui retire en une étape. Seules
-// les actions de glisser-déposer sont touchées : une action au clic de l'objet reste, au dépôt comme au retrait.
-// Un objet porte au plus une action de glisser-déposer (un nouveau dépôt remplace la précédente). Fermé par
-// défaut : sans `commands`, ou sous le verrou de classe, rien ne change et `refused` est émis. Aucun pixel
-// de page ne change : la surimpression (overlays) est une surcouche QML, jamais dans le cache.
+// les actions de glisser-déposer sont touchées : une action au clic de l'objet reste, au dépôt comme au
+// retrait. Un objet porte au plus une action de glisser-déposer (un nouveau dépôt remplace la précédente).
+// Fermé par défaut : sans `commands`, ou sous le verrou de classe, rien ne change et `refused` est émis.
+// Aucun pixel de page ne change : la surimpression (overlays) est une surcouche QML, jamais dans le cache.
 class DragDropActions : public QAbstractListModel
 {
     Q_OBJECT

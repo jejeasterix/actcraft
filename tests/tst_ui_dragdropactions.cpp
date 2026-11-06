@@ -132,8 +132,9 @@ private slots:
         QCOMPARE(QString::fromStdString(list[0].catalogId), QStringLiteral("command.tool.pen"));
         QVERIFY(list[0].dragDrop);
         QVERIFY(actionsOf(f.controller, f.second).empty()); // l'autre objet n'est pas touché
-        QVERIFY(!f.model.dropOn(f.first, QStringLiteral("command.tool.pen"))); // déjà posée : aucune étape vide
-        f.controller.undo(); // une seule étape
+        QVERIFY(
+            !f.model.dropOn(f.first, QStringLiteral("command.tool.pen"))); // déjà posée : aucune étape vide
+        f.controller.undo();                                               // une seule étape
         QVERIFY(actionsOf(f.controller, f.first).empty());
         // Une entrée hors de la liste de l'onglet, un objet absent : rien.
         QVERIFY(!f.model.dropOn(f.first, QStringLiteral("page.inconnue")));
@@ -158,7 +159,8 @@ private slots:
         QCOMPARE(icon.value(QStringLiteral("objectId")).toULongLong(), quint64(f.second));
         QCOMPARE(icon.value(QStringLiteral("actionId")).toString(), QStringLiteral("command.tool.pen"));
         QVERIFY(!icon.value(QStringLiteral("icon")).toString().isEmpty());
-        QVERIFY(qAbs(icon.value(QStringLiteral("x")).toDouble() - 400.0) <= 4.0); // emprise : marge du contour
+        QVERIFY(qAbs(icon.value(QStringLiteral("x")).toDouble() - 400.0) <=
+                4.0); // emprise : marge du contour
         QVERIFY(qAbs(icon.value(QStringLiteral("width")).toDouble() - 80.0) <= 8.0);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(f.model.overlays(), icons);
@@ -171,7 +173,7 @@ private slots:
         QVERIFY(f.model.dropOnTrash(f.first));
         QVERIFY(actionsOf(f.controller, f.first).empty());
         QVERIFY(!f.model.dropOnTrash(f.first)); // plus rien à retirer : aucune étape vide
-        f.controller.undo(); // une seule étape : l'action revient
+        f.controller.undo();                    // une seule étape : l'action revient
         QCOMPARE(actionsOf(f.controller, f.first).size(), std::size_t(1));
         QVERIFY(actionsOf(f.controller, f.first)[0].dragDrop);
         QCoreApplication::processEvents();

@@ -265,7 +265,8 @@ void DragDropActions::detachDocument()
     m_observer = 0;
 }
 
-// Regroupée : un tour de boucle pour tous les changements d'un geste ; le signal ne part que si la liste change.
+// Regroupée : un tour de boucle pour tous les changements d'un geste ; le signal ne part que si la liste
+// change.
 void DragDropActions::requestRefresh()
 {
     if (m_scheduled) {
