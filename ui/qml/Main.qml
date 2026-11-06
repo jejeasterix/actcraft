@@ -545,9 +545,20 @@ Window {
         panel: browserPanel
         view: pageArea.view
     }
+    LinkDialogs { // L8-T22 : création des liens vers un fichier ou un site (F-550, F-551)
+        id: appLinkDialogs
+        objectName: "appLinkDialogs"
+        commands: appCommands
+        document: appDocument
+        toolHost: appTools
+        links: appLinks
+    }
     LinkDialog {
         id: linkDialog
         commands: appCommands
+        controller: appLinkDialogs
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
     LinkConfirmDialog {
         objectName: "linkConfirmDialog"
