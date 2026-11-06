@@ -35,6 +35,8 @@ Rectangle {
         target: root.profile
         function onProfileChanged() { root.syncFromProfile() }
     }
+    // Modèle de l'onglet « actions » (ActionBrowserModel), posé par Main.qml.
+    property var actionModel: null
     function showNavigator(id) {
         root.visible = true
         root.current = id
@@ -91,6 +93,7 @@ Rectangle {
         root.commands.setHandler("browser.properties", function () { root.showNavigator("proprietes") })
         root.commands.setHandler("browser.notes", function () { root.showNavigator("notes") })
         root.commands.setHandler("browser.resources", function () { root.showNavigator("ressources") })
+        root.commands.setHandler("browser.actions", function () { root.showNavigator("actions") })
     }
 
     // Les cinq icônes à nous (nav-*) et celle des pages (page-copier, déjà à nous).
@@ -194,6 +197,7 @@ Rectangle {
         }
         ActionBrowser {
             commands: root.commands
+            model: root.actionModel
             enabled: true
         }
     }

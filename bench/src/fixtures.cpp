@@ -34,6 +34,9 @@ constexpr QLatin1StringView kContainers("conteneurs");
 constexpr QLatin1StringView kActionBrowser("navigateur-actions");
 // L8-T13 (S11.3) : une page, un rectangle bleu (centre en 750, 400) qui reçoit l'icône du stylo.
 constexpr QLatin1StringView kDragDrop("glisser-deposer");
+// L8-T19 (S11.1, S11.4, S11.7) : un rond rouge qui masque une étiquette, un panier « fruit », une carotte, un
+// objet lié à https://example.org/, un média « lecture auto ».
+constexpr QLatin1StringView kInteractivity("interactivite");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -193,6 +196,50 @@ bool buildContainers(const QString& path, QString& error)
     return writeOnePage({std::move(basket), std::move(apple), std::move(carrot)}, "Conteneurs", path, error);
 }
 
+// Page 1024 × 768, tous 100 × 100 : rond rouge (100, 100) qui porte « masquer ou afficher » vers l'étiquette
+// bleue (600, 100) ; panier gris « fruit » (500, 300) qui renvoie ce qu'il refuse ; carotte orange « légume »
+// (100, 450) ; objet vert lié à https://example.org/ (800, 500) ; média « lecture auto » (800, 100).
+bool buildInteractivity(const QString& path, QString& error)
+{
+    core::Shape disc;
+    disc.kind = core::ShapeKind::Ellipse;
+    disc.bounds = {100, 100, 100, 100};
+    disc.fill = 0xFFFF0000u;
+    core::PageObject round = disc;
+    round.common.id = 1;
+    round.common.layer = core::Layer::Middle;
+    core::Action toggle;
+    toggle.catalogId = "object.toggle-hidden";
+    toggle.target = 2;
+    toggle.parameters = "{}";
+    round.common.actions.push_back(toggle);
+
+    core::PageObject label = grayRectangle(2, 0xFF1E88E5u, 600, 100, false);
+    core::PageObject basket = grayRectangle(3, 0xFF808080u, 500, 300, false);
+    basket.common.container.accepts = core::Accepts::Keywords;
+    basket.common.container.keywords = {"fruit"};
+    basket.common.container.bounceBack = true;
+    core::PageObject carrot = grayRectangle(4, 0xFFFF8000u, 100, 450, false);
+    carrot.common.keywords = {"légume"};
+
+    core::PageObject linked = grayRectangle(5, 0xFF00A000u, 800, 500, false);
+    core::Action open;
+    open.catalogId = "document.open-website";
+    open.parameters = R"({"url":"https://example.org/"})";
+    linked.common.actions.push_back(open);
+
+    core::Media media;
+    media.bounds = {800, 100, 100, 100};
+    media.playOnOpen = true;
+    core::PageObject sound = media;
+    sound.common.id = 6;
+    sound.common.layer = core::Layer::Middle;
+
+    return writeOnePage({std::move(round), std::move(label), std::move(basket), std::move(carrot),
+                         std::move(linked), std::move(sound)},
+                        "Interactivité", path, error);
+}
+
 bool buildActionBrowser(const QString& path, QString& error)
 {
     std::vector<core::Page> pages(2);
@@ -252,6 +299,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kContainers, buildContainers},
     {kActionBrowser, buildActionBrowser},
     {kDragDrop, buildDragDrop},
+    {kInteractivity, buildInteractivity},
 };
 
 } // namespace

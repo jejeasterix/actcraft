@@ -329,6 +329,7 @@ Window {
             view: pageArea.view
             profile: appProfile
             preferences: appPreferences
+            actionModel: appActionBrowser
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
