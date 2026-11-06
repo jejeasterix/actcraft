@@ -15,8 +15,8 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QSettings>
 #include <QSemaphore>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
@@ -66,6 +66,7 @@ private slots:
     void redoDoesNotStoreTheResourceAgain();
     void resultDroppedWhenTheDocumentIsReplaced();
     void resultDroppedWhenTheObjectIsGone();
+    void localPathKeepsUrlSyntaxCharacters();
 
 private:
     QString makeFile(const QString& name, const QByteArray& bytes) const;
@@ -211,8 +212,7 @@ void TstUiLinkdialogs::storedFileBecomesAResource()
     const QString path = makeFile(QStringLiteral("cours.pdf"), bytes);
     QVERIFY(!path.isEmpty());
     QVERIFY(m_controller->document().resources().empty());
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::DocumentStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
     QCOMPARE(m_controller->document().resources().size(), size_t(1));
     const core::PageObject& made = page().objects.back();
     const core::Action& action = onlyAction(made);
@@ -237,8 +237,7 @@ void TstUiLinkdialogs::externalPathKeptAsIs()
 {
     const QString path = makeFile(QStringLiteral("fiche.txt"), "bonjour");
     QVERIFY(!path.isEmpty());
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::ExternalStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::ExternalStorage, 0));
     QVERIFY(m_controller->document().resources().empty());
     const core::Action& action = onlyAction(page().objects.back());
     QCOMPARE(action.catalogId, std::string("document.open-file"));
@@ -251,8 +250,7 @@ void TstUiLinkdialogs::commandLineArgumentsNeverPassed()
     const QString path = makeFile(QStringLiteral("fiche.txt"), "bonjour");
     QVERIFY(!path.isEmpty());
     m_dialogs->setArguments(QStringLiteral("--evil /c calc"));
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::ExternalStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::ExternalStorage, 0));
     const core::PageObject& made = page().objects.back();
     // Gardés dans les paramètres de l'action…
     QCOMPARE(jsonOf(onlyAction(made).parameters).value(QStringLiteral("arguments")).toString(),
@@ -301,8 +299,7 @@ void TstUiLinkdialogs::oneStep()
     const QString path = makeFile(QStringLiteral("cours.pdf"), "%PDF-1.4");
     QVERIFY(!path.isEmpty());
     QVERIFY(!m_controller->canUndo());
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::DocumentStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
     QVERIFY(m_controller->canUndo());
     m_controller->undo(); // une seule annulation défait objet et lien
     QCOMPARE(page().objects.size(), size_t(1));
@@ -323,7 +320,7 @@ void TstUiLinkdialogs::fileRefusedWithTheLaunchersReason()
              {int(ui::LinkDialogs::ExternalStorage), int(ui::LinkDialogs::DocumentStorage)}) {
             refused.clear();
             const QUrl url = QUrl::fromLocalFile(path);
-            QVERIFY2(!m_dialogs->createFileLink(url, ui::LinkDialogs::TextForm, storage, 0),
+            QVERIFY2(!m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, storage, 0),
                      qPrintable(path));
             QCOMPARE(refused.size(), 1);
             const int kind = storage == ui::LinkDialogs::ExternalStorage ? int(ui::LinkLauncher::File)
@@ -383,8 +380,7 @@ void TstUiLinkdialogs::storedFileIsReadOffTheUiThread()
         release.tryAcquire(1, 2000); // borné : un fil bloqué à tort ne gèle pas la suite
     });
     QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::DocumentStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
     QCOMPARE(created.size(), 0);
     QVERIFY(m_dialogs->busy());
     QCOMPARE(page().objects.size(), size_t(1));
@@ -406,8 +402,7 @@ void TstUiLinkdialogs::redoDoesNotStoreTheResourceAgain()
     QVERIFY(!path.isEmpty());
     const int before = ui::LinkDialogs::resourceInsertions();
     QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::DocumentStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
     QTRY_COMPARE_WITH_TIMEOUT(created.size(), 1, 10000);
     const std::string key = onlyAction(page().objects.back()).resource;
     QCOMPARE(QString::fromStdString(key),
@@ -433,8 +428,7 @@ void TstUiLinkdialogs::resultDroppedWhenTheDocumentIsReplaced()
     ui::LinkDialogs::setReadProbe([&release] { release.tryAcquire(1, 2000); });
     QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
     QSignalSpy refused(m_dialogs.get(), &ui::LinkDialogs::refused);
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::DocumentStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
     QVERIFY(m_dialogs->busy());
     load(); // un autre document prend la place pendant la lecture
     release.release();
@@ -454,8 +448,8 @@ void TstUiLinkdialogs::resultDroppedWhenTheObjectIsGone()
     QSemaphore release;
     ui::LinkDialogs::setReadProbe([&release] { release.tryAcquire(1, 2000); });
     QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::ExistingForm,
-                                      ui::LinkDialogs::DocumentStorage, kExisting));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::ExistingForm, ui::LinkDialogs::DocumentStorage,
+                                      kExisting));
     QVERIFY(m_dialogs->busy());
     m_controller->execute(std::make_unique<core::ReplaceObjectsCommand>(
         0, std::vector<core::ObjectId>{kExisting}, std::vector<core::PageObject>{}));
@@ -468,6 +462,38 @@ void TstUiLinkdialogs::resultDroppedWhenTheObjectIsGone()
     m_controller->undo(); // l'étape de suppression, seule de la pile
     QCOMPARE(page().objects.size(), size_t(1));
     QCOMPARE(page().objects.front().common.actions.size(), size_t(1));
+}
+
+// « Parcourir… » rend une URL de fichier, le champ garde un chemin : `#`, `?` et `%` sont des caractères du
+// nom. Le patron écarté rendait le texte de l'URL (`file:///…a%23b`), échappé, qui n'est pas ce fichier.
+void TstUiLinkdialogs::localPathKeepsUrlSyntaxCharacters()
+{
+    const QStringList names{QStringLiteral("a#b.txt"), QStringLiteral("c%23d.txt"), QStringLiteral("e?f.txt"),
+                            QStringLiteral("100%.txt")};
+    QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
+    for (const QString& name : names) {
+        const QString path = makeFile(name, "bonjour");
+        QVERIFY2(!path.isEmpty(), qPrintable(name));
+        const QString chosen = m_dialogs->localPath(QUrl::fromLocalFile(path)); // le rendu du sélecteur
+        QCOMPARE(chosen, path);
+        QVERIFY2(
+            m_dialogs->createFileLink(chosen, ui::LinkDialogs::TextForm, ui::LinkDialogs::ExternalStorage, 0),
+            qPrintable(name));
+        QCOMPARE(
+            jsonOf(onlyAction(page().objects.back()).parameters).value(QStringLiteral("file")).toString(),
+            path);
+        // Rangé : le contenu est celui du fichier de ce nom, le document ne garde que le nom.
+        created.clear();
+        QVERIFY2(
+            m_dialogs->createFileLink(chosen, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0),
+            qPrintable(name));
+        QTRY_COMPARE_WITH_TIMEOUT(created.size(), 1, 10000);
+        const core::Action& stored = onlyAction(page().objects.back());
+        QCOMPARE(jsonOf(stored.parameters).value(QStringLiteral("file")).toString(), name);
+        const core::Resource* resource = m_controller->document().resource(stored.resource);
+        QVERIFY2(resource != nullptr, qPrintable(name));
+        QCOMPARE(resource->data, QByteArray("bonjour"));
+    }
 }
 
 QTEST_MAIN(TstUiLinkdialogs)

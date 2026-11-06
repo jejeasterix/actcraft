@@ -137,6 +137,8 @@ Dialog {
         objectName: "linkFileChooser"
         title: qsTr("Choisir le fichier du lien")
         fileMode: FileDialog.OpenFile
-        onAccepted: targetField.text = selectedFile.toString().replace(/^file:\/\/(\/(?=[A-Za-z]:))?/, "")
+        // Le chemin local décodé (`#`, `%23`… dans le nom), jamais le texte de l'URL.
+        onAccepted: targetField.text = dialog.controller ? dialog.controller.localPath(selectedFile)
+                                                         : selectedFile.toString().replace(/^file:\/\/(\/(?=[A-Za-z]:))?/, "")
     }
 }
