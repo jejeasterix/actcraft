@@ -11,11 +11,13 @@ using namespace actcraft::core;
 namespace {
 
 // Emprise en (0, 0) et position par la transformation : un calcul fait dans les coordonnées de l'objet (au
-// lieu de celles de la page) tombe à côté.
+// lieu de celles de la page) tombe à côté. Sans contour : l'emprise sur la page (boundsOnPage, épaisseur
+// comprise) est exactement w × h.
 PageObject shapeAt(ObjectId id, double x, double y, double w, double h)
 {
     Shape shape;
     shape.bounds = {0, 0, w, h};
+    shape.outlineWidth = 0;
     PageObject object(std::move(shape));
     object.common.id = id;
     object.common.transform = translation(x, y);
@@ -209,6 +211,15 @@ private slots:
         // Un déplacement qui n'atteint pas le bloquant reste entier.
         travel = stopAtBlockers(page, {1}, {40, 0});
         QCOMPARE(qRound(travel.x), 40);
+        QCOMPARE(qRound(travel.y), 0);
+
+        // Le bord est celui de l'emprise sur la page (boundsOnPage), contour compris : avec un contour de 1
+        // sur chaque forme, les encres se touchent un pixel plus tôt.
+        Page outlined = montage();
+        std::get<Shape>(outlined.objects[0]).outlineWidth = 1;
+        std::get<Shape>(outlined.objects[3]).outlineWidth = 1;
+        travel = stopAtBlockers(outlined, {1}, {150, 0});
+        QCOMPARE(qRound(travel.x), 59);
         QCOMPARE(qRound(travel.y), 0);
     }
 };
