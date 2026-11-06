@@ -26,8 +26,10 @@ if(ACTCRAFT_PWSH)
     add_test(NAME tst_licences_sans_fixture
         COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
             -Dossier ${CMAKE_BINARY_DIR})
+    # RUN_SERIAL : il parcourt tout le dossier de construction, où les captures lancées en parallèle par ctest
+    # suppriment et recréent leurs dossiers d'essai (DirectoryNotFound sous $ErrorActionPreference = 'Stop').
     set_tests_properties(tst_licences_sans_fixture PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES"
-        FAIL_REGULAR_EXPRESSION "Qt6Charts")
+        FAIL_REGULAR_EXPRESSION "Qt6Charts" RUN_SERIAL TRUE)
 endif()
 
 # Fichier ouvert au lancement (S4, décision 26).

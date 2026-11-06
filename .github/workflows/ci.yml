@@ -186,10 +186,10 @@ jobs:
           "$qt\bin" >> $env:GITHUB_PATH
           # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.
           "CMAKE_BUILD_PARALLEL_LEVEL=6" >> $env:GITHUB_ENV
-          # 6 tests à la fois : en série, les tests d'interface prennent plus de 90 min sur les cœurs lents du PC
-          # (Core Ultra 5 125U, run 42268652493). Chacun tourne hors écran, avec ses réglages dans un dossier
-          # jetable, et prend au plus ~170 Mo.
-          "CTEST_PARALLEL_LEVEL=6" >> $env:GITHUB_ENV
+          # 4 tests à la fois : en série, les tests d'interface prennent plus de 90 min sur les cœurs lents du PC
+          # (Core Ultra 5 125U, run 42268652493). Chacun tourne hors écran, avec réglages et ressources dans des
+          # dossiers jetables ; les plus gros (banc, captures) montent à ~270 Mo privés, d'où 4 et non 6.
+          "CTEST_PARALLEL_LEVEL=4" >> $env:GITHUB_ENV
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         if: runner.os == 'Windows'
