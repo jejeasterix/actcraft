@@ -1,3 +1,5 @@
+#include "support/richdocument.h"
+
 #include <actcraft/core/document.h>
 #include <actcraft/core/interactivity.h>
 #include <actcraft/core/model.h>
@@ -13,6 +15,9 @@ namespace {
 // Empreinte du document d'unknownObjectFingerprintUnchanged, relevée à la tête avant L8-T3 (c61013da, étape 1
 // bis) : un objet inconnu garde son empreinte quand le cadre web prend le rang 9 de ObjectKind.
 constexpr std::uint64_t kFingerprintBeforeLot8 = 0x0608DB86176E5A60ull;
+// Le même document où le cadre web remplace l'objet inconnu, haché avec son code 10 (avec le code 9, la
+// valeur diffère : mutation vérifiée par la revue de L8-T3).
+constexpr std::uint64_t kWebFrameFingerprint = 0xB9B98F43167E3DFFull;
 
 } // namespace
 
@@ -53,6 +58,10 @@ private slots:
         fromFile.movable = false; // lu d'un fichier du lot 2
         normalize(fromFile);
         QCOMPARE(fromFile.travel, Travel::Fixed);
+        Restrictions byMode;
+        byMode.travel = Travel::Fixed; // mode Fixed posé seul : le booléen suit
+        normalize(byMode);
+        QVERIFY(!byMode.movable);
     }
     void fixedTurningMeansNotRotatable()
     {
@@ -65,6 +74,10 @@ private slots:
         fromFile.rotatable = false;
         normalize(fromFile);
         QCOMPARE(fromFile.turning, Turning::Fixed);
+        Restrictions byMode;
+        byMode.turning = Turning::Fixed;
+        normalize(byMode);
+        QVERIFY(!byMode.rotatable);
     }
     void webFrameKindBeforeUnknown()
     {
@@ -92,7 +105,36 @@ private slots:
         PageObject w{WebFrame{}};
         w.common.id = 3;
         web.page(0).objects.push_back(w);
-        QVERIFY(fingerprint(web) != kFingerprintBeforeLot8);
+        QCOMPARE(fingerprint(web), kWebFrameFingerprint);
+    }
+    void normalizeKeepsFingerprint()
+    {
+        // Revue de L8-T3 : formats/ normalise après lecture (L8-T4) ; un objet bloqué au lot 2 (booléen faux,
+        // mode par défaut) garde son empreinte une fois normalisé, et le mode Fixed seul vaut le booléen
+        // faux.
+        Document rich = richdoc::richDocument();
+        const auto richBefore = fingerprint(rich);
+        for (std::size_t i = 0; i < rich.pageCount(); ++i) {
+            for (PageObject& object : rich.page(i).objects) {
+                normalize(object.common.restrictions);
+            }
+        }
+        QCOMPARE(rich.page(0).objects[0].common.restrictions.travel, Travel::Fixed); // o1 : movable faux
+        QCOMPARE(fingerprint(rich), richBefore);
+
+        Document blocked = oneShape();
+        blocked.page(0).objects[0].common.restrictions.movable = false;
+        blocked.page(0).objects[0].common.restrictions.rotatable = false;
+        const auto blockedBefore = fingerprint(blocked);
+        Document normalized = blocked;
+        normalize(normalized.page(0).objects[0].common.restrictions);
+        QCOMPARE(normalized.page(0).objects[0].common.restrictions.travel, Travel::Fixed);
+        QCOMPARE(normalized.page(0).objects[0].common.restrictions.turning, Turning::Fixed);
+        QCOMPARE(fingerprint(normalized), blockedBefore);
+        Document byMode = oneShape();
+        byMode.page(0).objects[0].common.restrictions.travel = Travel::Fixed;
+        byMode.page(0).objects[0].common.restrictions.turning = Turning::Fixed;
+        QCOMPARE(fingerprint(byMode), blockedBefore);
     }
     void actionKeepsFlipchartFields()
     {

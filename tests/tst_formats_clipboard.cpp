@@ -325,7 +325,7 @@ private slots:
 void TestClipboard::roundTripKeepsEveryKind()
 {
     // Un objet de chaque type d'ObjectKind (Shape, Image, Stroke, Line, Text, Media, Group, Connector,
-    // Equation, Unknown).
+    // Equation, WebFrame, Unknown).
     formats::ClipboardPayload payload = sampleOfEveryKind();
     std::set<std::size_t> kinds;
     for (const PageObject& object : payload.objects) {
