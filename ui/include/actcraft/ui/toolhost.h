@@ -30,8 +30,9 @@ class UserState;
 
 namespace actcraft::ui {
 
-struct ToolAdapters; // tooladapters.h
-class ActionGate;    // toolhost.cpp : l'exécuteur d'actions devant l'outil de sélection (L8-T9)
+struct ToolAdapters;    // tooladapters.h
+class ActionGate;       // toolhost.cpp : l'exécuteur d'actions devant l'outil de sélection (L8-T9)
+class DesignModePolicy; // toolhost.cpp : réglages de DesignMode vus par les outils (L8-T16, D8-9)
 
 // Outils de l'utilisateur (DA6, DA-A1) : registre, état d'utilisateur, adaptateurs des interfaces d'outil,
 // commandes du lot 3, mémoire par outil (F-136, QSettings).
@@ -71,6 +72,9 @@ class ToolHost : public QObject
     Q_PROPERTY(bool snapDisabled READ snapDisabled WRITE setSnapDisabled NOTIFY designFlagsChanged)
     // Lot 8 (L8-T9) : exécuteur d'actions posé par setActionRunner (surcouche des actions : cadre, curseur).
     Q_PROPERTY(actcraft::ui::ActionRunner* actionRunner READ actionRunner NOTIFY actionRunnerChanged)
+    // Lot 8 (L8-T16) : le DesignMode de l'application ; ses effets (restrictions, objets bloquants, actions)
+    // sont lus par l'outil de sélection à chaque geste (tools::InteractionPolicy). nullptr : tout actif.
+    Q_PROPERTY(QObject* designMode READ designMode WRITE setDesignMode NOTIFY designFlagsChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -142,6 +146,8 @@ public:
     void setLockIgnored(bool ignored); // republie la sélection (poignées d'un verrouillé)
     bool snapDisabled() const noexcept;
     void setSnapDisabled(bool disabled);
+    QObject* designMode() const noexcept;
+    void setDesignMode(QObject* designMode);
 
     // Lot 4 (outil des formes), L4-T11.
     QString shapePreset() const;
@@ -167,6 +173,9 @@ signals:
     void settingsFileChanged();
     void designFlagsChanged();
     void actionRunnerChanged();
+    // L8-T16 : un dépôt accepté par un conteneur (F-577) ; `chime` : le son de confirmation est à jouer
+    // (L8-T25).
+    void containerAccepted(quint64 container, bool chime);
 
 private:
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
@@ -211,10 +220,11 @@ private:
     mutable std::unique_ptr<ToolAdapters> m_adapters;
     QPointer<ActionRunner> m_actionRunner;
     mutable std::unique_ptr<ActionGate> m_gate; // refait quand l'outil de sélection change
-    bool m_gateArmed = false;                  // geste en cours armé par armGate : activeTool() rend la porte
-    bool m_lockIgnored = false;                // mode conception, recopié dans le contexte des adaptateurs
-    bool m_snapDisabled = false;               // idem
-    QString m_lastInk = QStringLiteral("pen"); // dernier outil d'encre (L3-T0)
+    bool m_gateArmed = false;    // geste en cours armé par armGate : activeTool() rend la porte
+    bool m_lockIgnored = false;  // mode conception, recopié dans le contexte des adaptateurs
+    bool m_snapDisabled = false; // idem
+    std::unique_ptr<DesignModePolicy> m_policy; // posée sur l'outil de sélection à sa création
+    QString m_lastInk = QStringLiteral("pen");  // dernier outil d'encre (L3-T0)
     QVariantMap m_selectionFrame;
     bool m_handlesVisible = false;
     bool m_settingsLoaded = false;

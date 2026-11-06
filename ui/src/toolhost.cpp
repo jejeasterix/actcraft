@@ -13,6 +13,7 @@
 #include <actcraft/tools/revealinktool.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/toolregistry.h>
+#include <actcraft/ui/designmode.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QByteArray>
@@ -275,7 +276,36 @@ private:
     bool m_owning = false;
 };
 
-ToolHost::ToolHost(QObject* parent) : QObject(parent), m_selectionFrame(hiddenFrame()) {}
+// L8-T16 (D8-9, M5) : les effets publiés de DesignMode traduits pour les outils, lus à chaque appel (aucun
+// état recopié, rien à resynchroniser). Sans DesignMode : tout actif.
+class DesignModePolicy final : public tools::InteractionPolicy
+{
+public:
+    QPointer<QObject> designMode;
+
+    bool actionsEnabled() const override
+    {
+        const DesignMode* mode = current();
+        return mode == nullptr || !mode->actionsDisabled();
+    }
+    bool restrictionsEnabled() const override
+    {
+        const DesignMode* mode = current();
+        return mode == nullptr || !mode->restrictionsDisabled();
+    }
+    bool blockersEnabled() const override
+    {
+        const DesignMode* mode = current();
+        return mode == nullptr || !mode->blockersDisabled();
+    }
+
+private:
+    const DesignMode* current() const { return qobject_cast<const DesignMode*>(designMode.data()); }
+};
+
+ToolHost::ToolHost(QObject* parent)
+    : QObject(parent), m_policy(std::make_unique<DesignModePolicy>()), m_selectionFrame(hiddenFrame())
+{}
 
 ToolHost::~ToolHost()
 {
@@ -788,6 +818,12 @@ void ToolHost::configureTool(tools::Tool* tool) const
         penShape->setPen(pen, m_lastInk == QStringLiteral("highlighter"));
     } else if (auto* reveal = dynamic_cast<tools::RevealInkTool*>(tool)) {
         reveal->setBaseWidth(settingsOf(QStringLiteral("reveal-ink")).width);
+    } else if (auto* select = dynamic_cast<tools::SelectTool*>(tool)) {
+        select->setInteractionPolicy(m_policy.get()); // L8-T16 : vit aussi longtemps que l'hôte
+        auto* self = const_cast<ToolHost*>(this);
+        select->setContainerAccepted([self](core::ObjectId container, bool chime) {
+            emit self->containerAccepted(static_cast<quint64>(container), chime);
+        });
     }
 }
 
@@ -905,6 +941,20 @@ void ToolHost::setSnapDisabled(bool disabled)
     if (m_adapters) {
         m_adapters->context.snapDisabled = disabled;
     }
+    emit designFlagsChanged();
+}
+
+QObject* ToolHost::designMode() const noexcept
+{
+    return m_policy->designMode.data();
+}
+
+void ToolHost::setDesignMode(QObject* designMode)
+{
+    if (m_policy->designMode == designMode) {
+        return;
+    }
+    m_policy->designMode = designMode;
     emit designFlagsChanged();
 }
 

@@ -5,6 +5,7 @@
 #include <actcraft/core/gridsnap.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/restrictors.h>
 #include <actcraft/core/shapeedits.h>
 #include <actcraft/core/shapegeometry.h>
 #include <actcraft/core/shapepoints.h>
@@ -139,6 +140,18 @@ std::optional<std::size_t> shapePointAt(const std::vector<core::PointF>& points,
         }
     }
     return found;
+}
+
+// Angle d'une transformation (degrés, sens de core::rotation).
+double angleOf(const core::Transform& t) noexcept
+{
+    return toDegrees(std::atan2(t.m12, t.m11));
+}
+
+// Rotation à règle (L8-T15) : un pas, un sens, ou un pivot autre que le centre.
+bool turnsByRule(const core::Restrictions& r) noexcept
+{
+    return r.turnStep > 0 || r.turning != core::Turning::Free || r.pivot != core::Mark::Center;
 }
 
 // Dépôt d'un glissement mêlé (D9) : objets ordinaires transformés, objets à copier laissés en place et copiés
@@ -391,6 +404,200 @@ std::vector<core::PointF> SelectTool::shownShapePoints(const std::vector<core::O
     return core::shapePoints(page.objects[index]); // L5-T9 : sommets puis milieux, vide hors d'une forme
 }
 
+void SelectTool::setInteractionPolicy(const InteractionPolicy* policy) noexcept
+{
+    m_policy = policy;
+}
+
+void SelectTool::setContainerAccepted(ContainerAccepted callback)
+{
+    m_containerAccepted = std::move(callback);
+}
+
+std::size_t SelectTool::probePagesBuilt() const noexcept
+{
+    return m_probePagesBuilt;
+}
+
+bool SelectTool::restrictionsOn() const noexcept
+{
+    return m_policy == nullptr || m_policy->restrictionsEnabled();
+}
+
+bool SelectTool::blockersOn() const noexcept
+{
+    return m_policy == nullptr || m_policy->blockersEnabled();
+}
+
+// Revue L8-T16 (règle choisie, la plus simple et sûre) : la rotation à règle (allowedTurn, pivotOf) suit un
+// objet seul ; plusieurs objets tournent autour du centre du cadre, ce que ni un angle bloqué, ni un sens, ni
+// un pas, ni un pivot ne savent suivre objet par objet. Hors mode conception, une telle sélection refuse donc
+// toute rotation, comme si l'objet n'était pas pivotable (layoutSelection) ; en mode conception, elle tourne.
+bool SelectTool::turnRefused(const core::Page& page, const std::vector<core::ObjectId>& selection) const
+{
+    if (!restrictionsOn()) {
+        return false;
+    }
+    std::size_t count = 0;
+    bool ruled = false;
+    for (const core::ObjectId id : selection) {
+        const std::size_t index = core::indexOf(page, id);
+        if (index != page.objects.size()) {
+            ++count;
+            ruled = ruled || turnsByRule(page.objects[index].common.restrictions);
+        }
+    }
+    return count > 1 && ruled;
+}
+
+QStringList SelectTool::barCommands(const core::Page& page,
+                                    const std::vector<core::ObjectId>& selection) const
+{
+    QStringList commands = m_context.view.objectBarCommands();
+    if (turnRefused(page, selection)) {
+        commands.removeAll(QStringLiteral("object.rotate"));
+    }
+    return commands;
+}
+
+// Un seul parcours de la page, avant le soulèvement ; rien n'y est copié en entier. Sans limiteur, sans
+// bloquant, sans conteneur, sans aimant, le glisser reste celui du lot 3. Sinon on retient ce que chaque
+// mouvement relit : les soulevés limités avec leurs chemins et membres (m_travelPage, pour allowedTravel),
+// les boîtes de départ des soulevés et celles des bloquants (stopBoxesAtBlockers), et, s'il y a un conteneur
+// ou un aimant, les rangs des soulevés : la page d'essai de resolveDrop (« devant ») n'est construite qu'au
+// relâché (settle). La page affichée n'est pas touchée jusqu'au dépôt (aucun redessin du cache).
+void SelectTool::prepareRules(const core::Page& page, const std::vector<core::ObjectId>& ids)
+{
+    m_travelPage.objects.clear();
+    m_limited.clear();
+    m_movingBoxes.clear();
+    m_blockerBoxes.clear();
+    m_settle = false;
+    m_liftRanks.clear();
+    m_liftedAll.clear();
+    const bool restrictions = restrictionsOn();
+    const bool blockers = blockersOn();
+    if (!restrictions && !blockers) {
+        return;
+    }
+    bool containers = false;
+    bool magnet = false;
+    std::vector<core::ObjectId> limited;
+    std::vector<core::ObjectId> travel; // limités et leurs chemins
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        const core::PageObject& object = page.objects[i];
+        const core::Restrictions& r = object.common.restrictions;
+        const bool moving = contains(ids, object.common.id);
+        if (moving) {
+            m_liftRanks.push_back(i); // l'ordre de la page, celui des copies de DocumentEditor::lift
+        }
+        if (blockers && core::hasExtent(page, object)) {
+            if (moving) {
+                m_movingBoxes.push_back(core::boundsOnPage(page, object));
+            } else if (r.blocksOthers) {
+                m_blockerBoxes.push_back(core::boundsOnPage(page, object));
+            }
+        }
+        if (restrictions && !moving &&
+            (object.common.container.accepts != core::Accepts::Nothing ||
+             object.common.container.bounceBack)) {
+            containers = true;
+        }
+        if (restrictions && moving) {
+            if (r.travel != core::Travel::Free && !m_force) {
+                limited.push_back(object.common.id);
+                travel.push_back(object.common.id);
+                if (r.travel == core::Travel::AlongTrack && r.track != 0) {
+                    travel.push_back(r.track);
+                }
+            }
+            magnet = magnet || r.magnet;
+        }
+    }
+    if (m_blockerBoxes.empty()) {
+        m_movingBoxes.clear();
+    }
+    if (!travel.empty()) {
+        m_travelPage.objects = core::closureForCopy(page, travel);
+        for (const core::ObjectId id : limited) {
+            const std::size_t index = core::indexOf(m_travelPage, id);
+            if (index != m_travelPage.objects.size()) {
+                m_limited.push_back(index);
+            }
+        }
+    }
+    m_settle = containers || magnet;
+    if (!m_settle) {
+        m_liftRanks.clear();
+    }
+}
+
+core::PointF SelectTool::allowedDelta(core::PointF wanted) const
+{
+    for (const std::size_t index : m_limited) { // limiteurs d'abord (D8-7), puis les bloquants
+        wanted = core::allowedTravel(m_travelPage, m_travelPage.objects[index], wanted);
+    }
+    if (!m_blockerBoxes.empty()) {
+        wanted = core::stopBoxesAtBlockers(m_movingBoxes, m_blockerBoxes, wanted);
+    }
+    return wanted;
+}
+
+// Verdict au relâché, avant tout dépôt. La page d'essai, construite ici et une seule fois, est la page
+// affichée où les soulevés reprennent leur rang (restoreObjects) : celle d'avant le soulèvement. Elle reçoit
+// le déplacement par la commande même du dépôt (groupes compris), hors du document. Le choix du conteneur
+// est celui de resolveDrop ; l'accrochage (landingPoint) ne voit que ce conteneur. Mark::Point accroche
+// aussi sans conteneur, jamais un retour. Revue L8-T16 : l'accrochage repasse par les limiteurs et les
+// bloquants (allowedDelta, depuis le départ), et il n'est gardé que s'il laisse le verdict inchangé : un
+// objet accepté reste dans son conteneur, un objet libre ne tombe ni dans un conteneur ni dans un retour.
+core::DropResult SelectTool::settle(core::Transform& delta)
+{
+    core::Document probe;
+    core::Page& page = probe.page(0);
+    page = m_context.document.page();
+    core::restoreObjects(page, m_liftedAll);
+    ++m_probePagesBuilt;
+    core::Changes ignored;
+    core::TransformObjectsCommand(0, m_lifted, delta).redo(probe, ignored);
+    const core::DropResult verdict = core::resolveDrop(page, m_lifted);
+    if (verdict.outcome == core::DropOutcome::BounceBack || !m_firstLifted) {
+        return verdict;
+    }
+    const std::size_t index = core::indexOf(page, m_firstLifted->common.id);
+    if (index == page.objects.size()) {
+        return verdict;
+    }
+    const core::Restrictions& r = page.objects[index].common.restrictions;
+    if (!r.magnet || (verdict.outcome == core::DropOutcome::Free && r.magnetMark != core::Mark::Point)) {
+        return verdict;
+    }
+    std::vector<core::Accepts> accepts; // l'accrochage ne voit que le conteneur gagnant ; remis ensuite
+    accepts.reserve(page.objects.size());
+    for (core::PageObject& object : page.objects) {
+        accepts.push_back(object.common.container.accepts);
+        if (object.common.id != verdict.container) {
+            object.common.container.accepts = core::Accepts::Nothing;
+        }
+    }
+    const core::PointF dropped = core::boundsOnPage(page, page.objects[index]).center();
+    const core::PointF landed = core::landingPoint(page, page.objects[index], dropped);
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        page.objects[i].common.container.accepts = accepts[i];
+    }
+    const core::PointF allowed =
+        allowedDelta({delta.dx + landed.x - dropped.x, delta.dy + landed.y - dropped.y});
+    const core::PointF extra{allowed.x - delta.dx, allowed.y - delta.dy};
+    if (extra.x == 0 && extra.y == 0) {
+        return verdict;
+    }
+    core::TransformObjectsCommand(0, m_lifted, core::translation(extra.x, extra.y)).redo(probe, ignored);
+    const core::DropResult landedVerdict = core::resolveDrop(page, m_lifted);
+    if (landedVerdict.outcome == verdict.outcome && landedVerdict.container == verdict.container) {
+        delta = core::translation(allowed.x, allowed.y);
+    }
+    return verdict;
+}
+
 void SelectTool::press(const input::Sample& sample)
 {
     const core::Page& page = m_context.document.page();
@@ -415,7 +622,7 @@ void SelectTool::press(const input::Sample& sample)
     }
     if (!selection.empty()) { // barre et poignées passent avant tout, même avec Maj ou Ctrl
         const SelectionView grabFrame =
-            layoutSelection(page, selection, zoom, m_context.view.objectBarCommands(), m_context.lockIgnored);
+            layoutSelection(page, selection, zoom, barCommands(page, selection), m_context.lockIgnored);
         const SelectionHit grabbed = hitSelection(grabFrame, m_start, zoom);
         if (grabbed.kind == SelectionHitKind::BarButton) {
             m_command = grabbed.command;
@@ -557,6 +764,8 @@ void SelectTool::beginDrag(bool force)
     }
     m_frame =
         layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
+    m_force = force;
+    prepareRules(page, ids); // avant le soulèvement : la page affichée a encore les objets
     liftForGesture(std::move(ids), State::Dragging);
 }
 
@@ -579,8 +788,19 @@ void SelectTool::beginTransform(State kind)
     m_frame =
         layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
     if (ids.empty() || m_frame.corners.size() != 4 ||
-        (kind == State::Resizing && m_frame.handles.size() != 8)) {
-        return;
+        (kind == State::Resizing && m_frame.handles.size() != 8) ||
+        (kind == State::Rotating && turnRefused(page, m_context.user.selection()))) {
+        return; // bouton masqué (barCommands) ; refusé ici aussi si une barre ancienne l'a montré
+    }
+    m_turning = false;
+    if (kind == State::Rotating && ids.size() == 1 && restrictionsOn()) {
+        const core::PageObject& object = page.objects[core::indexOf(page, ids.front())];
+        if (turnsByRule(object.common.restrictions)) {
+            m_turning = true;
+            m_turnBase = angleOf(object.common.transform);
+            m_turnFrom = m_turnBase;
+            m_pivot = core::pivotOf(page, object);
+        }
     }
     liftForGesture(std::move(ids), kind);
 }
@@ -713,20 +933,33 @@ void SelectTool::liftForGesture(std::vector<core::ObjectId> ids, State state)
     if (!copies.empty()) {
         m_firstLifted = copies.front();
     }
+    m_liftedAll.clear();
+    if (m_settle && copies.size() == m_liftRanks.size()) { // copies dans l'ordre de la page (DocumentEditor)
+        m_liftedAll.reserve(copies.size());
+        for (std::size_t i = 0; i < copies.size(); ++i) {
+            m_liftedAll.push_back({m_liftRanks[i], copies[i]});
+        }
+    }
     m_context.lift.show(std::move(copies));
     m_state = state;
 }
 
 // Transformation du geste en cours, en coordonnées de page, appliquée après celle des objets.
-core::Transform SelectTool::gestureTransform(core::PointF point) const
+core::Transform SelectTool::gestureTransform(core::PointF point)
 {
     if (m_state == State::Rotating) {
-        const core::PointF center{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
-                                  (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
+        const core::PointF center = m_turning
+                                        ? m_pivot
+                                        : core::PointF{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
+                                                       (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
         double delta = toDegrees(std::atan2(point.y - center.y, point.x - center.x)) -
                        toDegrees(std::atan2(m_start.y - center.y, m_start.x - center.x));
         if ((m_modifiers & static_cast<int>(Qt::ShiftModifier)) != 0) {
             delta = std::round(delta / kSnapStepDegrees) * kSnapStepDegrees;
+        }
+        if (m_turning && m_firstLifted) { // L8-T15 : un calcul par mouvement, depuis le dernier angle permis
+            m_turnFrom = core::allowedTurn(*m_firstLifted, m_turnFrom, m_turnBase + delta);
+            delta = m_turnFrom - m_turnBase;
         }
         return core::rotationAbout(center, delta);
     }
@@ -760,7 +993,8 @@ core::Transform SelectTool::gestureTransform(core::PointF point) const
         return core::compose(core::compose(core::rotationAbout(anchor, -angle), scale),
                              core::rotationAbout(anchor, angle));
     }
-    return core::translation(point.x - m_start.x, point.y - m_start.y);
+    const core::PointF allowed = allowedDelta({point.x - m_start.x, point.y - m_start.y});
+    return core::translation(allowed.x, allowed.y);
 }
 
 void SelectTool::updateDrag(core::PointF point)
@@ -799,9 +1033,12 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
         probe.height = m_context.document.page().height;
         probe.objects.push_back(*m_firstLifted);
         const core::PointF snapped = core::snapDelta(probe, {m_firstLifted->common.id}, {delta.dx, delta.dy});
-        delta = core::translation(snapped.x, snapped.y);
+        const core::PointF allowed =
+            allowedDelta(snapped); // l'accrochage ne franchit ni limiteur ni bloquant
+        delta = core::translation(allowed.x, allowed.y);
     }
     const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
+    core::DropResult verdict;
     if (trash) {
         std::vector<core::ObjectId> removed; // D9 : un objet à dragCopy reste, même sur la corbeille
         for (const core::ObjectId id : m_lifted) {
@@ -817,9 +1054,19 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
     } else if (cancelled || delta.isIdentity()) {
         m_context.document.drop(nullptr);
     } else {
-        // Même chemin qu'au lot 3 (drop : objets remis, une étape) ; D9 : un objet à dragCopy est remis sans
-        // étape et sa copie ajoutée (PasteObjectsCommand), jamais transformé.
-        m_context.document.drop(dragDropCommand(page, m_lifted, m_copied, std::move(m_copySources), delta));
+        // L8-T16 : le verdict des conteneurs est rendu avant le dépôt, jamais corrigé après. Retour : les
+        // objets sont remis à leur place sans étape (drop(nullptr)), jamais déposés puis annulés.
+        if (m_state == State::Dragging && !m_liftedAll.empty() && restrictionsOn()) {
+            verdict = settle(delta);
+        }
+        if (verdict.outcome == core::DropOutcome::BounceBack) {
+            m_context.document.drop(nullptr);
+        } else {
+            // Même chemin qu'au lot 3 (drop : objets remis, une étape) ; D9 : un objet à dragCopy est remis
+            // sans étape et sa copie ajoutée (PasteObjectsCommand), jamais transformé.
+            m_context.document.drop(
+                dragDropCommand(page, m_lifted, m_copied, std::move(m_copySources), delta));
+        }
     }
     m_context.lift.clear();
     if (m_trashHover) {
@@ -828,6 +1075,9 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
     }
     reset();
     showFrame();
+    if (verdict.outcome == core::DropOutcome::Contained && m_containerAccepted) {
+        m_containerAccepted(verdict.container, verdict.chime);
+    }
 }
 
 void SelectTool::showBand(core::PointF point)
@@ -891,9 +1141,10 @@ void SelectTool::release(const input::Sample& sample)
 
 void SelectTool::showFrame()
 {
-    SelectionView view =
-        layoutSelection(m_context.document.page(), m_context.user.selection(), m_context.view.zoom(),
-                        m_context.view.objectBarCommands(), m_context.lockIgnored);
+    const core::Page& page = m_context.document.page();
+    const std::vector<core::ObjectId>& selection = m_context.user.selection();
+    SelectionView view = layoutSelection(page, selection, m_context.view.zoom(), barCommands(page, selection),
+                                         m_context.lockIgnored);
     view.shapePoints = shownShapePoints(m_context.user.selection());
     if (!view.shapePoints.empty()) { // les carrés remplacent poignées et points intelligents (F-527)
         view.handlesVisible = false;
@@ -925,6 +1176,15 @@ void SelectTool::reset() noexcept
     m_grabbed.clear();
     m_lifted.clear();
     m_firstLifted.reset();
+    m_travelPage.objects.clear();
+    m_limited.clear();
+    m_movingBoxes.clear();
+    m_blockerBoxes.clear();
+    m_settle = false;
+    m_liftRanks.clear();
+    m_liftedAll.clear();
+    m_force = false;
+    m_turning = false;
 }
 
 } // namespace actcraft::tools
