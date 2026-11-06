@@ -14,6 +14,7 @@
 #include <QImageReader>
 #include <QLineF>
 #include <QLinearGradient>
+#include <QPaintEngine>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPolygonF>
@@ -906,6 +907,7 @@ void paintListed(QPainter& p, const core::PageObject& object, const ImageLookup&
 
 // Calque de la couche du dessus borné (une cible d'impression peut être immense) : 16 Mpx au plus.
 constexpr double kMaxRevealLayerPixels = 16.0 * 1024 * 1024;
+constexpr double kPrintedRevealDpi = 300;
 
 // Objets [first, last] (couche du dessus) dans un calque transparent ; chaque encre révélatrice visible y
 // retire sa forme (trait opaque, en CompositionMode_DestinationOut) de ce qui la précède, jamais de ce qui
@@ -927,6 +929,16 @@ void paintRevealedLayer(QPainter& p, const core::Page& page, const ImageLookup& 
         return;
     }
     double k = device ? device->devicePixelRatio() : 1.0;
+    // Export et impression (PDF, aperçu, imprimante) : 300 ppp au moins, quelle que soit la résolution
+    // annoncée du périphérique ; l'écran garde sa densité (revue de L8-T18).
+    const QPaintEngine* engine = p.paintEngine();
+    const bool printed =
+        (device && (device->devType() == QInternal::Printer || device->devType() == QInternal::Picture)) ||
+        (engine && (engine->type() == QPaintEngine::Pdf || engine->type() == QPaintEngine::Picture ||
+                    engine->type() == QPaintEngine::SVG));
+    if (printed && device && device->logicalDpiX() > 0) {
+        k = std::max(k, kPrintedRevealDpi / device->logicalDpiX());
+    }
     const double pixels = target.width() * k * target.height() * k;
     if (pixels > kMaxRevealLayerPixels) {
         k *= std::sqrt(kMaxRevealLayerPixels / pixels);
