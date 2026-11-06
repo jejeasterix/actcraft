@@ -13,6 +13,7 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -22,6 +23,7 @@
 #include <QTextCursor>
 #include <QTextLayout>
 #include <QTimer>
+#include <QUrl>
 
 #include <algorithm>
 #include <cmath>
@@ -515,7 +517,7 @@ void ActionRunner::runOne(const core::Action& action, const Pending& pending)
         return;
     }
     case actions::ActionCategory::Document:
-        runDocument(*info, action);
+        runDocument(*info, action, pending.object);
         return;
     case actions::ActionCategory::Object:
         break;
@@ -587,8 +589,13 @@ void ActionRunner::runOnTarget(const QString& command, core::ObjectId target)
 }
 
 // Liens et fichiers : LinkLauncher::request, qui valide et demande confirmation ; jamais d'ouverture ici.
-void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core::Action& action)
+void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core::Action& action,
+                               core::ObjectId carrier)
 {
+    if (info.id == QLatin1String("document.play-sound") && m_media) {
+        runSound(action, carrier);
+        return;
+    }
     if (!m_links) {
         refuse(QStringLiteral("Action non prise en charge : ouverture indisponible"));
         return;
@@ -616,6 +623,53 @@ void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core
         return;
     }
     m_links->request(file, kind);
+}
+
+// F-552 : un son de la page joue dans le lecteur intégré, piste 1, lecteur de sons ouvert ; le système n'est
+// que le repli du lecteur (media::Player), qui passe alors par LinkLauncher et sa confirmation.
+//
+// Un média de la page (vidéo, son inséré) porte cette action sur sa propre ressource : son clic passe par
+// MediaItems::play, seul chemin qui montre la vidéo dans son cadre et qui respecte sa boucle. La ressource
+// jouée à part (playResource) l'aurait lue en son seul, sans image, et une seule fois.
+//
+// Seulement quand l'action vise la ressource du média lui-même : une action re-ciblée sur un autre son joue
+// ce son. Et un porteur masqué reste cliquable (D5, zone cachée) alors que MediaItems ne connaît que les
+// médias visibles : play(porteur) rend faux, un son se joue alors à part ; une vidéo masquée n'est pas jouée.
+void ActionRunner::runSound(const core::Action& action, core::ObjectId carrier)
+{
+    if (const DocumentController* c = controller();
+        c != nullptr && c->currentIndex() >= 0 &&
+        static_cast<std::size_t>(c->currentIndex()) < c->document().pageCount()) {
+        const core::PageObject* object =
+            findObject(c->document().page(static_cast<std::size_t>(c->currentIndex())), carrier);
+        const core::Media* media = nullptr;
+        if (object != nullptr) {
+            const auto& body = core::body(*object);
+            media = std::get_if<core::Media>(&body);
+        }
+        if (media != nullptr && !action.resource.empty() && media->media == action.resource) {
+            if (m_media->play(carrier) ||
+                (m_media->isSoundResource(action.resource) && m_media->playResource(action.resource))) {
+                return;
+            }
+            refuse(QStringLiteral("Action non prise en charge : média indisponible"));
+            return;
+        }
+    }
+    if (!action.resource.empty() && m_media->playResource(action.resource)) {
+        return;
+    }
+    QString file = parametersOf(action).value(QStringLiteral("file")).toString();
+    if (const QUrl url(file); url.isLocalFile()) {
+        file = url.toLocalFile();
+    }
+    if (!file.isEmpty() && QFileInfo(file).isRelative() && controller() != nullptr &&
+        controller()->fileUrl().isLocalFile()) {
+        file = QFileInfo(controller()->fileUrl().toLocalFile()).dir().filePath(file);
+    }
+    if (!m_media->playFile(file)) {
+        refuse(QStringLiteral("Action non prise en charge : fichier absent"));
+    }
 }
 
 void ActionRunner::refuse(const QString& reason)
@@ -797,6 +851,29 @@ void ActionRunner::setLinks(LinkLauncher* links)
     }
     m_links = links;
     emit linksChanged();
+}
+
+MediaItems* ActionRunner::mediaItems() const noexcept
+{
+    return m_media.data();
+}
+
+void ActionRunner::setMediaItems(MediaItems* mediaItems)
+{
+    if (mediaItems == m_media) {
+        return;
+    }
+    if (m_media) {
+        disconnect(m_media, &MediaItems::soundFailed, this, nullptr);
+    }
+    m_media = mediaItems;
+    if (m_media) { // un échec de lecture découvert après coup (format, droits) est dit, sans parler d'action
+                   // : le son d'une ouverture de page (lecture auto) n'en a aucune
+        connect(m_media, &MediaItems::soundFailed, this, [this](const QString& reason) {
+            refuse(QStringLiteral("Lecture impossible : %1").arg(reason));
+        });
+    }
+    emit mediaItemsChanged();
 }
 
 void ActionRunner::setTools(ToolHost* tools)

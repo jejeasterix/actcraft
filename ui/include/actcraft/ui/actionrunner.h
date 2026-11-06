@@ -3,6 +3,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/ui/commands.h> // types complets exigés par moc pour les propriétés
 #include <actcraft/ui/linklauncher.h>
+#include <actcraft/ui/mediaitems.h>
 #include <actcraft/ui/pagehistory.h>
 
 #include <QObject>
@@ -36,6 +37,9 @@ class ActionRunner : public QObject
     Q_PROPERTY(QObject* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(QObject* designMode READ designMode WRITE setDesignMode NOTIFY designModeChanged)
     Q_PROPERTY(actcraft::ui::LinkLauncher* links READ links WRITE setLinks NOTIFY linksChanged)
+    // F-552 : lecteur intégré des sons de la page (« jouer un son » ne passe jamais par le système).
+    Q_PROPERTY(
+        actcraft::ui::MediaItems* mediaItems READ mediaItems WRITE setMediaItems NOTIFY mediaItemsChanged)
     Q_PROPERTY(bool hovering READ hovering NOTIFY hoveringChanged) // curseur d'action (F-890)
     // Emprises (coordonnées de page) des objets d'action de la page affichée : cadre du mode conception.
     Q_PROPERTY(QVariantList actionFrames READ actionFrames NOTIFY actionFramesChanged)
@@ -64,6 +68,8 @@ public:
     void setDesignMode(QObject* designMode); // DesignMode
     LinkLauncher* links() const noexcept;
     void setLinks(LinkLauncher* links);
+    MediaItems* mediaItems() const noexcept;
+    void setMediaItems(MediaItems* mediaItems);
     // Hôte des outils : sélection de la cible des actions copier, couper, aligner, grouper (C++ seulement,
     // posé par ToolHost::setActionRunner).
     void setTools(ToolHost* tools);
@@ -77,6 +83,7 @@ signals:
     void documentChanged();
     void designModeChanged();
     void linksChanged();
+    void mediaItemsChanged();
     void hoveringChanged();
     void actionFramesChanged();
 
@@ -95,7 +102,9 @@ private:
     void run(const Pending& pending);
     void runOne(const core::Action& action, const Pending& pending);
     void runCommand(const QString& id, const QVariant& argument);
-    void runDocument(const actions::ObjectActionInfo& info, const core::Action& action);
+    void runDocument(const actions::ObjectActionInfo& info, const core::Action& action,
+                     core::ObjectId carrier);
+    void runSound(const core::Action& action, core::ObjectId carrier);
     void runOnTarget(const QString& command, core::ObjectId target);
     void refuse(const QString& reason);
     void pageShown();
@@ -107,6 +116,7 @@ private:
     QPointer<DocumentController> m_controller;
     QPointer<DesignMode> m_design;
     QPointer<LinkLauncher> m_links;
+    QPointer<MediaItems> m_media;
     QPointer<ToolHost> m_tools;
     actions::ObjectActionCatalog m_catalog;
     PageHistory m_history;

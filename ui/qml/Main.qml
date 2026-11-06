@@ -528,7 +528,26 @@ Window {
         document: appDocument
         designMode: appDesign
         links: appLinks
+        mediaItems: appMediaItems // F-552 : « jouer un son » passe par le lecteur intégré
         Component.onCompleted: appTools.setActionRunner(appActionRunner)
+    }
+    // L8-T25 : médias de la page affichée (vidéo et GIF en surcouche, lecteur intégré de deux pistes).
+    MediaItems {
+        id: appMediaItems
+        objectName: "appMediaItems"
+        document: appDocument
+        contactActive: pageArea.view ? pageArea.view.contactActive : false
+        links: appLinks
+        tools: appTools
+        // La couche des médias est posée par PageArea (pageOverlays, z 4) : elle reçoit ici son modèle et sa vue.
+        Component.onCompleted: {
+            for (const layer of pageArea.pageOverlays.children) {
+                if (layer.objectName === "mediaLayer") {
+                    layer.view = pageArea.view
+                    layer.items = appMediaItems
+                }
+            }
+        }
     }
     LinkLauncher { // L8-T10 : seul chemin d'un lien ou d'un fichier de document vers le système (D8-4)
         id: appLinks
@@ -594,6 +613,7 @@ Window {
     SoundController {
         id: soundController
         commands: appCommands
+        items: appMediaItems
     }
     RecorderPalette {
         id: recorderPalette
