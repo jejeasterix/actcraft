@@ -1,5 +1,6 @@
 #include "nativeobjects.h"
 
+#include <actcraft/core/interactivity.h>
 #include <actcraft/core/pagezones.h>
 #include <actcraft/formats/nativejson.h>
 
@@ -322,6 +323,96 @@ constexpr std::string_view enumName(SpotlightShape value) noexcept
     return {};
 }
 
+// Énumérations du lot 8 (L8-T4) : noms en kebab-case.
+constexpr std::string_view enumName(Travel value) noexcept
+{
+    switch (value) {
+    case Travel::Free:
+        return "free";
+    case Travel::Vertical:
+        return "vertical";
+    case Travel::Horizontal:
+        return "horizontal";
+    case Travel::AlongTrack:
+        return "along-track";
+    case Travel::Fixed:
+        return "fixed";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(Turning value) noexcept
+{
+    switch (value) {
+    case Turning::Free:
+        return "free";
+    case Turning::Clockwise:
+        return "clockwise";
+    case Turning::CounterClockwise:
+        return "counter-clockwise";
+    case Turning::Fixed:
+        return "fixed";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(Mark value) noexcept
+{
+    switch (value) {
+    case Mark::Center:
+        return "center";
+    case Mark::TopLeft:
+        return "top-left";
+    case Mark::Top:
+        return "top";
+    case Mark::TopRight:
+        return "top-right";
+    case Mark::Right:
+        return "right";
+    case Mark::BottomRight:
+        return "bottom-right";
+    case Mark::Bottom:
+        return "bottom";
+    case Mark::BottomLeft:
+        return "bottom-left";
+    case Mark::Left:
+        return "left";
+    case Mark::FirstTextLine:
+        return "first-text-line";
+    case Mark::Point:
+        return "point";
+    case Mark::OtherObject:
+        return "other-object";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(Accepts value) noexcept
+{
+    switch (value) {
+    case Accepts::Nothing:
+        return "nothing";
+    case Accepts::Anything:
+        return "anything";
+    case Accepts::OneObject:
+        return "one-object";
+    case Accepts::Keywords:
+        return "keywords";
+    }
+    return {};
+}
+
+constexpr std::string_view enumName(FitRule value) noexcept
+{
+    switch (value) {
+    case FitRule::CentresMatch:
+        return "centres-match";
+    case FitRule::FullyInside:
+        return "fully-inside";
+    }
+    return {};
+}
+
 template <typename E> struct Named
 {
     E value;
@@ -375,6 +466,11 @@ constexpr auto kGridLines = namesOf<GridLine>();
 constexpr auto kToolsModes = namesOf<PageToolsMode>();
 constexpr auto kCurtainModes = namesOf<CurtainMode>();
 constexpr auto kSpotlightShapes = namesOf<SpotlightShape>();
+constexpr auto kTravels = namesOf<Travel>();
+constexpr auto kTurnings = namesOf<Turning>();
+constexpr auto kMarks = namesOf<Mark>();
+constexpr auto kAccepts = namesOf<Accepts>();
+constexpr auto kFitRules = namesOf<FitRule>();
 
 // Un nom ou une valeur en double : la relecture rendrait une autre valeur que celle écrite.
 template <typename E, std::size_t N> constexpr bool distinct(const std::array<Named<E>, N>& table)
@@ -393,7 +489,8 @@ static_assert(distinct(kLayers) && distinct(kPenStyles) && distinct(kPenCaps) &&
                   distinct(kActionKinds) && distinct(kObjectKinds) && distinct(kShapeKinds) &&
                   distinct(kPatterns) && distinct(kStrokeKinds) && distinct(kGridPatterns) &&
                   distinct(kGridLines) && distinct(kToolsModes) && distinct(kCurtainModes) &&
-                  distinct(kSpotlightShapes),
+                  distinct(kSpotlightShapes) && distinct(kTravels) && distinct(kTurnings) &&
+                  distinct(kMarks) && distinct(kAccepts) && distinct(kFitRules),
               "document.json : nom ou valeur d'énumération en double");
 
 constexpr bool followsVariantOrder()
@@ -534,16 +631,39 @@ QJsonObject withKept(QJsonObject written, const std::string& unknownKeys)
     return written;
 }
 
+// Paramètres d'une action (lot 8, JSON compact) : un objet ou un tableau JSON qui se réécrit à l'identique
+// est inséré tel quel, tout autre texte va en chaîne. La relecture rend le même texte dans les deux cas.
+QJsonValue parametersJson(const std::string& parameters)
+{
+    const QByteArray text = QByteArray::fromStdString(parameters);
+    QJsonParseError error{};
+    const QJsonDocument parsed = QJsonDocument::fromJson(text, &error);
+    if (error.error == QJsonParseError::NoError && parsed.toJson(QJsonDocument::Compact) == text) {
+        return parsed.isArray() ? QJsonValue(parsed.array()) : QJsonValue(parsed.object());
+    }
+    return str(parameters);
+}
+
 QJsonObject actionJson(const Action& action)
 {
     const auto& [kind, sourceType, command, target, resource, unknownKeys, catalogId, parameters, dragDrop] =
-        action; // champs du lot 8 : écrits par L8-T4
-    return withKept(QJsonObject{{u"kind"_s, nameText(kind)},
-                                {u"sourceType"_s, static_cast<int>(sourceType)},
-                                {u"command"_s, static_cast<int>(command)},
-                                {u"target"_s, idValue(target)},
-                                {u"resource"_s, str(resource)}},
-                    unknownKeys);
+        action;
+    QJsonObject j{{u"kind"_s, nameText(kind)},
+                  {u"sourceType"_s, static_cast<int>(sourceType)},
+                  {u"command"_s, static_cast<int>(command)},
+                  {u"target"_s, idValue(target)},
+                  {u"resource"_s, str(resource)}};
+    // Clés du lot 8, facultatives : écrites hors défaut seulement ; leur gabarit vient d'everyActionKey.
+    if (!catalogId.empty()) {
+        j.insert(u"catalog-id"_s, str(catalogId));
+    }
+    if (!parameters.empty()) {
+        j.insert(u"parameters"_s, parametersJson(parameters));
+    }
+    if (dragDrop) {
+        j.insert(u"drag-drop"_s, true);
+    }
+    return withKept(j, unknownKeys);
 }
 
 // Mots-clés (L6-T10) : tableau de textes.
@@ -570,10 +690,35 @@ QJsonObject labelStyleJson(const LabelStyle& style)
                     unknownKeys);
 }
 
+// Règle de conteneur (lot 8, F-577) : ses huit clés, écrites ensemble dès qu'elle n'est pas celle par défaut.
+QJsonObject containerJson(const ContainerRule& container)
+{
+    const auto& [accepts, object, keywords, fit, tolerance, bounceBack, chime, chimeSound] = container;
+    return QJsonObject{{u"accepts"_s, nameText(accepts)},
+                       {u"object"_s, idValue(object)},
+                       {u"keywords"_s, keywordsJson(keywords)},
+                       {u"fit"_s, nameText(fit)},
+                       {u"tolerance"_s, tolerance},
+                       {u"bounce-back"_s, bounceBack},
+                       {u"chime"_s, chime},
+                       {u"chime-sound"_s, str(chimeSound)}};
+}
+
+// Diffusion protégée (lot 8, F-680) : ses cinq clés, écrites ensemble dès qu'elle n'est pas celle par défaut.
+QJsonObject broadcastJson(const BroadcastRules& rules)
+{
+    const auto& [noCopy, noSave, noPrint, noCamera, author] = rules;
+    return QJsonObject{{u"no-copy"_s, noCopy},
+                       {u"no-save"_s, noSave},
+                       {u"no-print"_s, noPrint},
+                       {u"no-camera"_s, noCamera},
+                       {u"author"_s, str(author)}};
+}
+
 void writeCommon(QJsonObject& j, const ObjectCommon& common)
 {
     const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-                 labelStyle, keywords, actions, container] = common; // container : L8-T4
+                 labelStyle, keywords, actions, container] = common;
     j.insert(u"id"_s, idValue(id));
     j.insert(u"name"_s, str(name));
     j.insert(u"layer"_s, nameText(layer));
@@ -583,10 +728,49 @@ void writeCommon(QJsonObject& j, const ObjectCommon& common)
         j.insert(u"dragCopy"_s, true);
     }
     j.insert(u"translucency"_s, static_cast<int>(translucency));
+    // Restrictions sous leur forme normalisée (celle de l'empreinte) : un mode Fixed tenu par son booléen
+    // faux (objet bloqué du lot 2) ne dit rien de plus que « move » ou « rotate » (isDefault), il n'a pas de
+    // clé. Les clés du lot 8 sont facultatives, écrites hors défaut seulement ; leur gabarit vient
+    // d'everyKeyObject.
+    Restrictions normalized = restrictions;
+    normalize(normalized);
     const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
-                 pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = restrictions; // lot 8 : L8-T4
-    j.insert(u"restrictions"_s,
-             QJsonObject{{u"move"_s, movable}, {u"size"_s, resizable}, {u"rotate"_s, rotatable}});
+                 pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = normalized;
+    QJsonObject jr{{u"move"_s, movable}, {u"size"_s, resizable}, {u"rotate"_s, rotatable}};
+    if (travel != Travel::Free && travel != Travel::Fixed) {
+        jr.insert(u"travel"_s, nameText(travel));
+    }
+    if (track != 0) {
+        jr.insert(u"track"_s, idValue(track));
+    }
+    if (turning != Turning::Free && turning != Turning::Fixed) {
+        jr.insert(u"turning"_s, nameText(turning));
+    }
+    if (turnStep != 0) {
+        jr.insert(u"turn-step"_s, turnStep);
+    }
+    if (pivot != Mark::Center) {
+        jr.insert(u"pivot"_s, nameText(pivot));
+    }
+    if (pivotPoint.x != 0 || pivotPoint.y != 0) {
+        jr.insert(u"pivot-point"_s, pointJson(pivotPoint));
+    }
+    if (pivotObject != 0) {
+        jr.insert(u"pivot-object"_s, idValue(pivotObject));
+    }
+    if (blocksOthers) {
+        jr.insert(u"blocks-others"_s, true);
+    }
+    if (magnet) {
+        jr.insert(u"magnet"_s, true);
+    }
+    if (magnetMark != Mark::Center) {
+        jr.insert(u"magnet-mark"_s, nameText(magnetMark));
+    }
+    if (magnetPoint.x != 0 || magnetPoint.y != 0) {
+        jr.insert(u"magnet-point"_s, pointJson(magnetPoint));
+    }
+    j.insert(u"restrictions"_s, jr);
     j.insert(u"transform"_s, transformJson(transform));
     j.insert(u"label"_s, str(label));
     if (labelStyle != LabelStyle{}) {
@@ -600,6 +784,9 @@ void writeCommon(QJsonObject& j, const ObjectCommon& common)
         list.append(actionJson(action));
     }
     j.insert(u"actions"_s, list);
+    if (!isDefault(container)) {
+        j.insert(u"container"_s, containerJson(container)); // facultative (lot 8) : absente, n'accepte rien
+    }
 }
 
 // Un écrivain par type d'objet ; objectJson() appelle celui du type tenu.
@@ -723,13 +910,26 @@ void writeBody(QJsonObject& j, const Text& textObject)
 void writeBody(QJsonObject& j, const Media& mediaObject)
 {
     const auto& [bounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden, aspectLocked,
-                 clearBackground, wrapText] = mediaObject; // options du lot 8 : L8-T4
+                 clearBackground, wrapText] = mediaObject;
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"placeholder"_s, str(placeholder));
     j.insert(u"media"_s, str(media));
     j.insert(u"fileName"_s, str(fileName));
     j.insert(u"playOnOpen"_s, playOnOpen);
     j.insert(u"loop"_s, loop);
+    // Options du lot 8 (F-302), facultatives : écrites si vraies ; leur gabarit vient d'everyKeyObject.
+    if (controlsHidden) {
+        j.insert(u"controls-hidden"_s, true);
+    }
+    if (aspectLocked) {
+        j.insert(u"aspect-locked"_s, true);
+    }
+    if (clearBackground) {
+        j.insert(u"clear-background"_s, true);
+    }
+    if (wrapText) {
+        j.insert(u"wrap-text"_s, true);
+    }
 }
 
 void writeBody(QJsonObject& j, const Group& group)
@@ -771,8 +971,14 @@ void writeBody(QJsonObject& j, const Equation& equation)
     j.insert(u"color"_s, colorText(color));
 }
 
-// Cadre web (lot 8) : contenu écrit par L8-T4.
-void writeBody(QJsonObject&, const WebFrame&) {}
+// Cadre web (lot 8, F-302) : ses trois clés, toujours écrites (comme l'équation) ; rien n'y est chargé ici.
+void writeBody(QJsonObject& j, const WebFrame& frame)
+{
+    const auto& [bounds, html, address] = frame;
+    j.insert(u"bounds"_s, rectJson(bounds));
+    j.insert(u"html"_s, str(html));
+    j.insert(u"address"_s, str(address));
+}
 
 // Jamais appelé : objectJson écrit un objet inconnu tel quel (std::visit exige un écrivain par type).
 void writeBody(QJsonObject&, const UnknownObject&) {}
@@ -1320,16 +1526,32 @@ public:
     }
 };
 
+// Paramètres d'une action (lot 8) : objet ou tableau JSON rendu en texte compact, sinon le texte lu.
+std::string readParameters(Reader& r, const QJsonObject& j)
+{
+    const QJsonValue v = j.value(u"parameters"_s);
+    if (v.isObject()) {
+        return QJsonDocument(v.toObject()).toJson(QJsonDocument::Compact).toStdString();
+    }
+    if (v.isArray()) {
+        return QJsonDocument(v.toArray()).toJson(QJsonDocument::Compact).toStdString();
+    }
+    return r.readString(j, u"parameters");
+}
+
 Action readAction(Reader& r, const QJsonObject& j)
 {
     Action action;
     auto& [kind, sourceType, command, target, resource, unknownKeys, catalogId, parameters, dragDrop] =
-        action; // champs du lot 8 : lus par L8-T4
+        action;
     kind = r.readEnum(kActionKinds, j, u"kind", kind);
     sourceType = r.readInteger(j, u"sourceType", sourceType);
     command = r.readInteger(j, u"command", command);
     target = r.readId(j, u"target");
     resource = r.readString(j, u"resource");
+    catalogId = r.readString(j, u"catalog-id");
+    parameters = readParameters(r, j);
+    dragDrop = r.readFlag(j, u"drag-drop", dragDrop);
     unknownKeys = unknownKeysOf(j, r.known->action);
     return action;
 }
@@ -1363,11 +1585,40 @@ LabelStyle readLabelStyle(Reader& r, const QJsonObject& j)
     return style;
 }
 
+// Règle de conteneur (lot 8) : absente, ou chaque clé absente, la valeur par défaut.
+ContainerRule readContainer(Reader& r, const QJsonObject& j)
+{
+    ContainerRule container;
+    auto& [accepts, object, keywords, fit, tolerance, bounceBack, chime, chimeSound] = container;
+    accepts = r.readEnum(kAccepts, j, u"accepts", accepts);
+    object = r.readId(j, u"object");
+    keywords = readKeywords(r, j);
+    fit = r.readEnum(kFitRules, j, u"fit", fit);
+    tolerance = r.readNumber(j, u"tolerance", tolerance);
+    bounceBack = r.readFlag(j, u"bounce-back", bounceBack);
+    chime = r.readFlag(j, u"chime", chime);
+    chimeSound = r.readString(j, u"chime-sound");
+    return container;
+}
+
+// Diffusion protégée (lot 8) : absente, ou chaque clé absente, la valeur par défaut (tout permis).
+BroadcastRules readBroadcast(Reader& r, const QJsonObject& j)
+{
+    BroadcastRules rules;
+    auto& [noCopy, noSave, noPrint, noCamera, author] = rules;
+    noCopy = r.readFlag(j, u"no-copy", noCopy);
+    noSave = r.readFlag(j, u"no-save", noSave);
+    noPrint = r.readFlag(j, u"no-print", noPrint);
+    noCamera = r.readFlag(j, u"no-camera", noCamera);
+    author = r.readString(j, u"author");
+    return rules;
+}
+
 ObjectCommon readCommon(Reader& r, const QJsonObject& j)
 {
     ObjectCommon common;
     auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-           labelStyle, keywords, actions, container] = common; // container : L8-T4
+           labelStyle, keywords, actions, container] = common;
     id = r.readId(j, u"id");
     name = r.readString(j, u"name");
     layer = r.readEnum(kLayers, j, u"layer", layer);
@@ -1377,10 +1628,22 @@ ObjectCommon readCommon(Reader& r, const QJsonObject& j)
     translucency = r.readInteger(j, u"translucency", translucency);
     const QJsonObject jr = r.readChild(j, u"restrictions");
     auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint, pivotObject,
-           blocksOthers, magnet, magnetMark, magnetPoint] = restrictions; // lot 8 : L8-T4
+           blocksOthers, magnet, magnetMark, magnetPoint] = restrictions;
     movable = r.readFlag(jr, u"move", movable);
     resizable = r.readFlag(jr, u"size", resizable);
     rotatable = r.readFlag(jr, u"rotate", rotatable);
+    travel = r.readEnum(kTravels, jr, u"travel", travel);
+    track = r.readId(jr, u"track");
+    turning = r.readEnum(kTurnings, jr, u"turning", turning);
+    turnStep = r.readNumber(jr, u"turn-step", turnStep);
+    pivot = r.readEnum(kMarks, jr, u"pivot", pivot);
+    pivotPoint = r.readPoint(jr, u"pivot-point", pivotPoint);
+    pivotObject = r.readId(jr, u"pivot-object");
+    blocksOthers = r.readFlag(jr, u"blocks-others", blocksOthers);
+    magnet = r.readFlag(jr, u"magnet", magnet);
+    magnetMark = r.readEnum(kMarks, jr, u"magnet-mark", magnetMark);
+    magnetPoint = r.readPoint(jr, u"magnet-point", magnetPoint);
+    normalize(restrictions); // fichier du lot 2 : un booléen faux donne le mode Fixed
     transform = r.readTransform(j, u"transform", transform);
     label = r.readString(j, u"label");
     labelStyle = readLabelStyle(r, r.readChild(j, u"labelStyle"));
@@ -1390,6 +1653,7 @@ ObjectCommon readCommon(Reader& r, const QJsonObject& j)
             actions.push_back(readAction(r, *ja));
         }
     }
+    container = readContainer(r, r.readChild(j, u"container"));
     return common;
 }
 
@@ -1527,14 +1791,17 @@ void readBody(Reader& r, const QJsonObject& j, Equation& equation)
 void readBody(Reader& r, const QJsonObject& j, Media& mediaObject)
 {
     auto& [bounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden, aspectLocked,
-           clearBackground,
-           wrapText] = mediaObject; // options du lot 8 : L8-T4
+           clearBackground, wrapText] = mediaObject;
     bounds = r.readRect(j, u"bounds", bounds);
     placeholder = r.readString(j, u"placeholder");
     media = r.readString(j, u"media");
     fileName = r.readString(j, u"fileName");
     playOnOpen = r.readFlag(j, u"playOnOpen", playOnOpen);
     loop = r.readFlag(j, u"loop", loop);
+    controlsHidden = r.readFlag(j, u"controls-hidden", controlsHidden);
+    aspectLocked = r.readFlag(j, u"aspect-locked", aspectLocked);
+    clearBackground = r.readFlag(j, u"clear-background", clearBackground);
+    wrapText = r.readFlag(j, u"wrap-text", wrapText);
 }
 
 void readBody(Reader& r, const QJsonObject& j, Group& group)
@@ -1558,8 +1825,13 @@ void readBody(Reader& r, const QJsonObject& j, Connector& connector)
     capB = r.readEnum(kConnectorCaps, j, u"capB", capB);
 }
 
-// Cadre web (lot 8) : contenu lu par L8-T4.
-void readBody(Reader&, const QJsonObject&, WebFrame&) {}
+void readBody(Reader& r, const QJsonObject& j, WebFrame& frame)
+{
+    auto& [bounds, html, address] = frame;
+    bounds = r.readRect(j, u"bounds", bounds);
+    html = r.readString(j, u"html");
+    address = r.readString(j, u"address");
+}
 
 // Jamais appelé : readObject lit un objet inconnu par readUnknown (std::visit exige un lecteur par type).
 void readBody(Reader&, const QJsonObject&, UnknownObject&) {}
@@ -1586,6 +1858,34 @@ PageObject everyKeyObject(std::size_t index)
     object.common.dragCopy = true;          // lot 5 : clé facultative
     object.common.labelStyle.pointSize = 1; // L6-T10 : « labelStyle » et ses six clés, écrites hors défaut
     object.common.keywords = {"keyword"};   // L6-T10 : « keywords », écrite hors défaut
+    // Lot 8 (L8-T4) : toutes ses clés sont facultatives. Liaisons structurées : un champ ajouté casse la
+    // compilation ici au lieu de manquer au gabarit (sa clé, lue, serait gardée comme inconnue).
+    auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint, pivotObject,
+           blocksOthers, magnet, magnetMark, magnetPoint] = object.common.restrictions;
+    static_cast<void>(movable); // clés du lot 2 : toujours écrites
+    static_cast<void>(resizable);
+    static_cast<void>(rotatable);
+    travel = Travel::Vertical;
+    track = 1;
+    turning = Turning::Clockwise;
+    turnStep = 1;
+    pivot = Mark::Top;
+    pivotPoint = PointF{1, 1};
+    pivotObject = 1;
+    blocksOthers = true;
+    magnet = true;
+    magnetMark = Mark::Top;
+    magnetPoint = PointF{1, 1};
+    auto& [accepts, acceptedObject, containerKeywords, fit, tolerance, bounceBack, chime, chimeSound] =
+        object.common.container;
+    static_cast<void>(accepts); // écrites ensemble : une valeur hors défaut suffit
+    static_cast<void>(acceptedObject);
+    static_cast<void>(containerKeywords);
+    static_cast<void>(fit);
+    static_cast<void>(tolerance);
+    static_cast<void>(chime);
+    static_cast<void>(chimeSound);
+    bounceBack = true;
     if (auto* connector = std::get_if<Connector>(&body(object))) {
         connector->style = 1;
         connector->capA = ConnectorCap::Arrow;
@@ -1596,6 +1896,11 @@ PageObject everyKeyObject(std::size_t index)
     } else if (auto* text = std::get_if<Text>(&body(object))) {
         text->vertical = true;
         text->firstBaseline = PointF{};
+    } else if (auto* media = std::get_if<Media>(&body(object))) {
+        media->controlsHidden = true; // lot 8 : options écrites si vraies
+        media->aspectLocked = true;
+        media->clearBackground = true;
+        media->wrapText = true;
     }
     return object;
 }
@@ -1841,11 +2146,19 @@ KnownKeys knownKeys()
     everyPresentationKey.hasOrigin = true;
     known.presentation = presentationJson(everyPresentationKey);
     known.labelStyle = labelStyleJson(LabelStyle{});
-    known.action = actionJson(Action{});
+    Action everyActionKey; // lot 8 : « catalog-id », « parameters », « drag-drop », écrites hors défaut
+    everyActionKey.catalogId = "catalog-id";
+    everyActionKey.parameters = "parameters"; // un texte : le gabarit ne descend pas dans les paramètres
+    everyActionKey.dragDrop = true;
+    known.action = actionJson(everyActionKey);
     known.run = runJson(TextSpan{});
     known.level = gridLevelJson(GridLevel{});
     known.resource = resourceJson({}, {});
-    known.document = documentToJson(Document{});
+    Document everyDocumentKey;
+    BroadcastRules everyBroadcastKey;
+    everyBroadcastKey.noCopy = true; // lot 8 : « broadcast » et ses cinq clés, écrites hors défaut
+    everyDocumentKey.setBroadcast(everyBroadcastKey);
+    known.document = documentToJson(everyDocumentKey);
     return known;
 }
 
@@ -1920,6 +2233,9 @@ QJsonObject documentToJson(const Document& document)
         pages.append(pageJson(document.page(i)));
     }
     root.insert(u"pages"_s, pages);
+    if (!document.broadcast().isDefault()) {
+        root.insert(u"broadcast"_s, broadcastJson(document.broadcast())); // facultative (lot 8)
+    }
     mergeKept(root, keptObject(document.unknownKeys()));
     return root;
 }
@@ -1960,6 +2276,7 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
     }
     Document document(std::move(pages));
     document.setTitle(r.readString(json, u"title"));
+    document.setBroadcast(readBroadcast(r, r.readChild(json, u"broadcast")));
     document.setUnknownKeys(unknownKeysOf(json, known.document));
     for (const QJsonValue& value : r.readArray(json, u"resources")) {
         const std::optional<QJsonObject> jr = r.readElement(value, u"resources");
