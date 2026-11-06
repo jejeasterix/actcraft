@@ -156,6 +156,13 @@ Window {
         document: appDocument
         tools: appTools
     }
+    MediaInsert {
+        id: appMediaInsert
+        objectName: "appMediaInsert"
+        commands: appCommands
+        document: appDocument
+    }
+
     Insertion {
         id: appInsertion
         objectName: "appInsertion"
@@ -925,7 +932,7 @@ Window {
         appCommands.setHandler("insert.image", root.argumentOrDialog(
             function (url) { appInsertion.insertImage(url) }, function () { fileExchangeActions.chooseImage() }))
         appCommands.setHandler("insert.media", root.argumentOrDialog(
-            function (url) { appInsertion.insertMedia(url) }, function () { fileExchangeActions.chooseMedia() }))
+            function (url) { appMediaInsert.insertFile(url) }, function () { fileExchangeActions.chooseMedia() }))
         appCommands.setHandler("tab.next", function () { appTabs.next() })
         appCommands.setHandler("tab.previous", function () { appTabs.previous() })
         // Sans argument (le clic du menu) : position suivante ; avec argument : seulement une position connue.

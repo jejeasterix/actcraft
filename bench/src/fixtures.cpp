@@ -6,6 +6,9 @@
 #include <actcraft/formats/urlio.h>
 
 #include <QBuffer>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QPainter>
 #include <QUrl>
@@ -37,6 +40,9 @@ constexpr QLatin1StringView kDragDrop("glisser-deposer");
 // L8-T19 (S11.1, S11.4, S11.7) : un rond rouge qui masque une étiquette, un panier « fruit », une carotte, un
 // objet lié à https://example.org/, un média « lecture auto ».
 constexpr QLatin1StringView kInteractivity("interactivite");
+// L8-T23 (S25) : une page vide et, à côté du document, deux sons « son.wav » et « son2.wav » de 0,5 s à
+// insérer.
+constexpr QLatin1StringView kMedias("medias");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -240,6 +246,45 @@ bool buildInteractivity(const QString& path, QString& error)
                         "Interactivité", path, error);
 }
 
+// WAV de 0,5 s (8 kHz, mono, 16 bits, silence) : en-tête RIFF écrit à la main.
+QByteArray silentWav()
+{
+    constexpr quint32 samples = 4000;
+    QByteArray wav("RIFF");
+    const auto put = [&wav](quint32 value, int bytes) {
+        for (int i = 0; i < bytes; ++i)
+            wav.append(static_cast<char>((value >> (8 * i)) & 0xFF));
+    };
+    put(36 + samples * 2, 4);
+    wav += "WAVEfmt ";
+    put(16, 4);
+    put(1, 2);
+    put(1, 2);
+    put(8000, 4);
+    put(16000, 4);
+    put(2, 2);
+    put(16, 2);
+    wav += "data";
+    put(samples * 2, 4);
+    wav += QByteArray(static_cast<qsizetype>(samples * 2), '\0');
+    return wav;
+}
+
+bool buildMedias(const QString& path, QString& error)
+{
+    if (!writeOnePage({}, "Médias", path, error))
+        return false;
+    const QDir folder = QFileInfo(path).dir();
+    for (const char* name : {"son.wav", "son2.wav"}) {
+        QFile file(folder.filePath(QString::fromLatin1(name)));
+        if (!file.open(QIODevice::WriteOnly) || file.write(silentWav()) < 0) {
+            error = QStringLiteral("écriture impossible : %1").arg(file.fileName());
+            return false;
+        }
+    }
+    return true;
+}
+
 bool buildActionBrowser(const QString& path, QString& error)
 {
     std::vector<core::Page> pages(2);
@@ -300,6 +345,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kActionBrowser, buildActionBrowser},
     {kDragDrop, buildDragDrop},
     {kInteractivity, buildInteractivity},
+    {kMedias, buildMedias},
 };
 
 } // namespace
