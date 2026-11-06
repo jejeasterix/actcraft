@@ -182,6 +182,7 @@ private:
     bool m_pending = false;
     bool m_pendingPageShown = false;
     int m_shownPage = -1;
+    std::uint64_t m_soundRequest = 0; // jeton de la dernière demande de son (piste 1)
     std::uint64_t m_generation =
         0; // DocumentController::generation() du document dont les fichiers sont extraits
     QString m_soundName;
