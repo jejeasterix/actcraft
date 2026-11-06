@@ -11,10 +11,10 @@
 
 namespace actcraft::ui {
 
-// Seul chemin vers QDesktopServices::openUrl pour le contenu d'un document (D8-4) : la cible est validée, montrée en
-// entier, puis ouverte après « oui » seulement. Un refus n'ouvre rien ; une demande sans réponse n'ouvre rien.
-// Fichiers : chemin local existant, jamais réseau, extension de la liste blanche fermée, comparée sans casse après
-// retrait des points et espaces finaux du nom.
+// Seul chemin vers QDesktopServices::openUrl pour le contenu d'un document (D8-4) : la cible est validée,
+// montrée en entier, puis ouverte après « oui » seulement. Un refus n'ouvre rien ; une demande sans réponse
+// n'ouvre rien. Fichiers : chemin local existant, jamais réseau, extension de la liste blanche fermée,
+// comparée sans casse après retrait des points et espaces finaux du nom.
 class LinkLauncher : public QObject
 {
     Q_OBJECT
@@ -22,7 +22,13 @@ class LinkLauncher : public QObject
     Q_PROPERTY(int openedCount READ openedCount NOTIFY opened) // nombre d'ouvertures (scénarios, L8-T19)
 
 public:
-    enum Kind { Website, File, StoredFile, SystemMedia };
+    enum Kind
+    {
+        Website,
+        File,
+        StoredFile,
+        SystemMedia
+    };
     Q_ENUM(Kind)
     using Opener = std::function<bool(const QUrl&)>;
 
@@ -33,8 +39,8 @@ public:
 
     // Valide la cible ; émet confirmationNeeded (cible montrée, jeton) ou refused (motif). N'ouvre jamais.
     Q_INVOKABLE void request(const QString& target, int kind);
-    // Fichier rangé dans le document : octets, nom d'origine, clé du document. Extrait sous un nom assaini dans un
-    // dossier temporaire propre au document, puis soumis à la confirmation. N'ouvre jamais.
+    // Fichier rangé dans le document : octets, nom d'origine, clé du document. Extrait sous un nom assaini
+    // dans un dossier temporaire propre au document, puis soumis à la confirmation. N'ouvre jamais.
     void requestStored(const QByteArray& bytes, const QString& originalName, const QString& documentKey);
     Q_INVOKABLE void answer(int token, bool accepted); // seul point qui ouvre ; un jeton ne sert qu'une fois
     static QString refusalFor(const QUrl& url, int kind); // vide : acceptée

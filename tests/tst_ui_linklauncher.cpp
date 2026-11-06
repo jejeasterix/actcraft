@@ -10,8 +10,8 @@
 
 using actcraft::ui::LinkLauncher;
 
-// Reçoit toute adresse http, https ou file que QDesktopServices::openUrl ouvrirait : même si un test atteignait
-// l'ouvreur du système, rien ne s'ouvrirait sur le poste qui lance la suite.
+// Reçoit toute adresse http, https ou file que QDesktopServices::openUrl ouvrirait : même si un test
+// atteignait l'ouvreur du système, rien ne s'ouvrirait sur le poste qui lance la suite.
 class UrlCatcher : public QObject
 {
     Q_OBJECT
@@ -36,7 +36,8 @@ class TstUiLinkLauncher : public QObject
     }
     static QString extractionDir()
     {
-        return QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/actcraft-doc1");
+        return QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
+               QStringLiteral("/actcraft-doc1");
     }
     static void touch(const QString& path)
     {
@@ -90,36 +91,41 @@ private slots:
     }
     void onlyHttpAndHttps()
     {
-        for (const char* u : {"ftp://example.org/", "javascript:alert(1)", "file:///C:/x.txt", "mailto:a@b.c"})
-            QVERIFY2(!LinkLauncher::refusalFor(QUrl(QString::fromLatin1(u)), LinkLauncher::Website).isEmpty(), u);
-        QVERIFY(LinkLauncher::refusalFor(QUrl(QStringLiteral("http://example.org/")), LinkLauncher::Website).isEmpty());
+        for (const char* u :
+             {"ftp://example.org/", "javascript:alert(1)", "file:///C:/x.txt", "mailto:a@b.c"})
+            QVERIFY2(!LinkLauncher::refusalFor(QUrl(QString::fromLatin1(u)), LinkLauncher::Website).isEmpty(),
+                     u);
+        QVERIFY(LinkLauncher::refusalFor(QUrl(QStringLiteral("http://example.org/")), LinkLauncher::Website)
+                    .isEmpty());
     }
     void networkPathRefused()
     {
         QVERIFY(!LinkLauncher::refusalFor(QUrl::fromLocalFile(QStringLiteral("//serveur/partage/a.pdf")),
                                           LinkLauncher::File)
                      .isEmpty());
-        QVERIFY(!LinkLauncher::refusalFor(QUrl(QStringLiteral("file://serveur/partage/a.pdf")), LinkLauncher::File)
+        QVERIFY(!LinkLauncher::refusalFor(QUrl(QStringLiteral("file://serveur/partage/a.pdf")),
+                                          LinkLauncher::File)
                      .isEmpty());
     }
     void executableRefused()
     {
         QTemporaryDir dir;
-        for (const char* ext : {"exe", "bat", "cmd", "com", "msi", "ps1", "vbs", "js", "lnk", "scr", "hta", "wsf",
-                                "url", "jar", "msc", "chm", "cpl", "reg", "scf", "appref-ms", "doc", "xls", "ppt",
-                                "rtf", "docm", "xlsm", "pptm"}) {
+        for (const char* ext : {"exe", "bat",       "cmd", "com", "msi", "ps1", "vbs",  "js",   "lnk",
+                                "scr", "hta",       "wsf", "url", "jar", "msc", "chm",  "cpl",  "reg",
+                                "scf", "appref-ms", "doc", "xls", "ppt", "rtf", "docm", "xlsm", "pptm"}) {
             const QString path = dir.filePath(QStringLiteral("a.") + QString::fromLatin1(ext));
             touch(path);
             QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), ext);
         }
-        // Liste blanche, jamais liste noire : un type que personne n'a pensé à interdire est refusé aussi. Une liste
-        // de types à refuser (celle des lanceurs, ui/src/launchers.cpp, ou les types énumérés ci-dessus) les
-        // accepterait tous.
-        for (const char* name : {"a.xyz", "a.html", "a.mht", "a.iso", "a.vhdx", "a.ps1xml", "a.command", "a.dmg",
-                                 "a.pkg", "sansextension"}) {
+        // Liste blanche, jamais liste noire : un type que personne n'a pensé à interdire est refusé aussi.
+        // Une liste de types à refuser (celle des lanceurs, ui/src/launchers.cpp, ou les types énumérés
+        // ci-dessus) les accepterait tous.
+        for (const char* name : {"a.xyz", "a.html", "a.mht", "a.iso", "a.vhdx", "a.ps1xml", "a.command",
+                                 "a.dmg", "a.pkg", "sansextension"}) {
             const QString path = dir.filePath(QString::fromLatin1(name));
             touch(path);
-            QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), name);
+            QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(),
+                     name);
         }
     }
     void upperCaseExecutableRefused()
@@ -131,7 +137,8 @@ private slots:
     }
     void upperCasePdfAccepted()
     {
-        // Témoin accepté : rouge si la comparaison des extensions devient sensible à la casse (mutation demandée).
+        // Témoin accepté : rouge si la comparaison des extensions devient sensible à la casse (mutation
+        // demandée).
         QTemporaryDir dir;
         const QString path = dir.filePath(QStringLiteral("A.PDF"));
         touch(path);
@@ -139,20 +146,22 @@ private slots:
     }
     void trailingDotRefused()
     {
-        // Les fichiers existent : Windows résout « a.exe. » et « a.exe  » en « a.exe ». Seul le retrait des points et
-        // espaces finaux avant la comparaison refuse ces noms ; la règle « fichier absent » ne les attrape pas.
+        // Les fichiers existent : Windows résout « a.exe. » et « a.exe  » en « a.exe ». Seul le retrait des
+        // points et espaces finaux avant la comparaison refuse ces noms ; la règle « fichier absent » ne les
+        // attrape pas.
         QTemporaryDir dir;
         for (const char* real : {"a.exe", "a.hta"})
             touch(dir.filePath(QString::fromLatin1(real)));
         for (const char* asked : {"a.exe.", "a.exe ", "a.hta. ."}) {
             const QString path = dir.filePath(QString::fromLatin1(asked));
-            QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), asked);
+            QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(),
+                     asked);
         }
     }
     void trailingDotPdfAccepted()
     {
-        // Témoin accepté : « cours.pdf. » désigne « cours.pdf », qui existe ; l'existence se teste sur le nom après
-        // retrait des points et espaces finaux.
+        // Témoin accepté : « cours.pdf. » désigne « cours.pdf », qui existe ; l'existence se teste sur le nom
+        // après retrait des points et espaces finaux.
         QTemporaryDir dir;
         touch(dir.filePath(QStringLiteral("cours.pdf")));
         QCOMPARE(LinkLauncher::refusalFor(QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.pdf."))),
@@ -165,7 +174,8 @@ private slots:
         for (const char* name : {"dessin.svg", "dessin.SVG"}) {
             const QString path = dir.filePath(QString::fromLatin1(name));
             touch(path);
-            QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(), name);
+            QVERIFY2(!LinkLauncher::refusalFor(QUrl::fromLocalFile(path), LinkLauncher::File).isEmpty(),
+                     name);
         }
     }
     void htaRefused()
@@ -177,7 +187,7 @@ private slots:
         l.requestStored(QByteArray("<script>"), QStringLiteral("cours.hta"), QStringLiteral("doc1"));
         QCOMPARE(refused.size(), 1);
         QVERIFY(!refused[0][0].toString().isEmpty()); // le refus montre son motif
-        QCOMPARE(ask.size(), 0); // refusé avant même la confirmation
+        QCOMPARE(ask.size(), 0);                      // refusé avant même la confirmation
         QVERIFY(m_opened.isEmpty());
         QVERIFY(!QFile::exists(extractionDir() + QStringLiteral("/cours.hta"))); // refusé avant l'écriture
     }
