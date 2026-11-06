@@ -90,8 +90,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'apksigner en échec' }
         Remove-Item -Force $aligne
 
-        # Contrôles : identifiant, version, API cible, aucune permission (décision 28), signature, licences (décision
-        # 34). Comparaisons sensibles à la casse : Android distingue les majuscules.
+        # Contrôles : identifiant, version, API cible, permissions (décision 28 amendée par H8-14 : le micro seul,
+        # F-293), signature, licences (décision 34). Comparaisons sensibles à la casse : Android distingue les majuscules.
         $badging = @(& $aapt2 dump badging $final)
         if ($LASTEXITCODE -ne 0) { throw 'aapt2 dump badging en échec' }
         $tete = ($badging | Select-String "^package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'").Matches
@@ -109,7 +109,12 @@ try {
         $permissions = @($badging | Select-String "^uses-permission(?:-sdk-23)?: name='([^']+)'" |
             ForEach-Object { $_.Matches[0].Groups[1].Value })
         Write-Output "$a : permissions = $($permissions -join ', ')"
-        if ($permissions.Count -gt 0) { throw "permissions demandées : $($permissions -join ', ') (décision 28 : aucune)" }
+        $permise = 'android.permission.RECORD_AUDIO'
+        $refusees = @($permissions | Where-Object { $_ -cne $permise })
+        if ($refusees.Count -gt 0) {
+            throw "permissions non autorisées : $($refusees -join ', ') (décision 28 amendée : seule $permise)"
+        }
+        if ($permissions -cnotcontains $permise) { throw "permission absente : $permise (enregistreur de son, F-293)" }
 
         $certificats = @(& $apksigner verify --print-certs $final)
         if ($LASTEXITCODE -ne 0) { throw 'signature invalide' }
