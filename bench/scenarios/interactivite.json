@@ -32,7 +32,7 @@
     {"expect": "linkConfirmDialog.visible", "value": true},
     {"waitFor": "linkConfirmDialog.opened", "value": true, "timeoutMs": 5000},
     {"expect": "linkConfirmCancel.activeFocus", "value": true},
-    {"key": "Space"},
+    {"key": "Escape"},
     {"waitFor": "linkConfirmDialog.opened", "value": false, "timeoutMs": 5000},
     {"expect": "appLinks.openedCount", "value": 0}
   ]
