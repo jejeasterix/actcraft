@@ -25,12 +25,25 @@ using actcraft::core::restrictionFor;
 
 namespace {
 
-// Identifiants classés Copy sans être restreignables (H8-8 : « restrictable » inchangé dans commands.json).
-const std::vector<std::string> kCopyWithoutRestrictable = {"page.copy", "page.cut"};
+// Identifiants classés sans être restreignables : leur drapeau « restrictable » reste celui du défaut. H8-8
+// pour page.copy et page.cut ; revue de L8-T31 pour les autres, qui sortent le contenu du document
+// (bibliothèque, barre de raccourcis, enregistrement de l'écran) ou le dupliquent comme edit.duplicate.
+const std::vector<std::pair<std::string, Restriction>> kWithoutRestrictable = {
+    {"page.copy", Restriction::Copy},
+    {"page.cut", Restriction::Copy},
+    {"page.duplicate", Restriction::Copy},
+    {"object.drag-copy", Restriction::Copy},
+    {"transform.mirror-x", Restriction::Copy},
+    {"transform.mirror-y", Restriction::Copy},
+    {"resources.add", Restriction::Copy},
+    {"shortcutbar.add-selection", Restriction::Copy},
+    {"record.screen-full", Restriction::Camera},
+    {"record.screen-area", Restriction::Camera},
+};
 
-bool isCopyWithoutRestrictable(const std::string& id)
+bool isCategorizedWithoutRestrictable(const std::string& id)
 {
-    for (const std::string& known : kCopyWithoutRestrictable) {
+    for (const auto& [known, restriction] : kWithoutRestrictable) {
         if (known == id) {
             return true;
         }
@@ -126,12 +139,19 @@ private slots:
 
     void originalIsUntouched()
     {
-        const Document source(800.0, 600.0);
+        // La source porte ses propres règles : elle les garde, avec son empreinte ; la copie porte exactement
+        // les règles données (remplacées, jamais fusionnées avec celles de la source).
+        Document source(800.0, 600.0);
+        source.setBroadcast(BroadcastRules{.noPrint = true, .author = "Source"});
         const std::uint64_t before = actcraft::core::fingerprint(source);
-        const Document copy = published(source, allForbidden());
+        const Document copy = published(source, BroadcastRules{.noCopy = true, .author = "Copie"});
         QCOMPARE(actcraft::core::fingerprint(source), before);
-        QVERIFY(source.broadcast().isDefault());
-        QVERIFY(!copy.broadcast().isDefault());
+        QVERIFY(source.broadcast().noPrint);
+        QVERIFY(!source.broadcast().noCopy);
+        QCOMPARE(source.broadcast().author, std::string("Source"));
+        QVERIFY(copy.broadcast().noCopy);
+        QVERIFY(!copy.broadcast().noPrint);
+        QCOMPARE(copy.broadcast().author, std::string("Copie"));
     }
 
     void rulesApplyToTheAuthorToo()
@@ -184,8 +204,8 @@ private slots:
             if (restrictable) {
                 QVERIFY2(category.has_value(), ("restreignable sans catégorie : " + id).c_str());
             } else if (category.has_value()) {
-                // Seules page.copy et page.cut ont une catégorie sans être restreignables (H8-8).
-                QVERIFY2(isCopyWithoutRestrictable(id),
+                // Seuls les identifiants de kWithoutRestrictable ont une catégorie sans être restreignables.
+                QVERIFY2(isCategorizedWithoutRestrictable(id),
                          ("catégorie sans « restrictable » : " + id + " -> " + nameOf(category)).c_str());
             }
         }
@@ -196,12 +216,11 @@ private slots:
     void pageCopyAndCutAreCopyWithoutRestrictable()
     {
         const std::map<std::string, bool> commands = declaredCommands();
-        for (const std::string& id : kCopyWithoutRestrictable) {
+        for (const auto& [id, restriction] : kWithoutRestrictable) {
             const auto found = commands.find(id);
             QVERIFY2(found != commands.end(), ("absente de commands.json : " + id).c_str());
-            QVERIFY2(!found->second, ("« restrictable » ne doit pas changer (H8-8) : " + id).c_str());
-            QVERIFY2(restrictionFor(id) == Restriction::Copy,
-                     (id + " -> " + nameOf(restrictionFor(id))).c_str());
+            QVERIFY2(!found->second, ("« restrictable » ne doit pas changer : " + id).c_str());
+            QVERIFY2(restrictionFor(id) == restriction, (id + " -> " + nameOf(restrictionFor(id))).c_str());
         }
     }
 
@@ -225,11 +244,21 @@ private slots:
             {"tool.camera-window", Restriction::Camera},
             {"tool.camera-screen", Restriction::Camera},
             {"webframe.snapshot", Restriction::Camera},
+            {"page.duplicate", Restriction::Copy},
+            {"object.drag-copy", Restriction::Copy},
+            {"transform.mirror-x", Restriction::Copy},
+            {"transform.mirror-y", Restriction::Copy},
+            {"resources.add", Restriction::Copy},
+            {"shortcutbar.add-selection", Restriction::Copy},
+            {"record.screen-full", Restriction::Camera},
+            {"record.screen-area", Restriction::Camera},
         };
         for (const auto& [id, restriction] : expected) {
             QVERIFY2(restrictionFor(id) == restriction, (id + " -> " + nameOf(restrictionFor(id))).c_str());
         }
-        for (const char* free : {"edit.paste", "page.goto", "file.open", "tool.pen", "tool.select"}) {
+        for (const char* free :
+             {"edit.paste", "page.goto", "file.open", "tool.pen", "tool.select", "record.sound",
+              "profile.export", "color.pick", "resources.insert", "transform.flip-x"}) {
             QVERIFY2(!restrictionFor(free).has_value(), free);
         }
     }
