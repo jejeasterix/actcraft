@@ -392,7 +392,7 @@ private slots:
                           "  width: 800; height: 600; visible: true\n"
                           "  property QtObject dialogue: confirm\n"
                           "  property bool selectChosen: false\n"
-                          "  Shortcut { sequence: \"Esc\"; onActivated: selectChosen = true }\n"
+                          "  Shortcut { sequence: \"Esc\"; context: Qt.ApplicationShortcut; onActivated: selectChosen = true }\n"
                           "  LinkConfirmDialog { id: confirm }\n"
                           "}\n",
                           QUrl());
@@ -400,7 +400,8 @@ private slots:
         QVERIFY2(window, qPrintable(component.errorString()));
         auto* quick = qobject_cast<QWindow*>(window.get());
         QVERIFY(quick);
-        QVERIFY(QTest::qWaitForWindowExposed(quick));
+        quick->requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(quick));
         QObject* dialog = window->property("dialogue").value<QObject*>();
         QVERIFY(dialog->setProperty("launcher", QVariant::fromValue(&l)));
         l.request(QStringLiteral("https://example.org/"), LinkLauncher::Website);
