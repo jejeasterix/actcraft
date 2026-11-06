@@ -1,10 +1,10 @@
 #include "renderbackend.h"
 #include "startup.h"
 
-#include <actcraft/bench/testroots.h>
 #include <actcraft/bench/options.h>
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/runner.h>
+#include <actcraft/bench/testroots.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
 

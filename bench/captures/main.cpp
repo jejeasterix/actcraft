@@ -130,8 +130,8 @@ int main(int argc, char* argv[])
     QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
-    // Racines « Mes ressources » et partagées d'essai sous `<sortie>`, vidées à chaque lancement (le mode test ne
-    // déplace pas DocumentsLocation : jamais le vrai Documents/ActCraft/Ressources du poste).
+    // Racines « Mes ressources » et partagées d'essai sous `<sortie>`, vidées à chaque lancement (le mode
+    // test ne déplace pas DocumentsLocation : jamais le vrai Documents/ActCraft/Ressources du poste).
     actcraft::bench::useIsolatedResourceRoots(output);
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
     QSettings::setDefaultFormat(QSettings::IniFormat);

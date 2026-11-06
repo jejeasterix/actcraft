@@ -1,6 +1,7 @@
 // L8-C14 : les captures et le banc ne touchent jamais aux ressources réelles du poste.
-// Le mode test de QStandardPaths ne déplace pas DocumentsLocation (et sur macOS HOME est ignoré) : les racines
-// « Mes ressources » et partagées d'essai doivent être posées explicitement sous le dossier de sortie.
+// Le mode test de QStandardPaths ne déplace pas DocumentsLocation (et sur macOS HOME est ignoré) : les
+// racines « Mes ressources » et partagées d'essai doivent être posées explicitement sous le dossier de
+// sortie.
 #include <actcraft/bench/testroots.h>
 #include <actcraft/ui/resourcelibrary.h>
 
@@ -27,7 +28,8 @@ private slots:
                                  .filePath(QStringLiteral("ActCraft/Ressources"));
         QVERIFY(ResourceLibrary::mineRoot() != real);
         QVERIFY2(ResourceLibrary::mineRoot().startsWith(out.path()), qPrintable(ResourceLibrary::mineRoot()));
-        QVERIFY2(ResourceLibrary::sharedRoot().startsWith(out.path()), qPrintable(ResourceLibrary::sharedRoot()));
+        QVERIFY2(ResourceLibrary::sharedRoot().startsWith(out.path()),
+                 qPrintable(ResourceLibrary::sharedRoot()));
     }
 
     void videLesRacinesDEssaiSeulement()
