@@ -241,8 +241,9 @@ void TstUiBroadcast::lockAndRestrictionCombine()
     QVERIFY(m.commands.isEnabled(copy));
 }
 
-// Glisser un objet vers les ressources (ResourceBrowser.qml appelle addSelection hors registre) : refusé et
-// signalé dans un document qui interdit la copie ; accepté sans règles.
+// Ajouter un objet aux ressources (addSelection, gestionnaire de resources.add dans ResourceBrowser.qml) :
+// resources.add n'est d'aucune catégorie restreinte, addSelection refuse donc elle-même, et le signale, dans
+// un document qui interdit la copie ; accepté sans règles.
 void TstUiBroadcast::resourceDragRefused()
 {
     Mount m;
@@ -277,8 +278,9 @@ void TstUiBroadcast::resourceDragRefused()
     QCOMPARE(refused.size(), 1);
 }
 
-// Vignettes glissées sur un autre onglet (DocumentTabBar.qml appelle copyPagesToTab hors registre) : les pages
-// d'un document qui interdit la copie ne vont pas dans un document sans règles ; refus signalé (page.copy).
+// Vignettes glissées sur un autre onglet (DocumentTabBar.qml appelle copyPagesToTab hors registre) : les
+// pages d'un document qui interdit la copie ne vont pas dans un document sans règles ; refus signalé
+// (page.copy).
 void TstUiBroadcast::pagesDraggedToTabRefused()
 {
     Mount m;
@@ -326,15 +328,20 @@ void TstUiBroadcast::pageActionStillRuns()
     QTRY_COMPARE(m.document.currentIndex(), 1);
 }
 
-// Constat 3 : une action d'objet qui copie passe par le registre et y est refusée comme le menu.
+// Constat 3 : une action d'objet qui copie passe par le registre et y est refusée comme le menu, avec le
+// message de la diffusion ; sous le verrou, refus du verrou seul (CommandRegistry::trigger).
 void TstUiBroadcast::objectCopyActionRefused()
 {
     Mount m;
     int copies = 0;
     m.commands.setNativeHandler(QStringLiteral("edit.copy"), [&copies](const QVariant&) { ++copies; });
+    ui::ToolHost tools; // sans outils, runOnTarget refuserait « non prise en charge », avant la porte
+    tools.setSettingsFile(m.dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(&m.document);
     ui::ActionRunner runner;
     runner.setCommands(&m.commands);
     runner.setDocument(&m.document);
+    runner.setTools(&tools);
     QSignalSpy refusedByRunner(&runner, &ui::ActionRunner::actionRefused);
     m.open(documentWith(copyAndPrint(), {action("object.copy")}));
     QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
@@ -346,6 +353,25 @@ void TstUiBroadcast::objectCopyActionRefused()
     QCOMPARE(copies, 0);
     QCOMPARE(refused.size(), 1); // message de la diffusion (V58), pas seulement le refus du lanceur
     QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("edit.copy"));
+
+    m.commands.setLocked(true); // verrou et restriction : refus du verrou seul, comme trigger
+    runner.setContactActive(true);
+    runner.press(kOnRound, Qt::LeftButton);
+    runner.release(kOnRound);
+    runner.setContactActive(false);
+    QTRY_COMPARE(refusedByRunner.size(), 2);
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(copies, 0);
+
+    m.commands.setLocked(false);
+    m.open(documentWith({}, {action("object.copy")}));
+    runner.setContactActive(true);
+    runner.press(kOnRound, Qt::LeftButton);
+    runner.release(kOnRound);
+    runner.setContactActive(false);
+    QTRY_COMPARE(copies, 1); // le montage copie bien sans règles : le refus venait de la diffusion
+    QCOMPARE(refusedByRunner.size(), 2);
+    QCOMPARE(refused.size(), 1);
 }
 
 // Ouvrir un document sans règles rouvre tout ; rouvrir un document protégé referme.

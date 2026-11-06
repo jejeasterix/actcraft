@@ -107,7 +107,8 @@ signals:
     void layoutChanged();
     void stateChanged();
     void triggered(const QString& id, const QVariant& argument);
-    // Essai d'une commande refusée par la seule diffusion protégée (menu, raccourci, action d'objet).
+    // Refus de la diffusion protégée : essai d'une commande restreinte par trigger (menu, raccourci), ou
+    // geste hors trigger signalé par reportRestrictionRefusal (action d'objet, ressources, onglets).
     void refusedByRestriction(const QString& id);
 
 private:

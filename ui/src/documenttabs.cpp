@@ -1,5 +1,6 @@
 #include "parkedsession.h"
 
+#include <actcraft/core/broadcast.h>
 #include <actcraft/core/pageedits.h>
 #include <actcraft/ui/documenttabs.h>
 
@@ -283,6 +284,13 @@ bool DocumentTabs::copyPagesToTab(const QVariantList& pageIndexes, int tabIndex)
         return false;
     }
     const core::Document& source = m_document->document();
+    // Diffusion protégée (L8-T32) : geste hors registre, refusé comme la copie de page du menu.
+    if (core::forbids(source.broadcast(), core::Restriction::Copy)) {
+        if (m_commands) {
+            m_commands->reportRestrictionRefusal(QStringLiteral("page.copy"));
+        }
+        return false;
+    }
     std::vector<std::size_t> indexes;
     for (const QVariant& value : pageIndexes) {
         bool ok = false;

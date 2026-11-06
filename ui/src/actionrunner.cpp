@@ -313,6 +313,15 @@ QJsonObject parametersOf(const core::Action& action)
     return QJsonDocument::fromJson(QByteArray::fromStdString(action.parameters)).object();
 }
 
+// Refus de la seule diffusion protégée, à la condition de CommandRegistry::trigger : ni l'état propre ni le
+// verrou n'en sont la cause (sous le verrou, aucun message de diffusion, comme le menu).
+bool refusedByRestrictionOnly(const actions::CommandRegistry& registry, const QString& id)
+{
+    const actions::CommandInfo* info = registry.find(id);
+    return info != nullptr && registry.isRestricted(id) && registry.isOwnEnabled(id) &&
+           !(registry.isLocked() && info->lockable);
+}
+
 } // namespace
 
 ActionRunner::ActionRunner(QObject* parent) : QObject(parent)
@@ -546,6 +555,9 @@ void ActionRunner::runCommand(const QString& id, const QVariant& argument)
         return;
     }
     if (!registry.isEnabled(id)) {
+        if (refusedByRestrictionOnly(registry, id)) {
+            m_commands->reportRestrictionRefusal(id); // message de la diffusion, comme le menu (V58)
+        }
         refuse(QStringLiteral("Action refusée : %1 est verrouillée ou désactivée").arg(id));
         return;
     }
@@ -562,6 +574,9 @@ void ActionRunner::runOnTarget(const QString& command, core::ObjectId target)
         return;
     }
     if (!registry.isEnabled(command)) { // avant la sélection : sous le verrou, rien ne change
+        if (refusedByRestrictionOnly(registry, command)) {
+            m_commands->reportRestrictionRefusal(command); // message de la diffusion, comme le menu (V58)
+        }
         refuse(QStringLiteral("Action refusée : %1 est verrouillée ou désactivée").arg(command));
         return;
     }
