@@ -87,6 +87,7 @@ private:
     };
     DocumentController* controller() const;
     bool actionsDisabled() const;
+    qreal viewZoom() const; // zoom de la vue de l'hôte des outils, 1 sans vue (seuil et tolérance)
     std::optional<core::ObjectId> actionObjectAt(QPointF pagePoint) const;
     void schedule(); // un tour de boucle, puis runPending si le contact est retombé
     void runPending();

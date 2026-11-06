@@ -1,6 +1,7 @@
 #include "isolatedtext.h"
 
 #include <actcraft/core/edits.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/core/objectactions.h>
 #include <actcraft/core/undo.h>
 #include <actcraft/ui/actionrunner.h>
@@ -8,6 +9,7 @@
 #include <actcraft/ui/designmode.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/linklauncher.h>
+#include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QFileInfo>
@@ -28,7 +30,9 @@ namespace actcraft::ui {
 
 namespace {
 
-constexpr qreal kClickSlop = 4; // px de page : au-delà, l'appui devient un glisser rendu à l'outil
+// Px d'écran, comme le seuil de la sélection (tools/src/selecttool.cpp, kDragThresholdScreen) : au-delà,
+// l'appui devient un glisser rendu à l'outil.
+constexpr qreal kClickSlopScreen = 4;
 
 const QString kHistoryBack = QStringLiteral("page.history-back");
 const QString kHistoryForward = QStringLiteral("page.history-forward");
@@ -219,6 +223,30 @@ private:
     std::vector<Saved> m_saved;
 };
 
+// Touche d'un objet, règle de core::objectAt (core/src/hittest.cpp) : emprise agrandie de `tolerance`, et
+// pour un trait sa ligne (strokeHit), jouée par objectAt lui-même sur une page sonde réduite à ce trait
+// (rendu visible : un porteur d'action masqué reste cliquable, D5). Emprise lue sur la page (un groupe).
+bool touches(const core::Page& page, const core::PageObject& object, core::PointF point, double tolerance)
+{
+    if (!core::hasExtent(page, object)) {
+        return false;
+    }
+    const core::RectF b = core::boundsOnPage(page, object);
+    const core::RectF grown{b.x - tolerance, b.y - tolerance, b.width + 2 * tolerance,
+                            b.height + 2 * tolerance};
+    if (!grown.contains(point)) {
+        return false;
+    }
+    if (std::get_if<core::Stroke>(&core::body(object)) == nullptr) {
+        return true;
+    }
+    core::Page probe;
+    core::PageObject copy = object;
+    copy.common.visible = true;
+    probe.objects.push_back(std::move(copy));
+    return core::objectAt(probe, point, tolerance).has_value();
+}
+
 QJsonObject parametersOf(const core::Action& action)
 {
     return QJsonDocument::fromJson(QByteArray::fromStdString(action.parameters)).object();
@@ -247,8 +275,16 @@ bool ActionRunner::actionsDisabled() const
     return m_design && m_design->actionsDisabled();
 }
 
-// Objet le plus haut sous le point ; pris seulement s'il porte des actions. Un objet masqué qui en porte
-// reste cliquable (D5), un objet verrouillé aussi (D4) ; un objet masqué sans action ne cache rien.
+qreal ActionRunner::viewZoom() const
+{
+    const PageView* view = m_tools ? m_tools->view() : nullptr;
+    return view != nullptr && view->zoom() > 0 ? view->zoom() : 1.0;
+}
+
+// Objet le plus haut sous le point, par la règle de core::objectAt (touches) ; pris seulement s'il porte des
+// actions. Un objet masqué qui en porte reste cliquable (D5), un objet verrouillé aussi (D4) ; un objet
+// masqué sans action ne cache rien ; un groupe sans action non plus : le clic va à ses membres, comme
+// objectAt.
 std::optional<core::ObjectId> ActionRunner::actionObjectAt(QPointF pagePoint) const
 {
     const DocumentController* c = controller();
@@ -262,13 +298,17 @@ std::optional<core::ObjectId> ActionRunner::actionObjectAt(QPointF pagePoint) co
     }
     const core::Page& page = document.page(static_cast<std::size_t>(index));
     const core::PointF point{pagePoint.x(), pagePoint.y()};
+    const double tolerance = core::kHitToleranceScreen / viewZoom();
     for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
         const core::PageObject& object = *it;
         const bool carries = !object.common.actions.empty();
         if (!object.common.visible && !carries) {
             continue;
         }
-        if (!core::boundsOnPage(page, object).contains(point)) {
+        if (!carries && std::holds_alternative<core::Group>(core::body(object))) {
+            continue;
+        }
+        if (!touches(page, object, point, tolerance)) {
             continue;
         }
         if (!carries) {
@@ -304,7 +344,7 @@ bool ActionRunner::move(QPointF pagePoint)
     if (!m_pressed) {
         return false;
     }
-    if (QLineF(m_pressPoint, pagePoint).length() > kClickSlop) {
+    if (QLineF(m_pressPoint, pagePoint).length() * viewZoom() > kClickSlopScreen) {
         m_pressed.reset(); // glisser : l'outil reçoit l'appui retenu et la suite
         return false;
     }
@@ -316,7 +356,7 @@ bool ActionRunner::release(QPointF pagePoint)
     if (!m_pressed) {
         return false;
     }
-    if (QLineF(m_pressPoint, pagePoint).length() > kClickSlop) {
+    if (QLineF(m_pressPoint, pagePoint).length() * viewZoom() > kClickSlopScreen) {
         m_pressed.reset();
         return false;
     }
@@ -455,6 +495,10 @@ void ActionRunner::runOnTarget(const QString& command, core::ObjectId target)
     const actions::CommandRegistry& registry = m_commands->registry();
     if (registry.find(command) == nullptr || !registry.hasHandler(command) || (target != 0 && !m_tools)) {
         refuse(QStringLiteral("Action non prise en charge : %1").arg(command));
+        return;
+    }
+    if (!registry.isEnabled(command)) { // avant la sélection : sous le verrou, rien ne change
+        refuse(QStringLiteral("Action refusée : %1 est verrouillée ou désactivée").arg(command));
         return;
     }
     if (target != 0) {
