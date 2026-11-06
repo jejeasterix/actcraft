@@ -526,6 +526,7 @@ Window {
         document: appDocument
         designMode: appDesign
         links: appLinks
+        mediaItems: appMediaItems // F-552 : « jouer un son » passe par le lecteur intégré
         Component.onCompleted: appTools.setActionRunner(appActionRunner)
     }
     // L8-T25 : médias de la page affichée (vidéo et GIF en surcouche, lecteur intégré de deux pistes).

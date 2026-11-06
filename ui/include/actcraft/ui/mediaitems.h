@@ -83,6 +83,11 @@ public:
     // Faux si l'objet n'est pas un média de la page affichée.
     Q_INVOKABLE bool play(quint64 id);
     Q_INVOKABLE void stopSound();
+    // F-552 : son d'une action d'objet (ressource du document, ou fichier) joué par le lecteur intégré, piste
+    // 1 ; le système n'est que le repli du lecteur (media::Player::setFallback, confirmation de
+    // LinkLauncher).
+    bool playResource(const std::string& key);
+    bool playFile(const QString& path);
 
 public slots:
     // ToolHost::containerAccepted : `chime` joue le son de confirmation du conteneur sur la piste 2.
@@ -120,6 +125,7 @@ private:
     std::vector<Entry> collect(bool pageShown);
     QString fileFor(const std::string& key); // ressource du document extraite (vide : absente)
     QString defaultChime();
+    bool startSound(const QString& path, bool loop);
     void updateSound();
 
     QPointer<DocumentController> m_document;

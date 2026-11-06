@@ -13,6 +13,7 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -22,6 +23,7 @@
 #include <QTextCursor>
 #include <QTextLayout>
 #include <QTimer>
+#include <QUrl>
 
 #include <algorithm>
 #include <cmath>
@@ -574,6 +576,10 @@ void ActionRunner::runOnTarget(const QString& command, core::ObjectId target)
 // Liens et fichiers : LinkLauncher::request, qui valide et demande confirmation ; jamais d'ouverture ici.
 void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core::Action& action)
 {
+    if (info.id == QLatin1String("document.play-sound") && m_media) {
+        runSound(action);
+        return;
+    }
     if (!m_links) {
         refuse(QStringLiteral("Action non prise en charge : ouverture indisponible"));
         return;
@@ -601,6 +607,26 @@ void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core
         return;
     }
     m_links->request(file, kind);
+}
+
+// F-552 : un son de la page joue dans le lecteur intégré, piste 1, lecteur de sons ouvert ; le système n'est
+// que le repli du lecteur (media::Player), qui passe alors par LinkLauncher et sa confirmation.
+void ActionRunner::runSound(const core::Action& action)
+{
+    if (!action.resource.empty() && m_media->playResource(action.resource)) {
+        return;
+    }
+    QString file = parametersOf(action).value(QStringLiteral("file")).toString();
+    if (const QUrl url(file); url.isLocalFile()) {
+        file = url.toLocalFile();
+    }
+    if (!file.isEmpty() && QFileInfo(file).isRelative() && controller() != nullptr &&
+        controller()->fileUrl().isLocalFile()) {
+        file = QFileInfo(controller()->fileUrl().toLocalFile()).dir().filePath(file);
+    }
+    if (!m_media->playFile(file)) {
+        refuse(QStringLiteral("Action non prise en charge : fichier absent"));
+    }
 }
 
 void ActionRunner::refuse(const QString& reason)
@@ -782,6 +808,20 @@ void ActionRunner::setLinks(LinkLauncher* links)
     }
     m_links = links;
     emit linksChanged();
+}
+
+MediaItems* ActionRunner::mediaItems() const noexcept
+{
+    return m_media.data();
+}
+
+void ActionRunner::setMediaItems(MediaItems* mediaItems)
+{
+    if (mediaItems == m_media) {
+        return;
+    }
+    m_media = mediaItems;
+    emit mediaItemsChanged();
 }
 
 void ActionRunner::setTools(ToolHost* tools)

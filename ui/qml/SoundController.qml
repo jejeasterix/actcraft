@@ -9,7 +9,9 @@ Rectangle {
     property var items: null // MediaItems de la fenêtre
     readonly property bool playing: items ? items.soundPlaying : false
     readonly property real position: items ? items.soundPosition : 0
-    visible: false
+    // État demandé, distinct de la visibilité effective (qui dépend aussi du parent) : la bascule le lit.
+    property bool shown: false
+    visible: shown
     width: 240
     height: 40
     radius: 6
@@ -20,7 +22,7 @@ Rectangle {
     z: 50
 
     function toggle() {
-        controller.visible = !controller.visible
+        controller.shown = !controller.shown
     }
     function timeText(ms) {
         const s = Math.floor(ms / 1000)
@@ -29,7 +31,7 @@ Rectangle {
     Connections {
         target: controller.items
         ignoreUnknownSignals: true
-        function onSoundStarted() { controller.visible = true }
+        function onSoundStarted() { controller.shown = true }
     }
     Text {
         objectName: "soundControllerPosition"

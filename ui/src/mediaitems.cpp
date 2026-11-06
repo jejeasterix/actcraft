@@ -230,8 +230,24 @@ bool MediaItems::play(quint64 id)
     }
     if (it->kind != QLatin1String("sound"))
         return false;
-    m_soundName = QFileInfo(it->source).fileName();
-    m_player->play(it->source, media::Player::First, it->loop);
+    return startSound(it->source, it->loop);
+}
+
+bool MediaItems::playResource(const std::string& key)
+{
+    const QString path = fileFor(key);
+    return !path.isEmpty() && startSound(path, false);
+}
+
+bool MediaItems::playFile(const QString& path)
+{
+    return !path.isEmpty() && startSound(path, false);
+}
+
+bool MediaItems::startSound(const QString& path, bool loop)
+{
+    m_soundName = QFileInfo(path).fileName();
+    m_player->play(path, media::Player::First, loop);
     updateSound();
     emit soundStarted();
     return true;
@@ -329,6 +345,8 @@ std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
     const core::Document& document = m_document->document();
     const core::Page& page = document.page(static_cast<std::size_t>(current));
     for (const core::PageObject& object : page.objects) {
+        if (!object.common.visible)
+            continue; // objet masqué : ni montré ni joué
         Entry e;
         e.id = object.common.id;
         if (const auto* media = std::get_if<core::Media>(&object)) {

@@ -200,6 +200,19 @@ core::Media& mediaOf(core::Document& d, std::size_t i)
     return std::get<core::Media>(static_cast<core::ObjectVariant&>(d.page(0).objects[i]));
 }
 
+// Par l'arbre visuel : les délégués d'un Repeater n'ont pas de parent QObject, findChild ne les voit pas.
+QQuickItem* findItem(QQuickItem* root, const QString& name)
+{
+    if (!root)
+        return nullptr;
+    if (root->objectName() == name)
+        return root;
+    for (QQuickItem* child : root->childItems())
+        if (QQuickItem* found = findItem(child, name))
+            return found;
+    return nullptr;
+}
+
 bool isDescendantOf(const QQuickItem* item, const QQuickItem* ancestor)
 {
     for (auto* p = item ? item->parentItem() : nullptr; p; p = p->parentItem())
@@ -248,7 +261,7 @@ struct Scene
         return QTest::qWaitForWindowExposed(window) &&
                QTest::qWaitFor([&] { return fixed->isReady() && view->cacheReady(); }, 10000);
     }
-    QQuickItem* item(const QString& name) const { return window->findChild<QQuickItem*>(name); }
+    QQuickItem* item(const QString& name) const { return findItem(window->contentItem(), name); }
 };
 
 } // namespace
@@ -268,6 +281,7 @@ private slots:
     void chimePlaysOnAcceptedDrop();
     void soundControllerToggles();
     void playSoundActionUsesPlayer();
+    void hiddenObjectsIgnored();
 
 private:
     void open(core::Document document)
@@ -323,9 +337,9 @@ void TstUiMediaitems::videoIsAboveTheCache()
     Q_UNUSED(scene);
 }
 
-// 2 s de lecture demandée : aucune demande de redessin du cache, vérifié partout. Que des images arrivent bien
-// au VideoOutput (sans quoi l'espion ne prouverait rien) n'est vérifié que hors macOS : sous macOS hors écran,
-// sans le répartiteur Core Foundation, le moteur darwin ne livre aucune image (décision H8-17).
+// 2 s de lecture demandée : aucune demande de redessin du cache, vérifié partout. Que des images arrivent
+// bien au VideoOutput (sans quoi l'espion ne prouverait rien) n'est vérifié que hors macOS : sous macOS hors
+// écran, sans le répartiteur Core Foundation, le moteur darwin ne livre aucune image (décision H8-17).
 void TstUiMediaitems::videoNeverEntersTheCache()
 {
     core::Document d(1024, 768);
@@ -369,8 +383,8 @@ void TstUiMediaitems::controlsHiddenOption()
     QVERIFY(!hidden->isVisible());
 }
 
-// Fin de lecture : un son en boucle joue encore après trois fois sa durée sans jamais finir ; l'autre s'arrête
-// à la fin de la sienne.
+// Fin de lecture : un son en boucle joue encore après trois fois sa durée sans jamais finir ; l'autre
+// s'arrête à la fin de la sienne.
 void TstUiMediaitems::loopOption()
 {
     core::Document d(1024, 768);
@@ -387,10 +401,14 @@ void TstUiMediaitems::loopOption()
     QTest::qWait(3 * 400 + 200);
     QVERIFY2(player->isPlaying(Player::First), "le son en boucle doit jouer encore après 3 fois sa durée");
     QCOMPARE(finished.count(), 0);
+#if !defined(Q_OS_MACOS)
+    // Fin d'un son sans boucle : sous macOS hors écran, sans répartiteur Core Foundation (H8-17), le moteur
+    // darwin ne signale pas la fin d'un média ; ce contraste n'est prouvé que sous Windows.
     QVERIFY(m_items->play(22));
     QTRY_VERIFY_WITH_TIMEOUT(player->isPlaying(Player::First), 5000);
     QTRY_VERIFY_WITH_TIMEOUT(!player->isPlaying(Player::First), 5000);
     QVERIFY(finished.count() >= 1);
+#endif
 }
 
 // « Lecture auto » démarre le lecteur intégré à l'affichage de la page ; jamais LinkLauncher. Sans l'option,
@@ -489,7 +507,9 @@ void TstUiMediaitems::chimePlaysOnAcceptedDrop()
     m_items->setTools(nullptr);
 }
 
-// media.sound-controller montre puis masque le lecteur de sons.
+// media.sound-controller montre puis masque le lecteur de sons. Le lecteur est posé sous un parent, comme
+// dans Main.qml : sous Qt 6, un élément sans parentItem n'est jamais visible en effet, quel que soit son
+// `visible`.
 void TstUiMediaitems::soundControllerToggles()
 {
     ui::Commands commands;
@@ -501,6 +521,10 @@ void TstUiMediaitems::soundControllerToggles()
         {{QStringLiteral("commands"), QVariant::fromValue(&commands)},
          {QStringLiteral("items"), QVariant::fromValue(static_cast<QObject*>(m_items.get()))}}));
     QVERIFY2(controller, qPrintable(component.errorString()));
+    QQuickItem parent;
+    auto* item = qobject_cast<QQuickItem*>(controller.get());
+    QVERIFY(item);
+    item->setParentItem(&parent);
     QCOMPARE(controller->property("visible").toBool(), false);
     QVERIFY(commands.trigger(QStringLiteral("media.sound-controller")));
     QCOMPARE(controller->property("visible").toBool(), true);
@@ -508,9 +532,10 @@ void TstUiMediaitems::soundControllerToggles()
     QCOMPARE(controller->property("visible").toBool(), false);
 }
 
-// F-552 : l'action « jouer un son » d'un objet de la page passe par le lecteur intégré (piste 1, lecteur de sons
-// ouvert), jamais par le système : LinkLauncher n'est que le repli du lecteur (media::Player). Sous l'ancien
-// chemin (LinkLauncher::requestStored, SystemMedia), la confirmation serait demandée et rien ne jouerait.
+// F-552 : l'action « jouer un son » d'un objet de la page passe par le lecteur intégré (piste 1, lecteur de
+// sons ouvert), jamais par le système : LinkLauncher n'est que le repli du lecteur (media::Player). Sous
+// l'ancien chemin (LinkLauncher::requestStored, SystemMedia), la confirmation serait demandée et rien ne
+// jouerait.
 void TstUiMediaitems::playSoundActionUsesPlayer()
 {
     core::Document d(1024, 768);
@@ -524,13 +549,15 @@ void TstUiMediaitems::playSoundActionUsesPlayer()
     object.common.id = 61;
     object.common.layer = core::Layer::Middle;
     core::Action action;
-    action.command = "document.play-sound";
+    action.catalogId = "document.play-sound";
     action.resource = key;
     object.common.actions.push_back(action);
     d.page(0).objects.push_back(std::move(object));
     open(std::move(d));
     QTRY_COMPARE(m_items->rowCount(), 0); // l'image porteuse n'est pas un média
+    ui::Commands commands;
     ui::ActionRunner runner;
+    runner.setCommands(&commands);
     runner.setDocument(m_controller.get());
     runner.setLinks(m_links.get());
     runner.setMediaItems(m_items.get());
@@ -547,7 +574,21 @@ void TstUiMediaitems::playSoundActionUsesPlayer()
     QCOMPARE(refused.count(), 0);
 }
 
-// Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du test.
+// Un média ou un GIF masqué n'est ni montré ni joué : seul l'objet visible entre dans le modèle.
+void TstUiMediaitems::hiddenObjectsIgnored()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(clipMp4(), "mp4");
+    d.page(0).objects.push_back(mediaObject(71, key, 50, 50, 320, 240));
+    d.page(0).objects.push_back(mediaObject(72, key, 450, 50, 320, 240));
+    d.page(0).objects[0].common.visible = false;
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QCOMPARE(m_items->data(m_items->index(0), MediaItems::IdRole).toULongLong(), 72ULL);
+}
+
+// Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du
+// test.
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
