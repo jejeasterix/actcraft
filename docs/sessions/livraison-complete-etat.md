@@ -312,8 +312,10 @@ Ancien dépôt REA, corpus vidéo et paperboards réels : absents du Mac → con
 Questions à Jérôme (lot 8) : aucune ouverte.
 **H8-7** (orchestrateur, 2026-11-06) — le lot 7 (B) n'est pas fusionné dans la tête (613 commits sur `feat/livraison-complete-b`, passe PC à faire, consigne « ne pas y toucher ») : le lot 8 part sans lui ; ce qui suppose le rideau, le projecteur, les outils de maths, l'ouvreur de `tool.web-browser` ou les épinglages du lot 7 se raccorde à la fusion des deux lots (conflits de `commands.json`, `layout.json`, `Main.qml`, `tests/*.cmake` attendus, résolus des deux côtés). À revoir par Jérôme : ordre des PR des lots 7 et 8.
 **H8-8** (orchestrateur, 2026-11-06) — `page.copy`, `page.cut` restent non restreignables (D10, défaut) ; la diffusion protégée (8b L8-T31) les refuse au titre de la copie, sans passer par `restrictable`.
+Suite de la tête 62fc5288 (L8-T0 à T6, C0 mergées ; orchestrateur, 2026-11-06) : 229/229, 0 avertissement. Deux agents écrivent en parallèle, le jeton sérialise les constructions (P = 1).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
 Tâche : L8-T10 — ui : ouverture des liens après confirmation (V3) — depuis 2026-11-06
+Tâche : L8-T7 — core : moteur des actions I, géométrie (V4) — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
