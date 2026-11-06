@@ -511,7 +511,7 @@ Window {
         id: appActionRunner
         objectName: "appActionRunner"
     }
-    QtObject { // Talon L8 : rempli par L8-T10.
+    LinkLauncher { // L8-T10 : seul chemin d'un lien ou d'un fichier de document vers le système (D8-4)
         id: appLinks
         objectName: "appLinks"
     }
@@ -528,7 +528,10 @@ Window {
         id: linkDialog
         commands: appCommands
     }
-    LinkConfirmDialog { objectName: "linkConfirmDialog" }
+    LinkConfirmDialog {
+        objectName: "linkConfirmDialog"
+        launcher: appLinks
+    }
     WebFrameDialog { objectName: "webFrameDialog" }
     PublishDialog {
         id: publishDialog
