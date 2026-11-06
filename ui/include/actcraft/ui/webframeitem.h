@@ -48,6 +48,20 @@ class DocumentController;
 // règle de sécurité du contenu (CSP) n'autorise que les adresses passées, et
 // les liens deviennent des renvois internes
 // (`#actcraft-link-<n>`) que la vue rend par `followLink`, décidés à leur tour.
+//
+// Lecture d'un fichier, décodage d'une réponse et réécriture se font hors du fil de l'interface (BRIEF
+// § 4.1), sur QThreadPool::globalInstance(), avec une copie figée de la politique ; le contenu arrive par la
+// boucle d'événements (`serial` change), il est abandonné si le cadre est parti ou a changé de contenu
+// entre-temps.
+//
+// Risque résiduel accepté (Qt WebView 6.12, vérifié le 2026-11-06 sur les en-têtes installés) : la vue n'a
+// que quatre réglages (LocalStorageEnabled, JavaScriptEnabled, AllowFileAccess,
+// LocalContentCanAccessFileUrls) et aucune décision de navigation ; `urlChanged` et `loadingChanged` arrivent
+// quand la requête est partie, et `stop()` n'arrête que la suite. Une navigation que le moteur prendrait de
+// lui-même atteindrait donc le réseau une fois, sans la CSP. Elle est bornée par la réécriture : sans
+// JavaScript, seuls un lien (devenu renvoi interne), un formulaire (action retirée, `form-action 'none'`) ou
+// une balise meta (toutes retirées, la CSP ne couvrant pas `refresh`) en lancent une, et aucune de ces formes
+// ne sort de prepareHtml.
 class WebFrameItems : public QAbstractListModel
 {
     Q_OBJECT
@@ -130,7 +144,7 @@ public:
     const WebContentPolicy& policy() const noexcept { return m_policy; }
 
     // Réécriture du HTML avant chargement : `decide` répond pour chaque adresse
-    // (résolue sur `base`).
+    // (résolue sur `base`). Sans état partagé : sûre sur un autre fil si `decide` l'est.
     struct Prepared
     {
         QString html;
@@ -166,6 +180,7 @@ private:
         QVector<QUrl> history;
         int historyIndex = -1;
         int serial = 0;
+        std::uint64_t preparing = 0; // jeton de la réécriture en cours, 0 sinon
     };
 
     void rebuild();
@@ -175,6 +190,9 @@ private:
     void fetch(Row& row, const QUrl& url, int redirects);
     void fetched(QNetworkReply* reply);
     void showContent(Row& row, const QString& html, const QUrl& base);
+    // `source` (lecture, décodage) et réécriture sur un fil secondaire ; résultat rendu par finishContent.
+    void prepareContent(Row& row, std::function<QString()> source, const QUrl& base);
+    void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared);
     int rowOf(std::uint64_t id) const;
     void rowChanged(int row);
     WebContentPolicy::Verdict decide(const QUrl& url) const;
@@ -192,6 +210,7 @@ private:
     QString m_key;
     std::uint64_t m_generation = 0;
     std::uint64_t m_keys = 0;
+    std::uint64_t m_tickets = 0;
     int m_page = -1;
     QVector<Row> m_rows;
     int m_pendingRow = -1;

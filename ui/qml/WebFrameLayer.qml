@@ -156,7 +156,10 @@ Item {
                             return
                         }
                         // Toute adresse prise par la vue repasse par le modèle (renvoi interne ou navigation
-                        // du moteur) ; s'il la prend en charge, la vue s'arrête.
+                        // du moteur) ; s'il la prend en charge, la vue s'arrête. Arrêt après coup : la requête
+                        // est déjà partie (Qt WebView 6.12 n'offre ni réglage ni décision de navigation) ; ce
+                        // risque résiduel est borné par la réécriture (aucune balise meta, aucun lien direct,
+                        // aucune action de formulaire), voir l'en-tête de webframeitem.h.
                         web.urlChanged.connect(function () {
                             if (appWebFrames.followLink(frame.index, web.url))
                                 web.stop()

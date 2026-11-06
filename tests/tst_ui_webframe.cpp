@@ -631,6 +631,14 @@ void TstUiWebFrame::prepareHtmlLeavesNoUndecidedAddress_data()
                    R"h(<%1><a title="</%1><meta http-equiv=refresh content='0;url=https://evil.example/r'>">x</a></%1>)h")
                    .arg(name);
     }
+    // Là où la réécriture lit des balises et où le moteur peut lire du texte (`<textarea/>` reste ouvert en
+    // HTML, noscript selon l'état de JavaScript) : seules les valeurs sans `<` ni `>` gardent la sortie.
+    // L'adresse n'est pas d'evil.example (la première lecture lit aussi la valeur d'un title) : c'est la
+    // balise meta que la seconde lecture cherche.
+    row("textarea /",
+        R"h(<textarea/><a title="</textarea><meta http-equiv=refresh content='0;url=https://t.example/r'>">x</a>)h");
+    row("noscript",
+        R"h(<noscript><a title="</noscript><meta http-equiv=refresh content='0;url=https://t.example/r'>">x</a></noscript>)h");
     row("meta quelconque",
         R"h(<meta name="description" content="d"><meta property="og:image" content="https://evil.example/og.png">)h");
     // Contenu étranger (SVG, MathML) : le moteur y rend les entités du <style>.
@@ -788,6 +796,14 @@ void TstUiWebFrame::staleRewriteIsDropped()
     QCOMPARE(f.frames.count(), 1);
     QVERIFY(content(f.frames, 0).contains(QStringLiteral("SECOND")));
     QVERIFY(!content(f.frames, 0).contains(QStringLiteral("PREMIER")));
+    // Même cadre relu deux fois avant le retour : seule la dernière réécriture est rendue (la vue recharge
+    // une fois).
+    const int serial = role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt();
+    f.frames.reload(0);
+    f.frames.reload(0);
+    QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
+    QTest::qWait(100);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt(), serial + 1);
 }
 
 // Navigation que le moteur prendrait de lui-même, même vers la page affichée : rendue au modèle (vrai : la
