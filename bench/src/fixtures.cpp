@@ -27,6 +27,8 @@ constexpr QLatin1StringView kSyntheticFlipchart("flipchart-synthetique");
 // L3-T15 (S34, S35) : un rectangle gris et deux traits ; un rectangle libre et un rectangle verrouillé.
 constexpr QLatin1StringView kRectangleAndStrokes("rectangle-et-traits");
 constexpr QLatin1StringView kLockedObject("objet-verrouille");
+// L8-T16 : un panier qui n'accepte que « fruit », renvoie le reste et sonne ; une pomme, une carotte.
+constexpr QLatin1StringView kContainers("conteneurs");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -169,6 +171,23 @@ bool buildLockedObject(const QString& path, QString& error)
         "Objet verrouillé", path, error);
 }
 
+// Page 1024 × 768 : panier gris #808080 (500, 300), derrière ; pomme rouge « fruit » (100, 150) ; carotte
+// orange « légume » (100, 450). Tous 100 × 100. Le panier accepte le mot-clé « fruit », renvoie ce qu'il
+// refuse et sonne à l'acceptation.
+bool buildContainers(const QString& path, QString& error)
+{
+    core::PageObject basket = grayRectangle(1, 0xFF808080u, 500, 300, false);
+    basket.common.container.accepts = core::Accepts::Keywords;
+    basket.common.container.keywords = {"fruit"};
+    basket.common.container.bounceBack = true;
+    basket.common.container.chime = true;
+    core::PageObject apple = grayRectangle(2, 0xFFFF0000u, 100, 150, false);
+    apple.common.keywords = {"fruit"};
+    core::PageObject carrot = grayRectangle(3, 0xFFFF8000u, 100, 450, false);
+    carrot.common.keywords = {"légume"};
+    return writeOnePage({std::move(basket), std::move(apple), std::move(carrot)}, "Conteneurs", path, error);
+}
+
 // Table des fixtures : nom, écriture du fichier (un seul endroit pour la liste et pour la construction).
 struct FixtureEntry
 {
@@ -182,6 +201,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kGrid, buildGrid},
     {kRectangleAndStrokes, buildRectangleAndStrokes},
     {kLockedObject, buildLockedObject},
+    {kContainers, buildContainers},
 };
 
 } // namespace
