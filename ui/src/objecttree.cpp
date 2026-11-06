@@ -60,6 +60,7 @@ QString kindKey(core::ObjectKind kind)
         return QStringLiteral("connector");
     case core::ObjectKind::Equation:
         return QStringLiteral("equation");
+    case core::ObjectKind::WebFrame: // lot 8 : comme un objet inconnu
     case core::ObjectKind::Unknown:
         break;
     }
@@ -98,6 +99,7 @@ QString kindLabel(core::ObjectKind kind)
     case core::ObjectKind::Equation:
         text = "Équation";
         break;
+    case core::ObjectKind::WebFrame: // lot 8 : comme un objet inconnu
     case core::ObjectKind::Unknown:
         break;
     }

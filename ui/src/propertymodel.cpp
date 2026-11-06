@@ -209,6 +209,7 @@ QString kindLabel(core::ObjectKind kind)
         return PropertyModel::tr("Connecteur");
     case core::ObjectKind::Equation:
         return PropertyModel::tr("Équation");
+    case core::ObjectKind::WebFrame: // lot 8 : comme un objet inconnu
     case core::ObjectKind::Unknown:
         break;
     }
