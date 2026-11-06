@@ -250,8 +250,13 @@ formats::ClipboardPayload sampleOfEveryKind()
     PageObject futureObject = future;
     futureObject.common.id = 11;
 
-    payload.objects = {shapeObject, imageObject, strokeObject,    lineObject,     textObject,  columnObject,
-                       mediaObject, groupObject, connectorObject, equationObject, futureObject};
+    // Cadre web (lot 8, L8-T3) : par défaut ; ses champs entrent au format avec L8-T4.
+    PageObject webFrameObject = core::WebFrame{};
+    webFrameObject.common.id = 12;
+
+    payload.objects = {shapeObject,     imageObject,    strokeObject, lineObject,
+                       textObject,      columnObject,   mediaObject,  groupObject,
+                       connectorObject, equationObject, futureObject, webFrameObject};
     return payload;
 }
 
@@ -320,7 +325,7 @@ private slots:
 void TestClipboard::roundTripKeepsEveryKind()
 {
     // Un objet de chaque type d'ObjectKind (Shape, Image, Stroke, Line, Text, Media, Group, Connector,
-    // Equation, Unknown).
+    // Equation, WebFrame, Unknown).
     formats::ClipboardPayload payload = sampleOfEveryKind();
     std::set<std::size_t> kinds;
     for (const PageObject& object : payload.objects) {

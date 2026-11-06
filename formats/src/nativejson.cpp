@@ -188,6 +188,8 @@ constexpr std::string_view enumName(ObjectKind value) noexcept
         return "connector";
     case ObjectKind::Equation:
         return "equation";
+    case ObjectKind::WebFrame:
+        return "web-frame";
     case ObjectKind::Unknown: // le nom est celui du fichier (UnknownObject::type), jamais un nom d'ici
         return {};
     }
@@ -534,7 +536,8 @@ QJsonObject withKept(QJsonObject written, const std::string& unknownKeys)
 
 QJsonObject actionJson(const Action& action)
 {
-    const auto& [kind, sourceType, command, target, resource, unknownKeys] = action;
+    const auto& [kind, sourceType, command, target, resource, unknownKeys, catalogId, parameters, dragDrop] =
+        action; // champs du lot 8 : écrits par L8-T4
     return withKept(QJsonObject{{u"kind"_s, nameText(kind)},
                                 {u"sourceType"_s, static_cast<int>(sourceType)},
                                 {u"command"_s, static_cast<int>(command)},
@@ -570,7 +573,7 @@ QJsonObject labelStyleJson(const LabelStyle& style)
 void writeCommon(QJsonObject& j, const ObjectCommon& common)
 {
     const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-                 labelStyle, keywords, actions] = common;
+                 labelStyle, keywords, actions, container] = common; // container : L8-T4
     j.insert(u"id"_s, idValue(id));
     j.insert(u"name"_s, str(name));
     j.insert(u"layer"_s, nameText(layer));
@@ -580,7 +583,8 @@ void writeCommon(QJsonObject& j, const ObjectCommon& common)
         j.insert(u"dragCopy"_s, true);
     }
     j.insert(u"translucency"_s, static_cast<int>(translucency));
-    const auto& [movable, resizable, rotatable] = restrictions;
+    const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
+                 pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = restrictions; // lot 8 : L8-T4
     j.insert(u"restrictions"_s,
              QJsonObject{{u"move"_s, movable}, {u"size"_s, resizable}, {u"rotate"_s, rotatable}});
     j.insert(u"transform"_s, transformJson(transform));
@@ -718,7 +722,8 @@ void writeBody(QJsonObject& j, const Text& textObject)
 
 void writeBody(QJsonObject& j, const Media& mediaObject)
 {
-    const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = mediaObject;
+    const auto& [bounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden, aspectLocked,
+                 clearBackground, wrapText] = mediaObject; // options du lot 8 : L8-T4
     j.insert(u"bounds"_s, rectJson(bounds));
     j.insert(u"placeholder"_s, str(placeholder));
     j.insert(u"media"_s, str(media));
@@ -765,6 +770,9 @@ void writeBody(QJsonObject& j, const Equation& equation)
     j.insert(u"pointSize"_s, pointSize);
     j.insert(u"color"_s, colorText(color));
 }
+
+// Cadre web (lot 8) : contenu écrit par L8-T4.
+void writeBody(QJsonObject&, const WebFrame&) {}
 
 // Jamais appelé : objectJson écrit un objet inconnu tel quel (std::visit exige un écrivain par type).
 void writeBody(QJsonObject&, const UnknownObject&) {}
@@ -1315,7 +1323,8 @@ public:
 Action readAction(Reader& r, const QJsonObject& j)
 {
     Action action;
-    auto& [kind, sourceType, command, target, resource, unknownKeys] = action;
+    auto& [kind, sourceType, command, target, resource, unknownKeys, catalogId, parameters, dragDrop] =
+        action; // champs du lot 8 : lus par L8-T4
     kind = r.readEnum(kActionKinds, j, u"kind", kind);
     sourceType = r.readInteger(j, u"sourceType", sourceType);
     command = r.readInteger(j, u"command", command);
@@ -1358,7 +1367,7 @@ ObjectCommon readCommon(Reader& r, const QJsonObject& j)
 {
     ObjectCommon common;
     auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-           labelStyle, keywords, actions] = common;
+           labelStyle, keywords, actions, container] = common; // container : L8-T4
     id = r.readId(j, u"id");
     name = r.readString(j, u"name");
     layer = r.readEnum(kLayers, j, u"layer", layer);
@@ -1367,7 +1376,8 @@ ObjectCommon readCommon(Reader& r, const QJsonObject& j)
     dragCopy = r.readFlag(j, u"dragCopy", dragCopy);
     translucency = r.readInteger(j, u"translucency", translucency);
     const QJsonObject jr = r.readChild(j, u"restrictions");
-    auto& [movable, resizable, rotatable] = restrictions;
+    auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint, pivotObject,
+           blocksOthers, magnet, magnetMark, magnetPoint] = restrictions; // lot 8 : L8-T4
     movable = r.readFlag(jr, u"move", movable);
     resizable = r.readFlag(jr, u"size", resizable);
     rotatable = r.readFlag(jr, u"rotate", rotatable);
@@ -1516,7 +1526,9 @@ void readBody(Reader& r, const QJsonObject& j, Equation& equation)
 
 void readBody(Reader& r, const QJsonObject& j, Media& mediaObject)
 {
-    auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = mediaObject;
+    auto& [bounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden, aspectLocked,
+           clearBackground,
+           wrapText] = mediaObject; // options du lot 8 : L8-T4
     bounds = r.readRect(j, u"bounds", bounds);
     placeholder = r.readString(j, u"placeholder");
     media = r.readString(j, u"media");
@@ -1545,6 +1557,9 @@ void readBody(Reader& r, const QJsonObject& j, Connector& connector)
     capA = r.readEnum(kConnectorCaps, j, u"capA", capA);
     capB = r.readEnum(kConnectorCaps, j, u"capB", capB);
 }
+
+// Cadre web (lot 8) : contenu lu par L8-T4.
+void readBody(Reader&, const QJsonObject&, WebFrame&) {}
 
 // Jamais appelé : readObject lit un objet inconnu par readUnknown (std::visit exige un lecteur par type).
 void readBody(Reader&, const QJsonObject&, UnknownObject&) {}

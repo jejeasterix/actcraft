@@ -338,17 +338,19 @@ private slots:
             // labelStyle, keywords (L6-T10) : de même ; leur aller-retour : labelStyleRoundTrip,
             // keywordsRoundTrip (tst_formats_lot6).
             const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform,
-                         label, labelStyle, keywords, actions] = p1.objects[0].common;
+                         label, labelStyle, keywords, actions, container] = p1.objects[0].common;
             QVERIFY(!dragCopy);
             QVERIFY(labelStyle == LabelStyle{} && keywords.empty());
             QVERIFY(id != 0 && !name.empty() && layer != Layer::Middle && !visible && locked &&
                     translucency != 0);
-            const auto& [movable, resizable, rotatable] = restrictions;
+            const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
+                         pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = restrictions;
             QVERIFY(!movable && !resizable && rotatable && !p1.objects[1].common.restrictions.rotatable);
             const auto& [m11, m12, m21, m22, dx, dy] = transform;
             QVERIFY(m11 != 1 && m12 != 0 && m21 != 0 && m22 != 1 && dx != 0 && dy != 0);
             QVERIFY(!label.empty() && actions.size() == 1);
-            const auto& [kind, sourceType, command, target, resource, actionKeys] = actions[0];
+            const auto& [kind, sourceType, command, target, resource, actionKeys, catalogId, parameters,
+                         dragDrop] = actions[0];
             QVERIFY(kind != ActionKind::Other && sourceType != 0 && command != 0 && target != 0 &&
                     !resource.empty());
             QVERIFY(actionKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
@@ -404,8 +406,8 @@ private slots:
             QVERIFY(runKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         {
-            const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] =
-                std::get<Media>(p1.objects[6]);
+            const auto& [bounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden, aspectLocked,
+                         clearBackground, wrapText] = std::get<Media>(p1.objects[6]);
             QVERIFY(bounds.width != 0 && !placeholder.empty() && !media.empty() && !fileName.empty() &&
                     playOnOpen && !loop && std::get<Media>(d.page(2).objects[0]).loop);
         }

@@ -145,11 +145,87 @@ inline Fill solidFill(Argb color) noexcept
     return f;
 }
 
+// Déplacement d'un objet (lot 8, F-578, D8-7). Fixed : bloqué (movable faux).
+enum class Travel : std::uint8_t
+{
+    Free = 0,
+    Vertical = 1,
+    Horizontal = 2,
+    AlongTrack = 3,
+    Fixed = 4,
+};
+
+// Rotation d'un objet (lot 8, F-579). Fixed : bloquée (rotatable faux).
+enum class Turning : std::uint8_t
+{
+    Free = 0,
+    Clockwise = 1,
+    CounterClockwise = 2,
+    Fixed = 3,
+};
+
+// Repère d'un objet : pivot de rotation, point d'aimantation.
+enum class Mark : std::uint8_t
+{
+    Center = 0,
+    TopLeft = 1,
+    Top = 2,
+    TopRight = 3,
+    Right = 4,
+    BottomRight = 5,
+    Bottom = 6,
+    BottomLeft = 7,
+    Left = 8,
+    FirstTextLine = 9,
+    Point = 10,
+    OtherObject = 11,
+};
+
 struct Restrictions
 {
     bool movable = true;
     bool resizable = true;
     bool rotatable = true;
+    // Lot 8 (F-578, F-579, D8-7). Les booléens restent la source du « bloqué » : interactivity.h les tient
+    // d'accord.
+    Travel travel = Travel::Free;
+    ObjectId track = 0; // objet trait ou ligne suivi (Travel::AlongTrack)
+    Turning turning = Turning::Free;
+    double turnStep = 0; // degrés ; 0 : continu
+    Mark pivot = Mark::Center;
+    PointF pivotPoint;        // Mark::Point, coordonnées de l'objet
+    ObjectId pivotObject = 0; // Mark::OtherObject
+    bool blocksOthers = false;
+    bool magnet = false; // l'objet se pose sur `magnetMark` du dernier conteneur ou de `magnetPoint`
+    Mark magnetMark = Mark::Center;
+    PointF magnetPoint;
+};
+
+enum class Accepts : std::uint8_t
+{
+    Nothing = 0,
+    Anything = 1,
+    OneObject = 2,
+    Keywords = 3,
+};
+
+enum class FitRule : std::uint8_t
+{
+    CentresMatch = 0,
+    FullyInside = 1,
+};
+
+// Conteneur (F-577, F-580, D8-6).
+struct ContainerRule
+{
+    Accepts accepts = Accepts::Nothing;
+    ObjectId object = 0;               // Accepts::OneObject
+    std::vector<std::string> keywords; // Accepts::Keywords
+    FitRule fit = FitRule::CentresMatch;
+    double tolerance = 10;   // pixels de page (centres)
+    bool bounceBack = false; // retour si non contenu
+    bool chime = false;      // son de confirmation
+    std::string chimeSound;  // clé de ressource du son
 };
 
 // Actions : données seulement au lot 2 (F-583) ; leur comportement arrive au lot 8.
@@ -169,6 +245,11 @@ struct Action
     ObjectId target = 0;
     std::string resource;    // clé de ressource (fichier ouvert) ; vide sinon
     std::string unknownKeys; // clés de l'élément inconnues de cette version (comme PageObject::unknownKeys)
+    // Lot 8 : action du catalogue d'ActCraft (vide : non prise en charge ; kind, sourceType et command, lus
+    // du fichier, ne sont jamais réécrits), ses paramètres (JSON compact), déclenchée par un glisser-déposer.
+    std::string catalogId;
+    std::string parameters;
+    bool dragDrop = false;
 };
 
 // Style de la légende d'un objet (F-576), écrit par nous. Valeurs par défaut : pas de clé dans le fichier,
@@ -201,6 +282,7 @@ struct ObjectCommon
     LabelStyle labelStyle;             // style de la légende (F-576, L6-T10)
     std::vector<std::string> keywords; // mots-clés (F-570, L6-T10) ; vide : aucun
     std::vector<Action> actions;
+    ContainerRule container; // lot 8 (F-577) ; défaut : n'accepte rien
 };
 
 // L'ordre suit celui d'ObjectVariant : kindOf() en dépend.
@@ -215,9 +297,10 @@ enum class ObjectKind : std::uint8_t
     Group = 6,
     Connector = 7,
     Equation = 8,
-    Unknown = 9, // type que cette version ne connaît pas (UnknownObject) ; toujours le dernier
+    WebFrame = 9, // lot 8 (F-302)
+    Unknown = 10, // type que cette version ne connaît pas (UnknownObject) ; toujours le dernier
 };
-inline constexpr std::size_t kObjectKindCount = 10;
+inline constexpr std::size_t kObjectKindCount = 11;
 
 enum class ShapeKind : std::uint8_t
 {
@@ -344,6 +427,11 @@ struct Media
     std::string fileName;
     bool playOnOpen = false;
     bool loop = false;
+    // Options du lot 8 (F-302).
+    bool controlsHidden = false;
+    bool aspectLocked = false;
+    bool clearBackground = false;
+    bool wrapText = false;
 };
 
 // Groupe par références (F-500) : les membres restent des objets de la page, à transformation absolue.
@@ -382,6 +470,14 @@ struct Equation
     Argb color = 0xFF000000u;
 };
 
+// Cadre web (F-302, S27) : code HTML saisi, ou adresse ; jamais chargé sans la politique de L8-T29.
+struct WebFrame
+{
+    RectF bounds;
+    std::string html;
+    std::string address;
+};
+
 // Objet d'un type que cette version ne connaît pas (fichier d'une version plus récente, L2-C8) : gardé tel
 // quel et réécrit à l'identique ; montré par un repère neutre ; jamais modifié par cette version. `json` :
 // l'objet JSON lu, toutes ses clés (« type » compris), en texte UTF-8 compact, que formats/ seul interprète.
@@ -395,8 +491,8 @@ struct UnknownObject
     bool hasBounds = false;
 };
 
-using ObjectVariant =
-    std::variant<Shape, ImageObject, Stroke, Line, Text, Media, Group, Connector, Equation, UnknownObject>;
+using ObjectVariant = std::variant<Shape, ImageObject, Stroke, Line, Text, Media, Group, Connector, Equation,
+                                   WebFrame, UnknownObject>;
 
 // Objet de page : le variant de son type (std::get_if, std::get, index() marchent tels quels) et ses
 // propriétés communes. Ne pas appeler std::visit dessus : passer par body().
@@ -558,5 +654,16 @@ struct Page
 // style de légende) n'y entrent qu'en toute fin, et seulement hors défaut : une page qui n'en a pas garde son
 // empreinte d'avant, une page qui en a prolonge le flux de la même page sans elles.
 std::uint64_t fingerprint(const Page& page) noexcept;
+
+// Diffusion protégée (F-680, S18) : courtoisie sur un format ouvert (N1-A4). Portée par core::Document.
+struct BroadcastRules
+{
+    bool noCopy = false;
+    bool noSave = false;
+    bool noPrint = false;
+    bool noCamera = false;
+    std::string author; // informations de l'auteur, jamais affichées aux utilisateurs
+    bool isDefault() const noexcept { return !noCopy && !noSave && !noPrint && !noCamera && author.empty(); }
+};
 
 } // namespace actcraft::core
