@@ -3,9 +3,13 @@
 #include <actcraft/render/liftlayeritem.h>
 #include <actcraft/render/pagepainter.h>
 
+#include <QBuffer>
 #include <QImage>
+#include <QPageSize>
 #include <QPainter>
+#include <QPdfWriter>
 #include <QQuickWindow>
+#include <QRegularExpression>
 #include <QSGRendererInterface>
 #include <QSignalSpy>
 #include <QTest>
@@ -124,6 +128,53 @@ int medianDifference(const QImage& a, const QImage& b)
     return *middle;
 }
 
+// Page fixe et couche soulevée dans une fenêtre hors écran de `side` pixels.
+struct Scene
+{
+    QQuickWindow window;
+    render::FixedPageItem* page = nullptr;
+    render::LiftLayerItem* lift = nullptr;
+};
+
+bool openScene(Scene& s, core::Page page, int side = 200)
+{
+    s.window.setColor(Qt::white);
+    s.window.resize(side, side);
+    s.page = new render::FixedPageItem;
+    s.page->setSize(QSizeF(200, 200));
+    s.page->setParentItem(s.window.contentItem());
+    s.page->setPage(std::move(page));
+    s.lift = new render::LiftLayerItem;
+    s.lift->setSize(QSizeF(200, 200));
+    s.lift->setParentItem(s.window.contentItem());
+    s.lift->setFixedPage(s.page);
+    s.window.show();
+    return QTest::qWaitForWindowExposed(&s.window) &&
+           QTest::qWaitFor([&] { return s.page->isReady(); }, 5000);
+}
+
+QImage grab(Scene& s)
+{
+    return s.window.grabWindow().convertToFormat(QImage::Format_ARGB32_Premultiplied);
+}
+
+int inkedPixels(const QImage& image)
+{
+    int inked = 0;
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            inked += near(image.pixelColor(x, y), argb(kInk), 60) ? 1 : 0;
+        }
+    }
+    return inked;
+}
+
+core::Page greenUnderRed()
+{
+    return page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
+                    rect(core::Layer::Top, 20, 20, 170, 160, kRed)});
+}
+
 } // namespace
 
 class TstRenderReveal : public QObject
@@ -214,46 +265,96 @@ private slots:
     }
 
     // Encre soulevée par la sélection (glisser, lot 3) : jamais un trait coloré ; le trou la suit pendant le
-    // glisser, au-dessus du cache (la page fixe, sans l'objet soulevé, garde le dessus entier).
+    // glisser, au-dessus du cache (la page fixe, sans l'objet soulevé, garde le dessus entier). La matrice
+    // change après le premier rendu, comme pendant un vrai glisser.
     void liftedRevealerMovesTheHole()
     {
-        QQuickWindow window;
-        window.setColor(Qt::white);
-        window.resize(200, 200);
-        auto* page = new render::FixedPageItem;
-        page->setSize(QSizeF(200, 200));
-        page->setParentItem(window.contentItem());
-        page->setPage(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
-                               rect(core::Layer::Top, 20, 20, 170, 160, kRed)}));
-        auto* lift = new render::LiftLayerItem;
-        lift->setSize(QSizeF(200, 200));
-        lift->setParentItem(window.contentItem());
-        lift->setFixedPage(page);
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
-        QVERIFY(QTest::qWaitFor([&] { return page->isReady(); }, 5000));
-        lift->setObjects({revealer()});
+        Scene s;
+        QVERIFY(openScene(s, greenUnderRed()));
+        s.lift->setObjects({revealer()});
+        QVERIFY(QTest::qWaitFor([&] { return near(grab(s).pixelColor(40, 100), argb(kGreen), 8); }, 5000));
         core::Transform down;
         down.dy = 50;
-        lift->setExtraTransform(down);
-        QImage grab;
+        s.lift->setExtraTransform(down);
+        QImage image;
         QVERIFY(QTest::qWaitFor(
             [&] {
-                grab = window.grabWindow();
-                return !grab.isNull() && !near(grab.pixelColor(40, 150), argb(kRed), 8);
+                image = grab(s);
+                return near(image.pixelColor(40, 150), argb(kGreen), 8);
             },
             5000));
-        grab = grab.convertToFormat(QImage::Format_ARGB32_Premultiplied).scaled(200, 200);
-        int inked = 0;
-        for (int y = 0; y < grab.height(); ++y) {
-            for (int x = 0; x < grab.width(); ++x) {
-                inked += near(grab.pixelColor(x, y), argb(kInk), 60) ? 1 : 0;
-            }
+        QCOMPARE(inkedPixels(image), 0);
+        QVERIFY2(near(image.pixelColor(170, 150), Qt::white, 8), "sous l'encre, hors du vert : le fond");
+        QVERIFY2(near(image.pixelColor(40, 100), argb(kRed), 8), "l'ancienne place : le dessus entier");
+    }
+
+    // Fluidité (revue de L8-T18) : pendant le glisser d'une encre, seule sa fenêtre suit ; aucun nœud soulevé
+    // n'est reconstruit à chaque changement de matrice.
+    void liftedRevealerRebuildsNothingWhileDragging()
+    {
+        Scene s;
+        QVERIFY(openScene(s, greenUnderRed()));
+        s.lift->setObjects({revealer(), rect(core::Layer::Top, 150, 150, 20, 20, kYellow)});
+        QVERIFY(QTest::qWaitFor([&] { return near(grab(s).pixelColor(40, 100), argb(kGreen), 8); }, 5000));
+        const int built = s.lift->builtCount();
+        QVERIFY(built >= 2);
+        for (int i = 1; i <= 5; ++i) {
+            core::Transform step;
+            step.dy = 10.0 * i;
+            s.lift->setExtraTransform(step);
+            (void)grab(s);
         }
-        QCOMPARE(inked, 0);
-        QVERIFY2(near(grab.pixelColor(40, 150), argb(kGreen), 8), "le trou a suivi l'encre soulevée");
-        QVERIFY2(near(grab.pixelColor(170, 150), Qt::white, 8), "sous l'encre, hors du vert : le fond");
-        QVERIFY2(near(grab.pixelColor(40, 100), argb(kRed), 8), "l'ancienne place : le dessus entier");
+        QCOMPARE(s.lift->builtCount(), built);
+        const QImage image = grab(s);
+        QVERIFY2(near(image.pixelColor(40, 150), argb(kGreen), 8), "la fenêtre a suivi");
+        QVERIFY2(near(image.pixelColor(40, 100), argb(kRed), 8), "l'ancienne place : le dessus entier");
+    }
+
+    // Revue (point 4) : la part découpée rastérisée suit l'échelle réelle (densité × zoom), ici 2 : un filet
+    // du dessus de 0,5 unité de page couvre exactement un pixel de la fenêtre, plein rouge (flou à l'échelle
+    // 1).
+    void revealedLayerFollowsScreenScale()
+    {
+        Scene s;
+        QVERIFY(openScene(s,
+                          page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
+                                   rect(core::Layer::Top, 50, 20, 0.5, 160, kRed), revealer()}),
+                          400));
+        s.page->setTransformOrigin(QQuickItem::TopLeft);
+        s.page->setScale(2);
+        s.page->setForceRasterized(true);
+        QVERIFY(QTest::qWaitFor([&] { return near(grab(s).pixelColor(80, 200), argb(kGreen), 8); }, 5000));
+        const QImage image = grab(s);
+        QVERIFY2(near(image.pixelColor(100, 60), argb(kRed), 40),
+                 qPrintable(QStringLiteral("filet : %1").arg(image.pixelColor(100, 60).name())));
+        const int rasterized = s.page->rasterizationCount();
+        (void)grab(s);
+        s.page->update();
+        (void)grab(s);
+        QCOMPARE(s.page->rasterizationCount(), rasterized); // refaite au changement d'échelle seulement
+    }
+
+    // Revue (point 6) : à l'export PDF (périphérique à 96 ppp), la couche découpée est rastérisée à 300 ppp
+    // au moins : 200 unités de page, 625 pixels.
+    void printedRevealLayerIsAtLeast300Dpi()
+    {
+        QBuffer buffer;
+        QVERIFY(buffer.open(QIODevice::WriteOnly));
+        {
+            QPdfWriter writer(&buffer);
+            writer.setResolution(96);
+            writer.setPageSize(QPageSize(QSizeF(150, 150), QPageSize::Point));
+            writer.setPageMargins(QMarginsF(0, 0, 0, 0));
+            QPainter painter(&writer);
+            render::paintPage(painter, fullPage(), [](const std::string&) { return QImage(); });
+        }
+        int widest = 0;
+        auto it = QRegularExpression(QStringLiteral("/Width (\\d+)"))
+                      .globalMatch(QString::fromLatin1(buffer.data()));
+        while (it.hasNext()) {
+            widest = std::max(widest, it.next().captured(1).toInt());
+        }
+        QVERIFY2(widest >= 600, qPrintable(QStringLiteral("image la plus large : %1 px").arg(widest)));
     }
 
     // Même page par le peintre et par la page fixe hors écran : écart médian <= 2 sur 255, et la découpe est
@@ -268,39 +369,35 @@ private slots:
             QPainter p(&opaque);
             p.drawImage(0, 0, software);
         }
-
-        QQuickWindow window;
-        window.setColor(Qt::white);
-        window.resize(200, 200);
-        auto* page = new render::FixedPageItem;
-        page->setSize(QSizeF(200, 200));
-        page->setParentItem(window.contentItem());
-        page->setPage(fullPage());
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
-        QVERIFY(QTest::qWaitFor([&] { return page->isReady(); }, 5000));
-        QImage fixed;
-        QVERIFY(QTest::qWaitFor(
-            [&] {
-                fixed = window.grabWindow();
-                return !fixed.isNull() && near(fixed.pixelColor(40, 50), argb(kRed), 8);
-            },
-            5000));
-        fixed = fixed.convertToFormat(QImage::Format_ARGB32_Premultiplied).scaled(200, 200);
-
-        QVERIFY2(near(fixed.pixelColor(40, 100), argb(kGreen), 8), "page fixe : découpe sous le trait");
-        QVERIFY2(near(fixed.pixelColor(75, 100), argb(kBlue), 8), "page fixe : intermédiaire gardé");
-        QVERIFY2(near(fixed.pixelColor(170, 100), argb(kCyan), 8), "page fixe : inférieure révélée");
-        QVERIFY2(near(fixed.pixelColor(115, 100), argb(kYellow), 8),
-                 "page fixe : dessus après le trait gardé");
-        const int median = medianDifference(opaque, fixed);
-        QVERIFY2(median <= 2, qPrintable(QStringLiteral("écart médian %1").arg(median)));
-
-        const auto api = window.rendererInterface()->graphicsApi();
-        if (api == QSGRendererInterface::Software) {
-            QSKIP("Chemin RHI indisponible hors écran ici : comparaison faite au graphe logiciel de la page "
-                  "fixe ; "
-                  "le chemin RHI se compare sur le PC.");
+        Scene s;
+        QVERIFY(openScene(s, fullPage()));
+        // Graphe de la fenêtre (vectoriel en logiciel), puis chemin rastérisé forcé : la texture de la part
+        // découpée, celle du RHI ; puis une autre échelle (remise à l'échelle des nœuds rastérisés).
+        for (const int pass : {0, 1, 2}) {
+            if (pass == 1) {
+                s.page->setForceRasterized(true);
+            } else if (pass == 2) {
+                s.page->setRasterScale(3);
+            }
+            QImage fixed;
+            QVERIFY(QTest::qWaitFor(
+                [&] {
+                    fixed = grab(s);
+                    return near(fixed.pixelColor(40, 50), argb(kRed), 8) &&
+                           near(fixed.pixelColor(40, 100), argb(kGreen), 8);
+                },
+                5000));
+            if (pass > 0) {
+                QVERIFY(s.page->rasterizationCount() > 0);
+            }
+            QVERIFY2(near(fixed.pixelColor(75, 100), argb(kBlue), 8), "page fixe : intermédiaire gardé");
+            QVERIFY2(near(fixed.pixelColor(170, 100), argb(kCyan), 8), "page fixe : inférieure révélée");
+            QVERIFY2(near(fixed.pixelColor(115, 100), argb(kYellow), 8),
+                     "page fixe : dessus après le trait gardé");
+            QCOMPARE(inkedPixels(fixed), 0);
+            const int median = medianDifference(opaque, fixed);
+            QVERIFY2(median <= 2,
+                     qPrintable(QStringLiteral("passe %1 : écart médian %2").arg(pass).arg(median)));
         }
     }
 };

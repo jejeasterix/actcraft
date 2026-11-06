@@ -215,6 +215,35 @@ private slots:
         QCOMPARE(app.tools->color(), QColor(QStringLiteral("#00aa00")));
     }
 
+    // Lot 8 (L8-T18, revue) : l'encre révélatrice a son épaisseur (50 par défaut), que l'outil applique et
+    // que setWidth règle ; sa commande est cochée.
+    void revealInkHasItsOwnWidth()
+    {
+        App app;
+        QVERIFY(start(app));
+        QVERIFY(app.trigger("tool.reveal-ink"));
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("reveal-ink"));
+        QVERIFY(app.commands->isChecked(QStringLiteral("tool.reveal-ink")));
+        QVERIFY(!app.commands->isChecked(QStringLiteral("tool.pen")));
+        QCOMPARE(app.tools->width(), 50.0);
+        app.tools->setWidth(30);
+        QCOMPARE(app.tools->currentTool(), QStringLiteral("reveal-ink"));
+        QCOMPARE(app.tools->width(), 30.0);
+        const std::size_t before = app.page().objects.size();
+        QTest::mousePress(app.window, Qt::LeftButton, {}, app.scene({200, 300}));
+        for (int x = 220; x <= 400; x += 20) {
+            QTest::mouseMove(app.window, app.scene({double(x), 300}));
+        }
+        QTest::mouseRelease(app.window, Qt::LeftButton, {}, app.scene({400, 300}));
+        QTRY_COMPARE(app.page().objects.size(), before + 1);
+        const auto* stroke = std::get_if<core::Stroke>(&app.page().objects.back());
+        QVERIFY(stroke);
+        QCOMPARE(stroke->kind, core::StrokeKind::Revealer);
+        QCOMPARE(stroke->baseWidth, 30.0);
+        QVERIFY(app.trigger("tool.pen"));
+        QCOMPARE(app.tools->width(), 4.0); // la mémoire est par outil
+    }
+
     // La couleur du pot est gardée dans le fichier de réglages (mémoire par outil, F-136).
     void fillColorRemembered()
     {
