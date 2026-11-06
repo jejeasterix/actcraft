@@ -5,10 +5,12 @@
     android:installLocation="auto"
     android:versionCode="-- %%INSERT_VERSION_CODE%% --"
     android:versionName="-- %%INSERT_VERSION_NAME%% --">
-    <!-- ActCraft ne demande que le micro (F-293, enregistreur de son), à sa première utilisation ; sinon aucune
+    <!-- ActCraft ne demande que le micro (F-293, enregistreur de son), à sa première utilisation, et le réseau
+         (F-302, cadre web : pages lues par le modèle après la politique de contenu ; H8-15) ; sinon aucune
          permission (décision 28) : le marqueur des permissions de Qt est retiré, et celle qu'ajoute androidx.core
          (ContextCompat.registerReceiver, inutilisé par Qt et ActCraft) est ôtée à la fusion des manifestes. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <permission
         android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"

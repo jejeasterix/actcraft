@@ -37,6 +37,9 @@ constexpr QLatin1StringView kContainers("conteneurs");
 constexpr QLatin1StringView kActionBrowser("navigateur-actions");
 // L8-T13 (S11.3) : une page, un rectangle bleu (centre en 750, 400) qui reçoit l'icône du stylo.
 constexpr QLatin1StringView kDragDrop("glisser-deposer");
+// L8-T30 (S27) : document « reçu » (ouvert depuis un fichier) dont le cadre web pointe vers une adresse
+// locale.
+constexpr QLatin1StringView kWebFrame("cadre-web");
 // L8-T19 (S11.1, S11.4, S11.7) : un rond rouge qui masque une étiquette, un panier « fruit », une carotte, un
 // objet lié à https://example.org/, un média « lecture auto ».
 constexpr QLatin1StringView kInteractivity("interactivite");
@@ -331,6 +334,21 @@ bool buildDragDrop(const QString& path, QString& error)
     return writeActcraft(document, path, error);
 }
 
+// Une page, un cadre web (200, 150, 480, 320) sur l'adresse http://127.0.0.1:9/cadre-web.html (port de
+// rebut, rien n'y répond) : ouvert, le document est reçu et la politique bloque le cadre sans requête.
+bool buildWebFrame(const QString& path, QString& error)
+{
+    core::WebFrame frame;
+    frame.bounds = {200, 150, 480, 320};
+    frame.address = "http://127.0.0.1:9/cadre-web.html";
+    core::PageObject object = frame;
+    object.common.id = 1;
+    object.common.layer = core::Layer::Middle;
+    std::vector<core::PageObject> objects;
+    objects.push_back(std::move(object));
+    return writeOnePage(std::move(objects), "Cadre web reçu", path, error);
+}
+
 bool buildBroadcast(const QString& path, QString& error)
 {
     std::vector<core::Page> pages(2);
@@ -372,6 +390,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kContainers, buildContainers},
     {kActionBrowser, buildActionBrowser},
     {kDragDrop, buildDragDrop},
+    {kWebFrame, buildWebFrame},
     {kInteractivity, buildInteractivity},
     {kBroadcast, buildBroadcast},
     {kMedias, buildMedias},
