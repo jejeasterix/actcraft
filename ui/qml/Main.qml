@@ -337,6 +337,7 @@ Window {
             profile: appProfile
             preferences: appPreferences
             actionModel: appActionBrowser
+            broadcast: appBroadcast // L8-T32 : les notes de la page sont du contenu protégé (H8-16)
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -472,6 +473,7 @@ Window {
         printing: appPrint
         exchange: appExchange
         fileExchangeActions: fileExchangeActions
+        commands: appCommands
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -578,6 +580,17 @@ Window {
         document: appDocument
         banner: messageBanner
     }
+    // L8-T32 : diffusion protégée, porte du registre. Les règles du document ouvert grisent et refusent les
+    // commandes de leurs catégories (verrou de classe compris), la copie du champ de texte aussi ; un essai
+    // refusé s'affiche dans la bannière.
+    BroadcastGate {
+        id: appBroadcast
+        objectName: "appBroadcast"
+        commands: appCommands
+        document: appDocument
+        textEditing: appText
+        onRefused: (id, message) => messageBanner.show(message)
+    }
     SoundController {
         id: soundController
         commands: appCommands
@@ -600,6 +613,7 @@ Window {
         tabs: appTabs
         textEditing: appText
         preferences: appPreferences // documents récents gardés (L6-T24)
+        broadcast: appBroadcast // L8-T32 : « Enregistrer les modifications ? » refusé dans un document protégé
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
         onSaveAbandoned: documentTabBar.closeAfterSave = false

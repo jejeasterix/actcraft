@@ -40,6 +40,9 @@ constexpr QLatin1StringView kDragDrop("glisser-deposer");
 // L8-T19 (S11.1, S11.4, S11.7) : un rond rouge qui masque une étiquette, un panier « fruit », une carotte, un
 // objet lié à https://example.org/, un média « lecture auto ».
 constexpr QLatin1StringView kInteractivity("interactivite");
+// L8-T32 (S18) : deux pages ; un rond gris en page 1 (centre en 300, 300) qui porte « page suivante » ; copie
+// et impression interdites par les règles de diffusion du document.
+constexpr QLatin1StringView kBroadcast("diffusion-protegee");
 // L8-T23 (S25) : une page vide et, à côté du document, deux sons « son.wav » et « son2.wav » de 0,5 s à
 // insérer.
 constexpr QLatin1StringView kMedias("medias");
@@ -328,6 +331,31 @@ bool buildDragDrop(const QString& path, QString& error)
     return writeActcraft(document, path, error);
 }
 
+bool buildBroadcast(const QString& path, QString& error)
+{
+    std::vector<core::Page> pages(2);
+    core::Shape disc;
+    disc.kind = core::ShapeKind::Ellipse;
+    disc.bounds = {250, 250, 100, 100};
+    disc.fill = 0xFF808080u;
+    core::PageObject round = disc;
+    round.common.id = 1;
+    round.common.layer = core::Layer::Middle;
+    core::Action next;
+    next.catalogId = "page.next";
+    next.parameters = "{}";
+    round.common.actions.push_back(next);
+    pages[0].objects.push_back(round);
+
+    core::Document document(std::move(pages));
+    document.setTitle("Diffusion protégée");
+    core::BroadcastRules rules;
+    rules.noCopy = true;
+    rules.noPrint = true;
+    document.setBroadcast(rules);
+    return writeActcraft(document, path, error);
+}
+
 // Table des fixtures : nom, écriture du fichier (un seul endroit pour la liste et pour la construction).
 struct FixtureEntry
 {
@@ -345,6 +373,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kActionBrowser, buildActionBrowser},
     {kDragDrop, buildDragDrop},
     {kInteractivity, buildInteractivity},
+    {kBroadcast, buildBroadcast},
     {kMedias, buildMedias},
 };
 

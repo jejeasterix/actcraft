@@ -19,6 +19,7 @@ Rectangle {
     property PageView view: null
     property var profile: null
     property var preferences: null
+    property BroadcastGate broadcast: null // diffusion protégée des notes (L8-T32)
     property string current: "pages" // identifiant de `navigators` (A8)
     readonly property bool hasNotes: notesBrowser.hasNotes
     // L6-T18 (S9) : le navigateur courant vient du profil et y retourne à chaque changement.
@@ -185,6 +186,7 @@ Rectangle {
             tools: root.tools
             view: root.view
             profile: root.profile
+            broadcast: root.broadcast
         }
         PropertyBrowser {
             id: propertyBrowser

@@ -1,1 +1,30 @@
-{"format": "actcraft-scenario/1", "name": "diffusion-protegee", "description": "Talon L8 : rempli par L8-T32.", "steps": [{"waitReady": true}]}
+{
+  "format": "actcraft-scenario/1",
+  "name": "diffusion-protegee",
+  "description": "S18 (L8-T32) : un document protégé « copie » et « impression » est ouvert ; la porte lit ses règles (copie et impression refusées, enregistrement permis) ; aucune étape « command » sur une commande refusée : Ctrl+P (file.print), refusé, affiche le message dans la bannière (capture « refus ») ; le glisser vers les ressources est prouvé par tst_ui_broadcast ; l'action « page suivante » du rond continue.",
+  "steps": [
+    {"waitReady": true},
+    {"expect": "appBroadcast.active", "value": false},
+    {"fixture": "diffusion-protegee", "path": "${SORTIE}/diffusion-protegee.actcraft"},
+    {"command": "file.open", "argument": "${SORTIE}/diffusion-protegee.actcraft"},
+    {"waitFor": "documentController.busy", "value": false},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "1 / 2"},
+    {"expect": "appBroadcast.active", "value": true},
+    {"expect": "appBroadcast.copyRestricted", "value": true},
+    {"expect": "appBroadcast.printRestricted", "value": true},
+    {"expect": "appBroadcast.saveRestricted", "value": false},
+    {"expect": "appBroadcast.cameraRestricted", "value": false},
+    {"command": "tool.select"},
+    {"expect": "appTools.currentTool", "value": "select"},
+    {"key": "Ctrl+P"},
+    {"expect": "messageBanner.visible", "value": true},
+    {"expect": "appBroadcast.message", "value": "Diffusion protégée : ce paperboard ne peut pas être imprimé."},
+    {"capture": "refus"},
+    {"pointer": [[300, 300]], "space": "page"},
+    {"waitReady": true},
+    {"expect": "pageIndicator.text", "value": "2 / 2"},
+    {"expect": "appBroadcast.copyRestricted", "value": true},
+    {"capture": "fin"}
+  ]
+}
