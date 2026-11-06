@@ -4,10 +4,11 @@
 // - « Contenir des mots » lit et écrit ObjectCommon::keywords du conteneur (mots-clés du lot 6), jamais la
 //   copie ContainerRule::keywords : keywordsFromLot6 pose deux listes différentes et regarde laquelle bouge.
 // - Une édition de mode passe par la forme normalisée (core::setTravel, core::normalize) : les booléens du
-//   lot 2 priment. Un objet bloqué au lot 2 (movable faux) dont le mode resterait « librement » se lit « non » ;
-//   le passer à « verticalement » rend movable vrai. Une écriture brute du mode serait ramenée à « non » par
-//   normalize, ou laisserait l'objet bloqué : editIsOneStep et fixedTravelGreysTheTrack le distinguent.
-// - Aucune édition de l'interactivité ne redessine le cache : un PageSettingsChanged par objet modifié, jamais
+//   lot 2 priment. Un objet bloqué au lot 2 (movable faux) dont le mode resterait « librement » se lit « non
+//   » ; le passer à « verticalement » rend movable vrai. Une écriture brute du mode serait ramenée à « non »
+//   par normalize, ou laisserait l'objet bloqué : editIsOneStep et fixedTravelGreysTheTrack le distinguent.
+// - Aucune édition de l'interactivité ne redessine le cache : un PageSettingsChanged par objet modifié,
+// jamais
 //   ObjectChanged (patron de propertyedits.cpp, changeFor ; SetObjectActionsCommand).
 // - Une modification sur plusieurs objets est une seule étape : un undo les rétablit tous.
 #include <actcraft/core/edits.h>
@@ -23,6 +24,7 @@
 
 #include <QCoreApplication>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
@@ -118,23 +120,30 @@ QStringList asList(const std::vector<std::string>& values)
 // Document, outils, commandes et modèle reliés comme dans Main.qml.
 struct Fixture
 {
+    QTemporaryDir dir;
     ui::DocumentController controller;
-    ui::ToolHost tools;
     ui::Commands commands;
+    ui::ToolHost tools;
     ui::PropertyModel model;
     std::vector<core::Change> seen; // changements observés depuis le dernier clear()
 
     Fixture()
     {
-        tools.setDocument(&controller);
+        controller.newDocument(800, 600);
+        commands.setProfileDir(dir.filePath(QStringLiteral("disposition")));
+        tools.setSettingsFile(dir.filePath(QStringLiteral("outils.ini")));
+        tools.setCommands(&commands);
+        tools.setDocumentController(&controller);
+        model.setCommands(&commands);
         model.setDocument(&controller);
         model.setTools(&tools);
-        model.setCommands(&commands);
-        controller.addChangeObserver([this](const core::Changes& changes, ui::DocumentController::ChangeOrigin) {
-            for (const core::Change& change : changes) {
-                seen.push_back(change);
-            }
-        });
+        QCoreApplication::processEvents();
+        controller.addChangeObserver(
+            [this](const core::Changes& changes, ui::DocumentController::ChangeOrigin) {
+                for (const core::Change& change : changes) {
+                    seen.push_back(change);
+                }
+            });
     }
 
     void select(const std::vector<core::ObjectId>& ids)
@@ -202,7 +211,8 @@ void TstUiInteractivityprops::fiveSectionsInOrder()
                                   QStringLiteral("multimedia")};
     QCOMPARE(tail, expected);
 
-    // Éditeurs décrits : modes en « choice », objet choisi sur la page en « object », liste d'actions en lecture.
+    // Éditeurs décrits : modes en « choice », objet choisi sur la page en « object », liste d'actions en
+    // lecture.
     QCOMPARE(roleOf(f.model, QStringLiteral("travel"), ui::PropertyModel::EditorRole).toString(),
              QStringLiteral("choice"));
     QCOMPARE(roleOf(f.model, QStringLiteral("turning"), ui::PropertyModel::EditorRole).toString(),
@@ -253,7 +263,8 @@ void TstUiInteractivityprops::editIsOneStep()
     const core::ObjectId blocked = addObject(f.controller, lockedShape);
     f.select({free, blocked});
 
-    // Lu par la forme normalisée : « librement » et « non » diffèrent (une lecture brute dirait « librement »).
+    // Lu par la forme normalisée : « librement » et « non » diffèrent (une lecture brute dirait « librement
+    // »).
     QVERIFY(!valueOf(f.model, QStringLiteral("travel")).isValid());
 
     QVERIFY(f.set(QStringLiteral("travel"), kVertical));
@@ -324,7 +335,8 @@ void TstUiInteractivityprops::keywordsFromLot6()
 
     QCOMPARE(roleOf(f.model, QStringLiteral("contain-words"), ui::PropertyModel::EditorRole).toString(),
              QStringLiteral("keywords"));
-    QCOMPARE(valueOf(f.model, QStringLiteral("contain-words")).toStringList(), QStringList{QStringLiteral("chat")});
+    QCOMPARE(valueOf(f.model, QStringLiteral("contain-words")).toStringList(),
+             QStringList{QStringLiteral("chat")});
     QVERIFY(roleOf(f.model, QStringLiteral("contain-words"), ui::kEnabledRole).toBool());
 
     QVERIFY(f.set(QStringLiteral("contain-words"), QStringLiteral("lion tigre")));
