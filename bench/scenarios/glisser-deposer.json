@@ -3,21 +3,84 @@
   "name": "glisser-deposer",
   "description": "S11.3 : l'icône du stylo glissée de l'onglet sur un rectangle lui donne l'action, dessinée en surimpression à son coin haut droit ; le clic sur le rectangle active le stylo.",
   "steps": [
-    {"waitReady": true},
-    {"fixture": "glisser-deposer", "path": "${SORTIE}/glisser-deposer.actcraft"},
-    {"command": "file.open", "argument": "${SORTIE}/glisser-deposer.actcraft"},
-    {"waitFor": "documentController.busy", "value": false},
-    {"waitReady": true},
-    {"command": "tool.select"},
-    {"expect": "appTools.currentTool", "value": "select"},
-    {"command": "browser.actions"},
-    {"expect": "browserPanel.current", "value": "actions"},
-    {"waitReady": true},
-    {"pointer": [[300, 100], [600, 300]], "space": "window"},
-    {"waitReady": true},
-    {"capture": "surimpression"},
-    {"pointer": [[950, 400]], "space": "page"},
-    {"waitReady": true},
-    {"expect": "appTools.currentTool", "value": "pen"}
+    {
+      "waitReady": true
+    },
+    {
+      "fixture": "glisser-deposer",
+      "path": "${SORTIE}/glisser-deposer.actcraft"
+    },
+    {
+      "command": "file.open",
+      "argument": "${SORTIE}/glisser-deposer.actcraft"
+    },
+    {
+      "waitFor": "documentController.busy",
+      "value": false
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "command": "tool.select"
+    },
+    {
+      "expect": "appTools.currentTool",
+      "value": "select"
+    },
+    {
+      "command": "browser.actions"
+    },
+    {
+      "expect": "browserPanel.current",
+      "value": "actions"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "pointer": [
+        [
+          293,
+          101
+        ],
+        [
+          897,
+          435
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "checkPixel": "icone-surimpression",
+      "at": [
+        870,
+        319
+      ],
+      "color": "#2B2F36",
+      "tolerance": 40
+    },
+    {
+      "capture": "surimpression"
+    },
+    {
+      "pointer": [
+        [
+          750,
+          400
+        ]
+      ],
+      "space": "page"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "expect": "appTools.currentTool",
+      "value": "pen"
+    }
   ]
 }

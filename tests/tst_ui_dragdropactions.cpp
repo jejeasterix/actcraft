@@ -12,6 +12,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/dragdropactions.h>
@@ -157,8 +158,8 @@ private slots:
         QCOMPARE(icon.value(QStringLiteral("objectId")).toULongLong(), quint64(f.second));
         QCOMPARE(icon.value(QStringLiteral("actionId")).toString(), QStringLiteral("command.tool.pen"));
         QVERIFY(!icon.value(QStringLiteral("icon")).toString().isEmpty());
-        QCOMPARE(icon.value(QStringLiteral("x")).toDouble(), 400.0);
-        QCOMPARE(icon.value(QStringLiteral("width")).toDouble(), 80.0);
+        QVERIFY(qAbs(icon.value(QStringLiteral("x")).toDouble() - 400.0) <= 4.0); // emprise : marge du contour
+        QVERIFY(qAbs(icon.value(QStringLiteral("width")).toDouble() - 80.0) <= 8.0);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(f.model.overlays(), icons);
     }

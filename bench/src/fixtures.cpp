@@ -30,7 +30,7 @@ constexpr QLatin1StringView kLockedObject("objet-verrouille");
 // L8-T12 (S11.2) : deux pages ; un rond gris en page 1 (centre en 300, 300), un rectangle bleu en page 2
 // (centre en 600, 300).
 constexpr QLatin1StringView kActionBrowser("navigateur-actions");
-// L8-T13 (S11.3) : une page, un rectangle bleu (centre en 950, 400) qui reçoit l'icône du stylo.
+// L8-T13 (S11.3) : une page, un rectangle bleu (centre en 750, 400) qui reçoit l'icône du stylo.
 constexpr QLatin1StringView kDragDrop("glisser-deposer");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
@@ -205,7 +205,7 @@ bool buildDragDrop(const QString& path, QString& error)
     std::vector<core::Page> pages(1);
     core::Shape rect;
     rect.kind = core::ShapeKind::Rectangle;
-    rect.bounds = {800, 300, 300, 200};
+    rect.bounds = {600, 300, 300, 200};
     rect.fill = 0xFF1E88E5u;
     core::PageObject blue = rect;
     blue.common.id = 1;
