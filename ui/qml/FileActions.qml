@@ -21,7 +21,8 @@ Item {
     signal saveAbandoned()
     property var preferences: null // lié par L6-T23 (Main.qml) à appPreferences
     // Diffusion protégée (L8-T32) : porte qui refuse l'enregistrement d'un document protégé, aussi par les
-    // chemins hors commande (« Enregistrer les modifications ? » de Fermer, Quitter, Nouveau) ; null : rien.
+    // chemins hors commande (save et saveAs appelés en direct, « Enregistrer les modifications ? » de Quitter) ;
+    // celle de Fermer et de la croix d'un onglet est dans DocumentTabBar (file.save, par le registre). null : rien.
     property var broadcast: null
     readonly property alias recents: recentList
     signal saved(url url) // enregistrement réussi ; Main.qml décide du résumé (L6-T23)
