@@ -1,1 +1,28 @@
-{"format": "actcraft-scenario/1", "name": "medias", "description": "Talon L8 : rempli par L8-T25.", "steps": [{"waitReady": true}]}
+{
+  "format": "actcraft-scenario/1",
+  "name": "medias",
+  "description": "L8-T23 (S25) : un son inséré par la commande devient une icône au centre de la page, un second se pose à sa droite, Annuler retire le second en une étape. Aucune lecture : seul l'état de la page est contrôlé.",
+  "steps": [
+    {"waitReady": true},
+    {"fixture": "medias", "path": "${SORTIE}/medias.actcraft"},
+    {"command": "file.open", "argument": "${SORTIE}/medias.actcraft"},
+    {"waitFor": "documentController.busy", "value": false, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 0},
+    {"command": "insert.media", "argument": "${SORTIE}/son.wav"},
+    {"waitFor": "documentController.shownObjectCount", "value": 1, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"checkPixel": "icone-au-centre", "at": [462, 334], "color": "#2B2F36", "tolerance": 12},
+    {"capture": "premier"},
+    {"command": "insert.media", "argument": "${SORTIE}/son2.wav"},
+    {"waitFor": "documentController.shownObjectCount", "value": 2, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"checkPixel": "second-a-droite", "at": [602, 334], "color": "#2B2F36", "tolerance": 12},
+    {"capture": "second"},
+    {"command": "edit.undo"},
+    {"waitFor": "documentController.shownObjectCount", "value": 1, "timeoutMs": 5000},
+    {"waitReady": true},
+    {"checkPixel": "second-retire", "at": [602, 334], "color": "#FFFFFF", "tolerance": 12},
+    {"expect": "documentController.shownObjectCount", "value": 1}
+  ]
+}
