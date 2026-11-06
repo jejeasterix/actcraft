@@ -53,7 +53,8 @@ private:
         bool loaded = false;    // chargé par Qt Multimedia : une erreur ultérieure ne bascule plus
         quint64 generation = 0; // change à chaque play() et stopAll() : un signal différé périmé se tait
     };
-    void settle(int track, int error); // fin de chargement en échec : repli ou erreur signalée
+    void settleLater(int track); // fin de chargement en échec, décidée au tour suivant de la boucle
+    void settle(int track);
     void fallBack(int track);
     void fail(int track, const QString& reason);
     void failLater(int track, const QString& reason);

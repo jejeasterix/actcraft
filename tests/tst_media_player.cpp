@@ -381,6 +381,9 @@ private slots:
         QTRY_VERIFY(player.position(Player::First) > 0);
         player.pause(Player::First);
         QTRY_VERIFY(!player.isPlaying(Player::First));
+        // L'état passe à « en pause » avant que le moteur ait fini de ralentir : la position lue sur-le-champ
+        // peut encore gagner quelques millisecondes (14 ms vus sous AVFoundation). Référence prise après.
+        QTest::qWait(150);
         const qint64 held = player.position(Player::First);
         QTest::qWait(400);
         QCOMPARE(player.position(Player::First), held);
