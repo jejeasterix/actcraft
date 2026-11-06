@@ -465,6 +465,7 @@ Window {
         printing: appPrint
         exchange: appExchange
         fileExchangeActions: fileExchangeActions
+        commands: appCommands
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
