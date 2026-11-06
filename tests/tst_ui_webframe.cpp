@@ -11,6 +11,7 @@
 #include "actcraft/ui/webpolicy.h"
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/pageedits.h>
 #include <actcraft/render/pagepainter.h>
 
 #include <QByteArray>
@@ -30,10 +31,12 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
+#include <QThread>
 #include <QThreadPool>
 #include <QtTest>
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -199,6 +202,7 @@ private slots:
     void hrefOutsideSvgResourceBecomesALink();
     void navigationToLocalContentDropsTheInFlightReply_data();
     void navigationToLocalContentDropsTheInFlightReply();
+    void unblockFollowsThePageNotItsNumber();
     void rebuildConvertsOnlyChangedHtml();
 };
 
@@ -292,10 +296,47 @@ void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply_data()
     QTest::newRow("about:blank") << false;
 }
 
-// L8-C12, constat 5. `fetched` jugeait une réponse périmée sur le seul `serial`, que la navigation vers un
-// fichier local ou about: ne faisait pas avancer : une réponse réseau en vol écrasait le contenu neuf. Le
-// test retient la réponse du serveur, revient au contenu local, puis la relâche : elle ne doit rien changer.
-// Sous l'ancien contrôle (serial seul), le contenu devient « reseau » et l'adresse celle du serveur.
+namespace {
+
+// Occupe tous les fils de QThreadPool::globalInstance() jusqu'à release() : les lectures et réécritures
+// lancées entre-temps restent en file, donc leur résultat n'arrive pas avant l'instant choisi par le test.
+class PoolGate
+{
+public:
+    PoolGate() : m_pool(QThreadPool::globalInstance()), m_jobs(m_pool->maxThreadCount()) {}
+    ~PoolGate()
+    {
+        release();
+        m_pool->waitForDone(10000);
+    }
+    void close()
+    {
+        for (int i = 0; i < m_jobs; ++i) {
+            m_pool->start([this] {
+                ++m_running;
+                while (!m_open)
+                    QThread::msleep(2);
+            });
+        }
+    }
+    bool closed() const { return m_running.load() == m_jobs; }
+    void release() { m_open = true; }
+
+private:
+    QThreadPool* m_pool;
+    int m_jobs;
+    std::atomic<int> m_running{0};
+    std::atomic<bool> m_open{false};
+};
+
+} // namespace
+
+// L8-C12, constat 5. `fetched` jugeait une réponse périmée sur le seul `serial` ; la navigation vers un
+// fichier local ou about: ne le faisait avancer qu'à l'arrivée du contenu (finishContent), donc pendant la
+// lecture une réponse réseau en vol était acceptée et écrasait le contenu neuf. Le test retient la réponse du
+// serveur, retourne au contenu local en tenant sa lecture en file (PoolGate), puis relâche la réponse : elle
+// arrive pendant la lecture et ne doit rien changer. Sous l'ancien contrôle, le contenu devient « reseau » et
+// l'adresse celle du serveur.
 void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply()
 {
     QFETCH(bool, local);
@@ -310,9 +351,11 @@ void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply()
         QVERIFY(file.open(QIODevice::WriteOnly));
         file.write("<p>local</p>");
     }
+    // Un fichier local n'est permis que dans le dossier du document : document enregistré, puis rouvert.
+    Fixture writer;
     Fixture f;
-    // Rang 0 : saisit l'adresse du serveur, ce qui l'autorise pour le document (les rangs suivants y
-    // naviguent) ; il charge /slow tant que le serveur répond.
+    QVERIFY(saveAndReopen(writer, f, dir.filePath(QStringLiteral("recu.actcraft"))));
+    // Rang 0 : saisit l'adresse du serveur, ce qui l'autorise pour le document (le rang 1 y navigue).
     const QUrl slow = server.url(QStringLiteral("/slow"));
     QVERIFY(f.frames.insertFrame({}, slow.toString()));
     QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("reseau")), 5000);
@@ -332,16 +375,62 @@ void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply()
     QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/slow")), 5000);
     QVERIFY(role(f.frames, 1, ui::WebFrameItems::LoadingRole).toBool()); // la réponse est en vol
 
-    f.frames.goBack(1); // retour au contenu local, réponse toujours en vol
-    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 1, ui::WebFrameItems::LoadingRole).toBool(), 5000);
-    QVERIFY(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl() != slow);
+    PoolGate gate;
+    gate.close();
+    QTRY_VERIFY_WITH_TIMEOUT(gate.closed(), 5000);
+    f.frames.goBack(1); // retour au contenu local : sa lecture attend dans la file
+    QVERIFY(role(f.frames, 1, ui::WebFrameItems::LoadingRole).toBool());
     server.release();
-    QTest::qWait(500); // la réponse périmée arrive ; elle doit être abandonnée
+    QTest::qWait(300); // la réponse arrive pendant la lecture : elle doit être abandonnée
+    gate.release();
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 1, ui::WebFrameItems::LoadingRole).toBool(), 5000);
+    QTest::qWait(200);
     const QString shown = content(f.frames, 1);
     QVERIFY2(!shown.contains(QStringLiteral("reseau")), qPrintable(shown));
     QVERIFY(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl() != slow);
     if (local)
         QVERIFY2(shown.contains(QStringLiteral("local")), qPrintable(shown));
+}
+
+// L8-C12, constat 9. Le déblocage d'une page était rangé sous son numéro : débloquer la page 1, la retirer,
+// et la page qui prend son numéro chargeait son contenu distant sans déblocage. Il suit maintenant la page
+// (ses cadres), pas son rang. Sous l'ancien rangement par numéro, la page b est lue (le serveur voit /b).
+void TstUiWebFrame::unblockFollowsThePageNotItsNumber()
+{
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/a"), "<p>page a</p>");
+    server.page(QStringLiteral("/b"), "<p>page b</p>");
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Fixture writer;
+    QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/a")).toString()));
+    writer.document.nextPage();
+    QCOMPARE(writer.document.pageCount(), 2);
+    QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/b")).toString()));
+    QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 2, 5000);
+    server.reset(); // avant la réouverture : une requête du lecteur serait comptée
+    Fixture reader;
+    QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("recu.actcraft"))));
+    reader.document.showPage(0);
+    QCOMPARE(reader.frames.blockedCount(), 1);
+    reader.frames.requestUnblock(0);
+    reader.frames.answer(true);
+    QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/a")), 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(content(reader.frames, 0).contains(QStringLiteral("page a")), 5000);
+
+    // La page a est retirée : la page b prend son numéro, sans avoir été débloquée.
+    reader.document.execute(std::make_unique<core::RemovePagesCommand>(std::vector<std::size_t>{0}));
+    QCOMPARE(reader.document.pageCount(), 1);
+    QCOMPARE(reader.frames.count(), 1);
+    QTRY_COMPARE_WITH_TIMEOUT(reader.frames.blockedCount(), 1, 5000);
+    QTest::qWait(500);
+    QVERIFY2(!server.paths().contains(QStringLiteral("/b")), qPrintable(server.paths().join(u' ')));
+    // Le déblocage de cette page, lui, fonctionne.
+    reader.frames.requestUnblock(0);
+    reader.frames.answer(true);
+    QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/b")), 5000);
+    QCOMPARE(reader.frames.blockedCount(), 0);
 }
 
 // L8-C12, constat 6. `rebuild` reconvertissait en QString le HTML de chaque cadre à chaque commande, même
