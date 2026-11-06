@@ -4,6 +4,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/pageedits.h>
 #include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/broadcastgate.h>
 #include <actcraft/ui/commands.h>
@@ -15,18 +16,23 @@
 
 #include <QClipboard>
 #include <QDir>
+#include <QFile>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QQmlComponent>
+#include <QQmlContext>
 #include <QQmlEngine>
+#include <QQmlExpression>
 #include <QQuickItem>
 #include <QQuickTextDocument>
+#include <QQuickWindow>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -101,6 +107,89 @@ struct Mount
     }
 };
 
+// Une page de plus : le document est modifié.
+void modify(ui::DocumentController& document)
+{
+    document.execute(std::make_unique<core::InsertPagesCommand>(1, std::vector<core::Page>(1),
+                                                                std::map<std::string, core::Resource>{}));
+}
+
+core::BroadcastRules noSaveRules()
+{
+    core::BroadcastRules rules;
+    rules.noSave = true;
+    return rules;
+}
+
+bool isSet(const QVariant& value)
+{
+    return value.isValid() && !value.isNull();
+}
+
+// Enfant QML d'un type donné (nom de classe « Type_QMLTYPE_n ») : la boîte « Enregistrer les modifications ?
+// » de FileActions n'a pas de nom d'objet.
+QObject* childOfType(QObject* parent, const char* type)
+{
+    for (QObject* child : parent->children()) {
+        if (QByteArray(child->metaObject()->className()).startsWith(type)) {
+            return child;
+        }
+    }
+    return nullptr;
+}
+
+// FileActions et DocumentTabBar branchés comme dans Main.qml (porte en `broadcast`), dans une fenêtre : leurs
+// boîtes sont des Popup.
+const char* kFileShellQml = R"(
+import QtQuick
+import ActCraft.Ui
+Item {
+    id: shell
+    width: 800; height: 600
+    required property DocumentController doc
+    required property DocumentTabs docTabs
+    required property Commands cmds
+    required property BroadcastGate gate
+    property alias fileActions: fa
+    property alias tabBar: bar
+    FileActions { id: fa; document: shell.doc; tabs: shell.docTabs; broadcast: shell.gate }
+    DocumentTabBar { id: bar; width: shell.width; tabs: shell.docTabs; commands: shell.cmds }
+}
+)";
+
+struct FileShell
+{
+    ui::DocumentTabs tabs;
+    QQmlEngine engine;
+    QQuickWindow window;
+    std::unique_ptr<QQuickItem> root;
+    QObject* actions = nullptr;
+    QObject* bar = nullptr;
+
+    bool start(Mount& m)
+    {
+        tabs.setCommands(&m.commands);
+        tabs.setDocument(&m.document);
+        QQmlComponent component(&engine);
+        component.setData(kFileShellQml, QUrl());
+        root.reset(qobject_cast<QQuickItem*>(
+            component.createWithInitialProperties({{QStringLiteral("doc"), QVariant::fromValue(&m.document)},
+                                                   {QStringLiteral("docTabs"), QVariant::fromValue(&tabs)},
+                                                   {QStringLiteral("cmds"), QVariant::fromValue(&m.commands)},
+                                                   {QStringLiteral("gate"), QVariant::fromValue(&m.gate)}})));
+        if (!root) {
+            qWarning("%s", qPrintable(component.errorString()));
+            return false;
+        }
+        root->setParentItem(window.contentItem());
+        window.resize(800, 600);
+        window.show();
+        actions = root->property("fileActions").value<QObject*>();
+        bar = root->property("tabBar").value<QObject*>();
+        return actions != nullptr && bar != nullptr && QTest::qWaitForWindowExposed(&window);
+    }
+};
+
 } // namespace
 
 class TstUiBroadcast : public QObject
@@ -119,6 +208,11 @@ private slots:
     void rulesFollowTheOpenDocument();
     void propertiesFollowTheRules();
     void nativeTextCopyRefused();
+    void notesCopyRefused();
+    void pdfExportButtonGoesThroughTheRegistry();
+    void fileActionsSaveRefused();
+    void quitQuestionKeptWhenSaveRefused();
+    void closingProtectedTabKeepsIt();
 
 private:
     QTemporaryDir m_settings;
@@ -463,6 +557,212 @@ void TstUiBroadcast::nativeTextCopyRefused()
     QCoreApplication::sendEvent(field, &copyAgain);
     QCOMPARE(clipboard->text(), QStringLiteral("secret")); // le montage copie bien sans règles
     QCOMPARE(refused.size(), 2);
+}
+
+// H8-16 : les notes de la page font partie du contenu protégé. Copier et Couper du clavier y sont refusés, et
+// leur menu contextuel n'a plus Copier ni Couper ; sans règles, le menu de Qt et la copie reviennent.
+void TstUiBroadcast::notesCopyRefused()
+{
+    Mount m;
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData("import QtQuick\nimport ActCraft.Ui\nNotesBrowser { width: 400; height: 300 }", QUrl());
+    std::unique_ptr<QObject> notes(component.create());
+    QVERIFY2(notes, qPrintable(component.errorString()));
+    notes->setProperty("commands", QVariant::fromValue(&m.commands));
+    notes->setProperty("documentController", QVariant::fromValue(&m.document));
+    notes->setProperty("broadcast", QVariant::fromValue(&m.gate));
+    auto* editor = notes->findChild<QQuickItem*>(QStringLiteral("notesEditor"));
+    QVERIFY(editor != nullptr);
+    QQmlExpression menuName(
+        qmlContext(editor), editor,
+        QStringLiteral("editor.ContextMenu.menu ? editor.ContextMenu.menu.objectName : \"aucun\""));
+    QClipboard* clipboard = QGuiApplication::clipboard();
+
+    m.open(documentWith(copyAndPrint()));
+    QVERIFY(editor->setProperty("text", QStringLiteral("secret")));
+    const int length = editor->property("length").toInt();
+    QVERIFY(length > 0);
+    QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
+    QVERIFY(QMetaObject::invokeMethod(editor, "selectAll"));
+    clipboard->setText(QStringLiteral("avant"));
+    QKeyEvent copyPress(QEvent::KeyPress, Qt::Key_C, Qt::ControlModifier, QStringLiteral("c"));
+    QCoreApplication::sendEvent(editor, &copyPress);
+    QCOMPARE(clipboard->text(), QStringLiteral("avant"));
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("edit.copy"));
+    QKeyEvent cutPress(QEvent::KeyPress, Qt::Key_X, Qt::ControlModifier, QStringLiteral("x"));
+    QCoreApplication::sendEvent(editor, &cutPress);
+    QCOMPARE(editor->property("length").toInt(), length);
+    QCOMPARE(refused.size(), 2);
+    QCOMPARE(menuName.evaluate().toString(), QStringLiteral("notesRestrictedMenu"));
+
+    m.open(documentWith({}));
+    QVERIFY(menuName.evaluate().toString() != QStringLiteral("notesRestrictedMenu")); // menu de Qt rendu
+    QVERIFY(editor->setProperty("text", QStringLiteral("secret")));
+    QVERIFY(QMetaObject::invokeMethod(editor, "selectAll"));
+    QKeyEvent copyAgain(QEvent::KeyPress, Qt::Key_C, Qt::ControlModifier, QStringLiteral("c"));
+    QCoreApplication::sendEvent(editor, &copyAgain);
+    QVERIFY(clipboard->text().contains(QStringLiteral("secret"))); // le montage copie bien sans règles
+    QCOMPARE(refused.size(), 2);
+}
+
+// « Exporter en PDF… » de la mise en page passe par la commande export.pdf, donc par la porte : refusé et
+// signalé dans un document qui interdit l'enregistrement, sans ouvrir le dialogue d'export en direct.
+void TstUiBroadcast::pdfExportButtonGoesThroughTheRegistry()
+{
+    Mount m;
+    int exports = 0;
+    m.commands.setNativeHandler(QStringLiteral("export.pdf"), [&exports](const QVariant&) { ++exports; });
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+import QtQuick
+import ActCraft.Ui
+Item {
+    property alias dialog: dlg
+    property alias chooser: fx
+    PrintController { id: ctl }
+    QtObject { id: exchange }
+    QtObject { id: fx; property int chosen: 0; function chooseExportPdf() { chosen = chosen + 1 } }
+    PrintSetupDialog { id: dlg; printing: ctl; exchange: exchange; fileExchangeActions: fx }
+}
+)",
+                      QUrl());
+    std::unique_ptr<QObject> root(component.create());
+    QVERIFY2(root, qPrintable(component.errorString()));
+    auto* dialog = root->property("dialog").value<QObject*>();
+    auto* chooser = root->property("chooser").value<QObject*>();
+    QVERIFY(dialog != nullptr && chooser != nullptr);
+    dialog->setProperty("commands", QVariant::fromValue(&m.commands));
+    auto* button = dialog->findChild<QQuickItem*>(QStringLiteral("exportButton"));
+    QVERIFY(button != nullptr);
+    QVERIFY(button->isEnabled());
+
+    m.open(documentWith(noSaveRules()));
+    QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
+    QVERIFY(QMetaObject::invokeMethod(button, "clicked"));
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("export.pdf"));
+    QCOMPARE(exports, 0);
+    QCOMPARE(chooser->property("chosen").toInt(), 0);
+
+    m.open(documentWith({}));
+    QVERIFY(QMetaObject::invokeMethod(button, "clicked"));
+    QCOMPARE(exports, 1); // le gestionnaire de la commande, qui ouvre lui-même le dialogue sans URL
+    QCOMPARE(chooser->property("chosen").toInt(), 0);
+    QCOMPARE(refused.size(), 1);
+}
+
+// FileActions, chemins hors commande (saveRefused, abandonRefusedSave) : Enregistrer et Enregistrer sous d'un
+// document protégé sont refusés et signalés, rien n'est écrit, ce qui attendait l'enregistrement est oublié
+// et une sortie en attente (quitResume) est gardée ; sans règles, l'enregistrement écrit le fichier.
+void TstUiBroadcast::fileActionsSaveRefused()
+{
+    Mount m;
+    FileShell s;
+    QVERIFY(s.start(m));
+    m.open(documentWith(noSaveRules()));
+    modify(m.document);
+    QVERIFY(m.document.isModified());
+    const QString path = m.dir.filePath(QStringLiteral("essai.actcraft"));
+    const QString other = m.dir.filePath(QStringLiteral("autre.actcraft"));
+    QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
+    QSignalSpy abandoned(s.actions, SIGNAL(saveAbandoned()));
+
+    s.actions->setProperty("afterSave", QStringLiteral("fermer l'onglet"));
+    s.actions->setProperty("saveWaiting", true);
+    s.actions->setProperty("quitResume", 3);
+    QVERIFY(QMetaObject::invokeMethod(s.actions, "save"));
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("file.save"));
+    QCOMPARE(abandoned.size(), 1);
+    QVERIFY(!isSet(s.actions->property("afterSave")));
+    QVERIFY(!s.actions->property("saveWaiting").toBool());
+    QCOMPARE(s.actions->property("quitResume").toInt(), 3);
+    s.actions->setProperty("quitResume", -1);
+
+    QVERIFY(QMetaObject::invokeMethod(s.actions, "saveAs",
+                                      Q_ARG(QVariant, QVariant(QUrl::fromLocalFile(other)))));
+    QCOMPARE(refused.size(), 2);
+    QCOMPARE(refused.at(1).at(0).toString(), QStringLiteral("file.save-as"));
+    QCOMPARE(abandoned.size(), 2);
+    QTest::qWait(50);
+    QVERIFY(!QFile::exists(path));
+    QVERIFY(!QFile::exists(other));
+    QVERIFY(m.document.isModified());
+
+    m.open(documentWith({}));
+    modify(m.document);
+    QVERIFY(QMetaObject::invokeMethod(s.actions, "save"));
+    QTRY_VERIFY(QFile::exists(path)); // le montage enregistre bien sans règles
+    QCOMPARE(refused.size(), 2);
+    QCOMPARE(abandoned.size(), 2);
+}
+
+// Quitter avec un document protégé modifié : « Enregistrer » est refusé et signalé, la question est reposée
+// (réouverture), l'action en attente gardée ; rien n'est écrit, rien ne quitte.
+void TstUiBroadcast::quitQuestionKeptWhenSaveRefused()
+{
+    Mount m;
+    FileShell s;
+    QVERIFY(s.start(m));
+    m.open(documentWith(noSaveRules()));
+    modify(m.document);
+    QObject* question = childOfType(s.actions, "SaveChangesDialog");
+    QVERIFY(question != nullptr);
+    QSignalSpy opened(question, SIGNAL(opened()));
+    QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
+
+    QVERIFY(QMetaObject::invokeMethod(s.actions, "quitFrom", Q_ARG(QVariant, QVariant(0))));
+    QTRY_COMPARE(opened.size(), 1);
+    QVERIFY(isSet(s.actions->property("pending")));
+    QVERIFY(QMetaObject::invokeMethod(question, "save")); // « Enregistrer » : la boîte se ferme, puis émet
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("file.save"));
+    QTRY_COMPARE(opened.size(), 2); // la question est reposée
+    QVERIFY(isSet(s.actions->property("pending")));
+    QVERIFY(!isSet(s.actions->property("afterSave")));
+    QVERIFY(!s.actions->property("quitting").toBool());
+    QVERIFY(!QFile::exists(m.dir.filePath(QStringLiteral("essai.actcraft"))));
+    QVERIFY(m.document.isModified());
+
+    QVERIFY(QMetaObject::invokeMethod(question, "cancel")); // « Annuler » : la sortie est abandonnée
+    QTRY_VERIFY(!isSet(s.actions->property("pending")));
+    QVERIFY(!s.actions->property("quitting").toBool());
+}
+
+// Fermer l'onglet d'un document protégé modifié (DocumentTabBar, « Enregistrer ») : file.save est refusé par
+// le registre et signalé ; l'onglet reste ouvert et modifié, et aucune fermeture n'attend un enregistrement
+// qui ne viendra pas (closeAfterSave rendu faux).
+void TstUiBroadcast::closingProtectedTabKeepsIt()
+{
+    Mount m;
+    int saves = 0;
+    m.commands.setNativeHandler(QStringLiteral("file.save"), [&saves](const QVariant&) { ++saves; });
+    FileShell s;
+    QVERIFY(s.start(m));
+    m.open(documentWith(noSaveRules()));
+    modify(m.document);
+    s.tabs.newTab();
+    s.tabs.activate(0);
+    QCOMPARE(s.tabs.rowCount(), 2);
+    QCOMPARE(s.tabs.currentIndex(), 0);
+    QObject* question = s.bar->findChild<QObject*>(QStringLiteral("tabSaveChangesDialog"));
+    QVERIFY(question != nullptr);
+    QSignalSpy opened(question, SIGNAL(opened()));
+    QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
+
+    QVERIFY(!s.tabs.requestClose(0));
+    QTRY_COMPARE(opened.size(), 1);
+    QVERIFY(QMetaObject::invokeMethod(question, "save"));
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("file.save"));
+    QCOMPARE(saves, 0);
+    QCoreApplication::processEvents();
+    QCOMPARE(s.tabs.rowCount(), 2);
+    QVERIFY(s.tabs.isModifiedAt(0));
+    QVERIFY(!s.bar->property("closeAfterSave").toBool());
 }
 
 QTEST_MAIN(TstUiBroadcast)
