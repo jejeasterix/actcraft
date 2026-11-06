@@ -203,6 +203,7 @@ private slots:
     void navigationToLocalContentDropsTheInFlightReply_data();
     void navigationToLocalContentDropsTheInFlightReply();
     void unblockFollowsThePageNotItsNumber();
+    void dialogRefusesEmptyFields();
     void rebuildConvertsOnlyChangedHtml();
 };
 
@@ -390,6 +391,73 @@ void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply()
     QVERIFY(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl() != slow);
     if (local)
         QVERIFY2(shown.contains(QStringLiteral("local")), qPrintable(shown));
+}
+
+// L8-C12, constat 7. « OK » avec l'adresse et le code vides appelait insertFrame("", "") : le modèle refuse,
+// mais la boîte se fermait comme si tout allait bien. « OK » est grisé tant que rien n'est saisi (blancs
+// compris), et accepter à vide ne crée rien. Sous l'ancienne boîte, « OK » est actif d'emblée.
+void TstUiWebFrame::dialogRefusesEmptyFields()
+{
+    const QString qmlDir =
+        QDir::cleanPath(QFileInfo(QStringLiteral(__FILE__)).absolutePath() + QStringLiteral("/../ui/qml"));
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(QByteArrayLiteral(R"qml(
+import QtQuick
+import QtQuick.Controls.Basic
+Item {
+    width: 800
+    height: 600
+    property alias dialog: d
+    WebFrameDialog { id: d }
+    function box() {
+        for (let i = 0; i < d.data.length; ++i) {
+            if (d.data[i].objectName === "webFrameDialogBox")
+                return d.data[i]
+        }
+        return null
+    }
+    function okEnabled() { return box().standardButton(Dialog.Ok).enabled }
+}
+)qml"),
+                      QUrl::fromLocalFile(qmlDir + QStringLiteral("/harness.qml")));
+    std::unique_ptr<QObject> root(component.create());
+    QVERIFY2(root, qPrintable(component.errorString()));
+    QQuickWindow window;
+    qobject_cast<QQuickItem*>(root.get())->setParentItem(window.contentItem());
+    window.resize(800, 600);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto call = [&](const char* name) {
+        QVariant value;
+        QMetaObject::invokeMethod(root.get(), name, Q_RETURN_ARG(QVariant, value));
+        return value;
+    };
+    QObject* dialog = root->property("dialog").value<QObject*>();
+    QVERIFY(dialog);
+    Fixture f;
+    auto open = [&] {
+        QVERIFY(QMetaObject::invokeMethod(dialog, "open",
+                                          Q_ARG(QVariant, QVariant::fromValue<QObject*>(&f.frames))));
+        QTRY_VERIFY(dialog->property("opened").toBool());
+    };
+    open();
+    QVERIFY(!call("okEnabled").toBool()); // deux champs vides : « OK » grisé
+    QVERIFY(dialog->setProperty("address", QStringLiteral("   ")));
+    QVERIFY(dialog->setProperty("code", QStringLiteral("\n  ")));
+    QVERIFY(!call("okEnabled").toBool()); // des blancs ne sont pas une saisie
+    QObject* box = call("box").value<QObject*>();
+    QVERIFY(box);
+    QVERIFY(QMetaObject::invokeMethod(box, "accept")); // accepter à vide ne crée rien
+    QCOMPARE(f.frames.count(), 0);
+    QTRY_VERIFY(!dialog->property("opened").toBool());
+
+    open();
+    QVERIFY(dialog->setProperty("code", QStringLiteral("<p>x</p>")));
+    QVERIFY(call("okEnabled").toBool()); // du code : « OK » actif
+    QVERIFY(QMetaObject::invokeMethod(box, "accept"));
+    QCOMPARE(f.frames.count(), 1);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::HtmlRole).toString(), QStringLiteral("<p>x</p>"));
 }
 
 // L8-C12, constat 9. Le déblocage d'une page était rangé sous son numéro : débloquer la page 1, la retirer,
