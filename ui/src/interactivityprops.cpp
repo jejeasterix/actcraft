@@ -234,8 +234,10 @@ void writeField(core::PageObject& object, InteractivityField field, const Intera
             break;
         }
         break;
-    case F::Actions:
     case F::ContainWords:
+        c.keywords = std::get<std::vector<std::string>>(value);
+        break;
+    case F::Actions:
         break;
     }
 }
@@ -368,7 +370,7 @@ QVariant readInteractivity(const core::PageObject& object, InteractivityField fi
     case F::ContainedObject:
         return id(c.object);
     case F::ContainWords:
-        return toStringList(object.common.keywords); // lot 6, jamais c.keywords
+        return toStringList(c.keywords); // la règle (H8-12), jamais object.common.keywords
     case F::Fit:
         return static_cast<int>(c.fit);
     case F::Tolerance:
@@ -493,7 +495,7 @@ std::unique_ptr<core::UndoCommand> interactivityCommand(const core::Page& page, 
     switch (row.editor) {
     case E::Actions:
     case E::Keywords:
-        return nullptr; // lecture seule ; mots acceptés : chemin des mots-clés du lot 6
+        return nullptr; // lecture seule ; mots acceptés : convertis par PropertyModel
     case E::Bool:
         if (value.canConvert<bool>()) {
             converted = value.toBool();

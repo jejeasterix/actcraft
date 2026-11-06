@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -36,9 +37,9 @@ enum class InteractivityField : std::uint8_t
     Actions,         // liste en lecture ; on la modifie dans le navigateur d'actions (L8-T11)
     Accepts,         // ContainerRule::accepts
     ContainedObject, // ContainerRule::object
-    // « Contenir des mots » : les mots-clés du lot 6 du conteneur (ObjectCommon::keywords), jamais la copie
-    // ContainerRule::keywords. Écrite par le chemin des mots-clés du lot 6 (SetObjectPropertiesCommand,
-    // core::ObjectProperty::Keywords), pas par SetInteractivityCommand.
+    // « Mots acceptés » : ContainerRule::keywords, la règle que lit core::resolveDrop (H8-12), jamais
+    // ObjectCommon::keywords du conteneur (mots-clés du lot 6, qui décrivent l'objet et servent côté
+    // candidat). Saisie lue comme la ligne des mots-clés du lot 6 (espaces ou virgules), par PropertyModel.
     ContainWords,
     Fit,
     Tolerance,
@@ -97,7 +98,7 @@ QVariant readInteractivity(const core::PageObject& object, InteractivityField fi
 // Faux si l'éditeur du champ est grisé pour cet objet.
 bool isEnabled(const core::PageObject& object, InteractivityField field);
 
-using InteractivityValue = std::variant<bool, int, double, core::ObjectId>;
+using InteractivityValue = std::variant<bool, int, double, core::ObjectId, std::vector<std::string>>;
 
 // Une étape pour tous les objets (L8-T17). Les modes passent par core::setTravel, core::setTurning puis
 // core::normalize : choisir « verticalement » rend `movable` vrai, « non » le rend faux. Identifiants absents
@@ -139,9 +140,9 @@ private:
 };
 
 // Commande d'une saisie sur `ids` de `page` (indice `pageIndex`) ; nullptr si refusée : lecture seule
-// (Actions), ContainWords (chemin du lot 6), valeur illisible, choix inconnu, nombre hors de [min, max]
-// (refusé, jamais écrêté), objet visé absent de la page ou parmi `ids`, chemin qui n'est ni un trait ni une
-// ligne.
+// (Actions), éditeur « keywords » (PropertyModel convertit la saisie), valeur illisible, choix inconnu,
+// nombre hors de [min, max] (refusé, jamais écrêté), objet visé absent de la page ou parmi `ids`, chemin qui
+// n'est ni un trait ni une ligne.
 std::unique_ptr<core::UndoCommand> interactivityCommand(const core::Page& page, std::size_t pageIndex,
                                                         std::vector<core::ObjectId> ids,
                                                         const InteractivityRow& row, const QVariant& value);

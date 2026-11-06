@@ -465,11 +465,12 @@ bool PropertyModel::setValue(int row, const QVariant& value)
             return false;
         }
         const auto page = static_cast<std::size_t>(m_page);
-        // « Contenir des mots » : le champ et la commande de la ligne des mots-clés du lot 6, pas une copie.
+        // « Mots acceptés » : la règle du conteneur (H8-12), saisie lue comme la ligne des mots-clés du
+        // lot 6.
         std::unique_ptr<core::UndoCommand> command =
             i->field == InteractivityField::ContainWords
-                ? objectCommand(page, m_ids, core::ObjectProperty::Keywords,
-                                core::PropertyValue{keywordsOf(value)})
+                ? std::make_unique<SetInteractivityCommand>(page, m_ids, InteractivityField::ContainWords,
+                                                            InteractivityValue{keywordsOf(value)})
                 : interactivityCommand(m_document->document().page(page), page, m_ids, *i, value);
         if (!command) {
             return false;
