@@ -658,6 +658,18 @@ void paintUnknown(QPainter& p, const core::UnknownObject& unknown)
     p.drawRect(QRectF(b.x, b.y, b.width, b.height));
 }
 
+// Cadre web (lot 8, F-302) : repère neutre, comme un objet inconnu, sur sa boîte ; son contenu n'est jamais
+// chargé par le peintre.
+void paintWebFrame(QPainter& p, const core::WebFrame& frame)
+{
+    QPen pen(QColor(0x80, 0x80, 0x80), 0, Qt::DashLine);
+    pen.setCosmetic(true);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+    const core::RectF& b = frame.bounds;
+    p.drawRect(QRectF(b.x, b.y, b.width, b.height));
+}
+
 } // namespace
 
 void layOutVerticalColumn(QTextDocument& document)
@@ -840,6 +852,8 @@ void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLo
         paintConnector(p, *c);
     } else if (const auto* e = std::get_if<core::Equation>(&object)) {
         paintEquation(p, *e);
+    } else if (const auto* w = std::get_if<core::WebFrame>(&object)) {
+        paintWebFrame(p, *w);
     } else if (const auto* u = std::get_if<core::UnknownObject>(&object)) {
         paintUnknown(p, *u);
     }
