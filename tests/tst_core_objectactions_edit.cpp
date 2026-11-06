@@ -36,6 +36,7 @@ class TstCoreObjectactionsEdit : public QObject
     static PageObject text(ObjectId id, const char* html)
     {
         Text t;
+        t.bounds = {0, 0, 120, 30};
         t.html = html;
         PageObject o{t};
         o.common.id = id;
