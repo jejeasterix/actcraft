@@ -90,8 +90,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'apksigner en échec' }
         Remove-Item -Force $aligne
 
-        # Contrôles : identifiant, version, API cible, permissions (décision 28 amendée par H8-14 : le micro seul,
-        # F-293), signature, licences (décision 34). Comparaisons sensibles à la casse : Android distingue les majuscules.
+        # Contrôles : identifiant, version, API cible, permissions (décision 28 amendée par H8-14 et H8-15 : le micro,
+        # F-293, et le réseau, F-302), signature, licences (décision 34). Comparaisons sensibles à la casse : Android distingue les majuscules.
         $badging = @(& $aapt2 dump badging $final)
         if ($LASTEXITCODE -ne 0) { throw 'aapt2 dump badging en échec' }
         $tete = ($badging | Select-String "^package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'").Matches
@@ -109,12 +109,18 @@ try {
         $permissions = @($badging | Select-String "^uses-permission(?:-sdk-23)?: name='([^']+)'" |
             ForEach-Object { $_.Matches[0].Groups[1].Value })
         Write-Output "$a : permissions = $($permissions -join ', ')"
-        $permise = 'android.permission.RECORD_AUDIO'
-        $refusees = @($permissions | Where-Object { $_ -cne $permise })
-        if ($refusees.Count -gt 0) {
-            throw "permissions non autorisées : $($refusees -join ', ') (décision 28 amendée : seule $permise)"
+        # Liste fermée : chaque permission du paquet y figure, et chacune d'elles est présente.
+        $permises = [ordered]@{
+            'android.permission.RECORD_AUDIO' = 'enregistreur de son, F-293, H8-14'
+            'android.permission.INTERNET'     = 'cadre web, F-302, H8-15'
         }
-        if ($permissions -cnotcontains $permise) { throw "permission absente : $permise (enregistreur de son, F-293)" }
+        $refusees = @($permissions | Where-Object { $permises.Keys -cnotcontains $_ })
+        if ($refusees.Count -gt 0) {
+            throw "permissions non autorisées : $($refusees -join ', ') (décision 28 amendée : seules $($permises.Keys -join ', '))"
+        }
+        foreach ($permise in $permises.Keys) {
+            if ($permissions -cnotcontains $permise) { throw "permission absente : $permise ($($permises[$permise]))" }
+        }
 
         $certificats = @(& $apksigner verify --print-certs $final)
         if ($LASTEXITCODE -ne 0) { throw 'signature invalide' }

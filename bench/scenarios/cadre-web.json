@@ -18,6 +18,7 @@
         {"waitReady": true},
         {"expect": "webFrameLayer.count", "value": 1},
         {"expect": "webFrameLayer.blockedCount", "value": 1},
-        {"capture": "bloque"}
+        {"capture": "bloque"},
+        {"checkPixel": "repere-de-blocage", "at": [340, 260], "color": "#F2F3F5", "tolerance": 6}
     ]
 }
