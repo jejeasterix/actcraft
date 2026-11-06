@@ -54,25 +54,6 @@ PointF markOf(const RectF& box, Mark mark) noexcept
     return centre;
 }
 
-// Chemin en coordonnées de page : points du trait ou de la ligne passés par sa transformation.
-std::vector<PointF> trackOnPage(const PageObject& track)
-{
-    std::vector<PointF> points;
-    const Transform& t = track.common.transform;
-    if (const auto* stroke = std::get_if<Stroke>(&track)) {
-        points.reserve(stroke->points.size());
-        for (const StrokePoint& p : stroke->points) {
-            points.push_back(t.map({p.x, p.y}));
-        }
-    } else if (const auto* line = std::get_if<Line>(&track)) {
-        points.reserve(line->points.size());
-        for (const PointF& p : line->points) {
-            points.push_back(t.map(p));
-        }
-    }
-    return points;
-}
-
 PointF closestOnSegment(PointF p, PointF a, PointF b) noexcept
 {
     const double dx = b.x - a.x;
@@ -92,18 +73,47 @@ double distance2(PointF a, PointF b) noexcept
     return dx * dx + dy * dy;
 }
 
-// Fraction t ∈ [0, 1] du déplacement `wanted` à laquelle `box` touche `blocker` en entrant dedans ; 1 s'il
-// ne le rencontre pas. Recouvrement strict : bord contre bord est permis, glisser le long d'un bord aussi.
-// Une boîte qui recouvre déjà le bloquant au départ n'est pas retenue par lui (elle peut en sortir).
-double firstContact(const RectF& box, const RectF& blocker, PointF wanted) noexcept
+// Point de la polyligne (points de l'objet passés par sa transformation : coordonnées de page) le plus proche
+// de `point`, segment par segment ; aucune allocation (appelée à chaque mouvement). `points` non vide.
+template <typename Points, typename ToPoint>
+PointF nearestOnPolyline(const Points& points, const Transform& t, PointF point, ToPoint toPoint) noexcept
+{
+    PointF previous = t.map(toPoint(points.front()));
+    PointF best = previous;
+    double bestDistance = distance2(point, best);
+    for (std::size_t i = 1; i < points.size(); ++i) {
+        const PointF current = t.map(toPoint(points[i]));
+        const PointF candidate = closestOnSegment(point, previous, current);
+        const double d = distance2(point, candidate);
+        if (d < bestDistance) {
+            best = candidate;
+            bestDistance = d;
+        }
+        previous = current;
+    }
+    return best;
+}
+
+// Recouvrement plus petit : contact. La position t·wanted d'un arrêt bord contre bord recouvre parfois le
+// bloquant d'un ulp ; lu comme un recouvrement, il laisserait le glisser suivant traverser.
+constexpr double kContact = 1e-6;
+
+// Instants t (fraction de `wanted`) où `box` recouvre `blocker` réduit de `margin` sur chaque bord :
+// intervalle ouvert ]enter, exit[, vide si enter >= exit.
+std::pair<double, double> overlapTimes(const RectF& box, const RectF& blocker, PointF wanted,
+                                       double margin) noexcept
 {
     double enter = -std::numeric_limits<double>::infinity();
     double exit = std::numeric_limits<double>::infinity();
     const auto axis = [&](double low, double size, double blockerLow, double blockerSize, double d) {
-        const double minGap = blockerLow - (low + size);      // recouvrement si t·d > minGap
-        const double maxGap = blockerLow + blockerSize - low; // … et t·d < maxGap
+        const double minGap = blockerLow + margin - (low + size);      // recouvrement si t·d > minGap
+        const double maxGap = blockerLow + blockerSize - margin - low; // … et t·d < maxGap
         if (d == 0) {
-            return minGap < 0 && maxGap > 0;
+            if (!(minGap < 0 && maxGap > 0)) {
+                enter = std::numeric_limits<double>::infinity(); // jamais
+                exit = -std::numeric_limits<double>::infinity();
+            }
+            return;
         }
         double t1 = minGap / d;
         double t2 = maxGap / d;
@@ -112,16 +122,47 @@ double firstContact(const RectF& box, const RectF& blocker, PointF wanted) noexc
         }
         enter = std::max(enter, t1);
         exit = std::min(exit, t2);
-        return true;
     };
-    if (!axis(box.x, box.width, blocker.x, blocker.width, wanted.x) ||
-        !axis(box.y, box.height, blocker.y, blocker.height, wanted.y)) {
-        return 1;
+    axis(box.x, box.width, blocker.x, blocker.width, wanted.x);
+    axis(box.y, box.height, blocker.y, blocker.height, wanted.y);
+    return {enter, exit};
+}
+
+// Vrai si le déplacement fait décroître la pénétration de `box` dans `blocker` (axe le moins enfoncé).
+bool movingAway(const RectF& box, const RectF& blocker, PointF wanted) noexcept
+{
+    const auto depth = [](double low, double size, double blockerLow, double blockerSize,
+                          double d) -> std::pair<double, double> {
+        const double fromLow = low + size - blockerLow;         // croît avec d
+        const double fromHigh = blockerLow + blockerSize - low; // décroît avec d
+        if (fromLow < fromHigh) {
+            return {fromLow, d};
+        }
+        if (fromHigh < fromLow) {
+            return {fromHigh, -d};
+        }
+        return {fromLow, -std::abs(d)};
+    };
+    const auto [depthX, rateX] = depth(box.x, box.width, blocker.x, blocker.width, wanted.x);
+    const auto [depthY, rateY] = depth(box.y, box.height, blocker.y, blocker.height, wanted.y);
+    const double rate = depthX < depthY ? rateX : (depthY < depthX ? rateY : std::min(rateX, rateY));
+    return rate < 0;
+}
+
+// Fraction t ∈ [0, 1] du déplacement `wanted` que `blocker` laisse à `box` ; 1 s'il ne l'arrête pas. Bord
+// contre bord et glisser le long d'un bord sont permis ; l'arrêt se fait au contact exact. Une boîte qui
+// recouvre vraiment le bloquant au départ (au-delà de kContact) n'est libre que si elle s'en éloigne.
+double firstContact(const RectF& box, const RectF& blocker, PointF wanted) noexcept
+{
+    const auto [enter, exit] = overlapTimes(box, blocker, wanted, kContact);
+    if (!(enter < exit) || exit <= 0 || enter >= 1) {
+        return 1; // ne s'enfonce pas au-delà du contact pendant ce déplacement
     }
-    if (!(enter < exit) || enter < 0 || enter >= 1) {
-        return 1;
+    if (enter < 0) {
+        return movingAway(box, blocker, wanted) ? 1 : 0;
     }
-    return enter;
+    const double touch = overlapTimes(box, blocker, wanted, 0).first;
+    return std::clamp(touch, 0.0, enter);
 }
 
 bool contains(const std::vector<ObjectId>& ids, ObjectId id) noexcept
@@ -165,21 +206,15 @@ PointF projectOnTrack(const Page& page, const PageObject& object, PointF point)
     if (track == nullptr) {
         return point;
     }
-    const std::vector<PointF> path = trackOnPage(*track);
-    if (path.empty()) {
-        return point;
+    const Transform& t = track->common.transform;
+    if (const auto* stroke = std::get_if<Stroke>(track); stroke && !stroke->points.empty()) {
+        return nearestOnPolyline(stroke->points, t, point,
+                                 [](const StrokePoint& p) { return PointF{p.x, p.y}; });
     }
-    PointF best = path.front();
-    double bestDistance = distance2(point, best);
-    for (std::size_t i = 1; i < path.size(); ++i) {
-        const PointF candidate = closestOnSegment(point, path[i - 1], path[i]);
-        const double d = distance2(point, candidate);
-        if (d < bestDistance) {
-            best = candidate;
-            bestDistance = d;
-        }
+    if (const auto* line = std::get_if<Line>(track); line && !line->points.empty()) {
+        return nearestOnPolyline(line->points, t, point, [](const PointF& p) { return p; });
     }
-    return best;
+    return point;
 }
 
 PointF landingPoint(const Page& page, const PageObject& object, PointF dropped)
@@ -191,7 +226,9 @@ PointF landingPoint(const Page& page, const PageObject& object, PointF dropped)
     if (r.magnetMark == Mark::Point) {
         return r.magnetPoint; // point précis, coordonnées de page : le centre s'y pose
     }
-    // Dernier conteneur (le plus haut dans la superposition) sous le point de dépôt.
+    // Dernier conteneur (le plus haut dans la superposition) sous le point de dépôt, sans règle d'acceptation
+    // (containers.h, L8-T14) : le choix du conteneur revient à l'appelant (L8-T16), qui n'accroche que si ce
+    // conteneur accepte l'objet.
     const PageObject* container = nullptr;
     for (auto it = page.objects.rbegin(); it != page.objects.rend(); ++it) {
         if (it->common.id == object.common.id || it->common.container.accepts == Accepts::Nothing ||
@@ -229,13 +266,14 @@ double allowedTurn(const PageObject& object, double fromDegrees, double wantedDe
     if (r.turnStep > 0 && std::isfinite(r.turnStep)) {
         angle = std::round(wantedDegrees / r.turnStep) * r.turnStep; // pas : au plus proche
     }
-    // Sens du tour le plus court de `from` à `angle` : positif = horaire (rotation(), model.h).
+    // Tour le plus court du dernier angle permis à l'angle voulu : positif = horaire (rotation(), model.h).
+    // Sûr tant que deux mouvements successifs sont à moins d'un demi-tour l'un de l'autre.
     const double turn = std::remainder(angle - fromDegrees, 360.0);
     if ((r.turning == Turning::Clockwise && turn < 0) ||
         (r.turning == Turning::CounterClockwise && turn > 0)) {
         return fromDegrees;
     }
-    return angle;
+    return fromDegrees + turn; // continu avec le précédent, même si l'angle voulu saute de 360°
 }
 
 PointF pivotOf(const Page& page, const PageObject& object)
@@ -257,29 +295,29 @@ PointF pivotOf(const Page& page, const PageObject& object)
 
 PointF stopAtBlockers(const Page& page, const std::vector<ObjectId>& moving, PointF wanted)
 {
-    bool any = false;
-    double left = 0, top = 0, right = 0, bottom = 0;
+    const auto isBlocker = [&](const PageObject& o) {
+        return o.common.restrictions.blocksOthers && !contains(moving, o.common.id) && hasExtent(page, o);
+    };
+    if (std::none_of(page.objects.begin(), page.objects.end(), isBlocker)) {
+        return wanted; // cas courant : aucun bloquant hors des objets soulevés, rien à calculer
+    }
+    // Une boîte par objet soulevé : leur union recouvrirait un bloquant placé entre eux.
+    std::vector<RectF> boxes;
+    boxes.reserve(moving.size());
     for (const PageObject& o : page.objects) {
-        if (!contains(moving, o.common.id) || !hasExtent(page, o)) {
-            continue;
+        if (contains(moving, o.common.id) && hasExtent(page, o)) {
+            boxes.push_back(boundsOnPage(page, o));
         }
-        const RectF b = boundsOnPage(page, o);
-        left = any ? std::min(left, b.x) : b.x;
-        top = any ? std::min(top, b.y) : b.y;
-        right = any ? std::max(right, b.x + b.width) : b.x + b.width;
-        bottom = any ? std::max(bottom, b.y + b.height) : b.y + b.height;
-        any = true;
     }
-    if (!any) {
-        return wanted;
-    }
-    const RectF box{left, top, right - left, bottom - top};
     double t = 1;
     for (const PageObject& o : page.objects) {
-        if (!o.common.restrictions.blocksOthers || contains(moving, o.common.id) || !hasExtent(page, o)) {
+        if (!isBlocker(o)) {
             continue;
         }
-        t = std::min(t, firstContact(box, boundsOnPage(page, o), wanted));
+        const RectF blocker = boundsOnPage(page, o);
+        for (const RectF& box : boxes) {
+            t = std::min(t, firstContact(box, blocker, wanted));
+        }
     }
     return {wanted.x * t, wanted.y * t};
 }

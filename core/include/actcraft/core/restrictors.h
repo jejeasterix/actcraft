@@ -14,9 +14,16 @@ namespace actcraft::core {
 PointF allowedTravel(const Page& page, const PageObject& object, PointF wanted);
 // Point du chemin (Travel::AlongTrack) le plus proche de `point` ; `point` si pas de chemin.
 PointF projectOnTrack(const Page& page, const PageObject& object, PointF point);
-// Position du centre après accrochage (magnet), ou `dropped` si l'objet n'accroche pas.
+// Position du centre après accrochage (magnet), ou `dropped` si l'objet n'accroche pas. Le repère de l'objet
+// se pose sur le même repère du conteneur le plus haut sous `dropped` ; Mark::Point : le centre se pose sur
+// `magnetPoint` (page). Aucune règle d'acceptation (containers.h, L8-T14) : le choix du conteneur revient à
+// l'appelant (L8-T16), qui n'accroche que si ce conteneur accepte l'objet.
 PointF landingPoint(const Page& page, const PageObject& object, PointF dropped);
 bool sizeHandlesShown(const PageObject& object) noexcept; // faux si dimension bloquée (E6)
+// Angle permis pour l'angle voulu `wantedDegrees` (sens horaire positif). Contrat : `fromDegrees` est le
+// dernier angle permis, celui que cette fonction a rendu au mouvement précédent du même glisser (l'angle de
+// l'objet au premier), jamais l'angle de départ du glisser : le sens se lit sur le tour le plus court entre
+// les deux. L'angle voulu peut être ramené à ]-180, 180] ; le résultat reste continu avec `fromDegrees`.
 double allowedTurn(const PageObject& object, double fromDegrees, double wantedDegrees) noexcept;
 PointF pivotOf(const Page& page, const PageObject& object); // page
 // Déplacement réduit pour que la boîte des objets `moving` ne passe sur aucun objet bloquant.
