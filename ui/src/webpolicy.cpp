@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QStringList>
 
+#include <atomic>
 #include <utility>
 
 namespace actcraft::ui {
@@ -16,6 +17,15 @@ constexpr Qt::CaseSensitivity kPathCase = Qt::CaseInsensitive;
 #else
 constexpr Qt::CaseSensitivity kPathCase = Qt::CaseSensitive;
 #endif
+
+std::atomic<int> g_diskQueries{0};
+
+// Seule porte de decide() vers le disque, comptée (diskQueries).
+QFileInfo diskInfo(const QString& path)
+{
+    ++g_diskQueries;
+    return QFileInfo(path);
+}
 
 // Même règle que l'ouvreur des liens (linklauncher.cpp, isNetworkPath, dans son espace de noms anonyme) :
 // « \\hôte\… », « //hôte/… », « file://hôte/… », « file:////hôte/… ». Aucun accès au disque : sous Windows,
@@ -40,8 +50,8 @@ QString realPath(const QString& cleaned)
 {
     QString existing = cleaned;
     QStringList rest;
-    while (!QFileInfo::exists(existing)) {
-        const QFileInfo info(existing);
+    while (!diskInfo(existing).exists()) {
+        const QFileInfo info = diskInfo(existing);
         if (info.isSymLink())
             return {};
         const QString parent = info.path();
@@ -50,7 +60,7 @@ QString realPath(const QString& cleaned)
         rest.prepend(info.fileName());
         existing = parent;
     }
-    const QString canonical = QFileInfo(existing).canonicalFilePath();
+    const QString canonical = diskInfo(existing).canonicalFilePath();
     if (canonical.isEmpty())
         return {};
     for (const QString& part : std::as_const(rest))
@@ -59,7 +69,8 @@ QString realPath(const QString& cleaned)
     return rest.isEmpty() ? canonical : QDir(canonical).filePath(rest.join(u'/'));
 }
 
-// Strictement dans le dossier : le dossier lui-même (sa liste) et un voisin au nom prolongé sont dehors.
+// Strictement dans le dossier : le dossier lui-même (sa liste) et un voisin au nom prolongé sont dehors. Sans
+// accès au disque.
 bool isInside(const QString& path, const QString& folder)
 {
     if (path.isEmpty() || folder.isEmpty() || path.compare(folder, kPathCase) == 0)
@@ -93,32 +104,57 @@ bool isImageData(const QUrl& url)
     return kImages.contains(mediaType);
 }
 
-QString pageKey(const QString& documentKey, int page)
+// Fichier local demandé par un cadre : le chemin réseau est refusé, puis le chemin nettoyé doit être dans le
+// dossier (tel que donné ou réel) AVANT tout accès au disque à son sujet ; enfin son chemin réel (liens
+// résolus) doit y être aussi.
+bool isAllowedFile(const QUrl& url, const QString& resourceFolder)
 {
-    return documentKey + u'#' + QString::number(page);
+    if (isNetworkPath(url) || resourceFolder.isEmpty() || isNetworkFolder(resourceFolder))
+        return false;
+    const QString path = QDir::cleanPath(QDir::fromNativeSeparators(url.toLocalFile()));
+    const QString folder = QDir::cleanPath(QDir::fromNativeSeparators(resourceFolder));
+    if (!QDir::isAbsolutePath(path) || !QDir::isAbsolutePath(folder))
+        return false;
+    // Un « : » hors de la lettre de lecteur : flux de données d'un fichier sous Windows (« a.png:b »).
+    const qsizetype from = path.size() > 1 && path.at(1) == u':' ? 2 : 0;
+    if (path.indexOf(u':', from) >= 0)
+        return false;
+    const QString realFolder =
+        QFileInfo(folder).canonicalFilePath(); // le dossier du document, pas la demande
+    return isInside(realPath(path), realFolder);
 }
 
 } // namespace
 
-void WebContentPolicy::setResourceFolder(const QString& folder)
+void WebContentPolicy::setResourceFolder(const QString& documentKey, const QString& folder)
 {
-    m_folder = folder;
+    m_documents[QString()].folder = folder;
 }
 
-void WebContentPolicy::setReceived(bool received)
+void WebContentPolicy::setReceived(const QString& documentKey, bool received)
 {
-    m_received = received;
+    m_documents[QString()].received = received;
 }
 
-void WebContentPolicy::typedByUser(const QUrl& address)
+void WebContentPolicy::typedByUser(const QString& documentKey, const QUrl& address)
 {
     if (isAcceptableRemote(address))
-        m_typed.insert(originOf(address));
+        m_documents[QString()].typed.insert(originOf(address));
 }
 
 void WebContentPolicy::unblock(const QString& documentKey, int page)
 {
-    m_unblocked.insert(pageKey(documentKey, page));
+    m_documents[QString()].unblocked.insert(page);
+}
+
+void WebContentPolicy::forget(const QString& documentKey)
+{
+    m_documents.remove(documentKey);
+}
+
+int WebContentPolicy::diskQueries()
+{
+    return g_diskQueries.load();
 }
 
 WebContentPolicy::Verdict WebContentPolicy::decide(const QUrl& url, const QString& documentKey,
@@ -126,33 +162,21 @@ WebContentPolicy::Verdict WebContentPolicy::decide(const QUrl& url, const QStrin
 {
     if (!url.isValid())
         return Verdict::Refuse;
-    const QString scheme = url.scheme(); // QUrl rend le schéma en minuscules
+    const DocumentState state = m_documents.value(QString()); // clé inconnue : document de la session, vide
+    const QString scheme = url.scheme();                      // QUrl rend le schéma en minuscules
     if (scheme == QLatin1String("about"))
         return url.path() == QLatin1String("blank") ? Verdict::Load : Verdict::Refuse;
     if (scheme == QLatin1String("data"))
         return isImageData(url) ? Verdict::Load : Verdict::Refuse;
-    if (scheme == QLatin1String("file")) {
-        // Le chemin réseau est refusé avant tout accès au disque.
-        if (isNetworkPath(url) || m_folder.isEmpty() || isNetworkFolder(m_folder))
-            return Verdict::Refuse;
-        const QString path = QDir::cleanPath(QDir::fromNativeSeparators(url.toLocalFile()));
-        const QString folder = QDir::cleanPath(QDir::fromNativeSeparators(m_folder));
-        if (!QDir::isAbsolutePath(path) || !QDir::isAbsolutePath(folder))
-            return Verdict::Refuse;
-        // Un « : » hors de la lettre de lecteur : flux de données d'un fichier sous Windows (« a.png:b »).
-        const qsizetype from = path.size() > 1 && path.at(1) == u':' ? 2 : 0;
-        if (path.indexOf(u':', from) >= 0)
-            return Verdict::Refuse;
-        return isInside(realPath(path), QFileInfo(folder).canonicalFilePath()) ? Verdict::Load
-                                                                               : Verdict::Refuse;
-    }
+    if (scheme == QLatin1String("file"))
+        return isAllowedFile(url, state.folder) ? Verdict::Load : Verdict::Refuse;
     if (!isAcceptableRemote(url)) // tout autre schéma, hôte absent, identifiants
         return Verdict::Refuse;
-    if (m_typed.contains(originOf(url)))
+    if (state.typed.contains(originOf(url)))
         return Verdict::Load;
-    if (!m_received) // hors document reçu, l'adresse saisie est la seule voie distante
+    if (!state.received) // hors document reçu, l'adresse saisie est la seule voie distante
         return Verdict::Refuse;
-    return m_unblocked.contains(pageKey(documentKey, page)) ? Verdict::Load : Verdict::Blocked;
+    return state.unblocked.contains(page) ? Verdict::Load : Verdict::Blocked;
 }
 
 } // namespace actcraft::ui

@@ -17,41 +17,111 @@ private slots:
     {
         QTemporaryDir dir;
         WebContentPolicy p;
-        p.setResourceFolder(dir.path());
+        p.setResourceFolder(QStringLiteral("d"), dir.path());
         QCOMPARE(p.decide(QUrl::fromLocalFile(QStringLiteral("C:/Windows/win.ini")), QStringLiteral("d"), 0),
                  V::Refuse);
         QCOMPARE(
             p.decide(QUrl::fromLocalFile(dir.filePath(QStringLiteral("../x.png"))), QStringLiteral("d"), 0),
             V::Refuse);
+        // Hors du dossier, pas seulement relatif : un fichier absolu qui existe.
+        QTemporaryDir outside;
+        QFile existing(outside.filePath(QStringLiteral("win.ini")));
+        QVERIFY(existing.open(QIODevice::WriteOnly));
+        existing.close();
+        QCOMPARE(p.decide(QUrl::fromLocalFile(existing.fileName()), QStringLiteral("d"), 0), V::Refuse);
     }
     void fileInsideResourcesAllowed()
     {
         QTemporaryDir dir;
         WebContentPolicy p;
-        p.setResourceFolder(dir.path());
+        p.setResourceFolder(QStringLiteral("d"), dir.path());
         QCOMPARE(p.decide(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.png"))), QStringLiteral("d"), 0),
                  V::Load);
     }
     void networkPathRefused()
     {
+        // Dossier posé : sans la garde réseau, « file:////<dossier>/a.png » se nettoierait en un fichier du
+        // dossier.
+        QTemporaryDir dir;
         WebContentPolicy p;
+        p.setResourceFolder(QStringLiteral("d"), dir.path());
+        const QString inside = dir.filePath(QStringLiteral("a.png"));
+        QCOMPARE(p.decide(QUrl::fromLocalFile(inside), QStringLiteral("d"), 0), V::Load); // témoin
+        QCOMPARE(p.decide(QUrl(QStringLiteral("file:////") + inside.mid(inside.startsWith(u'/') ? 1 : 0)),
+                          QStringLiteral("d"), 0),
+                 V::Refuse);
         QCOMPARE(p.decide(QUrl(QStringLiteral("file://serveur/partage/a.png")), QStringLiteral("d"), 0),
                  V::Refuse);
         QCOMPARE(
             p.decide(QUrl::fromLocalFile(QStringLiteral("//serveur/partage/a.png")), QStringLiteral("d"), 0),
             V::Refuse);
+        QCOMPARE(p.decide(QUrl::fromLocalFile(QStringLiteral("\\\\serveur\\partage\\a.png")),
+                          QStringLiteral("d"), 0),
+                 V::Refuse);
+    }
+    // H8-13 : une politique par document ; rien de saisi, débloqué ni posé dans l'un ne vaut pour l'autre.
+    void documentsShareNothing()
+    {
+        QTemporaryDir dir;
+        WebContentPolicy p;
+        p.typedByUser(QStringLiteral("cree"), QUrl(QStringLiteral("https://example.org/")));
+        p.unblock(QStringLiteral("cree"), 0);
+        p.setResourceFolder(QStringLiteral("cree"), dir.path());
+        p.setReceived(QStringLiteral("recu"), true);
+        QCOMPARE(p.decide(QUrl(QStringLiteral("https://example.org/")), QStringLiteral("cree"), 0), V::Load);
+        QCOMPARE(p.decide(QUrl(QStringLiteral("https://example.org/")), QStringLiteral("recu"), 0),
+                 V::Blocked);
+        QCOMPARE(
+            p.decide(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.png"))), QStringLiteral("recu"), 0),
+            V::Refuse);
+        QCOMPARE(
+            p.decide(QUrl(QStringLiteral("http://127.0.0.1:8765/")), QStringLiteral("cree"), 0),
+            V::Refuse); // « cree » n'est pas reçu : son déblocage ne fait rien, « recu » ne le rend pas reçu
+        p.forget(QStringLiteral("cree"));
+        QCOMPARE(p.decide(QUrl(QStringLiteral("https://example.org/")), QStringLiteral("cree"), 0),
+                 V::Refuse);
+    }
+    void otherPortIsAnotherOrigin()
+    {
+        WebContentPolicy p;
+        p.typedByUser(QStringLiteral("d"), QUrl(QStringLiteral("https://example.org/")));
+        QCOMPARE(p.decide(QUrl(QStringLiteral("https://example.org:443/a")), QStringLiteral("d"), 0),
+                 V::Load);
+        QCOMPARE(p.decide(QUrl(QStringLiteral("https://example.org:8443/")), QStringLiteral("d"), 0),
+                 V::Refuse);
+    }
+    // La garde de typedByUser : une adresse à identifiants saisie n'ouvre pas son hôte réel.
+    void typedAddressWithCredentialsGrantsNothing()
+    {
+        WebContentPolicy p;
+        p.setReceived(QStringLiteral("d"), true);
+        p.typedByUser(QStringLiteral("d"), QUrl(QStringLiteral("https://ecole.example@evil.example/")));
+        QCOMPARE(p.decide(QUrl(QStringLiteral("https://evil.example/")), QStringLiteral("d"), 1), V::Blocked);
+    }
+    // Le préfixe du dossier est contrôlé avant tout accès au disque au sujet du chemin demandé.
+    void outsidePathTouchesNoDisk()
+    {
+        QTemporaryDir dir;
+        QTemporaryDir outside;
+        WebContentPolicy p;
+        p.setResourceFolder(QStringLiteral("d"), dir.path());
+        const int before = WebContentPolicy::diskQueries();
+        QCOMPARE(p.decide(QUrl::fromLocalFile(outside.filePath(QStringLiteral("x/y/z.png"))),
+                          QStringLiteral("d"), 0),
+                 V::Refuse);
+        QCOMPARE(WebContentPolicy::diskQueries(), before);
     }
     void remoteBlockedInAReceivedDocument()
     {
         WebContentPolicy p;
-        p.setReceived(true);
+        p.setReceived(QStringLiteral("d"), true);
         QCOMPARE(p.decide(QUrl(QStringLiteral("http://127.0.0.1:8765/")), QStringLiteral("d"), 2),
                  V::Blocked);
     }
     void unblockIsPerPageAndDocument()
     {
         WebContentPolicy p;
-        p.setReceived(true);
+        p.setReceived(QStringLiteral("d"), true);
         p.unblock(QStringLiteral("d"), 2);
         QCOMPARE(p.decide(QUrl(QStringLiteral("http://127.0.0.1:8765/")), QStringLiteral("d"), 2), V::Load);
         QCOMPARE(p.decide(QUrl(QStringLiteral("http://127.0.0.1:8765/")), QStringLiteral("d"), 3),
@@ -62,8 +132,8 @@ private slots:
     void typedAddressIsNotReceived()
     {
         WebContentPolicy p;
-        p.setReceived(true);
-        p.typedByUser(QUrl(QStringLiteral("https://example.org/")));
+        p.setReceived(QStringLiteral("d"), true);
+        p.typedByUser(QStringLiteral("d"), QUrl(QStringLiteral("https://example.org/")));
         QCOMPARE(p.decide(QUrl(QStringLiteral("https://example.org/")), QStringLiteral("d"), 0), V::Load);
         QCOMPARE(p.decide(QUrl(QStringLiteral("https://autre.example/")), QStringLiteral("d"), 0),
                  V::Blocked);
@@ -80,6 +150,8 @@ private slots:
             const QString source = QString::fromUtf8(f.readAll());
             QVERIFY2(!source.contains(QStringLiteral("setHtml")), rel);
             QVERIFY2(!source.contains(QStringLiteral("RichText")), rel);
+            for (const char* word : {"insertHtml", "fromHtml", "StyledText", "MarkdownText"})
+                QVERIFY2(!source.contains(QLatin1String(word)), rel);
         }
     }
 
@@ -91,8 +163,8 @@ private slots:
         QTemporaryDir dir;
         QTemporaryDir outside;
         WebContentPolicy p;
-        p.setResourceFolder(dir.path());
-        p.typedByUser(QUrl(QStringLiteral("https://example.org/")));
+        p.setResourceFolder(QStringLiteral("d"), dir.path());
+        p.typedByUser(QStringLiteral("d"), QUrl(QStringLiteral("https://example.org/")));
         QCOMPARE(p.decide(QUrl::fromLocalFile(outside.filePath(QStringLiteral("secret.txt"))),
                           QStringLiteral("d"), 0),
                  V::Refuse);
@@ -116,9 +188,9 @@ private slots:
     void onlyAllowedSchemes()
     {
         WebContentPolicy p;
-        p.setReceived(true);
+        p.setReceived(QStringLiteral("d"), true);
         p.unblock(QStringLiteral("d"), 0);
-        p.typedByUser(QUrl(QStringLiteral("https://ecole.example@evil.example/")));
+        p.typedByUser(QStringLiteral("d"), QUrl(QStringLiteral("https://ecole.example@evil.example/")));
         const auto decide = [&p](const char* url) {
             return p.decide(QUrl(QString::fromLatin1(url)), QStringLiteral("d"), 0);
         };
@@ -142,7 +214,7 @@ private slots:
         WebContentPolicy p;
         QCOMPARE(p.decide(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.png"))), QStringLiteral("d"), 0),
                  V::Refuse);
-        p.setResourceFolder(dir.path());
+        p.setResourceFolder(QStringLiteral("d"), dir.path());
         QCOMPARE(p.decide(QUrl::fromLocalFile(dir.path()), QStringLiteral("d"), 0),
                  V::Refuse); // le dossier même
         QCOMPARE(p.decide(QUrl::fromLocalFile(dir.path() + QStringLiteral("-voisin/a.png")),
@@ -163,7 +235,7 @@ private slots:
         const QString link = dir.filePath(QStringLiteral("lien.png"));
         QVERIFY(QFile::link(target, link));
         WebContentPolicy p;
-        p.setResourceFolder(dir.path());
+        p.setResourceFolder(QStringLiteral("d"), dir.path());
         QCOMPARE(p.decide(QUrl::fromLocalFile(link), QStringLiteral("d"), 0), V::Refuse);
         QFile inside(dir.filePath(QStringLiteral("vrai.png")));
         QVERIFY(inside.open(QIODevice::WriteOnly));
