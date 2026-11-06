@@ -1,5 +1,7 @@
 # Livraison complète — lot 8 « Interactivité et multimédia », sous-lot 8b — plan d'exécution
 
+> **Amendement 3 (L8-T0, 2026-11-06)** : voir le plan 8a, « Amendement 3 » ; il fait autorité ici aussi (H8-7 lot 7 non fusionné, H8-8 `page.copy`/`page.cut` refusées par la diffusion protégée, A8, A12, A19, A26).
+
 > Exécution : étage 3 de nouvelle-feature — l'orchestrateur lit la table, une tâche = sa section.
 
 **But.** Fin du lot 8 et version **0.9.0** : installation des modules Qt du lot (porte H8-6), dialogues de liens,
