@@ -203,6 +203,10 @@ private slots:
     // Correctifs de la revue de L8-T9 : le geste réel, par l'outil actif de l'hôte.
     void gateClickRunsThroughActiveTool();
     void gateDragMovesWithoutRunning();
+    void groupWithoutActionDoesNotHide();
+    void diagonalStrokeBlocksOnlyItsLine();
+    void lockedTargetActionKeepsSelection();
+    void clickSlopInScreenPixels();
 
 private:
     void load(core::Document document);
@@ -686,6 +690,83 @@ void TstUiActionrunner::gateDragMovesWithoutRunning()
     QVERIFY(!hidden(kLabel)); // aucune action
     QVERIFY2(roundX(m_controllerOwner->document()) > before + 30, "le glisser déplace le rond");
     QVERIFY(m_controllerOwner->canUndo()); // le déplacement, seule étape
+    tools.setActionRunner(nullptr);
+}
+
+// Revue, point 2 : un groupe sans action, posé en haut de sa couche (makeGroupCommand), ne masque pas le rond
+// à action qu'il contient ; le clic va aux membres, comme core::objectAt. Sous l'emprise du groupe : rien.
+void TstUiActionrunner::groupWithoutActionDoesNotHide()
+{
+    core::Document document = documentWith({action("object.toggle-hidden", kLabel)});
+    core::Group group;
+    group.members = {kRound, kLabel};
+    core::PageObject object{group};
+    object.common.id = 3;
+    document.page(0).objects.push_back(object); // au-dessus de ses membres
+    load(std::move(document));
+    click(kOnRound);
+    QVERIFY(hidden(kLabel));
+}
+
+// Revue, point 2 : un trait diagonal sans action ne bloque que sa ligne (strokeHit d'objectAt), pas tout son
+// rectangle englobant.
+void TstUiActionrunner::diagonalStrokeBlocksOnlyItsLine()
+{
+    core::Document document = documentWith({action("object.toggle-hidden", kLabel)});
+    core::Stroke stroke;
+    stroke.points = {{100, 250, 0.5f}, {250, 100, 0.5f}}; // x + y = 350 : à 35 px du point du rond
+    core::PageObject object{stroke};
+    object.common.id = 3;
+    object.common.layer = core::Layer::Top;
+    document.page(0).objects.push_back(object);
+    load(std::move(document));
+    click(kOnRound); // dans le rectangle du trait, loin de sa ligne
+    QVERIFY(hidden(kLabel));
+    click(QPointF(175, 175)); // sur la ligne : le trait est au-dessus, rien ne tourne
+    QVERIFY(hidden(kLabel));
+}
+
+// Revue, point 3 : sous le verrou, une action sur cible (copier) est refusée sans changer la sélection.
+void TstUiActionrunner::lockedTargetActionKeepsSelection()
+{
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    tools.setActionRunner(m_runner.get());
+    int copies = 0;
+    m_commands->setNativeHandler(QStringLiteral("edit.copy"), [&copies](const QVariant&) { ++copies; });
+    load(documentWith({action("object.copy", kLabel)}));
+    m_commands->setLocked(true);
+    QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
+    click(kOnRound);
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(copies, 0);
+    QCOMPARE(tools.selectionCount(), 0);
+    tools.setActionRunner(nullptr);
+}
+
+// Revue, point 5 : le seuil du clic se mesure en pixels d'écran, comme la sélection (2 px). À 25 %, un
+// tremblement de 2 px d'écran (8 px de page) reste un clic.
+void TstUiActionrunner::clickSlopInScreenPixels()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    ViewMount mount;
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    QVERIFY(mount.mount(*m_controllerOwner, tools));
+    tools.setActionRunner(m_runner.get());
+    tools.selectObjects({});
+    mount.view->setZoom(0.25);
+    QCOMPARE(mount.view->zoom(), 0.25);
+    const QPoint at = windowPoint(*mount.view, kOnRound);
+    m_runner->setContactActive(true);
+    QTest::mousePress(mount.window, Qt::LeftButton, Qt::NoModifier, at);
+    QTest::mouseMove(mount.window, at + QPoint(2, 0));
+    QTest::mouseRelease(mount.window, Qt::LeftButton, Qt::NoModifier, at + QPoint(2, 0));
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY2(hidden(kLabel), "2 px d'écran : un clic");
     tools.setActionRunner(nullptr);
 }
 
