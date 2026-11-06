@@ -701,7 +701,18 @@ private slots:
         const auto listedHas = [&listed](const QRect& r) {
             return std::find(listed.begin(), listed.end(), r) != listed.end();
         };
-        QVERIFY2(listedHas(expected), qPrintable(QStringLiteral("%1 fenêtres listées").arg(listed.size())));
+        // Passe Windows du lot 7 : rejoué sous QT_SCALE_FACTOR=2 (entrée ctest tst_ui_camera_ratio2), la
+        // fenêtre est listée en pixels logiques de Qt, pas en pixels physiques. Valeurs écrites à la main :
+        // (123, 145, 234, 156) / 2 = (61,5 ; 72,5 ; 117 ; 78), arrondi vers l'extérieur. Mutant : rapport
+        // ignoré par toQtPixels (camera_win.cpp) → la fenêtre est listée à (123, 145, 234, 156).
+        const qreal ratio = QGuiApplication::primaryScreen()->devicePixelRatio();
+        if (qEnvironmentVariable("QT_SCALE_FACTOR") == QStringLiteral("2")) {
+            QCOMPARE(ratio, 2.0);
+        }
+        const QRect expectedInQt = ratio == 2.0 ? QRect(61, 72, 118, 79) : expected;
+        QVERIFY2(listedHas(expectedInQt),
+                 qPrintable(QStringLiteral("%1 fenêtres listées, rapport %2").arg(listed.size()).arg(ratio)));
+        QVERIFY2(ratio == 1.0 || !listedHas(expected), "fenêtre listée en pixels physiques");
         QVERIFY2(!listedHas(clickThrough), "fenêtre transparente aux clics listée");
         QVERIFY2(!listedHas(cloaked), "fenêtre masquée par le compositeur listée");
 #else

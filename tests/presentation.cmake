@@ -42,6 +42,12 @@ foreach(_key IN LISTS _lot7_ui_keys)
     add_test(NAME tst_ui_${_key} COMMAND tst_ui_lot7 ${_key})
     set_tests_properties(tst_ui_${_key} PROPERTIES ENVIRONMENT "${_lot7_env}")
 endforeach()
+# Passe Windows du lot 7 : liste des fenêtres du bureau en pixels logiques avec un rapport de pixels de 2
+# (camera_win.cpp, toQtPixels). Une entrée de plus que le compte figé ci-dessus (N = N_F + 30).
+if(WIN32)
+    add_test(NAME tst_ui_camera_ratio2 COMMAND tst_ui_lot7 camera topLevelWindowsListsOurWindow)
+    set_tests_properties(tst_ui_camera_ratio2 PROPERTIES ENVIRONMENT "${_lot7_env};QT_SCALE_FACTOR=2")
+endif()
 
 actcraft_add_test(tst_core_equation SOURCES tst_core_equation.cpp LIBS ActCraft::core)
 actcraft_add_test(tst_render_equation SOURCES tst_render_equation.cpp LIBS ActCraft::render Qt6::Gui)
