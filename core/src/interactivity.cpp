@@ -33,11 +33,12 @@ bool isDefault(const Restrictions& r) noexcept
 {
     const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
                  pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = r;
-    static_cast<void>(movable); // champs du lot 2 : hors de ce défaut
-    static_cast<void>(resizable);
-    static_cast<void>(rotatable);
+    static_cast<void>(resizable); // champ du lot 2 : hors de ce défaut
+    // Le mode Fixed porté par un booléen faux ne dit rien de plus que le lot 2 : c'est le défaut.
     const Restrictions d;
-    return travel == d.travel && track == d.track && turning == d.turning && turnStep == d.turnStep &&
+    const bool travelDefault = travel == d.travel || (travel == Travel::Fixed && !movable);
+    const bool turningDefault = turning == d.turning || (turning == Turning::Fixed && !rotatable);
+    return travelDefault && track == d.track && turningDefault && turnStep == d.turnStep &&
            pivot == d.pivot && pivotPoint.x == d.pivotPoint.x && pivotPoint.y == d.pivotPoint.y &&
            pivotObject == d.pivotObject && blocksOthers == d.blocksOthers && magnet == d.magnet &&
            magnetMark == d.magnetMark && magnetPoint.x == d.magnetPoint.x && magnetPoint.y == d.magnetPoint.y;

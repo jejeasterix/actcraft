@@ -136,6 +136,15 @@ void hashLabelStyle(Fnv1a& h, const LabelStyle& style) noexcept
     hashUnknownKeys(h, unknownKeys); // vide : le flux d'avant les sous-clés gardées
 }
 
+// Restrictions sous leur forme normalisée (interactivity.h) : un objet bloqué par son booléen (lot 2) ou par
+// son mode Fixed (lot 8) est un seul état, haché pareil : fingerprint(normalize(d)) == fingerprint(d) (revue
+// de L8-T3, normalizeKeepsFingerprint).
+Restrictions normalized(Restrictions r) noexcept
+{
+    normalize(r);
+    return r;
+}
+
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
 {
     // labelStyle, keywords : fin du flux (fingerprint, L6-T10), jamais ici.
@@ -153,7 +162,7 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     }
     h.byte(translucency);
     const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
-                 pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = restrictions;
+                 pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = normalized(restrictions);
     h.boolean(movable);
     h.boolean(resizable);
     h.boolean(rotatable);
@@ -359,7 +368,7 @@ std::uint8_t kindTag(ObjectKind kind) noexcept
 bool hasLot8Data(const PageObject& object) noexcept
 {
     const ObjectCommon& c = object.common;
-    if (!isDefault(c.restrictions) || !isDefault(c.container)) {
+    if (!isDefault(normalized(c.restrictions)) || !isDefault(c.container)) {
         return true;
     }
     for (const Action& a : c.actions) {
@@ -380,7 +389,7 @@ void hashLot8(Fnv1a& h, const PageObject& object) noexcept
     }
     const ObjectCommon& c = object.common;
     h.byte(0xB8);
-    const Restrictions& r = c.restrictions;
+    const Restrictions r = normalized(c.restrictions);
     h.tag(r.travel);
     h.u64(r.track);
     h.tag(r.turning);

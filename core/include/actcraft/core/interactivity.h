@@ -9,7 +9,9 @@ namespace actcraft::core {
 void setTravel(Restrictions& r, Travel t) noexcept;   // movable = t != Fixed
 void setTurning(Restrictions& r, Turning t) noexcept; // rotatable = t != Fixed
 void normalize(Restrictions& r) noexcept;             // booléen faux → mode Fixed ; mode Fixed → booléen faux
-bool isDefault(const Restrictions& r) noexcept;       // ne regarde que les champs du lot 8
+// Ne regarde que les champs du lot 8 ; le mode Fixed avec son booléen faux (objet bloqué au lot 2) est le
+// défaut.
+bool isDefault(const Restrictions& r) noexcept;
 bool isDefault(const ContainerRule& c) noexcept;
 bool isSupported(const Action& a) noexcept; // catalogId non vide
 

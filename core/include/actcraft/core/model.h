@@ -470,11 +470,6 @@ struct Equation
     Argb color = 0xFF000000u;
 };
 
-// Objet d'un type que cette version ne connaît pas (fichier d'une version plus récente, L2-C8) : gardé tel
-// quel et réécrit à l'identique ; montré par un repère neutre ; jamais modifié par cette version. `json` :
-// l'objet JSON lu, toutes ses clés (« type » compris), en texte UTF-8 compact, que formats/ seul interprète.
-// `common` (PageObject) en est tiré pour la couche, l'ordre, l'identifiant et la transformation ; il n'est
-// pas réécrit. `bounds` : boîte en coordonnées de l'objet, si le fichier en donne une lisible.
 // Cadre web (F-302, S27) : code HTML saisi, ou adresse ; jamais chargé sans la politique de L8-T29.
 struct WebFrame
 {
@@ -483,6 +478,11 @@ struct WebFrame
     std::string address;
 };
 
+// Objet d'un type que cette version ne connaît pas (fichier d'une version plus récente, L2-C8) : gardé tel
+// quel et réécrit à l'identique ; montré par un repère neutre ; jamais modifié par cette version. `json` :
+// l'objet JSON lu, toutes ses clés (« type » compris), en texte UTF-8 compact, que formats/ seul interprète.
+// `common` (PageObject) en est tiré pour la couche, l'ordre, l'identifiant et la transformation ; il n'est
+// pas réécrit. `bounds` : boîte en coordonnées de l'objet, si le fichier en donne une lisible.
 struct UnknownObject
 {
     std::string type;
