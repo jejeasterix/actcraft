@@ -134,6 +134,11 @@ Item {
                 clip: true
                 visible: frame.showsView && !frameLayer.covered
                 property var web: null
+                // Magasin de cookies du moteur : commun à toutes les vues et gardé d'une session à l'autre ;
+                // vidé avant le premier contenu de chaque document et à la destruction de la vue (H8-13 :
+                // rien ne passe d'un document à un autre ; deleteAllCookies, Qt WebView 6.3+).
+                property string cookiesFor: ""
+                Component.onDestruction: if (web) web.deleteAllCookies()
                 function show() {
                     if (!frame.showsView || !appWebFrames.engineBuilt)
                         return
@@ -161,7 +166,13 @@ Item {
                                 web.stop()
                         })
                     }
-                    web.loadHtml(frame.content, frame.baseUrl)
+                    if (cookiesFor !== appWebFrames.documentKey) {
+                        web.deleteAllCookies()
+                        cookiesFor = appWebFrames.documentKey
+                    }
+                    // Sans base : le document est about:blank, ses adresses sont déjà absolues ; toute
+                    // navigation du moteur repasse par followLink et s'arrête.
+                    web.loadHtml(frame.content, "")
                 }
             }
             onSerialChanged: viewHost.show()

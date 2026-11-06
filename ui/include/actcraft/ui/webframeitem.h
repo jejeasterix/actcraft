@@ -16,8 +16,9 @@
 #include <cstdint>
 #include <functional>
 
-// Moteur web construit : vrai quand actcraft_ui est lié à Qt WebView (option ACTCRAFT_WEBFRAME du
-// CMakeLists.txt racine ; la cible Qt6::WebView pose QT_WEBVIEW_LIB chez tous ceux qui la lient).
+// Moteur web construit : vrai quand actcraft_ui est lié à Qt WebView (option
+// ACTCRAFT_WEBFRAME du CMakeLists.txt racine ; la cible Qt6::WebView pose
+// QT_WEBVIEW_LIB chez tous ceux qui la lient).
 #ifndef ACTCRAFT_WEBFRAME
 #ifdef QT_WEBVIEW_LIB
 #define ACTCRAFT_WEBFRAME 1
@@ -36,13 +37,16 @@ class DocumentController;
 
 // Cadres web de la page courante (S27, F-302), vus par WebFrameLayer.qml.
 //
-// Chaque requête du cadre passe par WebContentPolicy::decide (L8-T29), jamais par une règle posée une fois
-// dans le QML de la vue : Qt WebView 6.12 n'offre ni filtre de requêtes ni décision de navigation (seuls
-// `loadingChanged` et `urlChanged`, après coup, sous WKWebView comme sous WebView2), donc la vue ne reçoit
-// jamais d'adresse à charger. Ce modèle lit lui-même la page après `decide`, suit les redirections une à une
-// (chacune décidée), puis réécrit le HTML avant de le donner à la vue (`content`, chargé par `loadHtml`) :
-// chaque sous-ressource est décidée, celles qui ne passent pas sont neutralisées, une règle de sécurité du
-// contenu (CSP) n'autorise que les adresses passées, et les liens deviennent des renvois internes
+// Chaque requête du cadre passe par WebContentPolicy::decide (L8-T29), jamais
+// par une règle posée une fois dans le QML de la vue : Qt WebView 6.12 n'offre
+// ni filtre de requêtes ni décision de navigation (seuls `loadingChanged` et
+// `urlChanged`, après coup, sous WKWebView comme sous WebView2), donc la vue ne
+// reçoit jamais d'adresse à charger. Ce modèle lit lui-même la page après
+// `decide`, suit les redirections une à une (chacune décidée), puis réécrit le
+// HTML avant de le donner à la vue (`content`, chargé par `loadHtml`) : chaque
+// sous-ressource est décidée, celles qui ne passent pas sont neutralisées, une
+// règle de sécurité du contenu (CSP) n'autorise que les adresses passées, et
+// les liens deviennent des renvois internes
 // (`#actcraft-link-<n>`) que la vue rend par `followLink`, décidés à leur tour.
 class WebFrameItems : public QAbstractListModel
 {
@@ -67,7 +71,8 @@ public:
         RefusedRole, // dernière requête refusée par la politique
         LoadingRole, // page en cours de lecture par ce modèle
         ContentRole, // HTML réécrit, seul texte donné à la vue
-        BaseUrlRole, // adresse de base de `content`
+        BaseUrlRole, // adresse de la page montrée (titre) ; `content` n'a que des
+                     // adresses absolues
         TitleRole,   // titre du repère
         CanGoBackRole,
         CanGoForwardRole,
@@ -78,7 +83,8 @@ public:
     explicit WebFrameItems(QObject* parent = nullptr);
     ~WebFrameItems() override;
 
-    // Hors ligne : DocumentController n'est que déclaré ici (QPointer<T>::data exige le type complet).
+    // Hors ligne : DocumentController n'est que déclaré ici (QPointer<T>::data
+    // exige le type complet).
     DocumentController* document() const noexcept;
     void setDocument(DocumentController* document);
     int count() const noexcept { return static_cast<int>(m_rows.size()); }
@@ -91,27 +97,31 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    // Boîte du cadre (insert.web-frame) : un cadre neuf, au centre de la page, en une étape. Une adresse
-    // saisie ici est « saisie par l'utilisateur » pour la politique (seule voie distante d'un document de la
-    // session).
+    // Boîte du cadre (insert.web-frame) : un cadre neuf, au centre de la page, en
+    // une étape. Une adresse saisie ici est « saisie par l'utilisateur » pour la
+    // politique (seule voie distante d'un document de la session).
     Q_INVOKABLE bool insertFrame(const QString& html, const QString& address);
     // Poignée relâchée : une étape.
     Q_INVOKABLE bool resizeFrame(int row, const QRectF& bounds);
-    // webframe.unblock : la confirmation est montrée par la couche ; answer(vrai) débloque la page courante
-    // de ce document seulement.
+    // webframe.unblock : la confirmation est montrée par la couche ; answer(vrai)
+    // débloque la page courante de ce document seulement.
     Q_INVOKABLE void requestUnblock(int row);
     Q_INVOKABLE void answer(bool confirmed);
-    // Adresse prise par la vue (urlChanged) : un renvoi interne est suivi après décision ; toute autre
-    // adresse que le contenu donné est une navigation du moteur, rendue au modèle (vrai : la vue doit
-    // s'arrêter).
+    // Adresse prise par la vue (urlChanged, chargement commencé) : un renvoi
+    // interne est suivi après décision ; toute adresse autre que about:blank (le
+    // contenu donné par loadHtml sans base) et ses fragments, même celle de la
+    // page affichée, est une navigation du moteur, rendue au modèle (vrai : la
+    // vue s'arrête).
     Q_INVOKABLE bool followLink(int row, const QUrl& viewUrl);
     Q_INVOKABLE void goBack(int row);
     Q_INVOKABLE void goForward(int row);
     Q_INVOKABLE void reload(int row);
-    // webframe.snapshot : image de la zone du cadre dans la fenêtre (la vue native échappe à grabToImage),
-    // posée sur la page en une étape. Faux sans moyen de capture ou si la capture est vide.
+    // webframe.snapshot : image de la zone du cadre dans la fenêtre (la vue
+    // native échappe à grabToImage), posée sur la page en une étape. Faux sans
+    // moyen de capture ou si la capture est vide.
     Q_INVOKABLE bool snapshot(int row);
-    // Capture par la fenêtre de `pageView` (ui::PageView, pageToScene) : posée par WebFrameLayer.qml.
+    // Capture par la fenêtre de `pageView` (ui::PageView, pageToScene) : posée
+    // par WebFrameLayer.qml.
     Q_INVOKABLE void useWindowCapture(QQuickItem* pageView);
     // Zone de la page → image ; remplacé par les tests.
     using Grabber = std::function<QImage(const QRectF& pageBounds)>;
@@ -119,12 +129,16 @@ public:
 
     const WebContentPolicy& policy() const noexcept { return m_policy; }
 
-    // Réécriture du HTML avant chargement : `decide` répond pour chaque adresse (résolue sur `base`).
+    // Réécriture du HTML avant chargement : `decide` répond pour chaque adresse
+    // (résolue sur `base`).
     struct Prepared
     {
         QString html;
-        QVector<QUrl> links; // cibles des renvois internes, dans l'ordre
-        QStringList allowed; // adresses passées, autorisées par la règle de sécurité du contenu
+        QVector<QUrl> links;  // cibles des renvois internes, dans l'ordre
+        QStringList allowed;  // adresses passées, autorisées par la règle de
+                              // sécurité du contenu
+        bool blocked = false; // une adresse au moins bloquée (document reçu, page
+                              // non débloquée)
     };
     static Prepared prepareHtml(const QString& html, const QUrl& base,
                                 const std::function<WebContentPolicy::Verdict(const QUrl&)>& decide);

@@ -33,7 +33,11 @@ using Verdict = WebContentPolicy::Verdict;
 
 constexpr int kMaxRedirects = 10;
 constexpr qint64 kMaxBody = 16 * 1024 * 1024; // une page plus lourde n'est pas montrée
+constexpr int kTransferTimeoutMs = 20000;     // une page muette n'occupe pas le cadre
 const QString kLinkPrefix = QStringLiteral("actcraft-link-");
+constexpr char16_t kHoldOpen = u'\x02'; // repère d'une construction CSS
+                                        // réécrite, le temps de la vérification
+constexpr char16_t kHoldClose = u'\x03';
 
 QRectF pageBox(const core::PageObject& object, const core::WebFrame& frame)
 {
@@ -47,18 +51,268 @@ QString escaped(const QString& text)
     return text.toHtmlEscaped();
 }
 
-// Valeur d'attribut HTML lue : entités courantes rendues (une adresse en `&amp;` reste la même adresse).
-QString unescapedAttribute(QString value)
+bool isHtmlSpace(QChar c)
 {
-    value.replace(QStringLiteral("&quot;"), QStringLiteral("\""));
-    value.replace(QStringLiteral("&#39;"), QStringLiteral("'"));
-    value.replace(QStringLiteral("&lt;"), QStringLiteral("<"));
-    value.replace(QStringLiteral("&gt;"), QStringLiteral(">"));
-    value.replace(QStringLiteral("&amp;"), QStringLiteral("&"));
-    return value.trimmed();
+    return c == u' ' || c == u'\t' || c == u'\n' || c == u'\f' || c == u'\r';
 }
 
-// Source d'une règle de sécurité du contenu : adresse exacte, sans « ; » ni « , » ni espace (encodés).
+bool isAsciiLetter(QChar c)
+{
+    return (c >= u'a' && c <= u'z') || (c >= u'A' && c <= u'Z');
+}
+
+bool isDigit(QChar c)
+{
+    return c >= u'0' && c <= u'9';
+}
+
+int hexValue(QChar c)
+{
+    if (isDigit(c))
+        return c.unicode() - u'0';
+    if (c >= u'a' && c <= u'f')
+        return c.unicode() - u'a' + 10;
+    if (c >= u'A' && c <= u'F')
+        return c.unicode() - u'A' + 10;
+    return -1;
+}
+
+void appendCode(QString& out, char32_t code)
+{
+    if (code == 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF))
+        code = 0xFFFD;
+    out += QString::fromUcs4(&code, 1);
+}
+
+// Valeur d'attribut telle que le parseur HTML la rend : entités numériques, et
+// entités nommées qui donnent un caractère ASCII (les seules qui pourraient
+// former une adresse, un nom de fonction CSS ou un échappement) ; une entité
+// nommée inconnue reste telle quelle.
+QString decodeEntities(QStringView raw)
+{
+    static const QHash<QString, QString> named = {{QStringLiteral("amp"), QStringLiteral("&")},
+                                                  {QStringLiteral("AMP"), QStringLiteral("&")},
+                                                  {QStringLiteral("lt"), QStringLiteral("<")},
+                                                  {QStringLiteral("LT"), QStringLiteral("<")},
+                                                  {QStringLiteral("gt"), QStringLiteral(">")},
+                                                  {QStringLiteral("GT"), QStringLiteral(">")},
+                                                  {QStringLiteral("quot"), QStringLiteral("\"")},
+                                                  {QStringLiteral("QUOT"), QStringLiteral("\"")},
+                                                  {QStringLiteral("apos"), QStringLiteral("'")},
+                                                  {QStringLiteral("nbsp"), QStringLiteral(" ")},
+                                                  {QStringLiteral("colon"), QStringLiteral(":")},
+                                                  {QStringLiteral("Tab"), QStringLiteral("\t")},
+                                                  {QStringLiteral("NewLine"), QStringLiteral("\n")},
+                                                  {QStringLiteral("sol"), QStringLiteral("/")},
+                                                  {QStringLiteral("bsol"), QStringLiteral("\\")},
+                                                  {QStringLiteral("lpar"), QStringLiteral("(")},
+                                                  {QStringLiteral("rpar"), QStringLiteral(")")},
+                                                  {QStringLiteral("period"), QStringLiteral(".")},
+                                                  {QStringLiteral("comma"), QStringLiteral(",")},
+                                                  {QStringLiteral("semi"), QStringLiteral(";")},
+                                                  {QStringLiteral("equals"), QStringLiteral("=")},
+                                                  {QStringLiteral("num"), QStringLiteral("#")},
+                                                  {QStringLiteral("excl"), QStringLiteral("!")},
+                                                  {QStringLiteral("quest"), QStringLiteral("?")},
+                                                  {QStringLiteral("commat"), QStringLiteral("@")},
+                                                  {QStringLiteral("percnt"), QStringLiteral("%")},
+                                                  {QStringLiteral("dollar"), QStringLiteral("$")},
+                                                  {QStringLiteral("ast"), QStringLiteral("*")},
+                                                  {QStringLiteral("midast"), QStringLiteral("*")},
+                                                  {QStringLiteral("plus"), QStringLiteral("+")},
+                                                  {QStringLiteral("lsqb"), QStringLiteral("[")},
+                                                  {QStringLiteral("lbrack"), QStringLiteral("[")},
+                                                  {QStringLiteral("rsqb"), QStringLiteral("]")},
+                                                  {QStringLiteral("rbrack"), QStringLiteral("]")},
+                                                  {QStringLiteral("lcub"), QStringLiteral("{")},
+                                                  {QStringLiteral("lbrace"), QStringLiteral("{")},
+                                                  {QStringLiteral("rcub"), QStringLiteral("}")},
+                                                  {QStringLiteral("rbrace"), QStringLiteral("}")},
+                                                  {QStringLiteral("lowbar"), QStringLiteral("_")},
+                                                  {QStringLiteral("UnderBar"), QStringLiteral("_")},
+                                                  {QStringLiteral("grave"), QStringLiteral("`")},
+                                                  {QStringLiteral("DiacriticalGrave"), QStringLiteral("`")},
+                                                  {QStringLiteral("verbar"), QStringLiteral("|")},
+                                                  {QStringLiteral("vert"), QStringLiteral("|")},
+                                                  {QStringLiteral("VerticalLine"), QStringLiteral("|")},
+                                                  {QStringLiteral("Hat"), QStringLiteral("^")},
+                                                  {QStringLiteral("fjlig"), QStringLiteral("fj")}};
+    // Sans « ; », seules les anciennes entités sont lues, et pas devant « = »
+    // (règle des attributs).
+    static const QSet<QString> legacy = {
+        QStringLiteral("amp"),  QStringLiteral("AMP"),  QStringLiteral("lt"),
+        QStringLiteral("LT"),   QStringLiteral("gt"),   QStringLiteral("GT"),
+        QStringLiteral("quot"), QStringLiteral("QUOT"), QStringLiteral("nbsp")};
+    QString out;
+    out.reserve(raw.size());
+    const qsizetype n = raw.size();
+    qsizetype i = 0;
+    while (i < n) {
+        if (raw[i] != u'&') {
+            out += raw[i++];
+            continue;
+        }
+        if (i + 1 < n && raw[i + 1] == u'#') {
+            qsizetype j = i + 2;
+            const bool hex = j < n && (raw[j] == u'x' || raw[j] == u'X');
+            if (hex)
+                ++j;
+            const qsizetype first = j;
+            char32_t code = 0;
+            while (j < n) {
+                const int digit = hex ? hexValue(raw[j]) : (isDigit(raw[j]) ? raw[j].unicode() - u'0' : -1);
+                if (digit < 0)
+                    break;
+                code = std::min<char32_t>(code * (hex ? 16U : 10U) + static_cast<char32_t>(digit), 0x110000U);
+                ++j;
+            }
+            if (j == first) {
+                out += raw[i++];
+                continue;
+            }
+            if (j < n && raw[j] == u';')
+                ++j;
+            appendCode(out, code);
+            i = j;
+            continue;
+        }
+        qsizetype j = i + 1;
+        while (j < n && raw[j].unicode() < 128 && (isAsciiLetter(raw[j]) || isDigit(raw[j])))
+            ++j;
+        const QString name = raw.mid(i + 1, j - i - 1).toString();
+        const bool semicolon = j < n && raw[j] == u';';
+        const auto found = named.constFind(name);
+        if (found != named.cend() && (semicolon || (legacy.contains(name) && !(j < n && raw[j] == u'=')))) {
+            out += *found;
+            i = semicolon ? j + 1 : j;
+            continue;
+        }
+        out += raw[i++];
+    }
+    return out;
+}
+
+// Échappements CSS rendus (`u\72l` → `url`), comme le tokeniseur CSS les lit ;
+// un caractère de contrôle obtenu ainsi devient U+FFFD (il ne peut pas imiter
+// les repères de la réécriture).
+QString cssUnescape(QStringView text)
+{
+    QString out;
+    out.reserve(text.size());
+    const qsizetype n = text.size();
+    qsizetype i = 0;
+    while (i < n) {
+        if (text[i] != u'\\' || i + 1 >= n) {
+            out += text[i++];
+            continue;
+        }
+        qsizetype j = i + 1;
+        if (text[j] == u'\n') { // suite de chaîne sur la ligne suivante
+            i = j + 1;
+            continue;
+        }
+        char32_t code = 0;
+        int digits = 0;
+        while (j < n && digits < 6 && hexValue(text[j]) >= 0) {
+            code = code * 16U + static_cast<char32_t>(hexValue(text[j]));
+            ++j;
+            ++digits;
+        }
+        if (digits == 0) {
+            out += text[j];
+            i = j + 1;
+            continue;
+        }
+        if (j < n && isHtmlSpace(text[j]))
+            ++j;
+        appendCode(out, code < 0x20 ? 0xFFFD : code);
+        i = j;
+    }
+    return out;
+}
+
+// Commentaires CSS, `<!--` et `-->` hors des chaînes : une espace (ils ne
+// séparent que des jetons).
+QString stripCssComments(QStringView text)
+{
+    QString out;
+    out.reserve(text.size());
+    const qsizetype n = text.size();
+    qsizetype i = 0;
+    while (i < n) {
+        const QChar c = text[i];
+        if (c == u'"' || c == u'\'') {
+            qsizetype j = i + 1;
+            while (j < n && text[j] != c && text[j] != u'\n')
+                j += (text[j] == u'\\' && j + 1 < n) ? 2 : 1;
+            if (j < n && text[j] == c)
+                ++j;
+            j = std::min(j, n);
+            out += text.mid(i, j - i);
+            i = j;
+        } else if (c == u'/' && i + 1 < n && text[i + 1] == u'*') {
+            const qsizetype end = text.indexOf(u"*/", i + 2);
+            i = end < 0 ? n : end + 2;
+            out += u' ';
+        } else if (text.mid(i, 4) == u"<!--") {
+            i += 4;
+            out += u' ';
+        } else if (text.mid(i, 3) == u"-->") {
+            i += 3;
+            out += u' ';
+        } else {
+            out += c;
+            ++i;
+        }
+    }
+    return out;
+}
+
+// Chaînes posées directement dans image-set() : des adresses pour CSS, écrites
+// ici en url() pour être décidées comme les autres. Chaque appel est lu une
+// fois, jusqu'à sa parenthèse fermante.
+QString imageSetStrings(const QString& text)
+{
+    static const QRegularExpression re(QStringLiteral(R"(image-set\()"),
+                                       QRegularExpression::CaseInsensitiveOption);
+    QString out;
+    out.reserve(text.size());
+    qsizetype last = 0;
+    for (QRegularExpressionMatch m = re.match(text); m.hasMatch(); m = re.match(text, last)) {
+        qsizetype i = m.capturedEnd();
+        out += QStringView(text).mid(last, i - last);
+        int depth = 1;
+        while (i < text.size() && depth > 0) {
+            const QChar c = text[i];
+            if (c == u'"' || c == u'\'') {
+                qsizetype j = i + 1;
+                while (j < text.size() && text[j] != c && text[j] != u'\n')
+                    j += (text[j] == u'\\' && j + 1 < text.size()) ? 2 : 1;
+                if (j < text.size() && text[j] == c)
+                    ++j;
+                j = std::min(j, text.size());
+                if (depth == 1)
+                    out += QStringLiteral("url(") + QStringView(text).mid(i, j - i) + u')';
+                else
+                    out += QStringView(text).mid(i, j - i);
+                i = j;
+                continue;
+            }
+            if (c == u'(')
+                ++depth;
+            else if (c == u')')
+                --depth;
+            out += c;
+            ++i;
+        }
+        last = i;
+    }
+    out += QStringView(text).mid(last);
+    return out;
+}
+
+// Source d'une règle de sécurité du contenu : adresse exacte, sans « ; » ni « ,
+// » ni espace (encodés).
 QString cspSource(const QUrl& url)
 {
     QString s = QString::fromLatin1(url.adjusted(QUrl::RemoveFragment | QUrl::RemoveQuery).toEncoded());
@@ -68,6 +322,93 @@ QString cspSource(const QUrl& url)
     return s;
 }
 
+// Attribut d'une balise, lu comme le tokeniseur HTML le lit : nom en
+// minuscules, valeur brute (entités non rendues).
+struct Attribute
+{
+    QString name;
+    QStringView raw;
+    bool hasValue = false;
+};
+
+// Nom de balise à `i` : lettres, chiffres, `:` et `-`, suivi d'un blanc, de
+// `/`, de `>` ou de la fin (sinon le moteur lirait un autre nom). Longueur, 0
+// si non reconnu.
+qsizetype tagNameLength(QStringView text, qsizetype i)
+{
+    const qsizetype n = text.size();
+    if (i >= n || !isAsciiLetter(text[i]))
+        return 0;
+    qsizetype j = i + 1;
+    while (j < n && (isAsciiLetter(text[j]) || isDigit(text[j]) || text[j] == u':' || text[j] == u'-'))
+        ++j;
+    if (j < n && !isHtmlSpace(text[j]) && text[j] != u'/' && text[j] != u'>')
+        return 0;
+    return j - i;
+}
+
+// Attributs de `i` jusqu'au `>` qui ferme la balise, selon l'automate du
+// tokeniseur HTML : blancs et `/` séparent, une valeur est entre guillemets ou
+// nue, un attribut peut suivre un guillemet fermant sans blanc. Position après
+// le `>`, ou -1 si la page finit avant (le moteur ignorerait la balise).
+qsizetype readAttributes(QStringView text, qsizetype i, QVector<Attribute>& attrs, bool& selfClosing)
+{
+    const qsizetype n = text.size();
+    selfClosing = false;
+    for (;;) {
+        while (i < n && (isHtmlSpace(text[i]) || text[i] == u'/')) {
+            if (text[i] == u'/' && i + 1 < n && text[i + 1] == u'>') {
+                selfClosing = true;
+                return i + 2;
+            }
+            ++i;
+        }
+        if (i >= n)
+            return -1;
+        if (text[i] == u'>')
+            return i + 1;
+        const qsizetype start = i++; // le premier caractère, même `=`, ouvre le nom
+        while (i < n && !isHtmlSpace(text[i]) && text[i] != u'/' && text[i] != u'>' && text[i] != u'=')
+            ++i;
+        Attribute a;
+        a.name = text.mid(start, i - start).toString().toLower();
+        while (i < n && isHtmlSpace(text[i]))
+            ++i;
+        if (i < n && text[i] == u'=') {
+            ++i;
+            while (i < n && isHtmlSpace(text[i]))
+                ++i;
+            if (i >= n)
+                return -1;
+            a.hasValue = true;
+            const QChar quote = text[i];
+            if (quote == u'"' || quote == u'\'') {
+                const qsizetype end = text.indexOf(quote, i + 1);
+                if (end < 0)
+                    return -1;
+                a.raw = text.mid(i + 1, end - i - 1);
+                i = end + 1;
+            } else if (quote != u'>') {
+                const qsizetype valueStart = i;
+                while (i < n && !isHtmlSpace(text[i]) && text[i] != u'>')
+                    ++i;
+                a.raw = text.mid(valueStart, i - valueStart);
+            }
+        }
+        attrs.append(a);
+    }
+}
+
+// Nom d'attribut réécrit tel quel : ASCII ordinaire seulement.
+bool plainAttributeName(const QString& name)
+{
+    if (name.isEmpty() || !(isAsciiLetter(name.front()) || name.front() == u'_' || name.front() == u':'))
+        return false;
+    return std::all_of(name.cbegin(), name.cend(), [](QChar c) {
+        return isAsciiLetter(c) || isDigit(c) || c == u'-' || c == u'_' || c == u':' || c == u'.';
+    });
+}
+
 class Rewriter
 {
 public:
@@ -75,16 +416,23 @@ public:
         : m_base(base), m_decide(decide)
     {}
 
-    // Adresse passée par la politique, rendue absolue ; vide si refusée ou bloquée.
-    QString allowed(const QString& raw, QStringList& into)
+    // Adresse passée par la politique, rendue absolue ; vide si refusée ou
+    // bloquée. `value` : déjà rendue (entités ou échappements CSS).
+    QString allowed(QString value, QStringList& into)
     {
-        const QString value = unescapedAttribute(raw);
+        value.remove(u'\t');
+        value.remove(u'\n');
+        value.remove(u'\r');
+        value = value.trimmed();
         if (value.isEmpty())
             return {};
         const QUrl url = m_base.isValid() ? m_base.resolved(QUrl(value)) : QUrl(value);
         if (!url.isValid() || url.isRelative())
             return {};
-        if (m_decide(url) != Verdict::Load)
+        const Verdict verdict = m_decide(url);
+        if (verdict == Verdict::Blocked)
+            m_blocked = true;
+        if (verdict != Verdict::Load)
             return {};
         const QString scheme = url.scheme();
         if (scheme == QLatin1String("data")) {
@@ -92,27 +440,73 @@ public:
         } else if (scheme == QLatin1String("http") || scheme == QLatin1String("https")) {
             into.append(cspSource(url));
         } else {
-            return {}; // file, about : rien qu'une vue sans accès aux fichiers puisse lire
+            return {}; // file, about : rien qu'une vue sans accès aux fichiers puisse
+                       // lire
         }
         return QString::fromLatin1(url.toEncoded());
     }
 
-    QString css(const QString& text, QStringList& into)
+    // Feuille de style ou valeur CSS : chaque url() et @import passe par la
+    // politique ; si quelque chose peut encore désigner une adresse (échappement,
+    // url( mal formée, chaîne d'image-set, `<`), la feuille est vidée. Rien n'en
+    // sort que la politique n'ait vu.
+    QString css(QStringView text, QStringList& into)
     {
-        static const QRegularExpression urlRe(QStringLiteral(R"(url\(\s*(['"]?)([^'")]*)\1\s*\))"),
-                                              QRegularExpression::CaseInsensitiveOption);
-        static const QRegularExpression importRe(QStringLiteral(R"(@import\s+(['"])([^'"]*)\1)"),
-                                                 QRegularExpression::CaseInsensitiveOption);
-        QString out = replaceAll(text, urlRe, [&](const QRegularExpressionMatch& m) {
-            const QString kept = allowed(m.captured(2), into);
-            return kept.isEmpty() ? QStringLiteral("url(about:blank)")
-                                  : QStringLiteral("url(\"%1\")").arg(kept);
+        static const QString dq = QStringLiteral(R"re("((?:[^"\\\n]++|\\.)*+)")re");
+        static const QString sq = QStringLiteral(R"re('((?:[^'\\\n]++|\\.)*+)')re");
+        static const QString bare = QStringLiteral(R"re(((?:[^"'()\\\s]++|\\.)*+))re");
+        static const QString url = QStringLiteral(R"re(url\(\s*+(?:%1|%2|%3)\s*+\))re").arg(dq, sq, bare);
+        const auto options =
+            QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption;
+        static const QRegularExpression importRe(
+            QStringLiteral(R"re(@import\s*+(?:%1|%2|%3))re").arg(dq, sq, url), options);
+        static const QRegularExpression urlRe(url, options);
+        static const QRegularExpression fragmentRe(QStringLiteral(R"(^#[A-Za-z0-9_:.-]*$)"));
+        static const QRegularExpression dangerRe(QStringLiteral(
+            R"re(url\(|@import|(?<![a-z0-9_-])(?:src|image)\(|expression\(|image-set\([^)"'(]*+["']|<)re"));
+        QString work = stripCssComments(text);
+        work.remove(QChar(kHoldOpen));
+        work.remove(QChar(kHoldClose));
+        work = imageSetStrings(work);
+        QStringList made;
+        const auto hold = [&made](const QString& construct) {
+            made.append(construct);
+            return QChar(kHoldOpen) + QString::number(made.size() - 1) + QChar(kHoldClose);
+        };
+        const auto value = [](const QRegularExpressionMatch& m) {
+            for (int g = 1; g <= m.lastCapturedIndex(); ++g) {
+                if (m.capturedStart(g) >= 0)
+                    return cssUnescape(m.capturedView(g));
+            }
+            return QString();
+        };
+        work = replaceAll(work, importRe, [&](const QRegularExpressionMatch& m) {
+            const QString kept = allowed(value(m), m_styles);
+            return hold(kept.isEmpty() ? QStringLiteral("@import \"about:blank\"")
+                                       : QStringLiteral("@import \"%1\"").arg(kept));
         });
-        out = replaceAll(out, importRe, [&](const QRegularExpressionMatch& m) {
-            const QString kept = allowed(m.captured(2), m_styles);
-            return kept.isEmpty() ? QStringLiteral("@import \"about:blank\"")
-                                  : QStringLiteral("@import \"%1\"").arg(kept);
+        work = replaceAll(work, urlRe, [&](const QRegularExpressionMatch& m) {
+            const QString target = value(m).trimmed();
+            if (fragmentRe.match(target).hasMatch())
+                return hold(
+                    QStringLiteral("url(\"%1\")").arg(target)); // élément de ce document : rien demandé
+            const QString kept = allowed(target, into);
+            return hold(kept.isEmpty() ? QStringLiteral("url(about:blank)")
+                                       : QStringLiteral("url(\"%1\")").arg(kept));
         });
+        if (dangerRe.match(cssUnescape(work).toLower()).hasMatch())
+            return {};
+        QString out;
+        out.reserve(work.size());
+        for (qsizetype i = 0; i < work.size(); ++i) {
+            if (work[i] != QChar(kHoldOpen)) {
+                out += work[i];
+                continue;
+            }
+            const qsizetype end = work.indexOf(QChar(kHoldClose), i);
+            out += made.value(work.mid(i + 1, end - i - 1).toInt());
+            i = end;
+        }
         return out;
     }
 
@@ -132,117 +526,153 @@ public:
         return out;
     }
 
-    QString tag(const QString& name, const QString& attributes, bool selfClosing)
+    // Balise ouvrante réécrite : nom, puis seulement les attributs gardés, chacun
+    // une fois (le premier, comme le moteur). Adresses décidées et rendues
+    // absolues, CSS réécrit, valeurs ordinaires gardées telles quelles.
+    QString tag(const QString& name, const QVector<Attribute>& attrs, bool selfClosing)
     {
-        static const QRegularExpression attrRe(
-            QStringLiteral(R"re(([^\s=>/]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?)re"));
+        static const QSet<QString> droppedElements = {QStringLiteral("base"),
+                                                      QStringLiteral("set"),
+                                                      QStringLiteral("animate"),
+                                                      QStringLiteral("animatemotion"),
+                                                      QStringLiteral("animatetransform"),
+                                                      QStringLiteral("animatecolor")};
+        static const QSet<QString> droppedAttributes = {
+            QStringLiteral("ping"),       QStringLiteral("download"),   QStringLiteral("target"),
+            QStringLiteral("formaction"), QStringLiteral("action"),     QStringLiteral("manifest"),
+            QStringLiteral("codebase"),   QStringLiteral("archive"),    QStringLiteral("longdesc"),
+            QStringLiteral("cite"),       QStringLiteral("lowsrc"),     QStringLiteral("dynsrc"),
+            QStringLiteral("srcdoc"),     QStringLiteral("classid"),    QStringLiteral("attributionsrc"),
+            QStringLiteral("xml:base"),   QStringLiteral("http-equiv"), QStringLiteral("profile"),
+            QStringLiteral("icon")};
+        static const QSet<QString> cssAttributes = {
+            QStringLiteral("style"),      QStringLiteral("fill"),         QStringLiteral("stroke"),
+            QStringLiteral("filter"),     QStringLiteral("mask"),         QStringLiteral("clip-path"),
+            QStringLiteral("marker"),     QStringLiteral("marker-start"), QStringLiteral("marker-mid"),
+            QStringLiteral("marker-end"), QStringLiteral("cursor")};
+        static const QSet<QString> hints = {QStringLiteral("preconnect"),    QStringLiteral("prefetch"),
+                                            QStringLiteral("dns-prefetch"),  QStringLiteral("preload"),
+                                            QStringLiteral("modulepreload"), QStringLiteral("prerender"),
+                                            QStringLiteral("next")};
+        static const QSet<QString> nested = {QStringLiteral("iframe"), QStringLiteral("frame"),
+                                             QStringLiteral("object"), QStringLiteral("embed"),
+                                             QStringLiteral("script")};
+        static const QSet<QString> media = {QStringLiteral("video"), QStringLiteral("audio"),
+                                            QStringLiteral("source"), QStringLiteral("track")};
         const QString lower = name.toLower();
-        if (lower == QLatin1String("base"))
-            return {}; // la base est celle du modèle
-        struct Attribute
-        {
-            QString name;
-            QString value;
-            bool hasValue = false;
-        };
-        QVector<Attribute> attrs;
-        auto it = attrRe.globalMatch(attributes);
-        while (it.hasNext()) {
-            const QRegularExpressionMatch m = it.next();
-            Attribute a;
-            a.name = m.captured(1);
-            QString v = m.captured(2);
-            a.hasValue = m.capturedLength(2) > 0;
-            if (v.size() >= 2 && (v.front() == QLatin1Char('"') || v.front() == QLatin1Char('\'')))
-                v = v.mid(1, v.size() - 2);
-            a.value = v;
-            attrs.append(a);
-        }
-        const auto valueOf = [&attrs](const QString& key) {
+        if (droppedElements.contains(lower))
+            return {}; // la base est celle du modèle ; une animation SVG pourrait
+                       // poser une adresse
+        const auto find = [&attrs](const QString& key) -> const Attribute* {
             for (const Attribute& a : attrs) {
-                if (a.name.compare(key, Qt::CaseInsensitive) == 0)
-                    return a.value;
+                if (a.name == key)
+                    return &a;
             }
-            return QString();
+            return nullptr;
         };
-        if (lower == QLatin1String("meta")) {
-            const QString equiv = valueOf(QStringLiteral("http-equiv")).toLower();
-            if (equiv == QLatin1String("refresh") || equiv == QLatin1String("set-cookie") ||
-                equiv == QLatin1String("link"))
-                return {}; // une navigation ou un en-tête que la politique ne verrait pas
+        const auto decoded = [&find](const QString& key) {
+            const Attribute* a = find(key);
+            return a ? decodeEntities(a->raw).trimmed().toLower() : QString();
+        };
+        if (lower == QLatin1String("meta") && (find(QStringLiteral("http-equiv")) ||
+                                               decoded(QStringLiteral("name")) == QLatin1String("referrer")))
+            return {}; // navigation, en-tête ou règle que la politique ne verrait pas
+        const QString rel = decoded(QStringLiteral("rel"));
+        if (lower == QLatin1String("link")) {
+            const QStringList tokens = rel.simplified().split(u' ', Qt::SkipEmptyParts);
+            const bool hinted = std::any_of(tokens.cbegin(), tokens.cend(),
+                                            [](const QString& t) { return hints.contains(t); });
+            if (hinted ||
+                (!rel.contains(QLatin1String("stylesheet")) && !rel.contains(QLatin1String("icon"))))
+                return {}; // connexion, préchargement : une requête que rien n'affiche
         }
-        const QString rel = valueOf(QStringLiteral("rel")).toLower();
         QString out = QLatin1Char('<') + name;
-        for (Attribute& a : attrs) {
-            const QString key = a.name.toLower();
-            QString value = a.value;
-            bool keep = true;
-            if (key.startsWith(QLatin1String("on")) || key == QLatin1String("ping") ||
-                key == QLatin1String("download") || key == QLatin1String("target") ||
-                key == QLatin1String("formaction") || key == QLatin1String("action") ||
-                key == QLatin1String("manifest") || key == QLatin1String("codebase") ||
-                key == QLatin1String("archive") || key == QLatin1String("longdesc") ||
-                key == QLatin1String("cite") || key == QLatin1String("lowsrc") ||
-                key == QLatin1String("dynsrc")) {
-                keep = false;
-            } else if (key == QLatin1String("href") || key == QLatin1String("xlink:href")) {
-                if (lower == QLatin1String("a") || lower == QLatin1String("area")) {
-                    value = link(a.value);
-                    keep = !value.isEmpty();
-                } else if (lower == QLatin1String("link")) {
-                    QStringList& list = rel.contains(QLatin1String("stylesheet"))
-                                            ? m_styles
-                                            : (rel.contains(QLatin1String("icon")) ? m_images : m_dropped);
-                    value = (&list == &m_dropped) ? QString() : allowed(a.value, list);
-                    keep = !value.isEmpty();
-                } else {
-                    value = allowed(a.value, m_images); // image d'un SVG
-                    keep = !value.isEmpty();
-                }
+        QSet<QString> seen;
+        for (const Attribute& a : attrs) {
+            const QString& key = a.name;
+            if (!plainAttributeName(key) || seen.contains(key))
+                continue;
+            seen.insert(key);
+            if (key.startsWith(QLatin1String("on")) || droppedAttributes.contains(key))
+                continue;
+            QString value;
+            bool rewritten = true;
+            if (key == QLatin1String("href") || key == QLatin1String("xlink:href")) {
+                const QString target = decodeEntities(a.raw);
+                if (lower == QLatin1String("a") || lower == QLatin1String("area"))
+                    value = link(target);
+                else if (lower == QLatin1String("link"))
+                    value = allowed(target, rel.contains(QLatin1String("stylesheet")) ? m_styles : m_images);
+                else if (target.trimmed().startsWith(u'#'))
+                    value = target.trimmed(); // élément de ce document (SVG) : rien demandé
+                else
+                    value = allowed(target, m_images); // image d'un SVG
+                if (value.isEmpty())
+                    continue;
             } else if (key == QLatin1String("src") || key == QLatin1String("data") ||
                        key == QLatin1String("poster") || key == QLatin1String("background")) {
-                if (lower == QLatin1String("iframe") || lower == QLatin1String("frame") ||
-                    lower == QLatin1String("object") || lower == QLatin1String("embed") ||
-                    lower == QLatin1String("script")) {
+                if (nested.contains(lower)) {
                     value = QStringLiteral("about:blank"); // contexte imbriqué : ni réécrit ni lu
                 } else {
-                    QStringList& list = (lower == QLatin1String("video") || lower == QLatin1String("audio") ||
-                                         lower == QLatin1String("source") || lower == QLatin1String("track"))
-                                            ? m_media
-                                            : m_images;
-                    value = allowed(a.value, list);
+                    value = allowed(decodeEntities(a.raw), media.contains(lower) ? m_media : m_images);
                     if (value.isEmpty())
                         value = QStringLiteral("about:blank");
                 }
             } else if (key == QLatin1String("srcset") || key == QLatin1String("imagesrcset")) {
-                QStringList kept;
-                for (const QString& candidate : unescapedAttribute(a.value).split(QLatin1Char(','))) {
-                    const QStringList parts = candidate.trimmed().split(QLatin1Char(' '), Qt::SkipEmptyParts);
-                    if (parts.isEmpty())
-                        continue;
-                    const QString url = allowed(parts.front(), m_images);
-                    if (!url.isEmpty())
-                        kept.append((QStringList{url} + parts.mid(1)).join(QLatin1Char(' ')));
-                }
-                value = kept.join(QStringLiteral(", "));
-                keep = !value.isEmpty();
-            } else if (key == QLatin1String("style")) {
-                value = css(unescapedAttribute(a.value), m_images);
+                value = srcset(decodeEntities(a.raw));
+                if (value.isEmpty())
+                    continue;
+            } else if (cssAttributes.contains(key)) {
+                value = css(decodeEntities(a.raw), m_images);
+            } else {
+                rewritten = false;
             }
-            if (!keep)
-                continue;
-            out += QLatin1Char(' ') + a.name;
-            if (a.hasValue || value != a.value)
-                out += QStringLiteral("=\"%1\"").arg(value.toHtmlEscaped());
+            out += QLatin1Char(' ') + key;
+            if (rewritten) {
+                out += QStringLiteral("=\"") + value.toHtmlEscaped() + QLatin1Char('"');
+            } else if (a.hasValue) {
+                // Valeur ordinaire : entités laissées au moteur (ni doublées ni
+                // rendues), guillemet encodé.
+                QString raw = a.raw.toString();
+                raw.replace(u'"', QStringLiteral("&quot;"));
+                out += QStringLiteral("=\"") + raw + QLatin1Char('"');
+            }
         }
         out += selfClosing ? QStringLiteral(" />") : QStringLiteral(">");
         return out;
     }
 
-    // Lien : un renvoi interne vers la cible, décidée au clic ; un renvoi vers la même page reste.
-    QString link(const QString& raw)
+    // Candidats d'un srcset : chaque adresse décidée, descripteurs de taille
+    // seuls gardés.
+    QString srcset(const QString& value)
     {
-        const QString value = unescapedAttribute(raw);
+        static const QRegularExpression descriptorRe(QStringLiteral(R"(^[0-9.eE+-]+[wxhWXH]$)"));
+        QStringList kept;
+        for (const QString& candidate : value.split(u',')) {
+            const QStringList parts = candidate.simplified().split(u' ', Qt::SkipEmptyParts);
+            if (parts.isEmpty())
+                continue;
+            const QString url = allowed(parts.front(), m_images);
+            if (url.isEmpty())
+                continue;
+            QStringList entry{url};
+            for (qsizetype k = 1; k < parts.size(); ++k) {
+                if (descriptorRe.match(parts[k]).hasMatch())
+                    entry.append(parts[k]);
+            }
+            kept.append(entry.join(u' '));
+        }
+        return kept.join(QStringLiteral(", "));
+    }
+
+    // Lien : un renvoi interne vers la cible, décidée au clic ; un renvoi vers la
+    // même page reste.
+    QString link(QString value)
+    {
+        value.remove(u'\t');
+        value.remove(u'\n');
+        value.remove(u'\r');
+        value = value.trimmed();
         if (value.startsWith(QLatin1Char('#')) && !value.startsWith(QLatin1Char('#') + kLinkPrefix))
             return value;
         const QUrl url = m_base.isValid() ? m_base.resolved(QUrl(value)) : QUrl(value);
@@ -266,9 +696,12 @@ public:
         QStringList images = m_images;
         if (m_data)
             images.append(QStringLiteral("data:"));
-        return QStringLiteral("default-src 'none'; img-src %1; media-src %2; style-src 'unsafe-inline' %3; "
-                              "font-src %4; script-src 'none'; connect-src 'none'; frame-src 'none'; "
-                              "child-src 'none'; object-src 'none'; worker-src 'none'; manifest-src 'none'; "
+        return QStringLiteral("default-src 'none'; img-src %1; media-src %2; "
+                              "style-src 'unsafe-inline' %3; "
+                              "font-src %4; script-src 'none'; connect-src 'none'; "
+                              "frame-src 'none'; "
+                              "child-src 'none'; object-src 'none'; worker-src "
+                              "'none'; manifest-src 'none'; "
                               "form-action 'none'; base-uri 'none'")
             .arg(list(images), list(m_media), list(m_styles).replace(QStringLiteral("'none'"), QString()),
                  list(m_images, m_styles));
@@ -285,8 +718,8 @@ public:
     QStringList m_images;
     QStringList m_media;
     QStringList m_styles;
-    QStringList m_dropped;
     bool m_data = false;
+    bool m_blocked = false; // une adresse au moins bloquée (document reçu, page non débloquée)
 
 private:
     QUrl m_base;
@@ -325,9 +758,22 @@ private:
 
 QString messagePage(const QString& text)
 {
-    return QStringLiteral("<!DOCTYPE html><html><body style=\"font-family:sans-serif;color:#555\"><p>%1</p>"
+    return QStringLiteral("<!DOCTYPE html><html><body "
+                          "style=\"font-family:sans-serif;color:#555\"><p>%1</p>"
                           "</body></html>")
         .arg(escaped(text));
+}
+
+// Texte de la page : tout `<` devient `&lt;` (du texte pour le moteur).
+void appendText(QString& out, QStringView part)
+{
+    qsizetype from = 0;
+    for (qsizetype lt = part.indexOf(u'<'); lt >= 0; lt = part.indexOf(u'<', from)) {
+        out += part.mid(from, lt - from);
+        out += QStringLiteral("&lt;");
+        from = lt + 1;
+    }
+    out += part.mid(from);
 }
 
 } // namespace
@@ -335,29 +781,102 @@ QString messagePage(const QString& text)
 WebFrameItems::Prepared WebFrameItems::prepareHtml(const QString& html, const QUrl& base,
                                                    const std::function<Verdict(const QUrl&)>& decide)
 {
-    // Balises ouvrantes (attributs entre guillemets compris), blocs <style> et commentaires.
-    static const QRegularExpression tokenRe(
-        QStringLiteral(
-            R"re(<!--.*?-->|<style\b[^>]*>(.*?)</style\s*>|<([a-zA-Z][a-zA-Z0-9:-]*)((?:\s+[^\s=>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*(/?)>)re"),
-        QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption);
+    // Une lecture, linéaire, à la manière du tokeniseur HTML du moteur : chaque
+    // balise de la sortie est réécrite ici, tout `<` qui n'ouvre pas une balise
+    // reconnue devient du texte (`&lt;`), les commentaires partent, le contenu
+    // d'un <style> est réécrit comme CSS. Rien de la page ne passe tel quel entre
+    // `<` et
+    // `>` : une forme que la réécriture ne connaît pas ne demande rien.
     Rewriter rewriter(base, decide);
-    const QString body = Rewriter::replaceAll(html, tokenRe, [&rewriter](const QRegularExpressionMatch& m) {
-        const QString whole = m.captured(0);
-        if (whole.startsWith(QLatin1String("<!--")))
-            return QString();
-        if (m.capturedStart(1) >= 0 && whole.startsWith(QLatin1String("<style"), Qt::CaseInsensitive)) {
-            const qsizetype open = whole.indexOf(QLatin1Char('>')) + 1;
-            return whole.left(open) + rewriter.css(m.captured(1), rewriter.m_images) +
-                   QStringLiteral("</style>");
+    const QStringView text(html);
+    const qsizetype n = text.size();
+    QString body;
+    body.reserve(n + n / 8);
+    qsizetype i = 0;
+    while (i < n) {
+        const qsizetype lt = text.indexOf(u'<', i);
+        if (lt < 0) {
+            body += text.mid(i);
+            break;
         }
-        return rewriter.tag(m.captured(2), m.captured(3), !m.captured(4).isEmpty());
-    });
+        body += text.mid(i, lt - i);
+        i = lt;
+        const QStringView rest = text.mid(i);
+        if (rest.startsWith(u"<!--")) {
+            const qsizetype end = text.indexOf(u"-->", i + 2);
+            i = end < 0 ? n : end + 3; // jamais fermé : le reste est commentaire,
+                                       // comme pour le moteur
+            continue;
+        }
+        if (rest.startsWith(u"<!doctype", Qt::CaseInsensitive)) {
+            const qsizetype end = text.indexOf(u'>', i);
+            if (end < 0) {
+                appendText(body, rest);
+                break;
+            }
+            body += u'<';
+            appendText(body, text.mid(i + 1, end - i));
+            i = end + 1;
+            continue;
+        }
+        const bool closing = i + 1 < n && text[i + 1] == u'/';
+        const qsizetype nameStart = i + (closing ? 2 : 1);
+        const qsizetype length = tagNameLength(text, nameStart);
+        if (length == 0) {
+            body += QStringLiteral("&lt;");
+            ++i;
+            continue;
+        }
+        const QString name = text.mid(nameStart, length).toString();
+        QVector<Attribute> attrs;
+        bool selfClosing = false;
+        const qsizetype end = readAttributes(text, nameStart + length, attrs, selfClosing);
+        if (end < 0) { // balise jamais fermée : le moteur l'ignorerait ; ici, du texte
+            appendText(body, rest);
+            break;
+        }
+        i = end;
+        if (closing) {
+            body += QStringLiteral("</") + name + QLatin1Char('>');
+            continue;
+        }
+        const bool style = name.compare(QLatin1String("style"), Qt::CaseInsensitive) == 0;
+        body += rewriter.tag(name, attrs, selfClosing && !style);
+        if (!style)
+            continue;
+        // Texte brut jusqu'à `</style` suivi d'un blanc, de `/` ou de `>`, comme le
+        // moteur le lit ; fermé ici dans tous les cas, pour que rien de la suite ne
+        // reste dans la feuille.
+        qsizetype close = i;
+        while ((close = text.indexOf(u"</style", close, Qt::CaseInsensitive)) >= 0) {
+            if (close + 7 < n &&
+                (isHtmlSpace(text[close + 7]) || text[close + 7] == u'/' || text[close + 7] == u'>'))
+                break;
+            close += 7;
+        }
+        if (close < 0)
+            close = n;
+        body += rewriter.css(text.mid(i, close - i), rewriter.m_images);
+        body += QStringLiteral("</style>");
+        i = close;
+        if (close < n) {
+            QVector<Attribute> ignored;
+            bool unused = false;
+            const qsizetype after = readAttributes(text, close + 7, ignored, unused);
+            if (after < 0) {
+                appendText(body, text.mid(close));
+                break;
+            }
+            i = after;
+        }
+    }
     Prepared prepared;
     const QString head = QStringLiteral("<meta http-equiv=\"Content-Security-Policy\" content=\"%1\">"
                                         "<meta name=\"referrer\" content=\"no-referrer\">")
                              .arg(rewriter.policy());
-    // Après le doctype (sinon le moteur passerait en mode de compatibilité), avant tout le reste : le parseur
-    // range ces balises dans l'en-tête, avant la première ressource.
+    // Après le doctype (sinon le moteur passerait en mode de compatibilité),
+    // avant tout le reste : le parseur range ces balises dans l'en-tête, avant la
+    // première ressource.
     static const QRegularExpression doctypeRe(QStringLiteral(R"(^\s*<!doctype[^>]*>)"),
                                               QRegularExpression::CaseInsensitiveOption);
     const QRegularExpressionMatch doctype = doctypeRe.match(body);
@@ -367,6 +886,7 @@ WebFrameItems::Prepared WebFrameItems::prepareHtml(const QString& html, const QU
         prepared.html = head + body;
     prepared.links = rewriter.m_links;
     prepared.allowed = rewriter.all();
+    prepared.blocked = rewriter.m_blocked;
     return prepared;
 }
 
@@ -399,7 +919,8 @@ void WebFrameItems::setDocument(DocumentController* document)
             connect(document, &DocumentController::liftingChanged, this, &WebFrameItems::rebuild);
         m_connections[3] =
             connect(document, &DocumentController::fileUrlChanged, this, &WebFrameItems::rebuild);
-        // Ouverture réussie : le document est reçu, même sans fichier (un .flipchart, décision 18).
+        // Ouverture réussie : le document est reçu, même sans fichier (un
+        // .flipchart, décision 18).
         m_connections[4] =
             connect(document, &DocumentController::loadFinished, this, [this](bool ok, const QString&) {
                 if (!ok || !m_document)
@@ -444,7 +965,8 @@ void WebFrameItems::rebuild()
         return;
     }
     if (m_document->isLifting())
-        return; // objets soulevés hors de la page : les vues restent, relues au dépôt
+        return; // objets soulevés hors de la page : les vues restent, relues au
+                // dépôt
     if (m_key.isEmpty() || m_document->generation() != m_generation)
         documentReplaced();
     const int page = m_document->currentIndex();
@@ -486,7 +1008,8 @@ void WebFrameItems::rebuild()
         }
         return;
     }
-    // Cadres gardés d'une relecture à l'autre de la même page : leur contenu reste.
+    // Cadres gardés d'une relecture à l'autre de la même page : leur contenu
+    // reste.
     for (Row& row : fresh) {
         const int old = samePage ? rowOf(row.id) : -1;
         if (old >= 0 && m_rows[old].html == row.html && m_rows[old].address == row.address) {
@@ -536,6 +1059,8 @@ void WebFrameItems::showContent(Row& row, const QString& html, const QUrl& base)
     row.content = prepared.html;
     row.links = prepared.links;
     row.baseUrl = base;
+    row.blocked = prepared.blocked; // sous-ressource d'un document reçu, page non
+                                    // débloquée : repère
     row.loading = false;
     ++row.serial;
 }
@@ -593,6 +1118,7 @@ void WebFrameItems::fetch(Row& row, const QUrl& url, int redirects)
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
     request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
+    request.setTransferTimeout(kTransferTimeoutMs);
     QNetworkReply* reply = m_network->get(request);
     row.loading = true;
     ++row.serial;
@@ -815,8 +1341,13 @@ void WebFrameItems::answer(bool confirmed)
         Row& row = m_rows[i];
         if (!row.blocked)
             continue;
-        const QUrl url = row.pendingUrl;
-        navigate(row, url, false);
+        if (row.pendingUrl.isValid()) {
+            const QUrl url = row.pendingUrl;
+            navigate(row, url, false);
+        } else {
+            prepareRow(row); // code HTML ou page locale : relu, ses sous-ressources
+                             // décidées à nouveau
+        }
         rowChanged(i);
     }
     emit countChanged();
@@ -838,10 +1369,13 @@ bool WebFrameItems::followLink(int row, const QUrl& viewUrl)
         emit countChanged();
         return true;
     }
+    // La vue charge le contenu par loadHtml sans base : about:blank, et ses
+    // renvois de fragment, sont à elle. Toute autre adresse, même celle de la
+    // page affichée, serait chargée par le moteur sans la règle de sécurité du
+    // contenu : rendue au modèle, la vue s'arrête.
     const QUrl page = viewUrl.adjusted(QUrl::RemoveFragment);
-    const QUrl shown = r.baseUrl.adjusted(QUrl::RemoveFragment);
-    if (page.isEmpty() || page == shown || page == QUrl(QStringLiteral("about:blank")))
-        return false;        // le contenu donné, ou un renvoi dans la même page
+    if (page.isEmpty() || page == QUrl(QStringLiteral("about:blank")))
+        return false;
     navigate(r, page, true); // navigation du moteur : rendue à la politique
     rowChanged(row);
     emit countChanged();
@@ -924,7 +1458,8 @@ void WebFrameItems::useWindowCapture(QQuickItem* pageView)
         if (!screen)
             return {};
         const QRect zone = QRectF(a, b).normalized().toAlignedRect();
-        // La fenêtre telle qu'à l'écran : la vue native y est, à la différence de grabToImage.
+        // La fenêtre telle qu'à l'écran : la vue native y est, à la différence de
+        // grabToImage.
         return screen->grabWindow(window->winId(), zone.x(), zone.y(), zone.width(), zone.height()).toImage();
     };
 }

@@ -506,9 +506,9 @@ void TstUiWebFrame::viewFetchesOnlyDecidedSubResources()
         QSKIP("moteur web indisponible hors écran");
     view->setParentItem(window.contentItem());
     window.show();
-    const QUrl base = role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl();
     typed.reset();
-    QVERIFY(QMetaObject::invokeMethod(view, "loadHtml", Q_ARG(QString, html), Q_ARG(QUrl, base)));
+    // Comme WebFrameLayer.qml : sans base, les adresses du contenu sont absolues.
+    QVERIFY(QMetaObject::invokeMethod(view, "loadHtml", Q_ARG(QString, html), Q_ARG(QUrl, QUrl())));
     const bool loaded =
         QTest::qWaitFor([&] { return typed.paths().contains(QStringLiteral("/ok.png")); }, 8000);
     if (!loaded)
