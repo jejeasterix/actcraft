@@ -48,13 +48,16 @@ enum class InteractivityField : std::uint8_t
     Turning,
     TurnStep,
     Pivot,
+    PivotPoint, // Restrictions::pivotPoint, coordonnées de l'objet (restrictors.cpp : transform.map)
     PivotObject,
     Travel,
     Track,
+    Resizable, // Restrictions::resizable (F-579, E6) : « Libre » (vrai) ou « Bloquée » (faux)
     BlocksOthers,
     Magnet,
     MagnetMark,
-    PlayOnOpen, // champs de core::Media : objet média seulement
+    MagnetPoint, // Restrictions::magnetPoint, coordonnées de page (landingPoint : le centre s'y pose)
+    PlayOnOpen,  // champs de core::Media : objet média seulement
     Loop,
     ControlsHidden,
     AspectLocked,
@@ -70,6 +73,7 @@ enum class InteractivityEditor : std::uint8_t
     Number,   // « number », borné par min et max
     Object,   // « object » : identifiant d'un autre objet de la page, 0 pour aucun
     Keywords, // « keywords » : comme la ligne des mots-clés du lot 6
+    Point,    // « point » : deux nombres x, y (QPointF), dans la convention du champ, dite par le libellé
 };
 
 struct InteractivityRow
@@ -95,15 +99,22 @@ bool appliesTo(const InteractivityRow& row, const core::PageObject& object);
 // Valeur montrée, lue sur la forme normalisée des restrictions (core::normalize : les booléens du lot 2
 // priment, un objet bloqué au lot 2 se lit « non »).
 QVariant readInteractivity(const core::PageObject& object, InteractivityField field);
-// Faux si l'éditeur du champ est grisé pour cet objet.
+// Faux si l'éditeur du champ est grisé pour cet objet. Un point choisi n'est actif que sur Mark::Point.
 bool isEnabled(const core::PageObject& object, InteractivityField field);
+// Vrai si `target` peut être visé par le champ (éditeur « object ») pour `ids` : jamais un objet de `ids` ;
+// le chemin suivi, un trait ou une ligne seulement. Liste proposée par PropertyModel et refus de
+// interactivityCommand : une seule règle.
+bool isTargetCandidate(InteractivityField field, const core::PageObject& target,
+                       const std::vector<core::ObjectId>& ids);
 
-using InteractivityValue = std::variant<bool, int, double, core::ObjectId, std::vector<std::string>>;
+using InteractivityValue =
+    std::variant<bool, int, double, core::ObjectId, std::vector<std::string>, core::PointF>;
 
 // Une étape pour tous les objets (L8-T17). Les modes passent par core::setTravel, core::setTurning puis
-// core::normalize : choisir « verticalement » rend `movable` vrai, « non » le rend faux. Identifiants absents
-// de la page, objets déjà à cette valeur, champ média sur un objet qui n'en est pas un : ignorés. Un
-// PageSettingsChanged par objet modifié, que applyToCache ignore (L0-S3).
+// core::normalize : choisir « verticalement » rend `movable` vrai, « non » le rend faux. Passer le pivot ou
+// le repère de pose à Mark::Point y pose le centre de l'objet, chacun dans sa convention (objet, page),
+// jamais (0, 0). Identifiants absents de la page, objets déjà à cette valeur, champ média sur un objet qui
+// n'en est pas un : ignorés. Un PageSettingsChanged par objet modifié, que applyToCache ignore (L0-S3).
 class SetInteractivityCommand final : public core::UndoCommand
 {
 public:
@@ -141,8 +152,8 @@ private:
 
 // Commande d'une saisie sur `ids` de `page` (indice `pageIndex`) ; nullptr si refusée : lecture seule
 // (Actions), éditeur « keywords » (PropertyModel convertit la saisie), valeur illisible, choix inconnu,
-// nombre hors de [min, max] (refusé, jamais écrêté), objet visé absent de la page ou parmi `ids`, chemin qui
-// n'est ni un trait ni une ligne.
+// nombre hors de [min, max] (refusé, jamais écrêté), point qui n'est pas un QPointF fini, objet visé absent
+// de la page ou parmi `ids`, chemin qui n'est ni un trait ni une ligne.
 std::unique_ptr<core::UndoCommand> interactivityCommand(const core::Page& page, std::size_t pageIndex,
                                                         std::vector<core::ObjectId> ids,
                                                         const InteractivityRow& row, const QVariant& value);

@@ -1,7 +1,12 @@
 // L8-T17 : sections de propriétés de l'interactivité (F-577 à F-579, F-582).
+#include <actcraft/actions/objectactions.h>
 #include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/interactivity.h>
 #include <actcraft/ui/interactivityprops.h>
+
+#include <QDebug>
+#include <QPointF>
 
 #include <algorithm>
 #include <array>
@@ -41,12 +46,15 @@ const std::array kRows = {
     row("rotation", "turning", "Peut pivoter", E::Choice, F::Turning),
     row("rotation", "turn-step", "Pas de rotation", E::Number, F::TurnStep, 0, 360),
     row("rotation", "pivot", "Centre de rotation", E::Choice, F::Pivot),
+    row("rotation", "pivot-point", "Point de rotation (x, y dans l'objet)", E::Point, F::PivotPoint),
     row("rotation", "pivot-object", "Objet pivot", E::Object, F::PivotObject),
     row("restrictors", "travel", "Peut se déplacer", E::Choice, F::Travel),
     row("restrictors", "track", "Chemin suivi", E::Object, F::Track),
+    row("restrictors", "resizable", "Taille", E::Choice, F::Resizable),
     row("restrictors", "blocks-others", "Arrête les autres objets", E::Bool, F::BlocksOthers),
     row("restrictors", "magnet", "Se poser sur un repère", E::Bool, F::Magnet),
     row("restrictors", "magnet-mark", "Repère de pose", E::Choice, F::MagnetMark),
+    row("restrictors", "magnet-point", "Point de pose (x, y sur la page)", E::Point, F::MagnetPoint),
     row("multimedia", "play-on-open", "Lire à l'ouverture de la page", E::Bool, F::PlayOnOpen),
     row("multimedia", "loop", "Lire en boucle", E::Bool, F::Loop),
     row("multimedia", "controls-hidden", "Masquer les commandes", E::Bool, F::ControlsHidden),
@@ -80,14 +88,24 @@ core::Media* mediaOf(core::PageObject& object) noexcept
     return std::get_if<core::Media>(&static_cast<core::ObjectVariant&>(object));
 }
 
+// Liaisons structurées (comme core::isDefault, interactivity.cpp) : un champ ajouté à MediaOptions,
+// Restrictions ou ContainerRule casse la compilation ici au lieu d'échapper à la copie, à la restauration ou
+// à la comparaison (une édition de ce champ ne serait ni vue ni annulée).
 SetInteractivityCommand::MediaOptions optionsOf(const core::PageObject& object) noexcept
 {
+    SetInteractivityCommand::MediaOptions options;
     const core::Media* media = mediaOf(object);
     if (media == nullptr) {
-        return {};
+        return options;
     }
-    return {media->playOnOpen,      media->loop,    media->controlsHidden, media->aspectLocked,
-            media->clearBackground, media->wrapText};
+    auto& [playOnOpen, loop, controlsHidden, aspectLocked, clearBackground, wrapText] = options;
+    playOnOpen = media->playOnOpen;
+    loop = media->loop;
+    controlsHidden = media->controlsHidden;
+    aspectLocked = media->aspectLocked;
+    clearBackground = media->clearBackground;
+    wrapText = media->wrapText;
+    return options;
 }
 
 void setOptions(core::PageObject& object, const SetInteractivityCommand::MediaOptions& options) noexcept
@@ -96,12 +114,13 @@ void setOptions(core::PageObject& object, const SetInteractivityCommand::MediaOp
     if (media == nullptr) {
         return;
     }
-    media->playOnOpen = options.playOnOpen;
-    media->loop = options.loop;
-    media->controlsHidden = options.controlsHidden;
-    media->aspectLocked = options.aspectLocked;
-    media->clearBackground = options.clearBackground;
-    media->wrapText = options.wrapText;
+    const auto& [playOnOpen, loop, controlsHidden, aspectLocked, clearBackground, wrapText] = options;
+    media->playOnOpen = playOnOpen;
+    media->loop = loop;
+    media->controlsHidden = controlsHidden;
+    media->aspectLocked = aspectLocked;
+    media->clearBackground = clearBackground;
+    media->wrapText = wrapText;
 }
 
 bool samePoint(const core::PointF& a, const core::PointF& b) noexcept
@@ -109,21 +128,55 @@ bool samePoint(const core::PointF& a, const core::PointF& b) noexcept
     return a.x == b.x && a.y == b.y;
 }
 
-// Champ par champ : Restrictions et ContainerRule n'ont pas d'opérateur ==.
+// Restrictions et ContainerRule n'ont pas d'opérateur == : tous leurs champs, par liaison structurée.
 bool sameRestrictions(const core::Restrictions& a, const core::Restrictions& b) noexcept
 {
-    return a.movable == b.movable && a.resizable == b.resizable && a.rotatable == b.rotatable &&
-           a.travel == b.travel && a.track == b.track && a.turning == b.turning && a.turnStep == b.turnStep &&
-           a.pivot == b.pivot && samePoint(a.pivotPoint, b.pivotPoint) && a.pivotObject == b.pivotObject &&
-           a.blocksOthers == b.blocksOthers && a.magnet == b.magnet && a.magnetMark == b.magnetMark &&
-           samePoint(a.magnetPoint, b.magnetPoint);
+    const auto& [movableA, resizableA, rotatableA, travelA, trackA, turningA, turnStepA, pivotA, pivotPointA,
+                 pivotObjectA, blocksOthersA, magnetA, magnetMarkA, magnetPointA] = a;
+    const auto& [movableB, resizableB, rotatableB, travelB, trackB, turningB, turnStepB, pivotB, pivotPointB,
+                 pivotObjectB, blocksOthersB, magnetB, magnetMarkB, magnetPointB] = b;
+    return movableA == movableB && resizableA == resizableB && rotatableA == rotatableB &&
+           travelA == travelB && trackA == trackB && turningA == turningB && turnStepA == turnStepB &&
+           pivotA == pivotB && samePoint(pivotPointA, pivotPointB) && pivotObjectA == pivotObjectB &&
+           blocksOthersA == blocksOthersB && magnetA == magnetB && magnetMarkA == magnetMarkB &&
+           samePoint(magnetPointA, magnetPointB);
 }
 
 bool sameContainer(const core::ContainerRule& a, const core::ContainerRule& b) noexcept
 {
-    return a.accepts == b.accepts && a.object == b.object && a.keywords == b.keywords && a.fit == b.fit &&
-           a.tolerance == b.tolerance && a.bounceBack == b.bounceBack && a.chime == b.chime &&
-           a.chimeSound == b.chimeSound;
+    const auto& [acceptsA, objectA, keywordsA, fitA, toleranceA, bounceBackA, chimeA, chimeSoundA] = a;
+    const auto& [acceptsB, objectB, keywordsB, fitB, toleranceB, bounceBackB, chimeB, chimeSoundB] = b;
+    return acceptsA == acceptsB && objectA == objectB && keywordsA == keywordsB && fitA == fitB &&
+           toleranceA == toleranceB && bounceBackA == bounceBackB && chimeA == chimeB &&
+           chimeSoundA == chimeSoundB;
+}
+
+// Centre de l'objet sur la page (convention de magnetPoint) et dans son repère (convention de pivotPoint, que
+// restrictors.cpp ramène sur la page par transform.map) : les deux désignent le même point de la page.
+core::PointF centerOnPage(const core::Page& page, const core::PageObject& object)
+{
+    return core::boundsOnPage(page, object).center();
+}
+
+core::PointF centerInObject(const core::Page& page, const core::PageObject& object)
+{
+    const core::PointF onPage = centerOnPage(page, object);
+    const std::optional<core::Transform> back = core::inverted(object.common.transform);
+    return back ? back->map(onPage) : onPage;
+}
+
+// Même accès au catalogue que ActionBrowserModel (actionbrowser.cpp) : la ressource intégrée, lue une fois.
+const actions::ObjectActionCatalog& catalog()
+{
+    static const actions::ObjectActionCatalog loaded = [] {
+        actions::ObjectActionCatalog c;
+        QString error;
+        if (!c.load(actions::defaultObjectActionsJson(), error)) {
+            qWarning() << "Propriétés de l'interactivité : catalogue des actions illisible :" << error;
+        }
+        return c;
+    }();
+    return loaded;
 }
 
 core::PageObject* find(core::Page& page, core::ObjectId id) noexcept
@@ -146,8 +199,10 @@ const core::PageObject* find(const core::Page& page, core::ObjectId id) noexcept
     return nullptr;
 }
 
-// Écrit la valeur ; les modes passent par la forme normalisée (les booléens du lot 2 suivent le mode).
-void writeField(core::PageObject& object, InteractivityField field, const InteractivityValue& value)
+// Écrit la valeur ; les modes passent par la forme normalisée (les booléens du lot 2 suivent le mode). Passer
+// un repère à Mark::Point y pose le centre de l'objet, dans la convention du champ.
+void writeField(const core::Page& page, core::PageObject& object, InteractivityField field,
+                const InteractivityValue& value)
 {
     core::Restrictions& r = object.common.restrictions;
     core::ContainerRule& c = object.common.container;
@@ -155,6 +210,7 @@ void writeField(core::PageObject& object, InteractivityField field, const Intera
     const auto flag = [&value] { return std::get<bool>(value); };
     const auto number = [&value] { return std::get<double>(value); };
     const auto target = [&value] { return std::get<core::ObjectId>(value); };
+    const auto point = [&value] { return std::get<core::PointF>(value); };
     core::Media* media = mediaOf(object);
     switch (field) {
     case F::Accepts:
@@ -182,8 +238,16 @@ void writeField(core::PageObject& object, InteractivityField field, const Intera
     case F::TurnStep:
         r.turnStep = number();
         break;
-    case F::Pivot:
-        r.pivot = static_cast<core::Mark>(choice());
+    case F::Pivot: {
+        const auto mark = static_cast<core::Mark>(choice());
+        if (mark == core::Mark::Point && r.pivot != core::Mark::Point) {
+            r.pivotPoint = centerInObject(page, object);
+        }
+        r.pivot = mark;
+        break;
+    }
+    case F::PivotPoint:
+        r.pivotPoint = point();
         break;
     case F::PivotObject:
         r.pivotObject = target();
@@ -195,14 +259,25 @@ void writeField(core::PageObject& object, InteractivityField field, const Intera
     case F::Track:
         r.track = target();
         break;
+    case F::Resizable:
+        r.resizable = choice() == 0; // « Libre »
+        break;
     case F::BlocksOthers:
         r.blocksOthers = flag();
         break;
     case F::Magnet:
         r.magnet = flag();
         break;
-    case F::MagnetMark:
-        r.magnetMark = static_cast<core::Mark>(choice());
+    case F::MagnetMark: {
+        const auto mark = static_cast<core::Mark>(choice());
+        if (mark == core::Mark::Point && r.magnetMark != core::Mark::Point) {
+            r.magnetPoint = centerOnPage(page, object);
+        }
+        r.magnetMark = mark;
+        break;
+    }
+    case F::MagnetPoint:
+        r.magnetPoint = point();
         break;
     case F::PlayOnOpen:
     case F::Loop:
@@ -316,6 +391,8 @@ QString interactivityEditorKey(InteractivityEditor editor)
         return QStringLiteral("object");
     case E::Keywords:
         return QStringLiteral("keywords");
+    case E::Point:
+        return QStringLiteral("point");
     }
     return {};
 }
@@ -336,6 +413,8 @@ QStringList interactivityChoices(InteractivityField field)
         return {PropertyModel::tr("Librement"), PropertyModel::tr("Verticalement"),
                 PropertyModel::tr("Horizontalement"), PropertyModel::tr("Le long d'un chemin"),
                 PropertyModel::tr("Non")};
+    case F::Resizable: // indice 0 : resizable vrai
+        return {PropertyModel::tr("Libre"), PropertyModel::tr("Bloquée")};
     case F::Pivot: // core::Mark
     case F::MagnetMark:
         return markLabels();
@@ -360,8 +439,11 @@ QVariant readInteractivity(const core::PageObject& object, InteractivityField fi
     case F::Actions: {
         QStringList list;
         for (const core::Action& action : object.common.actions) {
-            list.append(action.catalogId.empty() ? PropertyModel::tr("Action non prise en charge")
-                                                 : QString::fromStdString(action.catalogId));
+            // Libellé du catalogue ; hors catalogue (lue d'un fichier, ou d'une autre version) : non prise en
+            // charge.
+            const actions::ObjectActionInfo* info =
+                action.catalogId.empty() ? nullptr : catalog().find(QString::fromStdString(action.catalogId));
+            list.append(info != nullptr ? info->label : PropertyModel::tr("Action non prise en charge"));
         }
         return list;
     }
@@ -385,18 +467,24 @@ QVariant readInteractivity(const core::PageObject& object, InteractivityField fi
         return r.turnStep;
     case F::Pivot:
         return static_cast<int>(r.pivot);
+    case F::PivotPoint:
+        return QPointF(r.pivotPoint.x, r.pivotPoint.y);
     case F::PivotObject:
         return id(r.pivotObject);
     case F::Travel:
         return static_cast<int>(r.travel);
     case F::Track:
         return id(r.track);
+    case F::Resizable:
+        return r.resizable ? 0 : 1;
     case F::BlocksOthers:
         return r.blocksOthers;
     case F::Magnet:
         return r.magnet;
     case F::MagnetMark:
         return static_cast<int>(r.magnetMark);
+    case F::MagnetPoint:
+        return QPointF(r.magnetPoint.x, r.magnetPoint.y);
     case F::PlayOnOpen:
         return media.playOnOpen;
     case F::Loop:
@@ -432,15 +520,29 @@ bool isEnabled(const core::PageObject& object, InteractivityField field)
     case F::TurnStep:
     case F::Pivot:
         return r.turning != core::Turning::Fixed;
+    case F::PivotPoint:
+        return r.turning != core::Turning::Fixed && r.pivot == core::Mark::Point;
     case F::PivotObject:
         return r.turning != core::Turning::Fixed && r.pivot == core::Mark::OtherObject;
     case F::Track:
         return r.travel == core::Travel::AlongTrack;
     case F::MagnetMark:
         return r.magnet;
+    case F::MagnetPoint:
+        return r.magnet && r.magnetMark == core::Mark::Point;
     default:
         return true;
     }
+}
+
+bool isTargetCandidate(InteractivityField field, const core::PageObject& target,
+                       const std::vector<core::ObjectId>& ids)
+{
+    if (std::find(ids.begin(), ids.end(), target.common.id) != ids.end()) {
+        return false;
+    }
+    const core::ObjectKind kind = core::kindOf(target);
+    return field != F::Track || kind == core::ObjectKind::Stroke || kind == core::ObjectKind::Line;
 }
 
 SetInteractivityCommand::SetInteractivityCommand(std::size_t page, std::vector<core::ObjectId> ids,
@@ -458,7 +560,7 @@ void SetInteractivityCommand::redo(core::Document& document, core::Changes& chan
             continue;
         }
         Before before{id, object->common.restrictions, object->common.container, optionsOf(*object)};
-        writeField(*object, m_field, m_value);
+        writeField(page, *object, m_field, m_value);
         if (sameRestrictions(before.restrictions, object->common.restrictions) &&
             sameContainer(before.container, object->common.container) && before.media == optionsOf(*object)) {
             continue; // déjà à cette valeur (ou identifiant répété)
@@ -529,12 +631,18 @@ std::unique_ptr<core::UndoCommand> interactivityCommand(const core::Page& page, 
             break;
         }
         const core::PageObject* target = find(page, id);
-        const bool self = std::find(ids.begin(), ids.end(), id) != ids.end();
-        const bool track = row.field != F::Track ||
-                           (target != nullptr && (core::kindOf(*target) == core::ObjectKind::Stroke ||
-                                                  core::kindOf(*target) == core::ObjectKind::Line));
-        if (target != nullptr && !self && track) {
+        if (target != nullptr && isTargetCandidate(row.field, *target, ids)) {
             converted = id;
+        }
+        break;
+    }
+    case E::Point: {
+        const int type = value.typeId();
+        if (type == QMetaType::QPointF || type == QMetaType::QPoint) {
+            const QPointF p = value.toPointF();
+            if (std::isfinite(p.x()) && std::isfinite(p.y())) {
+                converted = core::PointF{p.x(), p.y()};
+            }
         }
         break;
     }
