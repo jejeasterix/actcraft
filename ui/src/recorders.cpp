@@ -213,10 +213,10 @@ void Recorders::bindCommands()
     m_commands->setNativeHandler(QStringLiteral("record.screen-area"), [this](const QVariant& argument) {
         const QVariantMap area = argument.toMap();
         if (area.contains(QStringLiteral("width"))) {
-            chooseScreenArea(area.value(QStringLiteral("x")).toReal(), area.value(QStringLiteral("y")).toReal(),
-                             area.value(QStringLiteral("width")).toReal(),
-                             area.value(QStringLiteral("height")).toReal(),
-                             area.value(QStringLiteral("ratio"), 1.0).toReal());
+            chooseScreenArea(
+                area.value(QStringLiteral("x")).toReal(), area.value(QStringLiteral("y")).toReal(),
+                area.value(QStringLiteral("width")).toReal(), area.value(QStringLiteral("height")).toReal(),
+                area.value(QStringLiteral("ratio"), 1.0).toReal());
         }
         toggleScreen(true);
     });
@@ -226,8 +226,8 @@ void Recorders::unbindCommands()
 {
     if (!m_commands)
         return;
-    for (const char* id : {"record.sound", "record.pause", "record.stop", "record.cancel", "record.screen-full",
-                           "record.screen-area"}) {
+    for (const char* id : {"record.sound", "record.pause", "record.stop", "record.cancel",
+                           "record.screen-full", "record.screen-area"}) {
         m_commands->setNativeHandler(QString::fromLatin1(id), {});
     }
 }
@@ -311,14 +311,16 @@ QString Recorders::folder() const
 
 QString Recorders::soundFormat() const
 {
-    return m_preferences ? m_preferences->value(QString::fromLatin1(kSoundFormatKey), QStringLiteral("wav")).toString()
-                         : QStringLiteral("wav");
+    return m_preferences
+               ? m_preferences->value(QString::fromLatin1(kSoundFormatKey), QStringLiteral("wav")).toString()
+               : QStringLiteral("wav");
 }
 
 QString Recorders::screenFormat() const
 {
-    return m_preferences ? m_preferences->value(QString::fromLatin1(kScreenFormatKey), QStringLiteral("mp4")).toString()
-                         : QStringLiteral("mp4");
+    return m_preferences
+               ? m_preferences->value(QString::fromLatin1(kScreenFormatKey), QStringLiteral("mp4")).toString()
+               : QStringLiteral("mp4");
 }
 
 QRect Recorders::pixelArea(const QRectF& logical, qreal pixelRatio, const QPointF& screenOrigin)
@@ -404,7 +406,8 @@ void Recorders::toggleScreen(bool area)
             if (QScreen* screen = QGuiApplication::primaryScreen()) {
                 const QRectF geometry = screen->geometry();
                 chooseScreenArea(geometry.width() / 4, geometry.height() / 4, geometry.width() / 2,
-                                 geometry.height() / 2, screen->devicePixelRatio(), geometry.x(), geometry.y());
+                                 geometry.height() / 2, screen->devicePixelRatio(), geometry.x(),
+                                 geometry.y());
             }
         } else if (!area) {
             m_display->setArea({});
