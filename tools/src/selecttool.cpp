@@ -531,11 +531,19 @@ void SelectTool::prepareRules(const core::Page& page, const std::vector<core::Ob
 
 core::PointF SelectTool::allowedDelta(core::PointF wanted) const
 {
-    for (const std::size_t index : m_limited) { // limiteurs d'abord (D8-7), puis les bloquants
-        wanted = core::allowedTravel(m_travelPage, m_travelPage.objects[index], wanted);
-    }
+    const auto limit = [this](core::PointF delta) {
+        for (const std::size_t index : m_limited) {
+            delta = core::allowedTravel(m_travelPage, m_travelPage.objects[index], delta);
+        }
+        return delta;
+    };
+    wanted = limit(wanted); // limiteurs d'abord (D8-7), puis les bloquants
     if (!m_blockerBoxes.empty()) {
-        wanted = core::stopBoxesAtBlockers(m_movingBoxes, m_blockerBoxes, wanted);
+        const core::PointF stopped = core::stopBoxesAtBlockers(m_movingBoxes, m_blockerBoxes, wanted);
+        // L8-C6 : l'arrêt raccourcit le déplacement en ligne droite ; sur un rail courbe ce point est sur la
+        // corde, hors du rail. Les limiteurs y ramènent l'objet (identité pour Libre, Vertical et Horizontal
+        // : le point arrêté les respecte déjà ; seul AlongTrack reprojette sur son trait).
+        wanted = stopped.x == wanted.x && stopped.y == wanted.y ? wanted : limit(stopped);
     }
     return wanted;
 }
