@@ -200,6 +200,16 @@ Item {
             }
             actions.resumeWhenIdle()
         }
+        // Diffusion protégée (L8-T31) : le document ouvert est le même ; l'enregistrement demandé pendant
+        // l'écriture de la copie part, puis l'action en attente (« Quitter ») reprend à sa fin à lui.
+        function onPublishFinished(ok, message) {
+            if (actions.saveWaiting) {
+                actions.saveWaiting = false
+                actions.save()
+                return
+            }
+            actions.resumeWhenIdle()
+        }
     }
     RecentDocuments {
         id: recentList

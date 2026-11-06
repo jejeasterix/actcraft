@@ -127,6 +127,11 @@ public:
     // document).
     Q_INVOKABLE void openUrl(const QUrl& url);
     Q_INVOKABLE void saveToUrl(const QUrl& url);
+    // Diffusion protégée (L8-T31) : écrit dans un nouveau fichier une copie du document qui porte les règles
+    // (core::published), sur un fil secondaire comme saveToUrl ; publishFinished à la fin. Le document
+    // ouvert, son fichier et « modifié » ne changent pas.
+    Q_INVOKABLE void publishToUrl(const QUrl& url, bool noCopy, bool noSave, bool noPrint, bool noCamera,
+                                  const QString& author);
     // Argument d'une commande de fichier → URL (formats::urlFromArgument) ; vide si absent.
     Q_INVOKABLE QUrl urlFromArgument(const QVariant& argument) const;
     // `create` : le dossier est créé s'il manque — le dialogue d'ouverture ou d'enregistrement le demande en
@@ -222,6 +227,7 @@ signals:
     void lastIoChanged();
     void loadFinished(bool ok, const QString& message);
     void saveFinished(bool ok, const QString& message);
+    void publishFinished(bool ok, const QString& message);
     // Avant Annuler, Rétablir, Effacer, Rétablir la page, Supprimer : la vue termine le trait en cours et les
     // outils leur geste (L2-T15).
     void editAboutToApply();

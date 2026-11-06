@@ -556,6 +556,8 @@ Window {
     PublishDialog {
         id: publishDialog
         commands: appCommands
+        document: appDocument
+        banner: messageBanner
     }
     SoundController {
         id: soundController

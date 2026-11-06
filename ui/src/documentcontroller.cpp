@@ -1,5 +1,6 @@
 #include "parkedsession.h"
 
+#include <actcraft/core/broadcast.h>
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
@@ -1030,6 +1031,56 @@ void DocumentController::saveToUrl(const QUrl& url)
             }
             qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s", qPrintable(fingerprintHex(outcome.fingerprint)));
             emit self.saveFinished(true, QString());
+        });
+    });
+}
+
+void DocumentController::publishToUrl(const QUrl& url, bool noCopy, bool noSave, bool noPrint, bool noCamera,
+                                      const QString& author)
+{
+    if (m_busy) {
+        refuseWhileBusy(tr("Une opération est déjà en cours : diffusion refusée."),
+                        &DocumentController::publishFinished);
+        return;
+    }
+    QString refusal;
+    QUrl target = actcraftTarget(url, &refusal);
+    if (!target.isEmpty() && target == m_fileUrl) {
+        // La copie protégée est un nouveau fichier : jamais celui du document ouvert, qui reste sans règles.
+        refusal = tr("La copie protégée doit être un nouveau fichier : choisissez un autre nom.");
+        target.clear();
+    }
+    if (target.isEmpty()) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, refusal] {
+                setLastError(refusal);
+                emit publishFinished(false, refusal);
+            },
+            Qt::QueuedConnection);
+        return;
+    }
+    // Comme saveToUrl : la vue termine son trait, qui entre dans la copie. Copie prise sur le fil principal,
+    // qui porte les règles (core::published) ; le document ouvert ne les reçoit jamais.
+    announceEdit();
+    setBusy(true);
+    const core::BroadcastRules rules{.noCopy = noCopy,
+                                     .noSave = noSave,
+                                     .noPrint = noPrint,
+                                     .noCamera = noCamera,
+                                     .author = author.toStdString()};
+    auto snapshot = std::make_shared<const core::Document>(core::published(m_document, rules));
+    std::shared_ptr<IoRelay> relay = m_relay;
+    QThreadPool::globalInstance()->start([relay, file = target, snapshot] {
+        const SaveOutcome outcome = saveDocument(*snapshot, file);
+        relay->post([relay, outcome] {
+            DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
+            self.setBusy(false);
+            self.setLastIo(outcome.offMainThread);
+            // Ni fileUrl, ni « modifié », ni la référence de Rétablir la page : le fichier diffusé n'est pas
+            // celui du document ouvert.
+            self.setLastError(outcome.ok ? QString() : outcome.error);
+            emit self.publishFinished(outcome.ok, outcome.ok ? QString() : outcome.error);
         });
     });
 }
