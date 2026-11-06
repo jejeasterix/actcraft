@@ -215,6 +215,8 @@ private:
     // Clic réel : contact posé, appui, relâché, contact retombé, puis un tour de boucle.
     void click(QPointF point, Qt::MouseButton button = Qt::LeftButton);
     core::Document linkedDocument() const;
+    // Clic réel sur le rond, outil de sélection, vue hors écran : objets sélectionnés ensuite.
+    int selectedAfterClick(Qt::MouseButton button);
 
     QTemporaryDir m_settings;
     QTemporaryDir m_dir;
@@ -306,6 +308,28 @@ void TstUiActionrunner::click(QPointF point, Qt::MouseButton button)
     QCoreApplication::processEvents();
 }
 
+int TstUiActionrunner::selectedAfterClick(Qt::MouseButton button)
+{
+    ViewMount mount;
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    if (!mount.mount(*m_controllerOwner, tools)) {
+        return -1;
+    }
+    tools.setActionRunner(m_runner.get());
+    tools.selectObjects({});
+    const QPoint at = windowPoint(*mount.view, kOnRound);
+    m_runner->setContactActive(true);
+    QTest::mousePress(mount.window, button, Qt::NoModifier, at);
+    QTest::mouseRelease(mount.window, button, Qt::NoModifier, at);
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    const int selected = tools.selectionCount();
+    tools.setActionRunner(nullptr);
+    return selected;
+}
+
 core::Document TstUiActionrunner::linkedDocument() const
 {
     core::Document document(1024, 768);
@@ -358,6 +382,10 @@ void TstUiActionrunner::rightClickSelectsWithoutRunning()
     QCoreApplication::processEvents();
     QVERIFY(!hidden(kLabel));
     QVERIFY(!m_controllerOwner->canUndo());
+    // Revue, point 7 : par le geste réel, rien ne tourne (le bouton droit ne va pas à l'exécuteur).
+    QVERIFY(selectedAfterClick(Qt::RightButton) >= 0);
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(!m_controllerOwner->canUndo());
 }
 
 void TstUiActionrunner::designModeSelectsInstead()
@@ -371,6 +399,9 @@ void TstUiActionrunner::designModeSelectsInstead()
     QVERIFY(!m_runner->release(kOnRound));
     m_runner->setContactActive(false);
     QCoreApplication::processEvents();
+    QVERIFY(!hidden(kLabel));
+    // Revue, point 7 : par le geste réel, le rond est sélectionné au lieu d'exécuter.
+    QCOMPARE(selectedAfterClick(Qt::LeftButton), 1);
     QVERIFY(!hidden(kLabel));
     // Hors du mode conception, le même clic exécute.
     m_design->setActive(false);
