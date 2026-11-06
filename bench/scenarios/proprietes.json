@@ -39,6 +39,7 @@
     {"expect": "appText.plainText", "value": "Rouge"},
     {"command": "text.select-all"},
     {"command": "text.size", "argument": 48},
+    {"command": "text.font", "argument": "Arial"},
     {"key": "Escape"},
     {"waitFor": "appText.active", "value": false, "timeoutMs": 10000},
     {"waitReady": true},
@@ -58,11 +59,11 @@
     {"waitReady": true},
     {"expect": "appTools.selectionCount", "value": 0},
     {"capture": "texte-rouge"},
-    {"checkPixel": "texte-recolore", "at": [306, 340], "color": "#E53935", "tolerance": 60},
+    {"checkPixel": "texte-recolore", "at": [308, 340], "color": "#E53935", "tolerance": 60},
     {"command": "edit.undo"},
     {"waitReady": true},
     {"expect": "documentController.shownObjectCount", "value": 2},
     {"capture": "texte-annule"},
-    {"checkPixel": "texte-annule", "at": [306, 340], "color": "#000000", "tolerance": 60}
+    {"checkPixel": "texte-annule", "at": [308, 340], "color": "#000000", "tolerance": 60}
   ]
 }
