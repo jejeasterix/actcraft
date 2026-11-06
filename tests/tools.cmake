@@ -41,3 +41,8 @@ actcraft_add_test(tst_tools_connector
 actcraft_add_test(tst_tools_selectcopy
     SOURCES tst_tools_selectcopy.cpp
     LIBS ActCraft::tools)
+
+# Lot 8 (L8-T1) : talon.
+actcraft_add_test(tst_tools_interactivity
+    SOURCES tst_tools_interactivity.cpp
+    LIBS ActCraft::tools ActCraft::core)

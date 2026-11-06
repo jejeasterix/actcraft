@@ -1,7 +1,7 @@
 {
   "format": "actcraft-layout/1",
   "menus": [
-    { "id": "file", "label": "Fichier", "items": ["file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864", "file.new-1280x1024", "file.new-custom", "-", "file.open", "file.recent-clear", "-", "file.save", "file.save-as", "-",
+    { "id": "file", "label": "Fichier", "items": ["file.new", "file.new-screen", "file.new-1024x768", "file.new-1152x864", "file.new-1280x1024", "file.new-custom", "-", "file.open", "file.recent-clear", "-", "file.save", "file.save-as", "file.publish", "-",
       { "submenu": "import", "label": "Importer", "items": ["file.import-pdf", "file.import-powerpoint-images"] },
       { "submenu": "export", "label": "Exporter", "items": ["export.pdf", "export.page-image"] },
       "file.print", "-", "file.close", "-", "file.quit"] },
@@ -17,13 +17,16 @@
       "browser.objects", "browser.properties", "browser.notes", "browser.resources", "mode.design"] },
     { "id": "insert", "label": "Insérer", "items": ["insert.date-time", "insert.equation", "-",
       { "submenu": "insert-page", "label": "Page", "items": ["page.insert-before", "page.insert-after"] },
-      "-", "insert.image", "insert.media", "tool.connector"] },
-    { "id": "tools", "label": "Outils", "items": ["desktop.annotate", "desktop.tools", "-", "tool.pen", "tool.highlighter", "tool.eraser", "-",
+      "-", "insert.image", "insert.media", "tool.connector",
+      { "submenu": "link", "label": "Lien", "items": ["link.file", "link.website", "insert.web-frame"] }] },
+    { "id": "tools", "label": "Outils", "items": ["desktop.annotate", "desktop.tools", "-", "tool.pen", "tool.highlighter", "tool.reveal-ink", "tool.eraser", "-",
       "tool.handwriting", "tool.shape-recognition", "-", "present.curtain",
       { "submenu": "spot", "label": "Spot", "items": ["present.spotlight-circle", "present.spotlight-square", "present.spotlight-solid-circle", "present.spotlight-solid-square"] },
       { "submenu": "camera", "label": "Caméra", "items": ["tool.camera-area", "tool.camera-polygon", "tool.camera-freehand", "tool.camera-window", "tool.camera-screen"] },
       { "submenu": "math", "label": "Outils de maths", "items": ["math.ruler", "math.protractor", "math.set-square", "math.compass", "math.xy-origin", "tool.dice", "tool.calculator"] },
       { "submenu": "other-tools", "label": "Autres outils", "items": ["tool.keyboard", "tool.clock", "tool.ticker", "tool.web-browser", "tool.text-vertical"] },
+      { "submenu": "recorders", "label": "Enregistreurs", "items": ["record.sound", "record.screen-full", "record.screen-area"] },
+      "media.sound-controller",
       "-", "spell.check", "launcher.edit", "classroom.lock", "classroom.password", "-", "profile.edit"] },
     { "id": "help", "label": "Aide", "items": ["help.contents", "help.website", "-", "help.about"] }
   ],
@@ -38,7 +41,8 @@
     { "group": "formes-texte", "items": ["tool.shape", "tool.text", "tool.fill", "tool.connector"] }
   ],
   "objectBar": ["object.move-free", "object.rotate", "object.translucency", "object.enlarge", "object.reduce",
-    "object.menu", "object.group", "arrange.front", "arrange.back", "edit.duplicate", "object.shape-points"],
+    "object.menu", "object.group", "arrange.front", "arrange.back", "edit.duplicate", "object.shape-points",
+    "action.apply", "action.remove"],
   "objectMenu": ["object.shape-points", "-", "edit.cut", "edit.copy", "edit.paste-onto", "edit.duplicate", "edit.delete", "-",
     { "submenu": "transform", "label": "Transformer", "items": ["object.enlarge", "object.reduce", "transform.original-size", "transform.fit-width", "transform.fit-height", "transform.fit-page", "-", "transform.mirror-x", "transform.mirror-y", "transform.flip-x", "transform.flip-y", "transform.origin-flip-x", "transform.origin-flip-y"] },
     { "submenu": "align", "label": "Aligner", "items": ["align.left", "align.center-x", "align.right", "align.top", "align.center-y", "align.bottom", "align.width", "align.height", "align.angle", "align.all"] },

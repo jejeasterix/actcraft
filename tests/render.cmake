@@ -52,3 +52,8 @@ actcraft_add_test(tst_render_gridoverlay
 actcraft_add_test(tst_render_verticaltext
     SOURCES tst_render_verticaltext.cpp
     LIBS ActCraft::render Qt6::Quick)
+
+# Lot 8 (L8-T1) : talon.
+actcraft_add_test(tst_render_reveal
+    SOURCES tst_render_reveal.cpp
+    LIBS ActCraft::render Qt6::Quick)
