@@ -1035,3 +1035,12 @@ void DocumentController::saveToUrl(const QUrl& url)
 }
 
 } // namespace actcraft::ui
+
+namespace actcraft::ui {
+
+void DocumentController::publishToUrl(const QUrl&, bool, bool, bool, bool, const QString&)
+{
+    QMetaObject::invokeMethod(this, [this] { emit publishFinished(false, QString()); }, Qt::QueuedConnection);
+}
+
+} // namespace actcraft::ui
