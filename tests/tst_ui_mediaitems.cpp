@@ -1032,8 +1032,8 @@ QByteArray bigTone()
     return big;
 }
 
-// Troisième revue L8-T25. Gros son A puis petit son B : B part en premier, A finit d'être écrit après ; seul B
-// doit jouer à la fin.
+// Troisième revue L8-T25. Gros son A puis petit son B : B part en premier, A finit d'être écrit après ; seul
+// B doit jouer à la fin.
 void TstUiMediaitems::lastSoundRequestWins()
 {
     core::Document d(1024, 768);
