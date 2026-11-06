@@ -82,10 +82,11 @@ std::string encodeParameters(const QVariantMap& values, const actions::ObjectAct
                             : QJsonDocument(object).toJson(QJsonDocument::Compact).toStdString();
 }
 
-// Les actions au clic remplacées par `clicks`, l'action de glisser-déposer de l'objet gardée en fin de liste :
-// un objet en porte au plus une (L8-T13), et DragDropActions::dropOn (dragdropactions.cpp) garde de même les
-// actions au clic et pose l'action déposée après elles (revue L8-C3).
-std::vector<core::Action> keepingDragDrop(const std::vector<core::Action>& current, std::vector<core::Action> clicks)
+// Les actions au clic remplacées par `clicks`, l'action de glisser-déposer de l'objet gardée en fin de liste
+// : un objet en porte au plus une (L8-T13), et DragDropActions::dropOn (dragdropactions.cpp) garde de même
+// les actions au clic et pose l'action déposée après elles (revue L8-C3).
+std::vector<core::Action> keepingDragDrop(const std::vector<core::Action>& current,
+                                          std::vector<core::Action> clicks)
 {
     for (const core::Action& action : current) {
         if (action.dragDrop) {

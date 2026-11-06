@@ -370,7 +370,8 @@ private slots:
     }
 
     // Revue L8-C3 : un objet porte au plus une action de glisser-déposer (L8-T13) ; comme dropOn garde les
-    // actions au clic, « Appliquer » et « Retirer les actions existantes » gardent l'action de glisser-déposer.
+    // actions au clic, « Appliquer » et « Retirer les actions existantes » gardent l'action de
+    // glisser-déposer.
     void applyAndRemoveKeepTheDragDropAction()
     {
         ViewFixture v;
@@ -401,7 +402,8 @@ private slots:
         f.select({f.shape1});
         f.model.setCurrentId(QStringLiteral("page.next"));
         QVERIFY(f.model.apply());
-        QCOMPARE(actionsOf(f.controller, f.shape1), both); // l'action au clic, puis celle déposée (ordre de dropOn)
+        QCOMPARE(actionsOf(f.controller, f.shape1),
+                 both); // l'action au clic, puis celle déposée (ordre de dropOn)
         QCOMPARE(dragDropOf(f.shape1), penOnly);
         QVERIFY(!f.model.apply()); // déjà portée : aucune étape vide
         f.controller.undo();       // une étape
