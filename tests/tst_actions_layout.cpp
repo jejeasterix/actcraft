@@ -560,6 +560,58 @@ private slots:
         QCOMPARE(unknownCommands(layout, registry),
                  (QStringList{QStringLiteral("a.b"), QStringLiteral("c.d")}));
     }
+
+    // Lot 8 (L8-T1) : les commandes des deux sous-lots sont déclarées d'un coup.
+    void lot8EntriesDeclared()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        const QStringList ids = {
+            QStringLiteral("tool.reveal-ink"),      QStringLiteral("browser.actions"),
+            QStringLiteral("action.apply"),         QStringLiteral("action.remove"),
+            QStringLiteral("action.pick-target"),   QStringLiteral("link.file"),
+            QStringLiteral("link.website"),         QStringLiteral("page.history-back"),
+            QStringLiteral("page.history-forward"), QStringLiteral("media.sound-controller"),
+            QStringLiteral("record.sound"),         QStringLiteral("record.screen-full"),
+            QStringLiteral("record.screen-area"),   QStringLiteral("record.pause"),
+            QStringLiteral("record.stop"),          QStringLiteral("record.cancel"),
+            QStringLiteral("insert.web-frame"),     QStringLiteral("webframe.back"),
+            QStringLiteral("webframe.forward"),     QStringLiteral("webframe.reload"),
+            QStringLiteral("webframe.snapshot"),    QStringLiteral("webframe.unblock"),
+            QStringLiteral("file.publish"),
+        };
+        for (const QString& id : ids) {
+            QVERIFY2(registry.find(id), qPrintable(id));
+        }
+        QCOMPARE(registry.find(QStringLiteral("tool.reveal-ink"))->shortcut, QStringLiteral("Ctrl+Shift+M"));
+        QCOMPARE(registry.find(QStringLiteral("record.sound"))->shortcut, QStringLiteral("Ctrl+Shift+R"));
+        QCOMPARE(registry.find(QStringLiteral("record.screen-full"))->platforms,
+                 static_cast<Platforms>(Platform::Windows));
+        QCOMPARE(registry.find(QStringLiteral("record.screen-area"))->platforms,
+                 static_cast<Platforms>(Platform::Windows));
+        QVERIFY(registry.find(QStringLiteral("media.sound-controller"))->checkable);
+        // Disposition : chaque commande placée existe au registre, et celles du lot sont placées.
+        const Layout layout = layoutFromResources();
+        QVERIFY(unknownCommands(layout, registry).isEmpty());
+    }
+
+    void lot8AttributesDeclared()
+    {
+        CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        // Navigation et écoute restent libres sous le verrou de classe ; diffuser enregistre : restreignable.
+        for (const char* id : {"page.history-back", "page.history-forward", "media.sound-controller"}) {
+            QVERIFY2(!registry.find(QString::fromLatin1(id))->lockable, id);
+        }
+        for (const char* id : {"tool.reveal-ink", "action.apply", "action.remove", "link.file", "link.website",
+                               "record.sound", "record.screen-full", "insert.web-frame", "file.publish"}) {
+            QVERIFY2(registry.find(QString::fromLatin1(id))->lockable, id);
+        }
+        QVERIFY(registry.find(QStringLiteral("file.publish"))->restrictable);
+        QVERIFY(!registry.find(QStringLiteral("tool.reveal-ink"))->restrictable);
+    }
 };
 
 QTEST_GUILESS_MAIN(TstActionsLayout)
