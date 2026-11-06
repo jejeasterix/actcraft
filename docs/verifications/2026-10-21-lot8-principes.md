@@ -171,7 +171,7 @@ tête), Ko :
 | QtWebViewQuick | `qtwebview` 6.12.0_1 | 172 |
 | greffon `libqtwebview_darwin` (moteur du système) | `qtwebview` | 130 |
 | greffon `libqtwebview_webengine` (lié à QtWebEngine **6.11.2**, `otool -L`) | `qtwebview` | 104 |
-| QtWebEngineCore (binaire seul : 281 627 Ko) | `qtwebengine` **6.11.2_1** | 351 492 |
+| QtWebEngineCore (binaire seul : 281 624 Ko) | `qtwebengine` **6.11.2_1** | 351 492 |
 | QtWebEngineQuick | `qtwebengine` 6.11.2_1 | 1 368 |
 | QtWebEngineQuickDelegatesQml | `qtwebengine` 6.11.2_1 | 332 |
 | QtWebEngineWidgets | `qtwebengine` 6.11.2_1 | 308 |
