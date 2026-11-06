@@ -62,12 +62,19 @@ struct Recorded
     qint64 largestGapMs = 0;
 };
 
+Recorded unreadable(const QString& why)
+{
+    Recorded recorded;
+    recorded.why = why;
+    return recorded;
+}
+
 // Fichier du moteur simulé : une ligne par image encodée, « largeur hauteur x0 y0 x1 y1 début fin » (µs).
 Recorded readSimulated(const QString& path)
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return {false, QStringLiteral("fichier absent : %1").arg(path)};
+        return unreadable(QStringLiteral("fichier absent : %1").arg(path));
     Recorded recorded;
     recorded.positions = true;
     qint64 previousStart = -1;
@@ -75,7 +82,7 @@ Recorded readSimulated(const QString& path)
     for (const QString& line : lines) {
         const QStringList fields = line.split(u' ');
         if (fields.size() != 8)
-            return {false, QStringLiteral("ligne illisible : %1").arg(line)};
+            return unreadable(QStringLiteral("ligne illisible : %1").arg(line));
         const QSize size(fields.at(0).toInt(), fields.at(1).toInt());
         const QPoint topLeft(fields.at(2).toInt(), fields.at(3).toInt());
         const QPoint bottomRight(fields.at(4).toInt(), fields.at(5).toInt());
@@ -87,10 +94,10 @@ Recorded readSimulated(const QString& path)
             recorded.bottomRight = bottomRight;
         } else if (size != recorded.size || topLeft != recorded.topLeft ||
                    bottomRight != recorded.bottomRight) {
-            return {false, QStringLiteral("images différentes dans le même fichier : %1").arg(line)};
+            return unreadable(QStringLiteral("images différentes dans le même fichier : %1").arg(line));
         }
         if (start < 0 || end <= start || start < previousStart)
-            return {false, QStringLiteral("horodatage incohérent : %1").arg(line)};
+            return unreadable(QStringLiteral("horodatage incohérent : %1").arg(line));
         if (previousStart >= 0)
             recorded.largestGapMs = qMax(recorded.largestGapMs, (start - previousStart) / 1000);
         previousStart = start;
@@ -98,7 +105,7 @@ Recorded readSimulated(const QString& path)
         ++recorded.frames;
     }
     if (recorded.frames == 0)
-        return {false, QStringLiteral("aucune image encodée")};
+        return unreadable(QStringLiteral("aucune image encodée"));
     recorded.valid = true;
     return recorded;
 }
@@ -120,14 +127,14 @@ Recorded readVideo(const QString& path)
                player.mediaStatus() == QMediaPlayer::InvalidMedia;
     };
     if (!QTest::qWaitFor(loaded, 10000) || player.mediaStatus() == QMediaPlayer::InvalidMedia)
-        return {false, QStringLiteral("MP4 illisible : %1").arg(path)};
+        return unreadable(QStringLiteral("MP4 illisible : %1").arg(path));
     Recorded recorded;
     recorded.milliseconds = player.duration();
     player.play(); // aucune sortie audio, aucune fenêtre : les images vont au puits
-    QTest::qWaitFor([&size] { return !size.isEmpty(); }, 5000);
+    const bool decoded = QTest::qWaitFor([&size] { return !size.isEmpty(); }, 5000);
     player.stop();
-    if (size.isEmpty())
-        return {false, QStringLiteral("aucune image décodée : %1").arg(path)};
+    if (!decoded)
+        return unreadable(QStringLiteral("aucune image décodée : %1").arg(path));
     recorded.size = size;
     recorded.valid = true;
     return recorded;
@@ -305,8 +312,10 @@ class TstMediaDisplayrecorder : public QObject
             return {};
         QTest::qWait(waitMs);
         recorder.stop();
-        QTest::qWaitFor([&handed] { return !handed.isEmpty(); }, 15000);
+        const bool handedOnce = QTest::qWaitFor([&handed] { return !handed.isEmpty(); }, 15000);
         recorder.setInsertHandler({});
+        if (!handedOnce)
+            return {};
         return handed.size() == 1 ? handed.first() : QString();
     }
 
