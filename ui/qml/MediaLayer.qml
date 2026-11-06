@@ -39,7 +39,7 @@ Item {
             id: slot
             required property var mediaId
             required property string kind
-            required property string source
+            required property string mediaSource // pas « source » : masquerait Loader.source
             required property rect bounds
             required property bool controlsHidden
             required property bool loop
@@ -58,8 +58,12 @@ Item {
                 Item {
                     id: video
                     objectName: "mediaFrame-" + slot.mediaId
-                    readonly property bool playing: player.playbackState === MediaPlayer.PlayingState
-                    property alias mediaPlayer: player
+                    // Le lecteur (MediaPlayer et sa sortie audio) n'existe qu'après la première demande de
+                    // lecture : une page de vidéos n'en ouvre aucun à l'affichage.
+                    property bool armed: false
+                    readonly property var mediaPlayer: playerSlot.item
+                    readonly property bool playing: playerSlot.item !== null &&
+                                                    playerSlot.item.playbackState === MediaPlayer.PlayingState
                     // Fond noir pendant la lecture ; « fond transparent » (clearBackground) le retire.
                     Rectangle {
                         anchors.fill: parent
@@ -72,12 +76,21 @@ Item {
                         anchors.fill: parent
                         fillMode: slot.aspectLocked ? VideoOutput.PreserveAspectFit : VideoOutput.Stretch
                     }
-                    MediaPlayer {
-                        id: player
-                        source: slot.source
-                        videoOutput: output
-                        loops: slot.loop ? MediaPlayer.Infinite : 1
-                        audioOutput: AudioOutput {}
+                    Loader {
+                        id: playerSlot
+                        active: video.armed
+                        sourceComponent: MediaPlayer {
+                            source: slot.mediaSource
+                            videoOutput: output
+                            loops: slot.loop ? MediaPlayer.Infinite : 1
+                            audioOutput: AudioOutput {}
+                            // Vidéo illisible : repli annoncé vers le système (confirmation), jamais un échec muet.
+                            onErrorOccurred: function(error, errorString) {
+                                if (error !== MediaPlayer.NoError && mediaLayer.items)
+                                    mediaLayer.items.videoFailed(slot.mediaId)
+                            }
+                        }
+                        onLoaded: item.play()
                     }
                     // Commandes (F-582 : masquées si controlsHidden) : état et avancement, sans prise d'entrée.
                     Rectangle {
@@ -93,24 +106,29 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             height: 3
                             color: "#E8EAED"
-                            width: player.duration > 0 ? parent.width * player.position / player.duration : 0
+                            width: playerSlot.item && playerSlot.item.duration > 0
+                                   ? parent.width * playerSlot.item.position / playerSlot.item.duration : 0
                         }
                     }
                     Connections {
                         target: mediaLayer.items
                         function onVideoPlayRequested(id) {
-                            if (id === slot.mediaId)
-                                player.play()
+                            if (id !== slot.mediaId)
+                                return
+                            if (playerSlot.item)
+                                playerSlot.item.play()
+                            else
+                                video.armed = true // le lecteur créé joue aussitôt (onLoaded)
                         }
                     }
-                    Component.onCompleted: if (slot.autoPlay) player.play()
+                    Component.onCompleted: if (slot.autoPlay) video.armed = true
                 }
             }
             Component {
                 id: gifFrame
                 AnimatedImage {
                     objectName: "mediaGif-" + slot.mediaId
-                    source: slot.source
+                    source: slot.mediaSource
                     playing: true
                     cache: false
                     fillMode: Image.Stretch

@@ -8,6 +8,7 @@
 #include <QString>
 #include <QTimer>
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -83,6 +84,9 @@ public:
     // Faux si l'objet n'est pas un média de la page affichée.
     Q_INVOKABLE bool play(quint64 id);
     Q_INVOKABLE void stopSound();
+    // Appelé par la surcouche quand la vidéo `id` ne se lit pas : repli annoncé vers le système
+    // (confirmation).
+    Q_INVOKABLE void videoFailed(quint64 id);
     // F-552 : son d'une action d'objet (ressource du document, ou fichier) joué par le lecteur intégré, piste
     // 1 ; le système n'est que le repli du lecteur (media::Player::setFallback, confirmation de
     // LinkLauncher).
@@ -101,6 +105,7 @@ signals:
     void itemsChanged();
     void soundStateChanged();
     void soundStarted();
+    void soundFailed(const QString& reason); // lecture de la piste 1 impossible (fichier, droits, réseau)
     void videoPlayRequested(quint64 id);
 
 private:
@@ -108,6 +113,9 @@ private:
     {
         quint64 id = 0;
         QString kind;
+        std::string resource; // clé de la ressource du document
+        // Fichier extrait. Un GIF est extrait à l'affichage (il se montre aussitôt) ; une vidéo ou un son
+        // seulement à la demande (play, lecture auto), jamais pour le seul affichage de la page.
         QString source;
         QRectF bounds;
         bool controlsHidden = false;
@@ -127,6 +135,11 @@ private:
     QString defaultChime();
     bool startSound(const QString& path, bool loop);
     void updateSound();
+    // Document remplacé (ou autre contrôleur) : lectures arrêtées, fichiers extraits supprimés.
+    void resetForDocument();
+    // Repli du lecteur et d'une vidéo illisible. Un fichier extrait du document passe par requestStored
+    // (marque « venu d'ailleurs », H8-9) ; un fichier du disque, par request.
+    void openWithSystem(const QString& path);
 
     QPointer<DocumentController> m_document;
     QPointer<LinkLauncher> m_links;
@@ -140,6 +153,8 @@ private:
     bool m_pending = false;
     bool m_pendingPageShown = false;
     int m_shownPage = -1;
+    std::uint64_t m_generation =
+        0; // DocumentController::generation() du document dont les fichiers sont extraits
     QString m_soundName;
     qint64 m_soundPosition = 0;
     bool m_soundPlaying = false;

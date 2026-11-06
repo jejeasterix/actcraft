@@ -24,6 +24,24 @@ bool isVideoExtension(const QString& extension)
     return videos.contains(extension.toLower());
 }
 
+// Règle de media::Player (et de LinkLauncher) : un chemin réseau est refusé avant tout accès au disque (sous
+// Windows, tester son existence envoie l'authentification du compte à l'hôte).
+bool isNetworkPath(QString path)
+{
+    path.replace(u'\\', u'/');
+    return path.startsWith(QStringLiteral("//"));
+}
+
+// Nom d'origine d'une ressource pour la confirmation : le nom du média de la page qui la porte, sinon la clé.
+QString originalName(const core::Page& page, const std::string& key, const std::string& extension)
+{
+    for (const core::PageObject& object : page.objects)
+        if (const auto* media = std::get_if<core::Media>(&object))
+            if (media->media == key && !media->fileName.empty())
+                return QFileInfo(QString::fromStdString(media->fileName)).fileName();
+    return QString::fromStdString(key + "." + extension);
+}
+
 // Son de confirmation par défaut, écrit par nous : 0,25 s à 880 Hz, mono 16 bits, attaque et chute douces.
 QByteArray chimeWave()
 {
@@ -61,16 +79,17 @@ MediaItems::MediaItems(QObject* parent)
     m_refresh.setSingleShot(true);
     m_refresh.setInterval(0); // regroupe les changements d'un même tour de boucle
     connect(&m_refresh, &QTimer::timeout, this, &MediaItems::refresh);
-    m_player->setFallback([this](const QString& path) {
-        if (m_links)
-            m_links->request(path, LinkLauncher::SystemMedia); // confirmation demandée (N2-9)
-    });
+    m_player->setFallback([this](const QString& path) { openWithSystem(path); }); // confirmation (N2-9)
     connect(m_player.get(), &media::Player::positionChanged, this, [this](int track, qint64) {
         if (track == media::Player::First)
             updateSound();
     });
     connect(m_player.get(), &media::Player::finished, this, [this](int) { updateSound(); });
-    connect(m_player.get(), &media::Player::failed, this, [this](int, const QString&) { updateSound(); });
+    connect(m_player.get(), &media::Player::failed, this, [this](int track, const QString& reason) {
+        updateSound();
+        if (track == media::Player::First)
+            emit soundFailed(reason); // l'exécuteur d'actions le refuse (actionRefused)
+    });
     connect(m_player.get(), &media::Player::fellBack, this, [this](const QString&) { updateSound(); });
 }
 
@@ -91,6 +110,7 @@ void MediaItems::setDocument(DocumentController* document)
     if (m_document)
         disconnect(m_document, nullptr, this, nullptr);
     m_document = document;
+    resetForDocument(); // un autre contrôleur : rien de l'ancien ne joue ni ne reste sur le disque
     if (m_document) {
         connect(m_document, &DocumentController::pagesChanged, this, [this] { scheduleRefresh(true); });
         connect(m_document, &DocumentController::pageContentChanged, this, [this](int page) {
@@ -208,7 +228,7 @@ QHash<int, QByteArray> MediaItems::roleNames() const
 {
     return {{IdRole, "mediaId"},
             {KindRole, "kind"},
-            {SourceRole, "source"},
+            {SourceRole, "mediaSource"}, // pas « source » : masquerait Loader::source dans le délégué
             {BoundsRole, "bounds"},
             {ControlsHiddenRole, "controlsHidden"},
             {LoopRole, "loop"},
@@ -225,12 +245,29 @@ bool MediaItems::play(quint64 id)
     if (it == m_entries.end())
         return false;
     if (it->kind == QLatin1String("video")) {
+        if (it->source.isEmpty()) { // extraction à la demande : la première lecture écrit le fichier
+            const QString path = fileFor(it->resource);
+            if (path.isEmpty())
+                return false;
+            it->source = path;
+            const QModelIndex at = index(static_cast<int>(it - m_entries.begin()));
+            emit dataChanged(at, at, {SourceRole});
+        }
         emit videoPlayRequested(id);
         return true;
     }
     if (it->kind != QLatin1String("sound"))
         return false;
-    return startSound(it->source, it->loop);
+    const QString path = fileFor(it->resource);
+    return !path.isEmpty() && startSound(path, it->loop);
+}
+
+void MediaItems::videoFailed(quint64 id)
+{
+    const auto it =
+        std::find_if(m_entries.begin(), m_entries.end(), [id](const Entry& e) { return e.id == id; });
+    if (it != m_entries.end() && !it->source.isEmpty())
+        openWithSystem(it->source);
 }
 
 bool MediaItems::playResource(const std::string& key)
@@ -239,9 +276,13 @@ bool MediaItems::playResource(const std::string& key)
     return !path.isEmpty() && startSound(path, false);
 }
 
+// Refus d'emblée (le lecteur ne le dirait que plus tard, par signal) : chemin réseau, avant tout accès au
+// disque, puis fichier absent. L'action est alors refusée et le lecteur de sons ne s'ouvre pas.
 bool MediaItems::playFile(const QString& path)
 {
-    return !path.isEmpty() && startSound(path, false);
+    if (path.isEmpty() || isNetworkPath(path) || !QFileInfo(path).isFile())
+        return false;
+    return startSound(path, false);
 }
 
 bool MediaItems::startSound(const QString& path, bool loop)
@@ -290,22 +331,29 @@ void MediaItems::refresh()
 {
     if (m_contactActive)
         return; // reporté : setContactActive(false) relance
-    const bool pageShown = m_pendingPageShown;
+    bool pageShown = m_pendingPageShown;
     m_pending = false;
     m_pendingPageShown = false;
+    if (m_document && m_document->generation() != m_generation) {
+        resetForDocument(); // document remplacé : l'ancien ne joue plus et ses fichiers extraits sont
+                            // supprimés
+        pageShown = true;   // les médias du nouveau sont montrés comme à l'ouverture
+    }
     std::vector<Entry> next = collect(pageShown);
     if (!pageShown) {
         for (Entry& e : next) { // une édition ne relance jamais une lecture auto
             const auto old = std::find_if(m_entries.begin(), m_entries.end(),
                                           [&e](const Entry& o) { return o.id == e.id; });
             e.autoPlay = old != m_entries.end() && old->autoPlay;
+            if (old != m_entries.end() && old->resource == e.resource && e.source.isEmpty())
+                e.source = old->source; // déjà extrait à la demande : la vidéo qui joue n'est pas touchée
         }
         if (next == m_entries)
             return; // trait, édition d'un autre objet : la vidéo qui joue n'est pas touchée
         const bool sameRows =
             next.size() == m_entries.size() &&
             std::equal(next.begin(), next.end(), m_entries.begin(), [](const Entry& a, const Entry& b) {
-                return a.id == b.id && a.kind == b.kind && a.source == b.source;
+                return a.id == b.id && a.kind == b.kind && a.resource == b.resource;
             });
         if (sameRows) {
             for (std::size_t i = 0; i < next.size(); ++i) {
@@ -357,7 +405,7 @@ std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
             if (extension.compare(QLatin1String("swf"), Qt::CaseInsensitive) == 0)
                 continue; // objet Flash : jamais joué ici
             e.kind = isVideoExtension(extension) ? QStringLiteral("video") : QStringLiteral("sound");
-            e.source = fileFor(media->media);
+            e.resource = media->media; // extraite à la première lecture, pas à l'affichage de la page
             e.bounds = QRectF(media->bounds.x, media->bounds.y, media->bounds.width, media->bounds.height);
             e.controlsHidden = media->controlsHidden;
             e.loop = media->loop;
@@ -366,6 +414,10 @@ std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
             e.wrapText = media->wrapText;
             e.playOnOpen = media->playOnOpen;
             e.autoPlay = pageShown && media->playOnOpen && e.kind == QLatin1String("video");
+            if (e.autoPlay) { // lecture demandée par le document lui-même : le fichier est nécessaire
+                e.source = fileFor(media->media);
+                e.autoPlay = !e.source.isEmpty();
+            }
         } else if (const auto* image = std::get_if<core::ImageObject>(&object)) {
             const core::Resource* stored =
                 image->resource.empty() ? nullptr : document.resource(image->resource);
@@ -373,15 +425,52 @@ std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
                                    .compare(QLatin1String("gif"), Qt::CaseInsensitive) != 0)
                 continue;
             e.kind = QStringLiteral("gif"); // V57 : animé par la surcouche, première image dans le cache
-            e.source = fileFor(image->resource);
+            e.resource = image->resource;
+            e.source = fileFor(image->resource); // le GIF s'anime dès l'affichage : extrait aussitôt
+            if (e.source.isEmpty())
+                continue;
             e.bounds = QRectF(image->bounds.x, image->bounds.y, image->bounds.width, image->bounds.height);
         } else {
             continue;
         }
-        if (!e.source.isEmpty())
-            out.push_back(std::move(e));
+        out.push_back(std::move(e));
     }
     return out;
+}
+
+void MediaItems::resetForDocument()
+{
+    m_player->stopAll();
+    m_files.clear();
+    m_chime.clear();
+    m_dir.reset(); // supprime les fichiers extraits de l'ancien document
+    m_soundName.clear();
+    m_generation = m_document ? m_document->generation() : 0;
+    updateSound();
+}
+
+void MediaItems::openWithSystem(const QString& path)
+{
+    if (!m_links)
+        return;
+    if (m_document) {
+        for (const auto& [key, file] : m_files) {
+            if (file != path)
+                continue;
+            if (const core::Resource* stored = m_document->document().resource(key)) {
+                const int current = m_document->currentIndex();
+                const bool valid =
+                    current >= 0 && static_cast<std::size_t>(current) < m_document->document().pageCount();
+                const QString name =
+                    valid ? originalName(m_document->document().page(static_cast<std::size_t>(current)), key,
+                                         stored->extension)
+                          : QString::fromStdString(key + "." + stored->extension);
+                m_links->requestStored(stored->data, name, m_document->fileUrl().toString());
+                return;
+            }
+        }
+    }
+    m_links->request(path, LinkLauncher::SystemMedia); // fichier du disque : pas extrait du document
 }
 
 QString MediaItems::fileFor(const std::string& key)

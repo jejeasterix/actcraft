@@ -102,8 +102,9 @@ private:
     void run(const Pending& pending);
     void runOne(const core::Action& action, const Pending& pending);
     void runCommand(const QString& id, const QVariant& argument);
-    void runDocument(const actions::ObjectActionInfo& info, const core::Action& action);
-    void runSound(const core::Action& action);
+    void runDocument(const actions::ObjectActionInfo& info, const core::Action& action,
+                     core::ObjectId carrier);
+    void runSound(const core::Action& action, core::ObjectId carrier);
     void runOnTarget(const QString& command, core::ObjectId target);
     void refuse(const QString& reason);
     void pageShown();

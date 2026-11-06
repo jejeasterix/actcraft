@@ -508,7 +508,7 @@ void ActionRunner::runOne(const core::Action& action, const Pending& pending)
         return;
     }
     case actions::ActionCategory::Document:
-        runDocument(*info, action);
+        runDocument(*info, action, pending.object);
         return;
     case actions::ActionCategory::Object:
         break;
@@ -574,10 +574,11 @@ void ActionRunner::runOnTarget(const QString& command, core::ObjectId target)
 }
 
 // Liens et fichiers : LinkLauncher::request, qui valide et demande confirmation ; jamais d'ouverture ici.
-void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core::Action& action)
+void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core::Action& action,
+                               core::ObjectId carrier)
 {
     if (info.id == QLatin1String("document.play-sound") && m_media) {
-        runSound(action);
+        runSound(action, carrier);
         return;
     }
     if (!m_links) {
@@ -611,8 +612,25 @@ void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core
 
 // F-552 : un son de la page joue dans le lecteur intégré, piste 1, lecteur de sons ouvert ; le système n'est
 // que le repli du lecteur (media::Player), qui passe alors par LinkLauncher et sa confirmation.
-void ActionRunner::runSound(const core::Action& action)
+//
+// Un média de la page (vidéo, son inséré) porte cette action sur sa propre ressource : son clic passe par
+// MediaItems::play, seul chemin qui montre la vidéo dans son cadre et qui respecte sa boucle. La ressource
+// jouée à part (playResource) l'aurait lue en son seul, sans image, et une seule fois. Un média masqué ou
+// illisible n'est pas joué non plus à part.
+void ActionRunner::runSound(const core::Action& action, core::ObjectId carrier)
 {
+    if (const DocumentController* c = controller();
+        c != nullptr && c->currentIndex() >= 0 &&
+        static_cast<std::size_t>(c->currentIndex()) < c->document().pageCount()) {
+        const core::PageObject* object =
+            findObject(c->document().page(static_cast<std::size_t>(c->currentIndex())), carrier);
+        if (object != nullptr && std::holds_alternative<core::Media>(core::body(*object))) {
+            if (!m_media->play(carrier)) {
+                refuse(QStringLiteral("Action non prise en charge : média indisponible"));
+            }
+            return;
+        }
+    }
     if (!action.resource.empty() && m_media->playResource(action.resource)) {
         return;
     }
@@ -820,7 +838,15 @@ void ActionRunner::setMediaItems(MediaItems* mediaItems)
     if (mediaItems == m_media) {
         return;
     }
+    if (m_media) {
+        disconnect(m_media, &MediaItems::soundFailed, this, nullptr);
+    }
     m_media = mediaItems;
+    if (m_media) { // un échec de lecture découvert après coup (format, droits) est refusé comme un autre
+        connect(m_media, &MediaItems::soundFailed, this, [this](const QString& reason) {
+            refuse(QStringLiteral("Action non prise en charge : lecture impossible (%1)").arg(reason));
+        });
+    }
     emit mediaItemsChanged();
 }
 

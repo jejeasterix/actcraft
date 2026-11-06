@@ -748,9 +748,13 @@ void TstUiMediaitems::soundActionFileIsRelativeToTheDocument()
     core::Document e(1024, 768);
     e.page(0).objects.push_back(
         actionCarrier(62, playSoundAction({}, QUrl::fromLocalFile(other).toString())));
+    // Le remplacement est pris en compte au tour de boucle suivant (lectures de l'ancien document arrêtées) :
+    // on l'attend avant de cliquer, comme le ferait une personne.
+    QSignalSpy replaced(m_items.get(), &MediaItems::itemsChanged);
     m_controller->replaceDocument(std::move(e),
                                   QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.flipchart"))),
                                   QStringLiteral("cours"));
+    QVERIFY(replaced.wait(5000));
     QVERIFY(click(runner, QPointF(200, 200)));
     QTRY_COMPARE_WITH_TIMEOUT(playedFile(m_items->player(), Player::First), other, 5000);
     QCOMPARE(refused.count(), 0);
