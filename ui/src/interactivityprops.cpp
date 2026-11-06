@@ -189,7 +189,7 @@ void writeField(core::PageObject& object, InteractivityField field, const Intera
         r.pivotObject = target();
         break;
     case F::Travel:
-        core::setTravel(r, static_cast<core::Travel>(choice()));
+        r.travel = static_cast<core::Travel>(choice());
         core::normalize(r);
         break;
     case F::Track:
@@ -368,7 +368,7 @@ QVariant readInteractivity(const core::PageObject& object, InteractivityField fi
     case F::ContainedObject:
         return id(c.object);
     case F::ContainWords:
-        return toStringList(object.common.keywords); // lot 6, jamais c.keywords
+        return toStringList(c.keywords);
     case F::Fit:
         return static_cast<int>(c.fit);
     case F::Tolerance:
