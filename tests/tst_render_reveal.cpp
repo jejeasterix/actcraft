@@ -252,7 +252,7 @@ private slots:
         }
         QCOMPARE(inked, 0);
         QVERIFY2(near(grab.pixelColor(40, 150), argb(kGreen), 8), "le trou a suivi l'encre soulevée");
-        QVERIFY2(near(grab.pixelColor(170, 150), argb(kRed), 8), "hors de la couche intermédiaire : rouge");
+        QVERIFY2(near(grab.pixelColor(170, 150), Qt::white, 8), "sous l'encre, hors du vert : le fond");
         QVERIFY2(near(grab.pixelColor(40, 100), argb(kRed), 8), "l'ancienne place : le dessus entier");
     }
 
