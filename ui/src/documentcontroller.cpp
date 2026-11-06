@@ -1035,10 +1035,6 @@ void DocumentController::saveToUrl(const QUrl& url)
     });
 }
 
-} // namespace actcraft::ui
-
-namespace actcraft::ui {
-
 void DocumentController::publishToUrl(const QUrl& url, bool noCopy, bool noSave, bool noPrint, bool noCamera,
                                       const QString& author)
 {
@@ -1048,7 +1044,12 @@ void DocumentController::publishToUrl(const QUrl& url, bool noCopy, bool noSave,
         return;
     }
     QString refusal;
-    const QUrl target = actcraftTarget(url, &refusal);
+    QUrl target = actcraftTarget(url, &refusal);
+    if (!target.isEmpty() && target == m_fileUrl) {
+        // La copie protégée est un nouveau fichier : jamais celui du document ouvert, qui reste sans règles.
+        refusal = tr("La copie protégée doit être un nouveau fichier : choisissez un autre nom.");
+        target.clear();
+    }
     if (target.isEmpty()) {
         QMetaObject::invokeMethod(
             this,
