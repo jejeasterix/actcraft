@@ -325,7 +325,7 @@ Référence de la tête après L8-T21 : 245 tests (N8 + 37).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
 Tâche : L8-T23 — insertion des médias (8b, V13) — depuis 2026-11-06
 Tâche : L8-T32 — diffusion protégée II (8b, V15) — depuis 2026-11-06
-Tâche : L8-T30 — cadre web (8b, V14) — depuis 2026-11-06
+Tâche : L8-T30 — cadre web (8b, correctifs de la revue : 1 bloquant de sécurité, `<meta/http-equiv=refresh>`) — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
