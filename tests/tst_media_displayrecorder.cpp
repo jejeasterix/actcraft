@@ -1,5 +1,6 @@
 #include "actcraft/media/displayrecorder.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -145,9 +146,22 @@ Recorded readRecorded(const QString& path, bool screen)
     return screen ? readVideo(path) : readSimulated(path);
 }
 
+// Fin de fichier tardive : le MP4 de Qt Multimedia se finalise dans un fil à part, après stop() et même après
+// la destruction de QMediaRecorder. Le fichier n'existe donc qu'une fois ce délai passé.
+constexpr int closeDelayMs = 80;
+
+void writeFile(const QString& path, const QByteArray& content)
+{
+    QFile file(path);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+        file.write(content);
+}
+
 // Moteur simulé, au contrat de Qt Multimedia : start() rend la main, puis l'écran entier arrive toutes les
-// 20 ms par frameCaptured() ; encode() note ce que l'encodeur reçoit ; le fichier n'existe qu'à la fermeture,
-// 80 ms après stop(), ou à la destruction du moteur s'il n'est pas encore fermé ; sans chemin imposé, il
+// 20 ms par frameCaptured() (50 images/s, plus qu'une cadence de 30) ; encode() note ce que l'encodeur reçoit
+// ; le fichier n'existe qu'à la fermeture, 80 ms après stop(). Détruit avant sa fermeture, le moteur laisse
+// un finaliseur détaché qui écrit le fichier 80 ms plus tard, sans lui : effacer le fichier à la destruction
+// du moteur le manque, comme le manquerait un fichier encore ouvert sous Windows. Sans chemin imposé, il
 // écrit à son emplacement par défaut, comme QMediaRecorder dans le dossier Vidéos. failAfterMs > 0 : panne.
 class SimulatedScreen : public DisplayEngine
 {
@@ -160,14 +174,19 @@ public:
     }
     ~SimulatedScreen() override
     {
-        if (m_open)
-            write();
+        if (!m_open)
+            return;
+        const QString path = target();
+        const QByteArray content = this->content();
+        QTimer::singleShot(closeDelayMs, QCoreApplication::instance(),
+                           [path, content] { writeFile(path, content); });
     }
 
     void start(const QString& path) override
     {
         m_path = path;
         m_open = true;
+        m_finishing = false;
         m_lines.clear();
         m_timer.start();
         if (m_failAfterMs > 0) {
@@ -192,12 +211,15 @@ public:
     }
     void stop() override
     {
+        if (m_finishing)
+            return; // déjà demandé (panne puis abandon) : une seule fermeture
+        m_finishing = true;
         m_timer.stop();
-        QTimer::singleShot(80, this, [this] {
+        QTimer::singleShot(closeDelayMs, this, [this] {
             if (!m_open)
                 return;
             m_open = false;
-            write();
+            writeFile(target(), content());
             emit stopped(target());
         });
     }
@@ -207,12 +229,7 @@ private:
     {
         return m_path.isEmpty() ? m_defaultFolder + QStringLiteral("/enregistrement.mp4") : m_path;
     }
-    void write() const
-    {
-        QFile file(target());
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text))
-            file.write((m_lines.join(u'\n') + u'\n').toUtf8());
-    }
+    QByteArray content() const { return (m_lines.join(u'\n') + u'\n').toUtf8(); }
 
     QString m_defaultFolder;
     int m_failAfterMs = 0;
@@ -221,6 +238,7 @@ private:
     QString m_path;
     QStringList m_lines;
     bool m_open = false;
+    bool m_finishing = false;
 };
 
 // Capture réelle de l'écran principal : sous Windows seulement (QScreenCapture et MP4 du moteur Windows).
@@ -573,6 +591,10 @@ private slots:
         QVERIFY(paths.at(0) != paths.at(1));
     }
 
+    // Document fermé en pleine capture : le fichier se finalise après la destruction de l'enregistreur (le
+    // finaliseur de Qt Multimedia survit à QMediaRecorder). Discrimine le patron écarté : effacer le fichier
+    // juste après la destruction du moteur passe avant son écriture, et la capture partielle reste sur
+    // disque.
     void destroyedWhileRecordingLeavesNothing()
     {
         auto recorder = makeRecorder(false);
@@ -581,11 +603,56 @@ private slots:
         recorder->toggle();
         QVERIFY(recorder->isRecording());
         QTest::qWait(300);
-        recorder.reset(); // document fermé : le moteur écrit son fichier partiel en se détruisant
-        QVERIFY(m_lastEngine.isNull());
-        QTest::qWait(200);
+        recorder.reset();
+        QTest::qWait(500); // fin de fichier tardive (80 ms) passée, le moteur a eu le temps de s'effacer
+        QTRY_VERIFY_WITH_TIMEOUT(m_lastEngine.isNull(), 15000);
         QCOMPARE(handed, 0);
         QVERIFY2(filesIn(m_folder).isEmpty(), qPrintable(filesIn(m_folder).join(u' ')));
+        QVERIFY(filesIn(m_elsewhere).isEmpty());
+    }
+
+    // Abandon demandé après l'arrêt, avant la fin du fichier : le fichier est effacé quand il est fermé, sans
+    // rappel d'insertion ; l'indicateur reste allumé jusque-là.
+    void cancelAfterStopBeforeFileClosed()
+    {
+        const auto recorder = makeRecorder(false);
+        int handed = 0;
+        recorder->setInsertHandler([&handed](const QString&) { ++handed; });
+        QSignalSpy finished(recorder.get(), &DisplayRecorder::finished);
+        recorder->toggle();
+        QVERIFY(recorder->isRecording());
+        QTest::qWait(300);
+        recorder->stop();
+        QVERIFY2(recorder->isRecording(), "indicateur éteint avant la fermeture du fichier");
+        recorder->cancel();
+        QVERIFY2(recorder->isRecording(), "indicateur éteint avant la fermeture du fichier");
+        QTRY_VERIFY_WITH_TIMEOUT(!recorder->isRecording(), 15000);
+        QTRY_VERIFY(m_lastEngine.isNull());
+        QTest::qWait(300);
+        QCOMPARE(handed, 0);
+        QCOMPARE(finished.count(), 0);
+        QVERIFY2(filesIn(m_folder).isEmpty(), qPrintable(filesIn(m_folder).join(u' ')));
+        QVERIFY(filesIn(m_elsewhere).isEmpty());
+    }
+
+    // Discrimine le patron écarté : tout encoder à la cadence de l'écran (60 ou 144 Hz). L'écran simulé livre
+    // 50 images/s ; l'enregistreur saute les images à moins de 30 ms de la dernière écrite.
+    void framesAreCappedAtThirtyPerSecond()
+    {
+        const auto recorder = makeRecorder(false);
+        const QString path = recordAndStop(*recorder, 1500);
+        QVERIFY2(!path.isEmpty(), "aucun fichier confié, ou plus d'une fois");
+        const Recorded file = readSimulated(path);
+        QVERIFY2(file.valid, qPrintable(file.why));
+        QVERIFY2(
+            file.frames <= file.milliseconds / 30 + 2,
+            qPrintable(
+                QStringLiteral("%1 images encodées pour %2 ms").arg(file.frames).arg(file.milliseconds)));
+        QVERIFY2(
+            file.frames >= file.milliseconds / 60,
+            qPrintable(
+                QStringLiteral("%1 images seulement pour %2 ms").arg(file.frames).arg(file.milliseconds)));
+        QVERIFY2(file.largestGapMs < 200, qPrintable(QStringLiteral("trou de %1 ms").arg(file.largestGapMs)));
     }
 };
 
