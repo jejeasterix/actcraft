@@ -11,6 +11,8 @@
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
+
 namespace actcraft::ui {
 
 // Création des liens vers un fichier ou un site (F-550, F-551), en une seule étape d'annulation : la boîte
@@ -33,6 +35,8 @@ class LinkDialogs : public QObject
     // Paramètres de ligne de commande de la référence : gardés dans les paramètres de l'action d'un lien
     // vers un fichier, jamais passés à l'ouverture.
     Q_PROPERTY(QString arguments READ arguments WRITE setArguments NOTIFY argumentsChanged)
+    // Vrai tant qu'un fichier à ranger dans le document est lu et haché hors du fil de l'interface.
+    Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
 
 public:
     enum Form
@@ -63,6 +67,13 @@ public:
     void setLinks(LinkLauncher* links);
     QString arguments() const { return m_arguments; }
     void setArguments(const QString& arguments);
+    bool busy() const noexcept { return m_busy; }
+
+    // Sondes de test, sur le modèle de LinkLauncher::setOpener. La sonde de lecture est appelée sur le fil qui
+    // lit et hache le fichier rangé ; le compteur donne le nombre de rangements de ressource faits par les
+    // commandes de lien (un par étape créée, jamais un par rejeu).
+    static void setReadProbe(std::function<void()> probe);
+    static int resourceInsertions() noexcept;
 
     // Vrai : lien créé en une étape (created émis). Faux : refused émis avec le motif, document intact.
     Q_INVOKABLE bool createFileLink(const QUrl& file, int form, int storage, quint64 existing = 0);
@@ -73,6 +84,7 @@ signals:
     void refused(const QString& reason);
     void sourcesChanged();
     void argumentsChanged();
+    void busyChanged();
 
 private:
     bool refuse(const QString& reason);
@@ -85,6 +97,7 @@ private:
     QPointer<ToolHost> m_tools;
     QPointer<LinkLauncher> m_links;
     QString m_arguments;
+    bool m_busy = false;
 };
 
 } // namespace actcraft::ui

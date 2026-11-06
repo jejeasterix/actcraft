@@ -13,9 +13,11 @@
 #include <QTextDocument>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -33,6 +35,21 @@ namespace {
 constexpr qint64 kMaxStoredBytes =
     100LL * 1024 * 1024; // un fichier plus gros ne se range pas dans un document
 
+std::mutex g_probeMutex;
+std::function<void()> g_readProbe;
+std::atomic<int> g_insertions{0};
+
+void runReadProbe()
+{
+    std::function<void()> probe;
+    {
+        const std::lock_guard<std::mutex> lock(g_probeMutex);
+        probe = g_readProbe;
+    }
+    if (probe)
+        probe();
+}
+
 // Une étape : la ressource du fichier rangé (clé SHA-256 tirée au redo, la même à chaque rejeu) puis la
 // commande qui pose le lien, construite avec cette clé au premier redo.
 class LinkCommand final : public core::UndoCommand
@@ -45,8 +62,10 @@ public:
     void redo(core::Document& document, core::Changes& changes) override
     {
         std::string key;
-        if (!m_data.isEmpty())
+        if (!m_data.isEmpty()) {
             key = document.addResource(m_data, m_extension);
+            ++g_insertions;
+        }
         if (!m_inner)
             m_inner = m_build(key);
         m_inner->redo(document, changes);
@@ -91,6 +110,17 @@ core::RectF centered(double pageWidth, double pageHeight, double width, double h
 LinkDialogs::LinkDialogs(QObject* parent) : QObject(parent) {}
 
 LinkDialogs::~LinkDialogs() = default;
+
+void LinkDialogs::setReadProbe(std::function<void()> probe)
+{
+    const std::lock_guard<std::mutex> lock(g_probeMutex);
+    g_readProbe = std::move(probe);
+}
+
+int LinkDialogs::resourceInsertions() noexcept
+{
+    return g_insertions.load();
+}
 
 void LinkDialogs::setCommands(Commands* commands)
 {
@@ -179,6 +209,7 @@ bool LinkDialogs::createFileLink(const QUrl& file, int form, int storage, quint6
     QJsonObject parameters;
     QByteArray bytes;
     if (stored) {
+        runReadProbe();
         QFile source(path);
         if (source.size() > kMaxStoredBytes)
             return refuse(tr("Ce fichier est trop gros pour être rangé dans le paperboard : %1").arg(name));
