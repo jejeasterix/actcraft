@@ -215,8 +215,9 @@ private slots:
     void dropAtToleranceFollowsTheZoom()
     {
         Fixture f;
-        const QPointF outside(483, 130); // 3 px hors du bord droit de la seconde forme (400..480)
-        QVERIFY(!f.model.dropAt(outside, QStringLiteral("command.tool.pen"), 4.0)); // 6 / 4 = 1,5 px
+        const QPointF outside(485, 130); // 5 px hors du bord droit de la seconde forme (400..480)
+        QVERIFY(!f.model.dropAt(outside, QStringLiteral("command.tool.pen"),
+                                4.0)); // 6 / 4 = 1,5 px, trait compris
         QVERIFY(actionsOf(f.controller, f.second).empty());
         QVERIFY(f.model.dropAt(outside, QStringLiteral("command.tool.pen"), 1.0)); // 6 px
         QCOMPARE(actionsOf(f.controller, f.second).size(), std::size_t(1));

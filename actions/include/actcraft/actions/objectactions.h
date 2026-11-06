@@ -18,12 +18,12 @@ struct ActionParameter
     QString name; // clé dans l'objet JSON des paramètres de core::Action
     QString type; // "number", "angle", "text", "url", "file", "page", "translucency"
     double minimum = 0;
-    double maximum = 0; // 0 : sans borne
+    double maximum = 0;            // 0 : sans borne
     bool exclusiveMinimum = false; // vrai : la valeur doit dépasser `minimum` (un facteur est > 0)
     bool hasDefault = false;       // vrai : `defaultValue` remplace `minimum` comme valeur initiale
     double defaultValue = 0;
-    int decimals = 0;   // 0 : entier ; > 0 : réel, éditeur à `decimals` décimales
-    double step = 1;    // pas de l'éditeur
+    int decimals = 0; // 0 : entier ; > 0 : réel, éditeur à `decimals` décimales
+    double step = 1;  // pas de l'éditeur
 };
 
 struct ObjectActionInfo

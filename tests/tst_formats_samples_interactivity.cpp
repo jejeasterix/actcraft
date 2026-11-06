@@ -77,10 +77,9 @@ private slots:
                     ++toggles;
                     QCOMPARE(QString::fromStdString(a.catalogId), QStringLiteral("object.toggle-hidden"));
                     const bool present =
-                        a.target != 0 && std::any_of(page.objects.begin(), page.objects.end(),
-                                                     [&a](const core::PageObject& t) {
-                                                         return t.common.id == a.target;
-                                                     });
+                        a.target != 0 &&
+                        std::any_of(page.objects.begin(), page.objects.end(),
+                                    [&a](const core::PageObject& t) { return t.common.id == a.target; });
                     QVERIFY2(present, "cible absente de la page");
                     if (!source) {
                         source = &o;

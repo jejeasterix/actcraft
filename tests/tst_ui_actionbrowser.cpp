@@ -475,7 +475,8 @@ private slots:
         const core::PageObject* object = objectOf(f.controller, f.shape1);
         QVERIFY(object && object->common.actions.size() == 1);
         const QJsonObject parameters =
-            QJsonDocument::fromJson(QByteArray::fromStdString(std::string(object->common.actions.front().parameters)))
+            QJsonDocument::fromJson(
+                QByteArray::fromStdString(std::string(object->common.actions.front().parameters)))
                 .object();
         QCOMPARE(parameters.value(QStringLiteral("factor")).toDouble(), 1.5);
     }
@@ -580,6 +581,13 @@ private slots:
     void refreshDeferredDuringContact()
     {
         Fixture f;
+        // Revue L8-C13 : une remise à zéro n'a lieu que si les lignes changent ; page.next, portée par les
+        // formes 1 et 2, rend le changement de sélection visible (ligne « existante » ou non).
+        f.select({f.shape1, f.shape2});
+        f.model.setCurrentId(QStringLiteral("page.next"));
+        QVERIFY(f.model.apply());
+        f.select({f.shape3});
+        QCoreApplication::processEvents();
         QSignalSpy resets(&f.model, &QAbstractItemModel::modelReset);
         f.model.setContactActive(true);
         f.select({f.shape1});
