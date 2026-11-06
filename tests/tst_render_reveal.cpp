@@ -310,9 +310,11 @@ private slots:
         QVERIFY2(near(image.pixelColor(40, 100), argb(kRed), 8), "l'ancienne place : le dessus entier");
     }
 
-    // Revue (point 4) : la part découpée rastérisée suit l'échelle réelle (densité × zoom), ici 2 : un filet
-    // du dessus de 0,5 unité de page couvre exactement un pixel de la fenêtre, plein rouge (flou à l'échelle
-    // 1).
+    // Revue (point 4) : la part découpée rastérisée suit l'échelle réelle (densité × zoom) que la vue pose
+    // par setRasterScale, ici 2 : un filet du dessus de 0,5 unité de page couvre exactement un pixel de la
+    // fenêtre, plein rouge (flou à l'échelle 1). L8-C6 : l'échelle de l'élément n'est plus relue (le test la
+    // posait par setScale seul) ; la vue pose l'échelle une fois le zoom fini, comme pour le fond et la
+    // grille.
     void revealedLayerFollowsScreenScale()
     {
         Scene s;
@@ -322,6 +324,7 @@ private slots:
                           400));
         s.page->setTransformOrigin(QQuickItem::TopLeft);
         s.page->setScale(2);
+        s.page->setRasterScale(2);
         s.page->setForceRasterized(true);
         QVERIFY(QTest::qWaitFor([&] { return near(grab(s).pixelColor(80, 200), argb(kGreen), 8); }, 5000));
         const QImage image = grab(s);
@@ -356,7 +359,8 @@ private slots:
             (void)grab(s);
             QCOMPARE(s.page->rasterizationCount(), rasterized);
         }
-        // Le zoom est posé : la vue pousse l'échelle, la part découpée est refaite, une fois, à cette échelle.
+        // Le zoom est posé : la vue pousse l'échelle, la part découpée est refaite, une fois, à cette
+        // échelle.
         s.page->setRasterScale(2.0);
         const QImage image = grab(s);
         QVERIFY(s.page->rasterizationCount() > rasterized);
