@@ -598,8 +598,11 @@ Window {
     RecorderPalette {
         id: recorderPalette
         commands: appCommands
+        document: appDocument
+        mediaInsert: appMediaInsert
+        preferences: appPreferences
     }
-    RecordingIndicator { objectName: "recordingIndicator" }
+    RecordingIndicator { recorders: recorderPalette.recorders }
 
     AboutDialog {
         id: aboutDialog
