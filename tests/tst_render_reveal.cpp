@@ -1,5 +1,6 @@
 #include <actcraft/core/model.h>
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/liftlayeritem.h>
 #include <actcraft/render/pagepainter.h>
 
 #include <QImage>
@@ -210,6 +211,49 @@ private slots:
         QCOMPARE(page->pendingCount(), 0);
         QCOMPARE(content.count(), 1);
         QCOMPARE(page->cachedObjectCount(), std::size_t{1});
+    }
+
+    // Encre soulevée par la sélection (glisser, lot 3) : jamais un trait coloré ; le trou la suit pendant le
+    // glisser, au-dessus du cache (la page fixe, sans l'objet soulevé, garde le dessus entier).
+    void liftedRevealerMovesTheHole()
+    {
+        QQuickWindow window;
+        window.setColor(Qt::white);
+        window.resize(200, 200);
+        auto* page = new render::FixedPageItem;
+        page->setSize(QSizeF(200, 200));
+        page->setParentItem(window.contentItem());
+        page->setPage(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
+                               rect(core::Layer::Top, 20, 20, 170, 160, kRed)}));
+        auto* lift = new render::LiftLayerItem;
+        lift->setSize(QSizeF(200, 200));
+        lift->setParentItem(window.contentItem());
+        lift->setFixedPage(page);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(QTest::qWaitFor([&] { return page->isReady(); }, 5000));
+        lift->setObjects({revealer()});
+        core::Transform down;
+        down.dy = 50;
+        lift->setExtraTransform(down);
+        QImage grab;
+        QVERIFY(QTest::qWaitFor(
+            [&] {
+                grab = window.grabWindow();
+                return !grab.isNull() && !near(grab.pixelColor(40, 150), argb(kRed), 8);
+            },
+            5000));
+        grab = grab.convertToFormat(QImage::Format_ARGB32_Premultiplied).scaled(200, 200);
+        int inked = 0;
+        for (int y = 0; y < grab.height(); ++y) {
+            for (int x = 0; x < grab.width(); ++x) {
+                inked += near(grab.pixelColor(x, y), argb(kInk), 60) ? 1 : 0;
+            }
+        }
+        QCOMPARE(inked, 0);
+        QVERIFY2(near(grab.pixelColor(40, 150), argb(kGreen), 8), "le trou a suivi l'encre soulevée");
+        QVERIFY2(near(grab.pixelColor(170, 150), argb(kRed), 8), "hors de la couche intermédiaire : rouge");
+        QVERIFY2(near(grab.pixelColor(40, 100), argb(kRed), 8), "l'ancienne place : le dessus entier");
     }
 
     // Même page par le peintre et par la page fixe hors écran : écart médian <= 2 sur 255, et la découpe est
