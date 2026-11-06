@@ -3,6 +3,7 @@
 #include <actcraft/input/routing.h>
 #include <actcraft/render/liftlayeritem.h> // types complets exigés par moc pour les propriétés
 #include <actcraft/tools/userstate.h>
+#include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
@@ -30,6 +31,7 @@ class UserState;
 namespace actcraft::ui {
 
 struct ToolAdapters; // tooladapters.h
+class ActionGate;    // toolhost.cpp : l'exécuteur d'actions devant l'outil de sélection (L8-T9)
 
 // Outils de l'utilisateur (DA6, DA-A1) : registre, état d'utilisateur, adaptateurs des interfaces d'outil,
 // commandes du lot 3, mémoire par outil (F-136, QSettings).
@@ -67,6 +69,8 @@ class ToolHost : public QObject
     // Mode conception (F-560, L6-T22) : rendus aux outils par leur contexte ; Main.qml les lie à DesignMode.
     Q_PROPERTY(bool lockIgnored READ lockIgnored WRITE setLockIgnored NOTIFY designFlagsChanged)
     Q_PROPERTY(bool snapDisabled READ snapDisabled WRITE setSnapDisabled NOTIFY designFlagsChanged)
+    // Lot 8 (L8-T9) : exécuteur d'actions posé par setActionRunner (surcouche des actions : cadre, curseur).
+    Q_PROPERTY(actcraft::ui::ActionRunner* actionRunner READ actionRunner NOTIFY actionRunnerChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -110,6 +114,11 @@ public:
     Q_INVOKABLE void clearSelection();
     // H5-15 : active l'outil Sélection et sélectionne ces objets de la page affichée (ceux qui existent).
     void selectObjects(const std::vector<core::ObjectId>& ids);
+    // Lot 8 (L8-T9) : sous l'outil de sélection, l'appui va d'abord à l'exécuteur, les déplacements tant
+    // qu'il les prend, le relâché aussi ; sinon l'outil reçoit l'appui retenu puis les suivants (aucun
+    // échantillon perdu). nullptr : l'outil reçoit tout.
+    Q_INVOKABLE void setActionRunner(actcraft::ui::ActionRunner* runner);
+    ActionRunner* actionRunner() const noexcept;
     Q_INVOKABLE void deleteSelection();
     Q_INVOKABLE void enlargeSelection();
     Q_INVOKABLE void reduceSelection();
@@ -125,7 +134,8 @@ public:
     Q_INVOKABLE QVariantMap connectorStyleSketch(int style, qreal width, qreal height) const;
 
     // Outil courant de l'utilisateur ; nullptr tant que le contrôleur, la vue et la couche ne sont pas
-    // branchés.
+    // branchés. Pendant un appui sur un objet d'action sous la sélection (L8-T9) : la sélection précédée de
+    // l'exécuteur.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
     tools::UserState& user(input::UserId id = input::kFirstUser); // un utilisateur jusqu'au lot 11 (D-S10)
     bool lockIgnored() const noexcept;
@@ -156,6 +166,7 @@ signals:
     void trashHoverChanged();
     void settingsFileChanged();
     void designFlagsChanged();
+    void actionRunnerChanged();
 
 private:
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
@@ -187,6 +198,7 @@ private:
     // Faux sans texte sélectionné : la couleur va à l'encre (L3-T0).
     bool recolorSelectedTexts(const QColor& color);
     bool eventFilter(QObject* watched, QEvent* event) override; // Maj et Ctrl (L3-T8)
+    void armGate(const QEvent* event); // L8-T9 : appui sur un objet d'action sous la sélection
 
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_controller;
@@ -197,6 +209,9 @@ private:
     QString m_settingsFile;
     std::unique_ptr<tools::UserState> m_user;
     mutable std::unique_ptr<ToolAdapters> m_adapters;
+    QPointer<ActionRunner> m_actionRunner;
+    mutable std::unique_ptr<ActionGate> m_gate; // refait quand l'outil de sélection change
+    bool m_gateArmed = false;                  // geste en cours armé par armGate : activeTool() rend la porte
     bool m_lockIgnored = false;                // mode conception, recopié dans le contexte des adaptateurs
     bool m_snapDisabled = false;               // idem
     QString m_lastInk = QStringLiteral("pen"); // dernier outil d'encre (L3-T0)
