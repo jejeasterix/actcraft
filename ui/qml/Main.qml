@@ -531,11 +531,18 @@ Window {
         document: appDocument
         toolHost: appTools
     }
-    QtObject { // Talon L8 : rempli par L8-T13.
+    DragDropActionsModel { // L8-T13 : actions par glisser-déposer (F-892)
         id: appDragDrop
         objectName: "appDragDrop"
+        commands: appCommands
+        document: appDocument
     }
-    DragDropActions { objectName: "dragDropActions" }
+    DragDropActions { // plateau d'icônes à côté du panneau des navigateurs
+        objectName: "dragDropActions"
+        model: appDragDrop
+        panel: browserPanel
+        view: pageArea.view
+    }
     LinkDialog {
         id: linkDialog
         commands: appCommands
