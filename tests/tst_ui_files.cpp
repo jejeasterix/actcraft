@@ -414,6 +414,61 @@ private slots:
         QVERIFY(first.document.broadcast().isDefault());
     }
 
+    // Revue de L8-T31, point 3 : la copie diffusée ne remplace jamais le fichier du document ouvert.
+    void publishRefusesTheOpenDocumentsOwnFile()
+    {
+        QTemporaryDir dir;
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const QUrl original = QUrl::fromLocalFile(dir.filePath(QStringLiteral("cours.actcraft")));
+        QSignalSpy savedSpy(&controller, &ui::DocumentController::saveFinished);
+        controller.saveToUrl(original);
+        QVERIFY(savedSpy.wait(60000));
+        QCOMPARE(savedSpy.first().at(0).toBool(), true);
+        QSignalSpy publishedSpy(&controller, &ui::DocumentController::publishFinished);
+        for (const QString& name : {QStringLiteral("cours.actcraft"), QStringLiteral("cours")}) {
+            publishedSpy.clear();
+            controller.publishToUrl(QUrl::fromLocalFile(dir.filePath(name)), true, true, true, true,
+                                    QStringLiteral("Auteur"));
+            QVERIFY(publishedSpy.wait(60000));
+            QCOMPARE(publishedSpy.first().at(0).toBool(), false);
+            QVERIFY(!publishedSpy.first().at(1).toString().isEmpty());
+        }
+        const ui::LoadOutcome read = ui::loadDocument(original);
+        QVERIFY2(read.ok, qPrintable(read.error));
+        QVERIFY(read.document.broadcast().isDefault());
+        QCOMPARE(controller.fileUrl(), original);
+    }
+
+    // Revue de L8-T31, point 2 : un échec d'écriture est rendu par publishFinished, avec son message.
+    void publishFailureIsReported()
+    {
+        QTemporaryDir dir;
+        render::FixedPageItem fixed;
+        ui::DocumentController controller;
+        controller.setFixedPage(&fixed);
+        controller.commitStroke(redStroke());
+        const QUrl target = QUrl::fromLocalFile(dir.filePath(QStringLiteral("diffuse.actcraft")));
+        ui::setArchiveWriterForTests([](const QUrl&, const QByteArray&, QString* error) {
+            if (error) {
+                *error = QStringLiteral("Disque plein (essai)");
+            }
+            return false;
+        });
+        QSignalSpy publishedSpy(&controller, &ui::DocumentController::publishFinished);
+        controller.publishToUrl(target, true, true, true, true, QStringLiteral("Auteur"));
+        const bool finished = publishedSpy.wait(60000);
+        ui::setArchiveWriterForTests({});
+        QVERIFY(finished);
+        QCOMPARE(publishedSpy.first().at(0).toBool(), false);
+        QVERIFY2(publishedSpy.first().at(1).toString().contains(QStringLiteral("Disque plein")),
+                 qPrintable(publishedSpy.first().at(1).toString()));
+        QVERIFY(!controller.property("busy").toBool());
+        QVERIFY(!QFile::exists(target.toLocalFile()));
+    }
+
     void secondOperationIsRefusedWhileBusy()
     {
         QTemporaryDir dir;
