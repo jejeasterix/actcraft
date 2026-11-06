@@ -222,10 +222,35 @@ private slots:
                           QStringLiteral("d"), 0),
                  V::Refuse);
     }
+    // L8-C12, constat 2 : H8-15 contre F-302 « A (local seulement) ». Sous Android, une adresse distante est
+    // refusée même saisie, même dans un document reçu et débloqué ; le local et about:blank restent permis.
+    void androidRefusesEveryRemoteAddress()
+    {
+        const QUrl remote(QStringLiteral("https://exemple.test/page"));
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QUrl local = QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.png")));
+        for (const auto platform :
+             {actcraft::actions::Platform::Windows, actcraft::actions::Platform::Android}) {
+            const bool android = platform == actcraft::actions::Platform::Android;
+            WebContentPolicy p;
+            p.setPlatform(platform);
+            p.setResourceFolder(QStringLiteral("d"), dir.path());
+            p.typedByUser(QStringLiteral("d"), remote);
+            QCOMPARE(p.decide(remote, QStringLiteral("d"), 0), android ? V::Refuse : V::Load);
+            p.setReceived(QStringLiteral("r"), true);
+            QCOMPARE(p.decide(remote, QStringLiteral("r"), 0), android ? V::Refuse : V::Blocked);
+            p.unblock(QStringLiteral("r"), 0);
+            QCOMPARE(p.decide(remote, QStringLiteral("r"), 0), android ? V::Refuse : V::Load);
+            QCOMPARE(p.decide(QUrl(QStringLiteral("about:blank")), QStringLiteral("d"), 0), V::Load);
+            QCOMPARE(p.decide(local, QStringLiteral("d"), 0), V::Load);
+        }
+    }
     void symlinkLeavingResourcesRefused()
     {
 #ifdef Q_OS_WIN
-        QVERIFY(true); // QFile::link crée un raccourci .lnk sous Windows, jamais suivi par le moteur
+        QSKIP("QFile::link crée un raccourci .lnk sous Windows, jamais suivi par le moteur : aucun lien "
+              "symbolique à tester");
 #else
         QTemporaryDir dir;
         QTemporaryDir outside;

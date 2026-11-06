@@ -1078,6 +1078,24 @@ QString htmlOf(const core::WebFrame& frame)
     return QString::fromStdString(frame.html);
 }
 
+// Même texte, sans convertir `utf8` en QString d'un bloc : décodage par morceaux de 4 Kio, chacun comparé à
+// la suite du texte (le décodeur garde un caractère coupé entre deux morceaux). Pour un contenu inchangé,
+// rebuild ne paie donc ni la conversion ni une seconde copie.
+bool sameText(const QString& text, const std::string& utf8)
+{
+    constexpr qsizetype kChunk = 4096;
+    const qsizetype size = static_cast<qsizetype>(utf8.size());
+    QStringDecoder decoder(QStringConverter::Utf8);
+    qsizetype at = 0;
+    for (qsizetype from = 0; from < size; from += kChunk) {
+        const QString part = decoder(QByteArrayView(utf8.data() + from, std::min(kChunk, size - from)));
+        if (QStringView(text).mid(at, part.size()) != QStringView(part))
+            return false;
+        at += part.size();
+    }
+    return at == text.size();
+}
+
 } // namespace
 
 std::uint64_t WebFrameItems::htmlConversionCount() noexcept
@@ -1104,34 +1122,43 @@ void WebFrameItems::rebuild()
     const int page = m_document->currentIndex();
     const bool samePage = page == m_page;
     m_page = page;
-    QVector<Row> fresh;
+    // Cadres visibles de la page. Leur texte reste dans le document (std::string) : il est comparé à ce que
+    // le modèle garde AVANT toute conversion en QString, et seuls un cadre neuf ou un contenu changé sont
+    // convertis (htmlOf, compté par htmlConversionCount).
+    struct Source
+    {
+        std::uint64_t id = 0;
+        QRectF bounds;
+        const core::WebFrame* frame = nullptr;
+    };
+    QVector<Source> sources;
+    std::uint64_t pageKey = 0;
     const core::Document& doc = m_document->document();
     if (page >= 0 && static_cast<std::size_t>(page) < doc.pageCount()) {
         for (const core::PageObject& object : doc.page(static_cast<std::size_t>(page)).objects) {
             const auto* frame = std::get_if<core::WebFrame>(&core::body(object));
             if (!frame || !object.common.visible)
                 continue;
-            Row row;
-            row.id = object.common.id;
-            row.bounds = pageBox(object, *frame);
-            row.html = htmlOf(*frame);
-            row.address = QString::fromStdString(frame->address);
-            fresh.append(row);
+            sources.append({object.common.id, pageBox(object, *frame), frame});
+            pageKey = pageKey == 0 ? object.common.id : std::min<std::uint64_t>(pageKey, object.common.id);
         }
     }
-    bool sameIds = samePage && fresh.size() == m_rows.size();
-    for (qsizetype i = 0; sameIds && i < fresh.size(); ++i)
-        sameIds = fresh[i].id == m_rows[i].id;
+    m_pageKey = pageKey; // avant toute décision (prepareRow)
+    bool sameIds = samePage && sources.size() == m_rows.size();
+    for (qsizetype i = 0; sameIds && i < sources.size(); ++i)
+        sameIds = sources[i].id == m_rows[i].id;
     if (sameIds) {
         for (int i = 0; i < m_rows.size(); ++i) {
             Row& row = m_rows[i];
-            const bool contentChanged = row.html != fresh[i].html || row.address != fresh[i].address;
-            if (!contentChanged && row.bounds == fresh[i].bounds)
+            const Source& source = sources[i];
+            const bool contentChanged =
+                !sameText(row.html, source.frame->html) || !sameText(row.address, source.frame->address);
+            if (!contentChanged && row.bounds == source.bounds)
                 continue;
-            row.bounds = fresh[i].bounds;
-            row.html = fresh[i].html;
-            row.address = fresh[i].address;
+            row.bounds = source.bounds;
             if (contentChanged) {
+                row.html = htmlOf(*source.frame);
+                row.address = QString::fromStdString(source.frame->address);
                 row.history.clear();
                 row.historyIndex = -1;
                 prepareRow(row);
@@ -1142,16 +1169,25 @@ void WebFrameItems::rebuild()
     }
     // Cadres gardés d'une relecture à l'autre de la même page : leur contenu
     // reste.
-    for (Row& row : fresh) {
-        const int old = samePage ? rowOf(row.id) : -1;
-        if (old >= 0 && m_rows[old].html == row.html && m_rows[old].address == row.address) {
+    QVector<Row> fresh;
+    fresh.reserve(sources.size());
+    for (const Source& source : sources) {
+        const int old = samePage ? rowOf(source.id) : -1;
+        if (old >= 0 && sameText(m_rows[old].html, source.frame->html) &&
+            sameText(m_rows[old].address, source.frame->address)) {
             Row kept = m_rows[old];
-            kept.bounds = row.bounds;
-            row = std::move(kept);
-        } else {
-            row.serial = 0;
-            prepareRow(row);
+            kept.bounds = source.bounds;
+            fresh.append(std::move(kept));
+            continue;
         }
+        Row row;
+        row.id = source.id;
+        row.bounds = source.bounds;
+        row.html = htmlOf(*source.frame);
+        row.address = QString::fromStdString(source.frame->address);
+        row.serial = 0;
+        prepareRow(row);
+        fresh.append(std::move(row));
     }
     beginResetModel();
     m_rows = std::move(fresh);
@@ -1165,11 +1201,12 @@ void WebFrameItems::rebuild()
 
 Verdict WebFrameItems::decide(const QUrl& url) const
 {
-    return m_policy.decide(url, m_key, m_page);
+    return m_policy.decide(url, m_key, m_pageKey);
 }
 
 void WebFrameItems::prepareRow(Row& row)
 {
+    ++row.request; // une réponse réseau en vol d'une navigation précédente ne vaut plus
     row.blocked = false;
     row.refused = false;
     row.loading = false;
@@ -1202,7 +1239,7 @@ void WebFrameItems::prepareContent(Row& row, std::function<QString()> source, co
     row.loading = true;
     const QPointer<WebFrameItems> self(this);
     QThreadPool::globalInstance()->start([self, id = row.id, ticket, base, policy = m_policy, key = m_key,
-                                          page = m_page, source = std::move(source)] {
+                                          page = m_pageKey, source = std::move(source)] {
         const Prepared prepared =
             prepareHtml(source(), base, [&](const QUrl& url) { return policy.decide(url, key, page); });
         if (QCoreApplication* home = QCoreApplication::instance()) {
@@ -1242,6 +1279,8 @@ void WebFrameItems::navigate(Row& row, const QUrl& url, bool pushHistory)
         row.history.append(url);
         row.historyIndex = static_cast<int>(row.history.size()) - 1;
     }
+    ++row.request;     // une réponse réseau en vol de la navigation précédente ne vaut plus (fichier local
+                       // et about: compris : `serial` n'avance qu'à l'arrivée de leur contenu)
     row.preparing = 0; // une réécriture en cours ne vaut plus
     row.blocked = false;
     row.refused = false;
@@ -1305,7 +1344,7 @@ void WebFrameItems::fetch(Row& row, const QUrl& url, int redirects)
     row.preparing = 0;
     row.loading = true;
     ++row.serial;
-    m_replies.insert(reply, Pending{row.id, row.serial, redirects});
+    m_replies.insert(reply, Pending{row.id, row.request, redirects});
     connect(reply, &QNetworkReply::downloadProgress, reply, [reply](qint64 received, qint64) {
         if (received > kMaxBody)
             reply->abort();
@@ -1318,8 +1357,8 @@ void WebFrameItems::fetched(QNetworkReply* reply)
     reply->deleteLater();
     const Pending pending = m_replies.take(reply);
     const int index = rowOf(pending.id);
-    if (index < 0 || m_rows[index].serial != pending.serial)
-        return; // cadre parti ou passé à une autre adresse
+    if (index < 0 || m_rows[index].request != pending.request)
+        return; // cadre parti, ou passé à une autre navigation
     Row& row = m_rows[index];
     const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     const QUrl target = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
@@ -1511,7 +1550,7 @@ void WebFrameItems::answer(bool confirmed)
     emit unblockPendingChanged();
     if (!confirmed)
         return;
-    m_policy.unblock(m_key, m_page); // cette page de ce document seulement
+    m_policy.unblock(m_key, m_pageKey); // cette page de ce document seulement
     for (int i = 0; i < m_rows.size(); ++i) {
         Row& row = m_rows[i];
         if (!row.blocked && row.preparing == 0)

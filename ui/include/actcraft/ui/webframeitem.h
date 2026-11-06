@@ -183,6 +183,9 @@ private:
         QVector<QUrl> history;
         int historyIndex = -1;
         int serial = 0;
+        // Navigation courante (navigate, prepareRow) : une réponse réseau d'une navigation précédente ne vaut
+        // plus. `serial` ne le dit pas : il n'avance qu'à l'arrivée du contenu.
+        std::uint64_t request = 0;
         std::uint64_t preparing = 0; // jeton de la réécriture en cours, 0 sinon
     };
 
@@ -203,7 +206,7 @@ private:
     struct Pending
     {
         std::uint64_t id = 0;
-        int serial = 0;
+        std::uint64_t request = 0;
         int redirects = 0;
     };
 
@@ -215,6 +218,10 @@ private:
     std::uint64_t m_keys = 0;
     std::uint64_t m_tickets = 0;
     int m_page = -1;
+    // Identifiant stable de la page affichée pour la politique : le plus petit identifiant de ses cadres
+    // visibles (unique dans le document), et non son numéro, qui passe à une autre page quand on en retire ou
+    // en insère une avant elle. 0 : aucun cadre.
+    std::uint64_t m_pageKey = 0;
     QVector<Row> m_rows;
     int m_pendingRow = -1;
     Grabber m_grabber;
