@@ -313,7 +313,8 @@ Questions à Jérôme (lot 8) : aucune ouverte.
 **H8-7** (orchestrateur, 2026-11-06) — le lot 7 (B) n'est pas fusionné dans la tête (613 commits sur `feat/livraison-complete-b`, passe PC à faire, consigne « ne pas y toucher ») : le lot 8 part sans lui ; ce qui suppose le rideau, le projecteur, les outils de maths, l'ouvreur de `tool.web-browser` ou les épinglages du lot 7 se raccorde à la fusion des deux lots (conflits de `commands.json`, `layout.json`, `Main.qml`, `tests/*.cmake` attendus, résolus des deux côtés). À revoir par Jérôme : ordre des PR des lots 7 et 8.
 **H8-8** (orchestrateur, 2026-11-06) — `page.copy`, `page.cut` restent non restreignables (D10, défaut) ; la diffusion protégée (8b L8-T31) les refuse au titre de la copie, sans passer par `restrictable`.
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
-Tâche : L8-T4 — formats : format natif de l'interactivité (V3) — depuis 2026-11-06
+Tâche : L8-T4 — formats : format natif (V3, mineurs de la revue) — depuis 2026-11-06
+Tâche : L8-T5 — formats : lecteur .flipchart (V3, mineurs de la revue) — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
@@ -329,6 +330,8 @@ Tâche : L8-T4 — formats : format natif de l'interactivité (V3) — depuis 20
 - La notification de fin d'une commande Bash en tâche de fond ne réveille pas un sous-agent sur ce poste (L8-T1, deux fois ; reprise par `SendMessage`). Règle du lot : constructions et suites des sous-agents au premier plan (`timeout: 600000`), construction puis suite séparées (`regles-tache-lot8-mac.md`, § « Attendre »).
 
 ### Restes pour le PC (lot 8)
+- **L8-T5-PC** (décision de A, 2026-11-06 : numéros du format non établis sans l'ancien dépôt, D2 « non tranché » du rapport de L8-T0) : relever au PC (REA, `docs/re/format-flipchart.md`) les numéros des modes de déplacement et de rotation, du pivot, de l'accrochage, des règles de conteneur et des options de média, et le sens de « mode non » face au booléen 13 ; puis écrire `travelModesKept`, `containerRead`, `mediaOptionsRead` dans `tests/tst_formats_flipchart_interactivity.cpp` et la lecture dans `formats/src/flipchart.cpp`. Même passe : ligne `page.goto` de `kCommandToCatalog` (clé qui porte n pour le genre 23, `parameters` `{"page": n}`), paramètres de `document.open-file`, confirmation de 270 = ouverture de fichier au genre 26, type d'action 27 (D1). Les numéros au-delà de 36 sont propres à chaque genre (45 = ressource d'un média).
+- Toutes les tâches : `NOMS OK`, preuve MSVC `/W4 /WX` (CI de la PR), `graphify update .`, `captures.ps1` à l'écran D3D11, banc.
 
 ## Tâches du lot 10
 Plan : `docs/plans/2026-10-18-livraison-complete-lot10-PLAN.md` (66a9300, relu en 3 tours, prêt) — fichiers touchés exacts et preuves : table du plan. Vagues : V1 T0 ‖ T1 · V2 T2 ‖ T5 · V3 T3 · V4 T4 · V5 T6 · V6 T7 (si exigée). Version 0.3.0 (amendement 1, § 6). Écarts 1-6, hypothèses H10-1 à H10-9.
