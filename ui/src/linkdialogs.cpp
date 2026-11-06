@@ -30,7 +30,8 @@ isolatedTextDocument(std::function<void(const QUrl&, const QVariant&)> observer)
 
 namespace {
 
-constexpr qint64 kMaxStoredBytes = 100LL * 1024 * 1024; // un fichier plus gros ne se range pas dans un document
+constexpr qint64 kMaxStoredBytes =
+    100LL * 1024 * 1024; // un fichier plus gros ne se range pas dans un document
 
 // Une étape : la ressource du fichier rangé (clé SHA-256 tirée au redo, la même à chaque rejeu) puis la
 // commande qui pose le lien, construite avec cette clé au premier redo.
@@ -72,17 +73,17 @@ QString compactJson(const QJsonObject& object)
 std::string resourceExtension(const QString& fileName)
 {
     const QString suffix = QFileInfo(fileName).suffix().toLower();
-    const bool valid = !suffix.isEmpty() && suffix.size() <= 8 &&
-                       std::all_of(suffix.begin(), suffix.end(), [](QChar c) {
-                           return (c >= u'a' && c <= u'z') || (c >= u'0' && c <= u'9');
-                       });
+    const bool valid =
+        !suffix.isEmpty() && suffix.size() <= 8 && std::all_of(suffix.begin(), suffix.end(), [](QChar c) {
+            return (c >= u'a' && c <= u'z') || (c >= u'0' && c <= u'9');
+        });
     return valid ? suffix.toStdString() : std::string("bin");
 }
 
 core::RectF centered(double pageWidth, double pageHeight, double width, double height)
 {
-    return core::RectF{std::max(0.0, (pageWidth - width) / 2), std::max(0.0, (pageHeight - height) / 2), width,
-                       height};
+    return core::RectF{std::max(0.0, (pageWidth - width) / 2), std::max(0.0, (pageHeight - height) / 2),
+                       width, height};
 }
 
 } // namespace
@@ -219,8 +220,9 @@ bool LinkDialogs::commit(const QString& label, const QString& catalogId, const Q
             if (selection.size() == 1)
                 target = selection.front();
         }
-        const auto found = std::find_if(page.objects.begin(), page.objects.end(),
-                                        [target](const core::PageObject& o) { return o.common.id == target; });
+        const auto found =
+            std::find_if(page.objects.begin(), page.objects.end(),
+                         [target](const core::PageObject& o) { return o.common.id == target; });
         if (target == 0 || found == page.objects.end())
             return refuse(tr("Choisissez d'abord un objet de la page."));
         std::vector<core::Action> actions = found->common.actions;

@@ -61,10 +61,7 @@ private slots:
 private:
     QString makeFile(const QString& name, const QByteArray& bytes) const;
     const core::Page& page() const { return m_controller->document().page(0); }
-    static const core::Action& onlyAction(const core::PageObject& o)
-    {
-        return o.common.actions.back();
-    }
+    static const core::Action& onlyAction(const core::PageObject& o) { return o.common.actions.back(); }
     void load();
     void click(QPointF point);
 
@@ -165,7 +162,8 @@ void TstUiLinkdialogs::click(QPointF point)
 void TstUiLinkdialogs::textFormCreatesATextObject()
 {
     QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
-    QVERIFY(m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
+    QVERIFY(
+        m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
     QCOMPARE(created.size(), 1);
     QCOMPARE(page().objects.size(), size_t(2));
     const core::PageObject& made = page().objects.back();
@@ -265,13 +263,15 @@ void TstUiLinkdialogs::commandLineArgumentsNeverPassed()
 void TstUiLinkdialogs::websiteNeedsHttpOrHttps()
 {
     QSignalSpy refused(m_dialogs.get(), &ui::LinkDialogs::refused);
-    const QStringList bad{QStringLiteral("ftp://example.org/"), QStringLiteral("javascript:alert(1)"),
-                          QStringLiteral("file:///etc/passwd"), QStringLiteral("example.org"),
-                          QStringLiteral("https://ecole.fr@evil.example/"), QString()};
+    const QStringList bad{QStringLiteral("ftp://example.org/"),
+                          QStringLiteral("javascript:alert(1)"),
+                          QStringLiteral("file:///etc/passwd"),
+                          QStringLiteral("example.org"),
+                          QStringLiteral("https://ecole.fr@evil.example/"),
+                          QString()};
     for (const QString& address : bad) {
         refused.clear();
-        QVERIFY2(!m_dialogs->createWebsiteLink(address, ui::LinkDialogs::TextForm, 0),
-                 qPrintable(address));
+        QVERIFY2(!m_dialogs->createWebsiteLink(address, ui::LinkDialogs::TextForm, 0), qPrintable(address));
         QCOMPARE(refused.size(), 1);
         // Même motif que celui de l'ouverture.
         QCOMPARE(refused.first().first().toString(),
@@ -282,8 +282,8 @@ void TstUiLinkdialogs::websiteNeedsHttpOrHttps()
     QVERIFY(!m_controller->canUndo());
     QVERIFY(m_dialogs->createWebsiteLink(QStringLiteral("http://example.org/a?b=1"),
                                          ui::LinkDialogs::TextForm, 0));
-    QVERIFY(m_dialogs->createWebsiteLink(QStringLiteral("  https://example.org/ "),
-                                         ui::LinkDialogs::TextForm, 0));
+    QVERIFY(m_dialogs->createWebsiteLink(QStringLiteral("  https://example.org/ "), ui::LinkDialogs::TextForm,
+                                         0));
 }
 
 void TstUiLinkdialogs::oneStep()
@@ -309,10 +309,12 @@ void TstUiLinkdialogs::fileRefusedWithTheLaunchersReason()
     const QString missing = m_dir.filePath(QStringLiteral("absent.pdf"));
     const QStringList paths{exe, missing, QStringLiteral("//serveur/partage/doc.pdf")};
     for (const QString& path : paths) {
-        for (const int storage : {int(ui::LinkDialogs::ExternalStorage), int(ui::LinkDialogs::DocumentStorage)}) {
+        for (const int storage :
+             {int(ui::LinkDialogs::ExternalStorage), int(ui::LinkDialogs::DocumentStorage)}) {
             refused.clear();
             const QUrl url = QUrl::fromLocalFile(path);
-            QVERIFY2(!m_dialogs->createFileLink(url, ui::LinkDialogs::TextForm, storage, 0), qPrintable(path));
+            QVERIFY2(!m_dialogs->createFileLink(url, ui::LinkDialogs::TextForm, storage, 0),
+                     qPrintable(path));
             QCOMPARE(refused.size(), 1);
             const int kind = storage == ui::LinkDialogs::ExternalStorage ? int(ui::LinkLauncher::File)
                                                                          : int(ui::LinkLauncher::StoredFile);
@@ -328,25 +330,30 @@ void TstUiLinkdialogs::closedWithoutSourcesOrUnderLock()
 {
     QSignalSpy refused(m_dialogs.get(), &ui::LinkDialogs::refused);
     m_commands->setLocked(true); // verrou de classe
-    QVERIFY(!m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
+    QVERIFY(
+        !m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
     QCOMPARE(refused.size(), 1);
     m_commands->setLocked(false);
     m_dialogs->setLinks(nullptr);
-    QVERIFY(!m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
+    QVERIFY(
+        !m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
     QCOMPARE(refused.size(), 2);
     m_dialogs->setLinks(m_links.get());
     m_dialogs->setDocument(nullptr);
-    QVERIFY(!m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
+    QVERIFY(
+        !m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::TextForm, 0));
     QCOMPARE(refused.size(), 3);
     QCOMPARE(page().objects.size(), size_t(1));
 }
 
 void TstUiLinkdialogs::iconAndActionFormsCreateObjects()
 {
-    QVERIFY(m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::IconForm, 0));
+    QVERIFY(
+        m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::IconForm, 0));
     QVERIFY(std::holds_alternative<core::ImageObject>(core::body(page().objects.back())));
     QCOMPARE(onlyAction(page().objects.back()).catalogId, std::string("document.open-website"));
-    QVERIFY(m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::ActionForm, 0));
+    QVERIFY(
+        m_dialogs->createWebsiteLink(QStringLiteral("https://example.org/"), ui::LinkDialogs::ActionForm, 0));
     QVERIFY(std::holds_alternative<core::Shape>(core::body(page().objects.back())));
     QCOMPARE(onlyAction(page().objects.back()).catalogId, std::string("document.open-website"));
     QCOMPARE(page().objects.size(), size_t(3));

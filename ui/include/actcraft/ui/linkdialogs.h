@@ -37,9 +37,9 @@ class LinkDialogs : public QObject
 public:
     enum Form
     {
-        TextForm,   // texte portant le nom du fichier ou l'adresse
-        IconForm,   // image d'espace réservé
-        ActionForm, // objet d'action (rectangle légendé)
+        TextForm,    // texte portant le nom du fichier ou l'adresse
+        IconForm,    // image d'espace réservé
+        ActionForm,  // objet d'action (rectangle légendé)
         ExistingForm // objet existant de la page (identifiant donné, sinon l'unique objet sélectionné)
     };
     Q_ENUM(Form)
