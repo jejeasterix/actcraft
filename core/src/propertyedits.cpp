@@ -308,6 +308,11 @@ Change pageChangeFor(PageProperty property, std::size_t page)
 
 } // namespace
 
+double objectAngle(const Transform& t) noexcept
+{
+    return angleOf(t);
+}
+
 bool propertyTouchesTheCache(ObjectProperty property) noexcept
 {
     switch (property) {

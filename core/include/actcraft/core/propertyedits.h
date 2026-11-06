@@ -111,5 +111,8 @@ private:
 std::optional<PropertyValue> readProperty(const PageObject& object, ObjectProperty property);
 // Valeur courante d'une propriété de la page.
 PropertyValue readPageProperty(const Page& page, PageProperty property);
+// Angle de la propriété « Rotation » (0 … 360, sens horaire), sans le demi-tour d'un objet reflété ; lu aussi
+// par les actions d'objet (L8-T7).
+double objectAngle(const Transform& t) noexcept;
 
 } // namespace actcraft::core

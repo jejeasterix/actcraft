@@ -3,14 +3,15 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/objectactions.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/propertyedits.h>
 
 #include <QByteArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QString>
-#include <QtMath>
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <optional>
@@ -19,10 +20,10 @@
 #include <variant>
 #include <vector>
 
-// Actions d'objet de géométrie (L8-T7). Aucune commande neuve : angle, placer, dimensionner, étirer et
-// refléter rendent un TransformObjectsCommand (delta en coordonnées de page, comme l'outil Sélection) ;
-// retourner, ajuster, taille d'origine reprennent le chemin des commandes de menu
-// `transform.*` (alignment.h, ui/src/objectediting.cpp), pour faire la même chose qu'elles.
+// Actions d'objet de géométrie (L8-T7). Aucune commande neuve : angle, placer, dimensionner, étirer, refléter
+// et retourner rendent un TransformObjectsCommand (delta en coordonnées de page, comme l'outil Sélection) ;
+// ajuster et taille d'origine reprennent fitTransforms des commandes de menu `transform.*` (alignment.h,
+// ui/src/objectediting.cpp) et TransformEachCommand.
 namespace actcraft::core {
 namespace {
 
@@ -64,12 +65,6 @@ std::optional<double> number(const QJsonObject& parameters, const char* name)
         return std::nullopt;
     }
     return v.toDouble();
-}
-
-// Degrés, sens horaire à l'écran (convention de rotation(), model.h).
-double angleOf(const Transform& t) noexcept
-{
-    return qRadiansToDegrees(std::atan2(t.m12, t.m11));
 }
 
 // Objets dont la transformation change : la cible ; pour un groupe, ses membres, seuls porteurs d'une
@@ -163,16 +158,72 @@ std::unique_ptr<UndoCommand> turn(const Target& t, bool absolute)
     if (!rotatable(t) || !angle) {
         return nullptr;
     }
-    const double degrees = absolute ? *angle - angleOf(t.object.common.transform) : *angle;
+    if (absolute && std::holds_alternative<Group>(body(t.object))) {
+        return nullptr; // l'angle d'un groupe n'est pas défini (alignment.cpp)
+    }
+    // Angle de la propriété « Rotation » (propertyedits.h), sans le demi-tour d'un objet reflété.
+    const double degrees = absolute ? *angle - objectAngle(t.object.common.transform) : *angle;
     return transformBy(t, rotationAbout(pivotOf(t), degrees));
 }
 
-std::unique_ptr<UndoCommand> scaleAbout(const Target& t, Anchor a, double sx, double sy)
+// Repère propre de la cible : sa boîte droite (rotation retirée autour du centre) et son angle ; celui de la
+// page pour un groupe. Dimensionner et étirer s'y font, comme les poignées de l'outil Sélection
+// (selecttool.cpp, gestureTransform).
+struct Frame
+{
+    RectF box;
+    double degrees = 0;
+    PointF center;
+};
+
+Frame frameOf(const Target& t)
+{
+    const double degrees =
+        std::holds_alternative<Group>(body(t.object)) ? 0.0 : objectAngle(t.object.common.transform);
+    const PointF c = t.box.center();
+    if (degrees == 0.0) {
+        return {t.box, 0.0, c};
+    }
+    PageObject upright = t.object;
+    upright.common.transform = compose(upright.common.transform, rotationAbout(c, -degrees));
+    return {boundsOnPage(upright), degrees, c};
+}
+
+std::unique_ptr<UndoCommand> scaleIn(const Target& t, const Frame& f, Anchor a, double sx, double sy)
 {
     if (!resizable(t) || !(sx > 0) || !(sy > 0)) {
         return nullptr;
     }
-    return transformBy(t, scalingAbout(at(t.box, a), sx, sy));
+    const Transform scale = scalingAbout(at(f.box, a), sx, sy);
+    if (f.degrees == 0.0) {
+        return transformBy(t, scale);
+    }
+    return transformBy(
+        t, compose(compose(rotationAbout(f.center, -f.degrees), scale), rotationAbout(f.center, f.degrees)));
+}
+
+RectF unite(const RectF& a, const RectF& b) noexcept
+{
+    const double left = std::min(a.x, b.x);
+    const double top = std::min(a.y, b.y);
+    return {left, top, std::max(a.x + a.width, b.x + b.width) - left,
+            std::max(a.y + a.height, b.y + b.height) - top};
+}
+
+// Page lue par fitTransforms, la cible et ses membres déverrouillés : H8-11, une action agit aussi sur un
+// objet verrouillé (le verrou garde contre la main de l'utilisateur, pas contre les actions).
+Page unlockedCopy(const Page& page, const PageObject& object)
+{
+    Page copy = page;
+    std::vector<ObjectId> ids = expandGroups(page, {object.common.id});
+    ids.push_back(object.common.id);
+    for (const ObjectId id : ids) {
+        const std::size_t i = indexOf(copy, id);
+        if (i < copy.objects.size()) {
+            copy.objects[i].common.locked = false;
+        }
+    }
+    return copy;
 }
 
 std::unique_ptr<UndoCommand> fit(const Target& t, FitMode mode)
@@ -180,15 +231,42 @@ std::unique_ptr<UndoCommand> fit(const Target& t, FitMode mode)
     if (!resizable(t)) {
         return nullptr;
     }
-    return transformEach(t, fitTransforms(t.page, {t.object.common.id}, mode));
+    const Page page = unlockedCopy(t.page, t.object);
+    TransformList list = fitTransforms(page, {t.object.common.id}, mode);
+    if (!movable(t) && !list.empty()) {
+        // Déplacement bloqué : réduit autour de son centre, sans le décalage qui le ramène dans la page.
+        std::optional<RectF> after;
+        for (const auto& entry : list) {
+            const std::size_t i = indexOf(page, entry.first);
+            if (i >= page.objects.size()) {
+                continue;
+            }
+            PageObject moved = page.objects[i];
+            moved.common.transform = entry.second;
+            if (hasExtent(moved)) {
+                after = after ? unite(*after, boundsOnPage(moved)) : boundsOnPage(moved);
+            }
+        }
+        if (after) {
+            const PointF from = after->center();
+            const PointF to = t.box.center();
+            const Transform back = translation(to.x - from.x, to.y - from.y);
+            for (auto& entry : list) {
+                entry.second = compose(entry.second, back);
+            }
+        }
+    }
+    return transformEach(t, std::move(list));
 }
 
-// Reflet en place autour du centre de la boîte, en une étape (plan, `mirrorIsOneStep`) : x renverse la
-// largeur, y la hauteur. La commande de menu `transform.mirror-*` ajoute, elle, une copie miroir
-// (mirrorCopies) : écart consigné, non tranché ici.
-std::unique_ptr<UndoCommand> mirror(const Target& t, bool horizontal)
+// H8-10 : reflet en place autour du centre de la boîte, en une étape. Suffixe d'axe lu comme les commandes de
+// menu (`transform.flip-x`, `transform.mirror-x` → Axis::X, haut / bas ; objectediting.cpp). `object.flip-*`
+// fait le même reflet, sans écarter les objets verrouillés (H8-11) ; le menu `transform.mirror-*` ajoute,
+// lui, une copie.
+std::unique_ptr<UndoCommand> reflect(const Target& t, Axis axis)
 {
-    return transformBy(t, scalingAbout(t.box.center(), horizontal ? -1.0 : 1.0, horizontal ? 1.0 : -1.0));
+    const bool upDown = axis == Axis::X;
+    return transformBy(t, scalingAbout(t.box.center(), upDown ? 1.0 : -1.0, upDown ? -1.0 : 1.0));
 }
 
 std::unordered_map<std::string, Builder> makeTable()
@@ -217,26 +295,28 @@ std::unordered_map<std::string, Builder> makeTable()
         };
         table["object.size-" + suffix] = [a](const Target& t) -> std::unique_ptr<UndoCommand> {
             const std::optional<double> width = number(t.parameters, "width");
-            if (!width || *width < 1 || t.box.width < kEps) {
+            const Frame f = frameOf(t);
+            if (!width || *width < 1 || f.box.width < kEps) {
                 return nullptr;
             }
-            const double f = *width / t.box.width;
-            return scaleAbout(t, a, f, f);
+            const double k = *width / f.box.width;
+            return scaleIn(t, f, a, k, k);
         };
         table["object.size-step-" + suffix] = [a](const Target& t) -> std::unique_ptr<UndoCommand> {
             const std::optional<double> factor = number(t.parameters, "factor");
             if (!factor) {
                 return nullptr;
             }
-            return scaleAbout(t, a, *factor, *factor);
+            return scaleIn(t, frameOf(t), a, *factor, *factor);
         };
         table["object.stretch-" + suffix] = [a](const Target& t) -> std::unique_ptr<UndoCommand> {
             const std::optional<double> width = number(t.parameters, "width");
             const std::optional<double> height = number(t.parameters, "height");
-            if (!width || !height || *width < 1 || *height < 1 || t.box.width < kEps || t.box.height < kEps) {
+            const Frame f = frameOf(t);
+            if (!width || !height || *width < 1 || *height < 1 || f.box.width < kEps || f.box.height < kEps) {
                 return nullptr;
             }
-            return scaleAbout(t, a, *width / t.box.width, *height / t.box.height);
+            return scaleIn(t, f, a, *width / f.box.width, *height / f.box.height);
         };
         table["object.stretch-step-" + suffix] = [a](const Target& t) -> std::unique_ptr<UndoCommand> {
             const std::optional<double> fx = number(t.parameters, "factorX");
@@ -244,18 +324,13 @@ std::unordered_map<std::string, Builder> makeTable()
             if (!fx || !fy) {
                 return nullptr;
             }
-            return scaleAbout(t, a, *fx, *fy);
+            return scaleIn(t, frameOf(t), a, *fx, *fy);
         };
     }
-    table["object.mirror-x"] = [](const Target& t) { return mirror(t, true); };
-    table["object.mirror-y"] = [](const Target& t) { return mirror(t, false); };
-    // Suffixe d'axe lu comme les commandes de menu (`transform.flip-x` → Axis::X, objectediting.cpp).
-    table["object.flip-x"] = [](const Target& t) {
-        return transformEach(t, flipTransforms(t.page, {t.object.common.id}, Axis::X));
-    };
-    table["object.flip-y"] = [](const Target& t) {
-        return transformEach(t, flipTransforms(t.page, {t.object.common.id}, Axis::Y));
-    };
+    table["object.mirror-x"] = [](const Target& t) { return reflect(t, Axis::X); };
+    table["object.mirror-y"] = [](const Target& t) { return reflect(t, Axis::Y); };
+    table["object.flip-x"] = [](const Target& t) { return reflect(t, Axis::X); };
+    table["object.flip-y"] = [](const Target& t) { return reflect(t, Axis::Y); };
     table["object.original-size"] = [](const Target& t) { return fit(t, FitMode::OriginalSize); };
     table["object.fit-width"] = [](const Target& t) { return fit(t, FitMode::Width); };
     table["object.fit-height"] = [](const Target& t) { return fit(t, FitMode::Height); };
