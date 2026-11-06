@@ -234,7 +234,8 @@ private slots:
         QString error;
         QVERIFY2(r.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
         const QStringList ids = r.ids();
-        QCOMPARE(ids.mid(ids.size() - 2), (QStringList{QStringLiteral("page.first"), QStringLiteral("page.last")}));
+        QCOMPARE(ids.mid(ids.size() - 2),
+                 (QStringList{QStringLiteral("page.first"), QStringLiteral("page.last")}));
         const auto* first = r.find(QStringLiteral("page.first"));
         const auto* last = r.find(QStringLiteral("page.last"));
         QVERIFY(first && last);
