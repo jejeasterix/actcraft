@@ -752,8 +752,8 @@ private slots:
         Shell s;
         QVERIFY(start(s));
         auto* doc = controller(s);
-        // Le dialogue s'ouvre sur le dossier par défaut : jamais le vrai Documents (sous un service launchd, macOS
-        // bloque sa lecture sans fin ; runner du Mac mini).
+        // Le dialogue s'ouvre sur le dossier par défaut : jamais le vrai Documents (sous un service launchd,
+        // macOS bloque sa lecture sans fin ; runner du Mac mini).
         QTemporaryDir root;
         doc->setDocumentsRoot(root.path());
         QTemporaryDir dir;
