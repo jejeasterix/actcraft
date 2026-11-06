@@ -381,6 +381,36 @@ private slots:
                  qPrintable(dialog->property("reason").toString()));
         window.reset(); // la boîte part avant le lanceur
     }
+    void escapeRefusesWithoutChangingTool()
+    {
+        LinkLauncher l;
+        fake(l);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        // Échap est aussi le raccourci de l'outil de sélection : il passe avant la boîte s'il n'est pas retenu.
+        component.setData("import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\nWindow {\n"
+                          "  width: 800; height: 600; visible: true\n"
+                          "  property QtObject dialogue: confirm\n"
+                          "  property bool selectChosen: false\n"
+                          "  Shortcut { sequence: \"Esc\"; onActivated: selectChosen = true }\n"
+                          "  LinkConfirmDialog { id: confirm }\n"
+                          "}\n",
+                          QUrl());
+        std::unique_ptr<QObject> window(component.create());
+        QVERIFY2(window, qPrintable(component.errorString()));
+        auto* quick = qobject_cast<QWindow*>(window.get());
+        QVERIFY(quick);
+        QVERIFY(QTest::qWaitForWindowExposed(quick));
+        QObject* dialog = window->property("dialogue").value<QObject*>();
+        QVERIFY(dialog->setProperty("launcher", QVariant::fromValue(&l)));
+        l.request(QStringLiteral("https://example.org/"), LinkLauncher::Website);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QTest::keyClick(quick, Qt::Key_Escape);
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QVERIFY(!window->property("selectChosen").toBool());
+        QVERIFY(m_opened.isEmpty());
+        window.reset();
+    }
 };
 
 QTEST_MAIN(TstUiLinkLauncher)
