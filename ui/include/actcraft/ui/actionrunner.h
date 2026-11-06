@@ -45,9 +45,10 @@ public:
 
     // Appelés par ToolHost quand l'outil courant est la sélection ; rendent vrai si l'échantillon est pris.
     bool press(QPointF pagePoint, Qt::MouseButton button);
-    bool move(QPointF pagePoint);    // au-delà de 4 px : rend faux et laisse le glisser à l'outil
-    bool release(QPointF pagePoint); // exécute, une fois contactActive retombé (file d'attente d'un tour)
-    void cancel();                   // geste abandonné (changement d'outil, de page) : rien n'est exécuté
+    bool move(QPointF pagePoint);        // au-delà de 4 px : rend faux et laisse le glisser à l'outil
+    bool release(QPointF pagePoint);     // exécute, une fois contactActive retombé (file d'attente d'un tour)
+    void cancel();                       // geste abandonné (changement d'outil, de page) : rien n'est exécuté
+    bool takes(QPointF pagePoint) const; // press le prendrait (bouton gauche), sans rien retenir
     Q_INVOKABLE void hover(QPointF pagePoint);
     Q_INVOKABLE void historyBack();    // page.history-back
     Q_INVOKABLE void historyForward(); // page.history-forward

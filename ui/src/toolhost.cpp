@@ -20,6 +20,7 @@
 #include <QImage>
 #include <QInputEvent>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QPoint>
 #include <QPointF>
 #include <QQuickWindow>
@@ -32,6 +33,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -164,14 +166,18 @@ void writeShapeSettings(const QString& file, const tools::ShapeSettings& setting
 
 } // namespace
 
-// L8-T9 : outil de sélection précédé de l'exécuteur d'actions. L'appui va d'abord à ActionRunner::press ;
-// pris, il est retenu avec les déplacements que l'exécuteur prend (moins de 4 px) ; au premier refus (un
-// glisser), l'outil reçoit l'appui retenu, les déplacements retenus, puis la suite : aucun échantillon perdu.
-// Le relâché d'un clic va à ActionRunner::release, qui exécute après la retombée du contact, jamais ici.
+// L8-T9 : outil de sélection précédé de l'exécuteur d'actions, pour un geste armé par le filtre de
+// l'application (appui gauche sur un objet d'action, sous la sélection : ToolHost::armGate). L'appui va
+// d'abord à ActionRunner::press ; pris, il est retenu avec les déplacements que l'exécuteur prend (moins de 4
+// px) ; au premier refus (un glisser), l'outil reçoit l'appui retenu, les déplacements retenus, puis la suite
+// : aucun échantillon perdu. Le relâché d'un clic va à ActionRunner::release, qui exécute après la retombée
+// du contact, jamais ici. Fin du geste : `done` désarme, activeTool() rend de nouveau l'outil de sélection.
 class ActionGate final : public tools::Tool
 {
 public:
-    ActionGate(tools::Tool& inner, ActionRunner& runner) : m_inner(&inner), m_runner(&runner) {}
+    ActionGate(tools::Tool& inner, ActionRunner& runner, std::function<void()> done)
+        : m_inner(&inner), m_runner(&runner), m_done(std::move(done))
+    {}
 
     tools::Tool* inner() const noexcept { return m_inner; }
     ActionRunner* runner() const noexcept { return m_runner; }
@@ -209,6 +215,7 @@ public:
                 m_held.push_back(sample);
                 return;
             }
+            m_done();
             break;
         case input::Phase::Move:
             if (mine) {
@@ -224,6 +231,7 @@ public:
                 m_owning = false;
                 if (m_runner->release(point)) {
                     m_held.clear(); // clic : ni l'appui ni le relâché ne vont à l'outil
+                    m_done();
                     return;
                 }
                 replay();
@@ -241,12 +249,14 @@ private:
         }
         m_owning = false;
         m_held.clear();
+        m_done();
     }
-    void replay()
+    void replay() // glisser : la suite va directement à l'outil (désarmé)
     {
         m_owning = false;
         const std::vector<input::Sample> held = std::move(m_held);
         m_held.clear();
+        m_done();
         for (const input::Sample& sample : held) {
             m_inner->onSample(sample);
         }
@@ -254,6 +264,7 @@ private:
 
     tools::Tool* m_inner;
     ActionRunner* m_runner;
+    std::function<void()> m_done;
     std::vector<input::Sample> m_held;
     std::uint64_t m_pointer = 0;
     bool m_owning = false;
@@ -792,13 +803,38 @@ void ToolHost::cancelGesture()
 tools::Tool* ToolHost::activeTool(input::UserId) const
 {
     tools::Tool* tool = toolFor(currentTool());
-    if (tool == nullptr || !m_actionRunner || currentTool() != QLatin1String("select")) {
+    if (tool == nullptr || !m_gateArmed || !m_actionRunner || currentTool() != QLatin1String("select")) {
         return tool;
     }
     if (!m_gate || m_gate->inner() != tool || m_gate->runner() != m_actionRunner.data()) {
-        m_gate = std::make_unique<ActionGate>(*tool, *m_actionRunner);
+        auto* self = const_cast<ToolHost*>(this); // comme adapters() : l'hôte n'est jamais constant
+        m_gate = std::make_unique<ActionGate>(*tool, *m_actionRunner, [self] { self->m_gateArmed = false; });
     }
     return m_gate.get();
+}
+
+// L8-T9 : à l'appui (filtre de l'application, avant que la vue n'en fasse un échantillon), arme la porte de
+// l'exécuteur si l'outil courant est la sélection et qu'un objet d'action est sous le point ; sinon l'outil
+// reçoit l'appui directement.
+void ToolHost::armGate(const QEvent* event)
+{
+    m_gateArmed = false;
+    if (!m_actionRunner || !m_view || currentTool() != QLatin1String("select")) {
+        return;
+    }
+    const auto* pointer = static_cast<const QPointerEvent*>(event);
+    if (pointer->points().isEmpty()) {
+        return;
+    }
+    if (event->type() == QEvent::MouseButtonPress &&
+        static_cast<const QMouseEvent*>(event)->button() != Qt::LeftButton) {
+        return; // bouton droit : menu contextuel, jamais d'action
+    }
+    const QPointF scene = pointer->points().first().scenePosition();
+    if (!m_view->contains(m_view->mapFromScene(scene))) {
+        return;
+    }
+    m_gateArmed = m_actionRunner->takes(m_view->sceneToPage(scene));
 }
 
 void ToolHost::setActionRunner(ActionRunner* runner)
@@ -811,6 +847,7 @@ void ToolHost::setActionRunner(ActionRunner* runner)
         m_actionRunner->setTools(nullptr);
     }
     m_gate.reset();
+    m_gateArmed = false;
     m_actionRunner = runner;
     if (runner != nullptr) {
         runner->setTools(this);
@@ -1162,6 +1199,7 @@ bool ToolHost::eventFilter(QObject* watched, QEvent* event)
     case QEvent::TouchBegin:
         relayModifiers(Qt::Key_unknown,
                        static_cast<int>(static_cast<const QInputEvent*>(event)->modifiers()));
+        armGate(event);
         break;
     default:
         break;

@@ -279,6 +279,11 @@ std::optional<core::ObjectId> ActionRunner::actionObjectAt(QPointF pagePoint) co
     return std::nullopt;
 }
 
+bool ActionRunner::takes(QPointF pagePoint) const
+{
+    return !actionsDisabled() && controller() != nullptr && actionObjectAt(pagePoint).has_value();
+}
+
 bool ActionRunner::press(QPointF pagePoint, Qt::MouseButton button)
 {
     m_pressed.reset();

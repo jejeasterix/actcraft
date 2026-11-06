@@ -134,7 +134,8 @@ public:
     Q_INVOKABLE QVariantMap connectorStyleSketch(int style, qreal width, qreal height) const;
 
     // Outil courant de l'utilisateur ; nullptr tant que le contrôleur, la vue et la couche ne sont pas
-    // branchés. Sous la sélection, avec un exécuteur d'actions : la sélection précédée de l'exécuteur.
+    // branchés. Pendant un appui sur un objet d'action sous la sélection (L8-T9) : la sélection précédée de
+    // l'exécuteur.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
     tools::UserState& user(input::UserId id = input::kFirstUser); // un utilisateur jusqu'au lot 11 (D-S10)
     bool lockIgnored() const noexcept;
@@ -197,6 +198,7 @@ private:
     // Faux sans texte sélectionné : la couleur va à l'encre (L3-T0).
     bool recolorSelectedTexts(const QColor& color);
     bool eventFilter(QObject* watched, QEvent* event) override; // Maj et Ctrl (L3-T8)
+    void armGate(const QEvent* event); // L8-T9 : appui sur un objet d'action sous la sélection
 
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_controller;
@@ -209,9 +211,10 @@ private:
     mutable std::unique_ptr<ToolAdapters> m_adapters;
     QPointer<ActionRunner> m_actionRunner;
     mutable std::unique_ptr<ActionGate> m_gate; // refait quand l'outil de sélection change
-    bool m_lockIgnored = false;                 // mode conception, recopié dans le contexte des adaptateurs
-    bool m_snapDisabled = false;                // idem
-    QString m_lastInk = QStringLiteral("pen");  // dernier outil d'encre (L3-T0)
+    bool m_gateArmed = false;                  // geste en cours armé par armGate : activeTool() rend la porte
+    bool m_lockIgnored = false;                // mode conception, recopié dans le contexte des adaptateurs
+    bool m_snapDisabled = false;               // idem
+    QString m_lastInk = QStringLiteral("pen"); // dernier outil d'encre (L3-T0)
     QVariantMap m_selectionFrame;
     bool m_handlesVisible = false;
     bool m_settingsLoaded = false;
