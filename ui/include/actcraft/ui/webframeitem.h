@@ -78,7 +78,8 @@ public:
     explicit WebFrameItems(QObject* parent = nullptr);
     ~WebFrameItems() override;
 
-    DocumentController* document() const noexcept { return m_document; }
+    // Hors ligne : DocumentController n'est que déclaré ici (QPointer<T>::data exige le type complet).
+    DocumentController* document() const noexcept;
     void setDocument(DocumentController* document);
     int count() const noexcept { return static_cast<int>(m_rows.size()); }
     int blockedCount() const noexcept;

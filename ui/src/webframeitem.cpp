@@ -378,6 +378,11 @@ WebFrameItems::~WebFrameItems()
         m_policy.forget(m_key);
 }
 
+DocumentController* WebFrameItems::document() const noexcept
+{
+    return m_document;
+}
+
 void WebFrameItems::setDocument(DocumentController* document)
 {
     if (m_document == document)
