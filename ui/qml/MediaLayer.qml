@@ -122,6 +122,14 @@ Item {
                         }
                     }
                     Component.onCompleted: if (slot.autoPlay) video.armed = true
+                    // Lecture auto : le fichier est écrit hors du fil principal, autoPlay passe à vrai après coup.
+                    Connections {
+                        target: slot
+                        function onAutoPlayChanged() {
+                            if (slot.autoPlay)
+                                video.armed = true
+                        }
+                    }
                 }
             }
             Component {

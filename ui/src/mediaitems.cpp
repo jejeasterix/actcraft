@@ -5,9 +5,11 @@
 #include <QDataStream>
 #include <QFile>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include <QUrl>
+#include <QtConcurrent>
 
 #include <algorithm>
 #include <cmath>
@@ -30,6 +32,14 @@ bool isNetworkPath(QString path)
 {
     path.replace(u'\\', u'/');
     return path.startsWith(QStringLiteral("//"));
+}
+
+// Nom du fichier extrait d'une ressource : clé assainie (jamais de séparateur) et extension du document.
+QString extractedName(const std::string& key, const std::string& extension)
+{
+    QString name = QString::fromStdString(key);
+    name.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9_-]")), QStringLiteral("_"));
+    return name + QLatin1Char('.') + QString::fromStdString(extension);
 }
 
 // Nom d'origine d'une ressource pour la confirmation : le nom du média de la page qui la porte, sinon la clé.
@@ -238,28 +248,48 @@ QHash<int, QByteArray> MediaItems::roleNames() const
             {AutoPlayRole, "autoPlay"}};
 }
 
-bool MediaItems::play(quint64 id)
+MediaItems::Entry* MediaItems::entryById(quint64 id)
 {
     const auto it =
         std::find_if(m_entries.begin(), m_entries.end(), [id](const Entry& e) { return e.id == id; });
-    if (it == m_entries.end())
+    return it == m_entries.end() ? nullptr : &*it;
+}
+
+bool MediaItems::play(quint64 id)
+{
+    const Entry* entry = entryById(id);
+    if (!entry)
         return false;
-    if (it->kind == QLatin1String("video")) {
-        if (it->source.isEmpty()) { // extraction à la demande : la première lecture écrit le fichier
-            const QString path = fileFor(it->resource);
-            if (path.isEmpty())
-                return false;
-            it->source = path;
-            const QModelIndex at = index(static_cast<int>(it - m_entries.begin()));
-            emit dataChanged(at, at, {SourceRole});
+    if (entry->kind == QLatin1String("video")) {
+        if (!entry->source.isEmpty()) {
+            emit videoPlayRequested(id);
+            return true;
         }
-        emit videoPlayRequested(id);
-        return true;
+        // Extraction à la demande : la première lecture écrit le fichier, hors du fil principal.
+        return extract(entry->resource, id, [this, id](const QString& path) {
+            if (path.isEmpty()) {
+                emit soundFailed(QStringLiteral("fichier non extrait du document"));
+                return;
+            }
+            Entry* current = entryById(id); // la page a pu changer pendant l'écriture
+            if (!current)
+                return;
+            if (current->source.isEmpty()) {
+                current->source = path;
+                const QModelIndex at = index(static_cast<int>(current - m_entries.data()));
+                emit dataChanged(at, at, {SourceRole}); // avant la demande : le lecteur lit la source
+            }
+            emit videoPlayRequested(id);
+        });
     }
-    if (it->kind != QLatin1String("sound"))
+    if (entry->kind != QLatin1String("sound"))
         return false;
-    const QString path = fileFor(it->resource);
-    return !path.isEmpty() && startSound(path, it->loop);
+    return extract(entry->resource, id, [this, loop = entry->loop](const QString& path) {
+        if (path.isEmpty())
+            emit soundFailed(QStringLiteral("fichier non extrait du document"));
+        else
+            startSound(path, loop);
+    });
 }
 
 void MediaItems::videoFailed(quint64 id)
@@ -272,8 +302,22 @@ void MediaItems::videoFailed(quint64 id)
 
 bool MediaItems::playResource(const std::string& key)
 {
-    const QString path = fileFor(key);
-    return !path.isEmpty() && startSound(path, false);
+    return extract(key, 0, [this](const QString& path) {
+        if (path.isEmpty())
+            emit soundFailed(QStringLiteral("fichier non extrait du document"));
+        else
+            startSound(path, false);
+    });
+}
+
+bool MediaItems::isSoundResource(const std::string& key) const
+{
+    const core::Resource* stored =
+        key.empty() || !m_document ? nullptr : m_document->document().resource(key);
+    if (!stored)
+        return false;
+    const QString extension = QString::fromStdString(stored->extension);
+    return !isVideoExtension(extension) && extension.compare(QLatin1String("swf"), Qt::CaseInsensitive) != 0;
 }
 
 // Refus d'emblée (le lecteur ne le dirait que plus tard, par signal) : chemin réseau, avant tout accès au
@@ -344,9 +388,14 @@ void MediaItems::refresh()
         for (Entry& e : next) { // une édition ne relance jamais une lecture auto
             const auto old = std::find_if(m_entries.begin(), m_entries.end(),
                                           [&e](const Entry& o) { return o.id == e.id; });
-            e.autoPlay = old != m_entries.end() && old->autoPlay;
-            if (old != m_entries.end() && old->resource == e.resource && e.source.isEmpty())
-                e.source = old->source; // déjà extrait à la demande : la vidéo qui joue n'est pas touchée
+            if (old == m_entries.end())
+                continue;
+            e.autoPlay = old->autoPlay;
+            if (old->resource == e.resource) {
+                if (e.source.isEmpty())
+                    e.source = old->source; // déjà extrait à la demande : la vidéo qui joue n'est pas touchée
+                e.needsFile = e.source.isEmpty() && (e.needsFile || old->needsFile); // écriture en cours
+            }
         }
         if (next == m_entries)
             return; // trait, édition d'un autre objet : la vidéo qui joue n'est pas touchée
@@ -363,6 +412,7 @@ void MediaItems::refresh()
                     emit dataChanged(at, at);
                 }
             }
+            fetchFiles();
             return;
         }
     }
@@ -370,6 +420,7 @@ void MediaItems::refresh()
     m_entries = std::move(next);
     endResetModel();
     emit itemsChanged();
+    fetchFiles();
     if (pageShown) {
         for (const Entry& e : m_entries) {
             if (e.kind == QLatin1String("sound") && e.playOnOpen) {
@@ -413,11 +464,9 @@ std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
             e.clearBackground = media->clearBackground;
             e.wrapText = media->wrapText;
             e.playOnOpen = media->playOnOpen;
-            e.autoPlay = pageShown && media->playOnOpen && e.kind == QLatin1String("video");
-            if (e.autoPlay) { // lecture demandée par le document lui-même : le fichier est nécessaire
-                e.source = fileFor(media->media);
-                e.autoPlay = !e.source.isEmpty();
-            }
+            // Lecture demandée par le document lui-même : le fichier est nécessaire. Il est écrit hors du fil
+            // principal (fetchFiles) ; autoPlay ne passe à vrai qu'une fois la source arrivée.
+            e.needsFile = pageShown && media->playOnOpen && e.kind == QLatin1String("video");
         } else if (const auto* image = std::get_if<core::ImageObject>(&object)) {
             const core::Resource* stored =
                 image->resource.empty() ? nullptr : document.resource(image->resource);
@@ -426,9 +475,7 @@ std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
                 continue;
             e.kind = QStringLiteral("gif"); // V57 : animé par la surcouche, première image dans le cache
             e.resource = image->resource;
-            e.source = fileFor(image->resource); // le GIF s'anime dès l'affichage : extrait aussitôt
-            if (e.source.isEmpty())
-                continue;
+            e.needsFile = true; // le GIF s'anime dès l'affichage : extrait aussitôt (hors du fil principal)
             e.bounds = QRectF(image->bounds.x, image->bounds.y, image->bounds.width, image->bounds.height);
         } else {
             continue;
@@ -443,7 +490,9 @@ void MediaItems::resetForDocument()
     m_player->stopAll();
     m_files.clear();
     m_chime.clear();
-    m_dir.reset(); // supprime les fichiers extraits de l'ancien document
+    ++m_epoch; // les écritures en cours sont périmées : leur résultat sera jeté
+    m_writing.clear();
+    retireDirectory(); // les fichiers extraits de l'ancien document partent, mais pas avant les délégués
     m_soundName.clear();
     m_generation = m_document ? m_document->generation() : 0;
     updateSound();
@@ -473,22 +522,26 @@ void MediaItems::openWithSystem(const QString& path)
     m_links->request(path, LinkLauncher::SystemMedia); // fichier du disque : pas extrait du document
 }
 
+QString MediaItems::knownFile(const std::string& key) const
+{
+    const auto known = m_files.find(key);
+    return known != m_files.end() && QFileInfo::exists(known->second) ? known->second : QString();
+}
+
 QString MediaItems::fileFor(const std::string& key)
 {
-    if (key.empty() || !m_document)
+    if (key.empty() || !m_document || m_writing.contains(key))
         return {};
     const core::Resource* stored = m_document->document().resource(key);
     if (!stored)
         return {};
-    if (const auto known = m_files.find(key); known != m_files.end() && QFileInfo::exists(known->second))
-        return known->second;
+    if (const QString known = knownFile(key); !known.isEmpty())
+        return known;
     if (!m_dir)
-        m_dir = std::make_unique<QTemporaryDir>();
+        m_dir = std::make_shared<QTemporaryDir>();
     if (!m_dir->isValid())
         return {};
-    QString name = QString::fromStdString(key);
-    name.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9_-]")), QStringLiteral("_"));
-    const QString path = m_dir->filePath(name + QLatin1Char('.') + QString::fromStdString(stored->extension));
+    const QString path = m_dir->filePath(extractedName(key, stored->extension));
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly) || file.write(stored->data) != stored->data.size())
         return {};
@@ -497,12 +550,123 @@ QString MediaItems::fileFor(const std::string& key)
     return path;
 }
 
+bool MediaItems::extract(const std::string& key, quint64 requester, Ready done)
+{
+    if (key.empty() || !m_document)
+        return false;
+    const core::Resource* stored = m_document->document().resource(key);
+    if (!stored)
+        return false;
+    if (const QString known = knownFile(key); !known.isEmpty()) {
+        if (done)
+            done(known);
+        return true;
+    }
+    if (const auto writing = m_writing.find(key); writing != m_writing.end()) {
+        std::vector<Waiter>& waiters = writing->second; // écriture déjà lancée : on s'y joint, une fois
+        if (done && std::none_of(waiters.begin(), waiters.end(),
+                                 [requester](const Waiter& w) { return w.requester == requester; }))
+            waiters.push_back({requester, std::move(done)});
+        return true;
+    }
+    if (!m_dir)
+        m_dir = std::make_shared<QTemporaryDir>();
+    if (!m_dir->isValid())
+        return false;
+    const QString path = m_dir->filePath(extractedName(key, stored->extension));
+    std::vector<Waiter>& waiters = m_writing[key];
+    if (done)
+        waiters.push_back({requester, std::move(done)});
+    // Écriture sur le pool global (BRIEF § 4, règle 1) : la ressource est copiée ici (QByteArray partagé),
+    // le fil secondaire ne lit jamais le document. Le dossier suit l'écriture (un document remplacé ne le
+    // supprime qu'une fois l'écriture finie) ; le résultat revient par la boucle, avec la génération du
+    // moment (document remplacé : jeté).
+    auto* watcher = new QFutureWatcher<bool>(this);
+    connect(watcher, &QFutureWatcherBase::finished, this, [this, watcher, key, path, epoch = m_epoch] {
+        const bool ok = watcher->result();
+        watcher->deleteLater();
+        onWritten(key, path, ok, epoch);
+    });
+    watcher->setFuture(QtConcurrent::run([dir = m_dir, path, data = stored->data]() -> bool {
+        static_cast<void>(dir); // retient le dossier jusqu'à la fin de l'écriture
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly))
+            return false;
+        const bool ok = file.write(data) == data.size();
+        file.close();
+        return ok;
+    }));
+    return true;
+}
+
+void MediaItems::onWritten(const std::string& key, const QString& path, bool ok, std::uint64_t epoch)
+{
+    if (epoch != m_epoch)
+        return; // document remplacé pendant l'écriture : résultat jeté
+    std::vector<Waiter> waiters;
+    if (const auto writing = m_writing.find(key); writing != m_writing.end()) {
+        waiters = std::move(writing->second);
+        m_writing.erase(writing);
+    }
+    if (!m_document || m_document->generation() != m_generation)
+        return; // remplacé, relecture pas encore passée : rien ne se lance pour un document disparu
+    if (ok) {
+        m_files[key] = path;
+        fillEntries(key, path);
+    }
+    for (Waiter& waiter : waiters)
+        waiter.done(ok ? path : QString());
+}
+
+void MediaItems::fillEntries(const std::string& key, const QString& path)
+{
+    for (std::size_t i = 0; i < m_entries.size(); ++i) {
+        if (m_entries[i].resource != key || !m_entries[i].needsFile)
+            continue;
+        const bool video = m_entries[i].kind == QLatin1String("video");
+        m_entries[i].source = path;
+        m_entries[i].needsFile = false;
+        m_entries[i].autoPlay = video; // seule une vidéo en lecture auto attend son fichier pour jouer
+        const QModelIndex at = index(static_cast<int>(i));
+        emit dataChanged(at, at, {SourceRole}); // la source d'abord : le lecteur armé par autoPlay la lit
+        if (video)
+            emit dataChanged(at, at, {AutoPlayRole});
+    }
+}
+
+void MediaItems::fetchFiles()
+{
+    std::vector<std::string> keys;
+    for (const Entry& e : m_entries)
+        if (e.needsFile && e.source.isEmpty())
+            keys.push_back(e.resource);
+    for (const std::string& key : keys) {
+        if (const QString known = knownFile(key); !known.isEmpty())
+            fillEntries(key, known);
+        else
+            extract(key, 0, {});
+    }
+}
+
+// Les délégués QML (MediaPlayer, AnimatedImage) tiennent leur fichier ouvert jusqu'à leur destruction, qui
+// suit la remise à zéro du modèle ; Windows refuse de supprimer un fichier ouvert. Le dossier de l'ancien
+// document est donc gardé deux tours de boucle, puis lâché (à la destruction du modèle au plus tard).
+void MediaItems::retireDirectory()
+{
+    if (!m_dir)
+        return;
+    QTimer::singleShot(0, this, [this, dir = std::move(m_dir)] {
+        QTimer::singleShot(0, this, [dir] { static_cast<void>(dir); });
+    });
+    m_dir.reset();
+}
+
 QString MediaItems::defaultChime()
 {
     if (!m_chime.isEmpty() && QFileInfo::exists(m_chime))
         return m_chime;
     if (!m_dir)
-        m_dir = std::make_unique<QTemporaryDir>();
+        m_dir = std::make_shared<QTemporaryDir>();
     if (!m_dir->isValid())
         return {};
     const QString path = m_dir->filePath(QStringLiteral("chime.wav"));

@@ -820,8 +820,10 @@ void TstUiMediaitems::extractionWaitsForPlay()
     QVERIFY2(m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty(),
              "la vidéo ne doit pas être extraite avant sa première lecture");
     QVERIFY(m_items->play(81));
+    // L'écriture se fait hors du fil principal (seconde revue) : la source arrive après l'appel.
+    QTRY_VERIFY_WITH_TIMEOUT(!m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty(),
+                             5000);
     const QString source = m_items->data(m_items->index(0), MediaItems::SourceRole).toString();
-    QVERIFY(!source.isEmpty());
     QVERIFY(QFileInfo::exists(QUrl(source).toLocalFile()));
 
     core::Document g(1024, 768);
@@ -835,7 +837,8 @@ void TstUiMediaitems::extractionWaitsForPlay()
     g.page(0).objects.push_back(std::move(object));
     open(std::move(g));
     QTRY_COMPARE(m_items->rowCount(), 1);
-    QVERIFY(!m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty());
+    QTRY_VERIFY_WITH_TIMEOUT(!m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty(),
+                             5000);
 }
 
 // Revue L8-T25 (majeur, H8-9). Une vidéo illisible part au système comme un fichier rangé dans le paperboard
@@ -850,6 +853,8 @@ void TstUiMediaitems::unreadableVideoFallsBackAsStoredFile()
     open(std::move(d));
     QTRY_COMPARE(m_items->rowCount(), 1);
     QVERIFY(m_items->play(91));
+    QTRY_VERIFY_WITH_TIMEOUT(!m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty(),
+                             5000);
     const QString extracted =
         QUrl(m_items->data(m_items->index(0), MediaItems::SourceRole).toString()).toLocalFile();
     QVERIFY(QFileInfo::exists(extracted));
@@ -912,10 +917,10 @@ void TstUiMediaitems::retargetedSoundActionPlaysTheTargetedSound()
     QCOMPARE(refused.count(), 0);
 }
 
-// Seconde revue L8-T25 (majeur, BRIEF § 4 règle 1). play(id) n'écrit rien sur le fil principal : il rend la main,
-// puis la lecture démarre (signal livré par la boucle) une fois le fichier prêt. Le signal ne peut pas partir
-// pendant l'appel, quelle que soit la vitesse du disque : sous l'ancien chemin (écriture dans l'appel), il part
-// avant le retour de play.
+// Seconde revue L8-T25 (majeur, BRIEF § 4 règle 1). play(id) n'écrit rien sur le fil principal : il rend la
+// main, puis la lecture démarre (signal livré par la boucle) une fois le fichier prêt. Le signal ne peut pas
+// partir pendant l'appel, quelle que soit la vitesse du disque : sous l'ancien chemin (écriture dans
+// l'appel), il part avant le retour de play.
 void TstUiMediaitems::playHandsBackBeforeTheFileIsWritten()
 {
     core::Document d(1024, 768);
@@ -990,8 +995,8 @@ void TstUiMediaitems::replacingDuringTheWriteDiscardsTheResult()
 
 // Seconde revue L8-T25 (mineur, Windows). Les fichiers extraits de l'ancien document ne sont pas supprimés
 // avant la fin de la remise à zéro du modèle : les délégués QML (MediaPlayer, AnimatedImage) tiennent leur
-// fichier ouvert jusqu'à leur destruction, et Windows refuse alors de supprimer le dossier. Ils sont encore là
-// quand le modèle signale ses nouveaux éléments, et supprimés peu après.
+// fichier ouvert jusqu'à leur destruction, et Windows refuse alors de supprimer le dossier. Ils sont encore
+// là quand le modèle signale ses nouveaux éléments, et supprimés peu après.
 void TstUiMediaitems::replacedFilesOutliveTheModelReset()
 {
     core::Document d(1024, 768);

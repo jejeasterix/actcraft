@@ -9,6 +9,7 @@
 #include <QTimer>
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -81,7 +82,11 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     // Joue un média de la page affichée dans le lecteur intégré (son : piste 1 ; vidéo : sa surcouche).
-    // Faux si l'objet n'est pas un média de la page affichée.
+    // Faux si l'objet n'est pas un média de la page affichée (un média masqué n'en fait pas partie). Vrai
+    // veut dire « demandé » : la ressource est écrite hors du fil principal (BRIEF § 4, règle 1), puis la
+    // lecture démarre (soundStarted, videoPlayRequested) au tour de boucle qui suit ; un second appel pendant
+    // l'écriture ne lance rien de plus, et un document remplacé entre-temps jette le résultat. Fichier déjà
+    // extrait : la lecture démarre dans l'appel.
     Q_INVOKABLE bool play(quint64 id);
     Q_INVOKABLE void stopSound();
     // Appelé par la surcouche quand la vidéo `id` ne se lit pas : repli annoncé vers le système
@@ -90,7 +95,9 @@ public:
     // F-552 : son d'une action d'objet (ressource du document, ou fichier) joué par le lecteur intégré, piste
     // 1 ; le système n'est que le repli du lecteur (media::Player::setFallback, confirmation de
     // LinkLauncher).
-    bool playResource(const std::string& key);
+    bool playResource(const std::string& key); // même règle d'écriture que play
+    // Ressource du document qui n'est ni une vidéo ni un objet Flash : un son, jouable à part (objet masqué).
+    bool isSoundResource(const std::string& key) const;
     bool playFile(const QString& path);
 
 public slots:
@@ -125,13 +132,28 @@ private:
         bool wrapText = false;
         bool playOnOpen = false;
         bool autoPlay = false;
+        // Fichier attendu dès l'affichage (GIF, vidéo en lecture auto) : écrit hors du fil principal, puis
+        // `source` (et `autoPlay` pour la vidéo) arrivent par dataChanged.
+        bool needsFile = false;
         bool operator==(const Entry&) const = default;
     };
     int rowCountProperty() const { return static_cast<int>(m_entries.size()); }
     void scheduleRefresh(bool pageShown);
     void refresh();
     std::vector<Entry> collect(bool pageShown);
-    QString fileFor(const std::string& key); // ressource du document extraite (vide : absente)
+    // Écriture synchrone d'une ressource (son de confirmation seulement : court, et sans attente possible).
+    QString fileFor(const std::string& key);           // vide : absente, ou écriture en cours
+    using Ready = std::function<void(const QString&)>; // chemin du fichier ; vide : écriture impossible
+    // Faux : ressource absente ou dossier inutilisable. Vrai : `done` est appelée (peut être vide), tout de
+    // suite si le fichier est déjà extrait, sinon une fois l'écriture finie, par la boucle d'événements.
+    // `requester` (≠ 0 ou playResource) empêche d'inscrire deux fois la même demande pendant l'écriture.
+    bool extract(const std::string& key, quint64 requester, Ready done);
+    QString knownFile(const std::string& key) const;
+    void onWritten(const std::string& key, const QString& path, bool ok, std::uint64_t epoch);
+    void fillEntries(const std::string& key, const QString& path);
+    void fetchFiles(); // lance l'écriture des fichiers attendus par les éléments (needsFile)
+    Entry* entryById(quint64 id);
+    void retireDirectory();
     QString defaultChime();
     bool startSound(const QString& path, bool loop);
     void updateSound();
@@ -145,7 +167,14 @@ private:
     QPointer<LinkLauncher> m_links;
     QPointer<ToolHost> m_tools;
     std::unique_ptr<media::Player> m_player;
-    std::unique_ptr<QTemporaryDir> m_dir;
+    std::shared_ptr<QTemporaryDir> m_dir; // partagé avec les écritures en cours : il vit jusqu'à leur fin
+    struct Waiter
+    {
+        quint64 requester = 0;
+        Ready done;
+    };
+    std::map<std::string, std::vector<Waiter>> m_writing; // écritures en cours, par clé de ressource
+    std::uint64_t m_epoch = 0; // change à chaque document remplacé : un résultat d'écriture périmé est jeté
     std::map<std::string, QString> m_files; // clé de ressource -> fichier extrait
     std::vector<Entry> m_entries;
     QTimer m_refresh;
