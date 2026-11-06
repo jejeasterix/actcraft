@@ -5,11 +5,16 @@
 #include <actcraft/core/pagesettings.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/imagesynth.h>
+#include <actcraft/render/pagepainter.h>
+#include <actcraft/render/painternode.h>
 
 #include <QDebug>
+#include <QPainter>
 #include <QQuickWindow>
+#include <QSGImageNode>
 #include <QSGRectangleNode>
 #include <QSGRendererInterface>
+#include <QSGTexture>
 #include <QSGTransformNode>
 
 #include <algorithm>
@@ -23,6 +28,115 @@ namespace {
 // Emplacements du fond peint et de la grille parmi les nœuds rastérisés (les objets y sont par leur indice).
 constexpr std::size_t kBackgroundSlot = std::numeric_limits<std::size_t>::max();
 constexpr std::size_t kGridSlot = kBackgroundSlot - 1;
+constexpr std::size_t kRevealSlot = kBackgroundSlot - 2; // couche du dessus découpée (F-255)
+
+bool isRevealer(const core::PageObject& object)
+{
+    const auto* stroke = std::get_if<core::Stroke>(&object);
+    return stroke && stroke->kind == core::StrokeKind::Revealer;
+}
+
+// F-255 : objets de la couche du dessus jusqu'à la dernière encre révélatrice visible, parmi les `limit`
+// premiers (ordre du vecteur : couche, profondeur) ; `any` faux : aucune.
+struct RevealRange
+{
+    std::size_t first = 0;
+    std::size_t last = 0;
+    bool any = false;
+};
+
+RevealRange revealRange(const core::Page& page, std::size_t limit)
+{
+    RevealRange r;
+    for (std::size_t i = std::min(limit, page.objects.size()); i-- > 0;) {
+        const core::PageObject& o = page.objects[i];
+        if (isRevealer(o) && o.common.visible && o.common.layer == core::Layer::Top) {
+            r.last = i;
+            r.any = true;
+            break;
+        }
+    }
+    if (r.any) {
+        r.first = r.last;
+        while (r.first > 0 && page.objects[r.first - 1].common.layer == core::Layer::Top) {
+            --r.first;
+        }
+    }
+    return r;
+}
+
+// Échelle réelle de l'élément : densité de l'écran × zoom de la scène (revue de L8-T18).
+double screenScale(const QQuickItem& item)
+{
+    const QRectF unit = item.mapRectToScene(QRectF(0, 0, 1, 1));
+    const double dpr = item.window() ? item.window()->effectiveDevicePixelRatio() : 1.0;
+    return std::max(0.01, std::max(unit.width(), unit.height()) * dpr);
+}
+
+// Logiciel : la part découpée peinte au QPainter par le peintre partagé, à chaque rendu.
+class RevealedLayerNode final : public PainterNode
+{
+public:
+    RevealedLayerNode(QQuickWindow* window, core::Page part, DecodedImages images, PaintOptions options)
+        : PainterNode(window), m_part(std::move(part)), m_images(std::move(images)), m_options(options)
+    {
+        setRect(QRectF(0, 0, m_part.width, m_part.height));
+    }
+
+protected:
+    void paint(QPainter& painter) override { paintPage(painter, m_part, m_images.lookup(), m_options); }
+
+private:
+    core::Page m_part;
+    DecodedImages m_images;
+    PaintOptions m_options;
+};
+
+// La découpe n'existe qu'au peintre partagé (paintPage) : la page fixe lui confie la part de la couche du
+// dessus qu'une encre révélatrice touche, en un seul nœud (vectoriel en logiciel, texture en RHI), au lieu
+// d'un nœud par objet ; le cache la photographie comme le reste.
+QSGNode* createRevealedNode(const core::Page& page, const RevealRange& r, const ImageStore& store,
+                            const RenderContext& painted, bool showHidden, double scale)
+{
+    core::Page part;
+    part.width = page.width;
+    part.height = page.height;
+    part.objects.assign(page.objects.begin() + static_cast<std::ptrdiff_t>(r.first),
+                        page.objects.begin() + static_cast<std::ptrdiff_t>(r.last + 1));
+    DecodedImages images;
+    for (const core::PageObject& object : part.objects) {
+        if (const auto* im = std::get_if<core::ImageObject>(&object); im && !im->resource.empty()) {
+            images.insert(im->resource, store.resourceImage(im->resource));
+        } else if (const auto* m = std::get_if<core::Media>(&object); m && !m->placeholder.empty()) {
+            images.insert(m->placeholder, store.resourceImage(m->placeholder));
+        }
+    }
+    PaintOptions options;
+    options.background = false;
+    options.grid = false;
+    options.showHiddenTranslucent = showHidden;
+    if (painted.software) {
+        return new RevealedLayerNode(painted.window, std::move(part), std::move(images), options);
+    }
+    const QRectF rect(0, 0, std::max(part.width, 1.0), std::max(part.height, 1.0));
+    const double s = boundedRasterScale(rect.width(), rect.height(), scale);
+    QImage image(std::max(1, static_cast<int>(std::ceil(rect.width() * s))),
+                 std::max(1, static_cast<int>(std::ceil(rect.height() * s))),
+                 QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    {
+        QPainter p(&image);
+        p.setRenderHint(QPainter::Antialiasing, true);
+        p.scale(image.width() / rect.width(), image.height() / rect.height());
+        paintPage(p, part, images.lookup(), options);
+    }
+    QSGImageNode* node = painted.window->createImageNode();
+    node->setTexture(painted.window->createTextureFromImage(image));
+    node->setOwnsTexture(true);
+    node->setFiltering(QSGTexture::Linear);
+    node->setRect(rect);
+    return node;
+}
 
 // Ce qu'ImageStore::generate reçoit de la page : image du fond, images (synthétiques par synthesisKey,
 // ressources par clé) et vignettes des médias, sans leurs indices : le magasin ne range rien par indice
@@ -66,6 +180,23 @@ FixedPageItem::FixedPageItem(QQuickItem* parent)
 {
     setFlag(ItemHasContents);
     connect(&m_images, &ImageStore::ready, this, &FixedPageItem::onImagesReady);
+    // F-255 (revue de L8-T18) : la part découpée rastérisée suit l'échelle réelle ; un changement de densité
+    // ou de zoom la fait refaire, elle seule (updatePaintNode), jamais à échelle égale.
+    connect(this, &QQuickItem::windowChanged, this, [this](QQuickWindow* window) {
+        if (!window) {
+            return;
+        }
+        connect(window, &QQuickWindow::afterAnimating, this, [this, last = 0.0]() mutable {
+            const bool reveals =
+                std::any_of(m_rasterSlots.begin(), m_rasterSlots.end(),
+                            [](const RasterSlot& slot) { return slot.object == kRevealSlot; });
+            const double now = screenScale(*this);
+            if (reveals && !qFuzzyCompare(now, last)) {
+                update();
+            }
+            last = now;
+        });
+    });
 }
 
 void FixedPageItem::loadGeneratedPage()
@@ -212,7 +343,9 @@ void FixedPageItem::insert(core::ObjectId id)
         emit pendingChanged();
         return;
     }
-    if (atEnd && index >= m_builtCount && !imageChanged && m_pendingIds.empty()) {
+    // Une encre révélatrice change ce qui est sous elle (F-255) : reconstruction, jamais un ajout en fin de
+    // scène.
+    if (atEnd && index >= m_builtCount && !imageChanged && m_pendingIds.empty() && !isRevealer(object)) {
         // Fin de page (le stylo, hors différé) : le prochain updatePaintNode n'ajoute que ce nœud. Avec des
         // objets en attente, ce nœud passerait devant eux dans la scène : reconstruction ci-dessous.
         announceAppended();
@@ -411,11 +544,21 @@ void FixedPageItem::addRasterSlot(QSGNode* node, std::size_t object)
 
 void FixedPageItem::rescaleRasterNodes(const core::Page& page, const RenderContext& painted)
 {
+    const auto revealScale = [this](const RenderContext& context) {
+        return std::max(context.rasterScale, screenScale(*this));
+    };
     for (RasterSlot& slot : m_rasterSlots) {
-        QSGNode* fresh = slot.object == kBackgroundSlot ? createBackgroundNode(page, painted)
-                         : slot.object == kGridSlot
-                             ? createGridNode(page, painted)
-                             : m_painted.createNode(page.objects[slot.object], painted);
+        QSGNode* fresh = nullptr;
+        if (slot.object == kBackgroundSlot) {
+            fresh = createBackgroundNode(page, painted);
+        } else if (slot.object == kGridSlot) {
+            fresh = createGridNode(page, painted);
+        } else if (slot.object == kRevealSlot) {
+            fresh = createRevealedNode(page, revealRange(page, cachedObjectCount()), m_images, painted,
+                                       m_showHiddenTranslucent, revealScale(painted));
+        } else {
+            fresh = m_painted.createNode(page.objects[slot.object], painted);
+        }
         if (!fresh) {
             continue;
         }
@@ -458,6 +601,9 @@ void FixedPageItem::geometryChange(const QRectF& newGeometry, const QRectF& oldG
 
 QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
 {
+    const auto revealScale = [this](const RenderContext& context) {
+        return std::max(context.rasterScale, screenScale(*this));
+    };
     const bool software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
     // Logiciel : racine de transformation (identité). Sous une racine QSGNode nue déjà rendue, le moteur
     // logiciel de Qt 6.12 peint les nœuds ajoutés sans la transformation de l'élément (voir InkItem).
@@ -525,6 +671,31 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         m_rebuild = !m_ready;
     } else if (m_rescale) {
         rescaleRasterNodes(shown, painted);
+    } else {
+        // Part découpée rastérisée à une autre échelle que l'échelle réelle (zoom, densité) : refaite seule.
+        for (RasterSlot& slot : m_rasterSlots) {
+            auto* image = slot.object == kRevealSlot ? static_cast<QSGImageNode*>(slot.node) : nullptr;
+            if (!image || !image->texture() || image->rect().width() <= 0) {
+                continue;
+            }
+            const double wanted =
+                boundedRasterScale(image->rect().width(), image->rect().height(), revealScale(painted));
+            const double used = image->texture()->textureSize().width() / image->rect().width();
+            if (std::abs(used - wanted) * image->rect().width() < 1.0) {
+                continue;
+            }
+            QSGNode* fresh = createRevealedNode(shown, revealRange(shown, cachedObjectCount()), m_images,
+                                                painted, m_showHiddenTranslucent, revealScale(painted));
+            if (!fresh) {
+                continue;
+            }
+            QSGNode* parent = slot.node->parent();
+            parent->insertChildNodeBefore(fresh, slot.node);
+            parent->removeChildNode(slot.node);
+            delete slot.node;
+            slot.node = fresh;
+            ++m_rasterizationCount;
+        }
     }
     m_rescale = false;
     if (m_ready) {
@@ -532,7 +703,23 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         // peint. Lot 10 : la scène s'arrête aux objets en attente (dessinés par la couche d'attente) ; elle
         // les ajoute quand ils sont versés.
         const std::size_t limit = cachedObjectCount();
+        const RevealRange reveal = revealRange(shown, limit);
         for (std::size_t i = m_builtCount; i < limit; ++i) {
+            if (reveal.any && i >= reveal.first && i <= reveal.last) {
+                if (i == reveal.first) { // F-255 : la part découpée, en un nœud du peintre partagé
+                    if (QSGNode* node = createRevealedNode(shown, reveal, m_images, painted,
+                                                           m_showHiddenTranslucent, revealScale(painted))) {
+                        if (rasterized) {
+                            addRasterSlot(node, kRevealSlot);
+                        }
+                        root->appendChildNode(node);
+                    }
+                }
+                continue;
+            }
+            if (isRevealer(shown.objects[i])) {
+                continue; // jamais dessinée seule (masquée, ou hors de la couche du dessus : rien à voir)
+            }
             const ObjectNode made = createObjectNode(shown.objects[i], i, m_registry, m_painted, contexts);
             if (!made.root) {
                 continue;

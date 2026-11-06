@@ -63,6 +63,12 @@ ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
     if ((!object.common.visible && !contexts.showHidden) || std::get_if<core::Group>(&object)) {
         return out;
     }
+    // F-255 : une encre révélatrice ne se dessine jamais comme un trait ; sa découpe est le fait du peintre
+    // partagé (page fixe) ou de la fenêtre de la couche soulevée.
+    if (const auto* stroke = std::get_if<core::Stroke>(&object);
+        stroke && stroke->kind == core::StrokeKind::Revealer) {
+        return out;
+    }
     QSGNode* node = nullptr;
     bool viaPainter = usesPaintedRenderer(object);
     if (viaPainter) {
