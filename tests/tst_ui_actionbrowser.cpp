@@ -11,6 +11,7 @@
 // - Fermé par défaut : sans Commands, ou sous le verrou, rien ne change et refused est émis.
 // - Remise à jour regroupée, reportée pendant un contact (D6-5).
 #include <actcraft/actions/objectactions.h>
+#include <actcraft/core/actionedits.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/objectedits.h>
@@ -368,6 +369,59 @@ private slots:
         QCOMPARE(actionsOf(f.controller, f.shape3), QStringList{QStringLiteral("page.next")});
     }
 
+    // Revue L8-C3 : un objet porte au plus une action de glisser-déposer (L8-T13) ; comme dropOn garde les
+    // actions au clic, « Appliquer » et « Retirer les actions existantes » gardent l'action de
+    // glisser-déposer.
+    void applyAndRemoveKeepTheDragDropAction()
+    {
+        ViewFixture v;
+        QVERIFY(v.mount());
+        Fixture& f = v.f;
+        const auto page = static_cast<std::size_t>(f.controller.currentIndex());
+        const auto dragDropOf = [&f, page](core::ObjectId id) {
+            QStringList ids;
+            for (const core::PageObject& object : f.controller.document().page(page).objects) {
+                if (object.common.id == id) {
+                    for (const core::Action& action : object.common.actions) {
+                        if (action.dragDrop) {
+                            ids.append(QString::fromStdString(action.catalogId));
+                        }
+                    }
+                }
+            }
+            return ids;
+        };
+        core::Action pen;
+        pen.catalogId = "command.tool.pen";
+        pen.dragDrop = true;
+        f.controller.execute(std::make_unique<core::SetObjectActionsCommand>(
+            page, std::vector<core::ObjectId>{f.shape1, f.shape2}, std::vector<core::Action>{pen}));
+        const QStringList penOnly{QStringLiteral("command.tool.pen")};
+        const QStringList both{QStringLiteral("page.next"), QStringLiteral("command.tool.pen")};
+
+        f.select({f.shape1});
+        f.model.setCurrentId(QStringLiteral("page.next"));
+        QVERIFY(f.model.apply());
+        QCOMPARE(actionsOf(f.controller, f.shape1),
+                 both); // l'action au clic, puis celle déposée (ordre de dropOn)
+        QCOMPARE(dragDropOf(f.shape1), penOnly);
+        QVERIFY(!f.model.apply()); // déjà portée : aucune étape vide
+        f.controller.undo();       // une étape
+        QCOMPARE(actionsOf(f.controller, f.shape1), penOnly);
+        f.controller.redo();
+
+        f.select({f.shape2});
+        QVERIFY(!f.model.removeExisting()); // seule l'action déposée : rien à retirer, aucune étape vide
+        QCOMPARE(actionsOf(f.controller, f.shape2), penOnly);
+
+        f.select({f.shape1, f.shape2});
+        QVERIFY(f.model.removeExisting());
+        QCOMPARE(actionsOf(f.controller, f.shape1), penOnly);
+        QCOMPARE(dragDropOf(f.shape1), penOnly);
+        QCOMPARE(actionsOf(f.controller, f.shape2), penOnly);
+        f.controller.undo(); // une étape
+        QCOMPARE(actionsOf(f.controller, f.shape1), both);
+    }
     void propertiesFollowTheAction()
     {
         Fixture f;

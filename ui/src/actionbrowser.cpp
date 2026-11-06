@@ -82,6 +82,20 @@ std::string encodeParameters(const QVariantMap& values, const actions::ObjectAct
                             : QJsonDocument(object).toJson(QJsonDocument::Compact).toStdString();
 }
 
+// Les actions au clic remplacées par `clicks`, l'action de glisser-déposer de l'objet gardée en fin de liste
+// : un objet en porte au plus une (L8-T13), et DragDropActions::dropOn (dragdropactions.cpp) garde de même
+// les actions au clic et pose l'action déposée après elles (revue L8-C3).
+std::vector<core::Action> keepingDragDrop(const std::vector<core::Action>& current,
+                                          std::vector<core::Action> clicks)
+{
+    for (const core::Action& action : current) {
+        if (action.dragDrop) {
+            clicks.push_back(action);
+        }
+    }
+    return clicks;
+}
+
 } // namespace
 
 ActionBrowserModel::ActionBrowserModel(QObject* parent) : QAbstractListModel(parent)
@@ -335,22 +349,25 @@ bool ActionBrowserModel::apply()
     action.catalogId = info->id.toStdString();
     action.parameters = encodeParameters(m_parameters, *info);
     action.target = info->target ? static_cast<core::ObjectId>(m_target) : 0; // 0 : l'objet cliqué
-    std::vector<core::Action> list{std::move(action)};
-    std::vector<core::ObjectId> changing;
+    std::vector<core::SetObjectActionsCommand::ObjectActions> changing;
     const core::Page& page =
         m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
     for (const core::ObjectId id : ids) {
         const auto it = std::find_if(page.objects.begin(), page.objects.end(),
                                      [id](const core::PageObject& object) { return object.common.id == id; });
-        if (it != page.objects.end() && !core::sameActions(it->common.actions, list)) {
-            changing.push_back(id);
+        if (it == page.objects.end()) {
+            continue;
+        }
+        std::vector<core::Action> list = keepingDragDrop(it->common.actions, {action});
+        if (!core::sameActions(it->common.actions, list)) {
+            changing.emplace_back(id, std::move(list));
         }
     }
     if (changing.empty()) {
         return false; // tous portent déjà cette liste : aucune étape vide
     }
     m_document->execute(std::make_unique<core::SetObjectActionsCommand>(
-        static_cast<std::size_t>(m_document->currentIndex()), std::move(changing), std::move(list)));
+        static_cast<std::size_t>(m_document->currentIndex()), std::move(changing)));
     return true;
 }
 
@@ -359,24 +376,26 @@ bool ActionBrowserModel::removeExisting()
     if (!allowed()) {
         return false;
     }
-    std::vector<core::ObjectId> withActions;
+    std::vector<core::SetObjectActionsCommand::ObjectActions> withActions;
     const std::vector<core::ObjectId> ids = selectedOnPage();
     if (!ids.empty()) {
         const core::Page& page =
             m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
         const std::unordered_set<core::ObjectId> selected(ids.begin(), ids.end());
         for (const core::PageObject& object : page.objects) {
-            if (selected.count(object.common.id) != 0 && !object.common.actions.empty()) {
-                withActions.push_back(object.common.id);
+            const std::vector<core::Action>& actions = object.common.actions;
+            const bool clicks = std::any_of(actions.begin(), actions.end(),
+                                            [](const core::Action& action) { return !action.dragDrop; });
+            if (selected.count(object.common.id) != 0 && clicks) {
+                withActions.emplace_back(object.common.id, keepingDragDrop(actions, {}));
             }
         }
     }
     if (withActions.empty()) {
-        return false; // aucune étape vide
+        return false; // aucune action au clic : aucune étape vide
     }
-    m_document->execute(
-        std::make_unique<core::SetObjectActionsCommand>(static_cast<std::size_t>(m_document->currentIndex()),
-                                                        std::move(withActions), std::vector<core::Action>{}));
+    m_document->execute(std::make_unique<core::SetObjectActionsCommand>(
+        static_cast<std::size_t>(m_document->currentIndex()), std::move(withActions)));
     return true;
 }
 
