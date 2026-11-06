@@ -12,6 +12,7 @@
 #include <QtQml/qqmlregistration.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 
 namespace actcraft::ui {
@@ -109,6 +110,11 @@ private:
     QPointer<ToolHost> m_tools;
     actions::ObjectActionCatalog m_catalog;
     PageHistory m_history;
+    // Revue L8-C3 : l'historique suit les pages insérées et retirées par l'observateur des changements du
+    // contrôleur, et ne repart à zéro qu'avec un autre document (DocumentController::generation(), qui ne
+    // change pas à « Enregistrer sous »).
+    int m_changeObserver = 0;
+    std::uint64_t m_historyGeneration = 0;
     bool m_contactActive = false;
     bool m_hovering = false;
     bool m_scheduled = false;
