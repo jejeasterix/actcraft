@@ -434,13 +434,16 @@ void TstUiActionrunner::unsupportedActionDoesNothing()
 void TstUiActionrunner::documentOpenLaunchesNothing()
 {
     // Document « reçu » : un rond portant document.open-website vers https://example.org/.
-    // replaceDocument(core::Document, const QUrl& fileUrl, const QString& title) : documentcontroller.h:94
+    // replaceDocument(core::Document, const QUrl& fileUrl, const QString& title) : documentcontroller.h:94.
+    // Espions posés avant l'ouverture : une demande faite pendant replaceDocument (à l'affichage) se voit.
+    QSignalSpy ask(m_links, &ui::LinkLauncher::confirmationNeeded);
+    QSignalSpy refusedLink(m_links, &ui::LinkLauncher::refused);
     m_controllerOwner->replaceDocument(linkedDocument(),
                                        QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("recu.actcraft"))),
                                        QStringLiteral("recu"));
-    QSignalSpy ask(m_links, &ui::LinkLauncher::confirmationNeeded);
     QTest::qWait(500);
     QCOMPARE(ask.size(), 0);
+    QCOMPARE(refusedLink.size(), 0);
     QCOMPARE(m_openerCalls, 0);
     // Le clic demande une confirmation, et n'ouvre toujours rien.
     click(kOnRound);

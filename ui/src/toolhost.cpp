@@ -815,6 +815,12 @@ void ToolHost::setActionRunner(ActionRunner* runner)
     if (runner != nullptr) {
         runner->setTools(this);
     }
+    emit actionRunnerChanged();
+}
+
+ActionRunner* ToolHost::actionRunner() const noexcept
+{
+    return m_actionRunner.data();
 }
 
 tools::UserState& ToolHost::user(input::UserId)

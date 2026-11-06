@@ -69,6 +69,8 @@ class ToolHost : public QObject
     // Mode conception (F-560, L6-T22) : rendus aux outils par leur contexte ; Main.qml les lie à DesignMode.
     Q_PROPERTY(bool lockIgnored READ lockIgnored WRITE setLockIgnored NOTIFY designFlagsChanged)
     Q_PROPERTY(bool snapDisabled READ snapDisabled WRITE setSnapDisabled NOTIFY designFlagsChanged)
+    // Lot 8 (L8-T9) : exécuteur d'actions posé par setActionRunner (surcouche des actions : cadre, curseur).
+    Q_PROPERTY(actcraft::ui::ActionRunner* actionRunner READ actionRunner NOTIFY actionRunnerChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -116,6 +118,7 @@ public:
     // qu'il les prend, le relâché aussi ; sinon l'outil reçoit l'appui retenu puis les suivants (aucun
     // échantillon perdu). nullptr : l'outil reçoit tout.
     Q_INVOKABLE void setActionRunner(actcraft::ui::ActionRunner* runner);
+    ActionRunner* actionRunner() const noexcept;
     Q_INVOKABLE void deleteSelection();
     Q_INVOKABLE void enlargeSelection();
     Q_INVOKABLE void reduceSelection();
@@ -162,6 +165,7 @@ signals:
     void trashHoverChanged();
     void settingsFileChanged();
     void designFlagsChanged();
+    void actionRunnerChanged();
 
 private:
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.

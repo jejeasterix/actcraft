@@ -507,9 +507,17 @@ Window {
 
     // Lot 8 (L8-T2) : coquille. Les types C++ sont encore des talons (QtObject marqués) ; chaque tâche
     // propriétaire remplace l'instance par le vrai type.
-    QtObject { // Talon L8 : rempli par L8-T9.
+    // L8-T9 : exécuteur des actions d'objet, devant l'outil de sélection (appTools.setActionRunner) ; exécute au
+    // relâché d'un clic, après la retombée du contact ; porte l'historique des pages (page.history-*).
+    ActionRunner {
         id: appActionRunner
         objectName: "appActionRunner"
+        commands: appCommands
+        contactActive: pageArea.view ? pageArea.view.contactActive : false
+        document: appDocument
+        designMode: appDesign
+        links: appLinks
+        Component.onCompleted: appTools.setActionRunner(appActionRunner)
     }
     LinkLauncher { // L8-T10 : seul chemin d'un lien ou d'un fichier de document vers le système (D8-4)
         id: appLinks
