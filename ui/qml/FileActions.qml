@@ -24,6 +24,9 @@ Item {
     // chemins hors commande (save et saveAs appelés en direct, « Enregistrer les modifications ? » de Quitter) ;
     // celle de Fermer et de la croix d'un onglet est dans DocumentTabBar (file.save, par le registre). null : rien.
     property var broadcast: null
+    // Registre des commandes (L8-C7) : « Enregistrer » de Quitter passe par file.save, comme la croix d'un onglet
+    // (verrou de classe et diffusion protégée refusent par le registre). null : save() en direct.
+    property var commands: null
     readonly property alias recents: recentList
     signal saved(url url) // enregistrement réussi ; Main.qml décide du résumé (L6-T23)
     property var pending: null    // action à reprendre après « enregistrer ? »
@@ -183,7 +186,17 @@ Item {
         // l'action en attente et une sortie en attente (quitResume) sont gardées.
         onSaveRequested: {
             if (actions.saveRefused("file.save")) { Qt.callLater(saveChanges.open); return }
-            actions.afterSave = actions.pending; actions.pending = null; actions.save()
+            const keep = actions.pending
+            actions.afterSave = keep; actions.pending = null
+            if (actions.commands) {
+                // Refusé par le registre (verrou de classe) : rien n'est enregistré, la question reste posée.
+                if (!actions.commands.trigger("file.save")) {
+                    actions.afterSave = null; actions.pending = keep
+                    Qt.callLater(saveChanges.open)
+                }
+            } else {
+                actions.save()
+            }
         }
         onDiscardRequested: { const a = actions.pending; actions.pending = null; if (a) a(); actions.resumeWhenIdle() }
         onRejected: { actions.pending = null; actions.quitResume = -1 }
