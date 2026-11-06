@@ -423,9 +423,9 @@ private slots:
     // par objet.
     void lot8FieldsKeepOldFingerprints()
     {
-        constexpr std::uint64_t kRichPage = 0x98D4A66CE413F16Dull;
-        constexpr std::uint64_t kRichDocument = 0x3E73AE77B3BB378Full;
-        constexpr std::uint64_t kRichActed = 0x6E89DB6AA5FC4D04ull;
+        static constexpr std::uint64_t kRichPage = 0x98D4A66CE413F16Dull;
+        static constexpr std::uint64_t kRichDocument = 0x3E73AE77B3BB378Full;
+        static constexpr std::uint64_t kRichActed = 0x6E89DB6AA5FC4D04ull;
         const auto toDefaults = [](Page& page) {
             for (PageObject& object : page.objects) {
                 Restrictions& r = object.common.restrictions;
@@ -535,7 +535,7 @@ private slots:
         QVERIFY(fingerprint(framed) != framedPrint);
 
         // Règles de diffusion : chacune hors défaut compte, au niveau du document.
-        const auto documentDiffers = [kRichDocument](auto mutate) {
+        const auto documentDiffers = [](auto mutate) {
             Document d(std::vector<Page>{richPage()});
             BroadcastRules rules;
             mutate(rules);
