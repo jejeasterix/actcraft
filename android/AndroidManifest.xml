@@ -9,6 +9,7 @@
          permission (décision 28) : le marqueur des permissions de Qt est retiré, et celle qu'ajoute androidx.core
          (ContextCompat.registerReceiver, inutilisé par Qt et ActCraft) est ôtée à la fusion des manifestes. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <permission
         android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         tools:node="remove" />
