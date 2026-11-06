@@ -10,18 +10,28 @@
 #include "actcraft/ui/webframeitem.h"
 #include "actcraft/ui/webpolicy.h"
 
+#include <actcraft/core/document.h>
+#include <actcraft/render/pagepainter.h>
+
 #include <QByteArray>
 #include <QGuiApplication>
 #include <QHash>
 #include <QHostAddress>
 #include <QImage>
 #include <QPointer>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
+#include <QQuickWindow>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QtTest>
+
+#include <algorithm>
+#include <memory>
 
 #if ACTCRAFT_WEBFRAME
 #include <QtWebView/QtWebView>
@@ -46,7 +56,7 @@ public:
     {
         return QUrl(QStringLiteral("http://127.0.0.1:%1%2").arg(m_server.serverPort()).arg(path));
     }
-    QString origin() const { return QStringLiteral("127.0.0.1:%1").arg(m_server.serverPort()); }
+    QString origin() const { return QStringLiteral("127.0.0.1:%1/").arg(m_server.serverPort()); }
     void page(const QString& path, const QByteArray& html) { m_pages.insert(path, html); }
     void redirect(const QString& path, const QUrl& to) { m_redirects.insert(path, to); }
     int requests() const { return static_cast<int>(m_paths.size()); }
@@ -142,6 +152,8 @@ private slots:
     void resizeIsOneStep();
     void snapshotPlacesAnImage();
     void roundTripKeepsTheFrame();
+    void paintedAsANeutralFrame();
+    void viewFetchesOnlyDecidedSubResources();
 };
 
 void TstUiWebFrame::initTestCase()
@@ -149,16 +161,18 @@ void TstUiWebFrame::initTestCase()
     QStandardPaths::setTestModeEnabled(true);
 }
 
-// Le cœur de la tâche : la page saisie est lue par le modèle (le serveur la voit sans moteur), la sous-ressource
-// d'une origine non saisie ne figure pas dans le HTML donné à la vue et n'est jamais demandée ; celle de
-// l'origine saisie y reste, en adresse absolue, et la règle de sécurité du contenu n'autorise qu'elle.
+// Le cœur de la tâche : la page saisie est lue par le modèle (le serveur la voit sans moteur), la
+// sous-ressource d'une origine non saisie ne figure pas dans le HTML donné à la vue et n'est jamais demandée
+// ; celle de l'origine saisie y reste, en adresse absolue, et la règle de sécurité du contenu n'autorise
+// qu'elle.
 void TstUiWebFrame::subResourcesPassThroughThePolicy()
 {
     TestServer typed;
     TestServer other;
     QVERIFY(typed.listening() && other.listening());
     const QUrl spy = other.url(QStringLiteral("/spy.png"));
-    typed.page(QStringLiteral("/page"), "<html><head><link rel=\"stylesheet\" href=\"" + other.url("/s.css").toEncoded() +
+    typed.page(QStringLiteral("/page"), "<html><head><link rel=\"stylesheet\" href=\"" +
+                                            other.url("/s.css").toEncoded() +
                                             "\"></head><body><p>distant</p><img src=\"/ok.png\"><img src=\"" +
                                             spy.toEncoded() + "\"></body></html>");
     Fixture f;
@@ -215,9 +229,9 @@ void TstUiWebFrame::receivedRemoteFrameSendsNoRequest()
     Fixture writer;
     QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
     QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 1, 5000); // saisi dans la session : lu
+    server.reset(); // avant la réouverture : une requête du lecteur serait comptée
     Fixture reader;
     QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("recu.actcraft"))));
-    server.reset();
     QCOMPARE(reader.frames.count(), 1);
     QCOMPARE(reader.frames.blockedCount(), 1);
     QVERIFY(role(reader.frames, 0, ui::WebFrameItems::BlockedRole).toBool());
@@ -237,9 +251,9 @@ void TstUiWebFrame::unblockThenRequestReachesTheServer()
     Fixture writer;
     QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
     QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 1, 5000);
+    server.reset(); // avant la réouverture : une requête du lecteur serait comptée
     Fixture reader;
     QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("recu.actcraft"))));
-    server.reset();
 
     reader.frames.requestUnblock(0);
     QVERIFY(reader.frames.unblockPending());
@@ -272,9 +286,9 @@ void TstUiWebFrame::otherPageStaysBlocked()
     QCOMPARE(writer.document.currentIndex(), 1);
     QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/b")).toString()));
     QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 2, 5000);
+    server.reset(); // avant la réouverture : une requête du lecteur serait comptée
     Fixture reader;
     QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("recu.actcraft"))));
-    server.reset();
     reader.document.showPage(0);
     QCOMPARE(reader.frames.blockedCount(), 1);
     reader.frames.requestUnblock(0);
@@ -369,6 +383,76 @@ void TstUiWebFrame::roundTripKeepsTheFrame()
     QCOMPARE(role(reader.frames, 0, ui::WebFrameItems::AddressRole).toString(), address);
     QCOMPARE(role(reader.frames, 0, ui::WebFrameItems::BoundsRole).toRectF(), QRectF(10, 20, 300, 200));
     QVERIFY(role(reader.frames, 0, ui::WebFrameItems::BlockedRole).toBool()); // reçu, distant
+}
+
+// Miniatures, exports, rendu logiciel : le repère neutre de paintPage (L8-T3), jamais le contenu web, aucune
+// ressource demandée.
+void TstUiWebFrame::paintedAsANeutralFrame()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<body style=\"background:#ff0000\">rouge</body>"), {}));
+    QVERIFY(f.frames.resizeFrame(0, QRectF(100, 100, 300, 200)));
+    int lookups = 0;
+    const render::ImageLookup counting = [&lookups](const std::string&) {
+        ++lookups;
+        return QImage();
+    };
+    const QImage image = render::renderPage(f.document.document().page(0), counting, 1.0)
+                             .convertToFormat(QImage::Format_RGB32);
+    int marked = 0;
+    for (int x = 105; x < 395; ++x)
+        marked += std::min(image.pixelColor(x, 99).red(), image.pixelColor(x, 100).red()) < 230 ? 1 : 0;
+    QVERIFY2(marked > 40, qPrintable(QString::number(marked))); // bord haut : des tirets
+    QCOMPARE(image.pixelColor(250, 200), QColor(Qt::white));    // intérieur : pas le rouge de la page
+    QCOMPARE(lookups, 0);
+}
+
+// Avec le moteur : la vue ne demande que les sous-ressources passées. Une balise que la réécriture n'aurait
+// pas vue (ajoutée ici après coup) est arrêtée par la règle de sécurité du contenu. Hors écran, si la vue ne
+// charge rien, le moteur manque : saut nommé.
+void TstUiWebFrame::viewFetchesOnlyDecidedSubResources()
+{
+#if !ACTCRAFT_WEBFRAME
+    QSKIP("ACTCRAFT_WEBFRAME absent");
+#else
+    TestServer typed;
+    TestServer other;
+    QVERIFY(typed.listening() && other.listening());
+    typed.page(QStringLiteral("/page"), "<p>distant</p><img src=\"/ok.png\"><img src=\"" +
+                                            other.url(QStringLiteral("/spy.png")).toEncoded() + "\">");
+    typed.page(QStringLiteral("/ok.png"), "x");
+    Fixture f;
+    QVERIFY(f.frames.insertFrame({}, typed.url(QStringLiteral("/page")).toString()));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("distant")), 5000);
+    const QString html =
+        content(f.frames, 0) +
+        QStringLiteral("<img src=\"%1\">").arg(other.url(QStringLiteral("/missed.png")).toString());
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData("import QtQuick\nimport QtWebView\nWebView { width: 400; height: 300; "
+                      "settings.javaScriptEnabled: false; settings.allowFileAccess: false; "
+                      "settings.localContentCanAccessFileUrls: false }",
+                      QUrl());
+    if (component.isError())
+        QSKIP("moteur web indisponible hors écran");
+    QQuickWindow window;
+    window.resize(400, 300);
+    std::unique_ptr<QObject> created(component.create());
+    auto* view = qobject_cast<QQuickItem*>(created.get());
+    if (!view)
+        QSKIP("moteur web indisponible hors écran");
+    view->setParentItem(window.contentItem());
+    window.show();
+    const QUrl base = role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl();
+    typed.reset();
+    QVERIFY(QMetaObject::invokeMethod(view, "loadHtml", Q_ARG(QString, html), Q_ARG(QUrl, base)));
+    const bool loaded =
+        QTest::qWaitFor([&] { return typed.paths().contains(QStringLiteral("/ok.png")); }, 8000);
+    if (!loaded)
+        QSKIP("moteur web indisponible hors écran");
+    QTest::qWait(500);
+    QCOMPARE(other.requests(), 0);
+#endif
 }
 
 int main(int argc, char** argv)

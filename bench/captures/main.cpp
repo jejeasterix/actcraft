@@ -2,6 +2,7 @@
 #include "startup.h"
 
 #include <actcraft/bench/uiscenario.h>
+#include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
 
 #include <QDir>
 #include <QFile>
@@ -18,6 +19,9 @@
 #include <QTest>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
+#if ACTCRAFT_WEBFRAME
+#include <QtWebView/QtWebView>
+#endif
 
 #include <cstdio>
 #include <memory>
@@ -58,6 +62,9 @@ int main(int argc, char* argv[])
 {
     // DA8 : dialogues Qt Quick non natifs forcés (un dialogue natif ne reçoit pas d'événements postés).
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+#if ACTCRAFT_WEBFRAME
+    QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
+#endif
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Captures"));
     const QStringList args = QGuiApplication::arguments();
