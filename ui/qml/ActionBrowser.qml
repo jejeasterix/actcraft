@@ -10,28 +10,10 @@ Item {
     id: root
     objectName: "actionBrowser"
     property Commands commands: null
-    // Modèle de l'onglet : posé par le parent, sinon cherché à la racine de la fenêtre (objectName
-    // « appActionBrowser »).
+    // Modèle de l'onglet : posé par le panneau des navigateurs (BrowserPanel.actionModel).
     property var model: null
     property bool expanded: false // zone des propriétés (V17) : repliée au départ
 
-    function findModel() {
-        let top = root
-        while (top.parent)
-            top = top.parent
-        for (let i = 0; i < top.data.length; ++i) {
-            if (top.data[i].objectName === "appActionBrowser")
-                return top.data[i]
-        }
-        return null
-    }
-    function showTab() {
-        let p = root.parent
-        while (p && typeof p.showNavigator !== "function")
-            p = p.parent
-        if (p)
-            p.showNavigator("actions")
-    }
     function setParameter(name, value) {
         const next = Object.assign({}, root.model.parameters)
         next[name] = value
@@ -40,11 +22,8 @@ Item {
     readonly property bool ready: root.model !== null && root.model !== undefined
 
     Component.onCompleted: {
-        if (!root.model)
-            root.model = root.findModel()
         if (!root.commands)
             return
-        root.commands.setHandler("browser.actions", function () { root.showTab() })
         root.commands.setHandler("action.apply", function (arg) {
             if (!root.ready)
                 return

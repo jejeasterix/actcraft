@@ -851,6 +851,39 @@ private slots:
         }
     }
 
+    // L8-T19 : les contrôleurs du lot 8 sont de vrais types C++ (plus aucun QtObject talon), câblés entre eux ;
+    // le navigateur d'actions reçoit son modèle du panneau, jamais par une recherche à la racine.
+    void lot8ControllersWired()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        const QList<QPair<const char*, const char*>> expected = {
+            {"appActionRunner", "actcraft::ui::ActionRunner"},
+            {"appLinks", "actcraft::ui::LinkLauncher"},
+            {"appActionBrowser", "actcraft::ui::ActionBrowserModel"},
+            {"appDragDrop", "actcraft::ui::DragDropActions"},
+        };
+        for (const auto& [name, cls] : expected) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o, name);
+            QCOMPARE(QByteArray(o->metaObject()->className()), QByteArray(cls));
+        }
+        QObject* runner = s.window->findChild<QObject*>(QStringLiteral("appActionRunner"));
+        for (const char* p : {"commands", "document", "designMode", "links"}) {
+            QVERIFY2(runner->property(p).value<QObject*>(), p);
+        }
+        QObject* tools = s.window->findChild<QObject*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        QVERIFY(tools->property("designMode").value<QObject*>());
+        QObject* panel = item(s, "browserPanel");
+        QVERIFY(panel);
+        QCOMPARE(panel->property("actionModel").value<QObject*>(),
+                 s.window->findChild<QObject*>(QStringLiteral("appActionBrowser")));
+        QObject* browser = item(s, "actionBrowser");
+        QVERIFY(browser);
+        QCOMPARE(browser->property("model").value<QObject*>(), panel->property("actionModel").value<QObject*>());
+    }
+
     // L8-T2 : un gestionnaire par commande du lot (talon jusqu'à la tâche propriétaire).
     void everyLot8CommandHasAHandler()
     {
