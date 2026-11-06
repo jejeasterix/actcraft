@@ -6,6 +6,13 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      # Repli manuel seulement : macos-latest consomme des minutes payantes (dépôt privé), sur accord de Jérôme.
+      runner_macos:
+        description: "Exécuteur du build macOS : self-hosted (Mac mini) ou macos-latest (minutes payantes)"
+        type: choice
+        options: [self-hosted, macos-latest]
+        default: self-hosted
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -30,6 +37,8 @@ jobs:
           git ls-files '*.cpp' '*.h' '*.hpp' | xargs --no-run-if-empty clang-format --dry-run --Werror
 
   build:
+    # Nom fixe : le contrôle reste « build (macos-latest, clang_64) » quel que soit l'exécuteur réel.
+    name: build (${{ matrix.os }}, ${{ matrix.qt_arch }})
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     strategy:
       fail-fast: false
@@ -39,23 +48,53 @@ jobs:
             qt_arch: win64_msvc2022_64
           - os: macos-latest
             qt_arch: clang_64
-    runs-on: ${{ matrix.os }}
+    # Entrée macOS sur le runner auto-hébergé du Mac mini (cache Qt et ccache chauds) ; aucun repli automatique sur
+    # macos-latest. Repli manuel : gh workflow run ci.yml -f runner_macos=macos-latest.
+    runs-on: ${{ matrix.os != 'macos-latest' && matrix.os || (inputs.runner_macos == 'macos-latest' && 'macos-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]')) }}
     # Lot 4 : la suite debug Windows, jouée en série, dépasse 20 min (73/138 tests à 11 min, PR #8). Lot 5 : 170 tests,
     # coupée à 99/170 à 50 min (run 41715403316, PR #9) ; 90 min de marge.
     timeout-minutes: 90
     steps:
+      # Runner auto-hébergé : dépôt privé seulement (une PR de fork d'un dépôt public exécuterait son code sur le Mac),
+      # et le Mac porte aussi les sessions Claude : pas de job lourd sous 3 Go de mémoire disponible.
+      - name: Gardes du runner auto-hébergé (visibilité, mémoire)
+        if: runner.environment == 'self-hosted'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          visibilite=$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility)
+          if [ "$visibilite" != "private" ]; then
+            echo "::error::Dépôt $visibilite : runner auto-hébergé interdit. Arrêter et désenregistrer le runner du Mac (~/actions-runner-actcraft)."
+            exit 1
+          fi
+          dispo_go() {
+            # Part libre selon macOS (mémoire compressible comprise), en Go entiers.
+            memory_pressure | awk -v t="$(sysctl -n hw.memsize)" '/free percentage/ {sub("%","",$NF); printf "%d", $NF*t/100/1073741824}'
+          }
+          for i in $(seq 1 30); do
+            go=$(dispo_go)
+            if [ "$go" -ge 3 ]; then echo "Mémoire disponible : $go Go"; exit 0; fi
+            echo "Mémoire disponible : $go Go (< 3 Go), nouvel essai dans 30 s ($i/30)"
+            sleep 30
+          done
+          echo "::error::Moins de 3 Go de mémoire disponible sur le Mac depuis 15 min : build macOS abandonné, à relancer."
+          exit 1
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: runner.environment != 'self-hosted'
         with:
           python-version: "3.12"
 
       # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) : version de développement,
       # épinglée sur le commit vérifié par les runs du 2026-10-15 (même commit dans les trois jobs).
       - name: Installer Ninja et aqtinstall
+        if: runner.environment != 'self-hosted'
         run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
       - name: Installer Qt
+        if: runner.environment != 'self-hosted'
         shell: bash
         run: |
           host=$([ "${{ runner.os }}" = "Windows" ] && echo windows || echo mac)
@@ -63,6 +102,38 @@ jobs:
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+      # Mac mini : Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une fois dans le cache du
+      # runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à l'autre.
+      - name: Qt, Ninja et ccache du Mac
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          cache="$HOME/actions-runner-actcraft/_cache"
+          mkdir -p "$cache"
+          brew_qt=/opt/homebrew/opt/qt
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1)
+          if [ "$version" = "$QT_VERSION" ]; then
+            qt_dir="$brew_qt"
+          else
+            echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
+            qt_dir="$cache/Qt/$QT_VERSION/macos"
+            if [ ! -d "$qt_dir" ]; then
+              python3 -m venv "$cache/venv-aqt"
+              "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf --outputdir "$cache/Qt"
+            fi
+          fi
+          command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
+          echo "Qt : $qt_dir ($version)"
+          echo "ACTCRAFT_QT_DIR=$qt_dir" >> "$GITHUB_ENV"
+          echo "$qt_dir/bin" >> "$GITHUB_PATH"
+          if command -v ccache >/dev/null; then
+            echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
+            echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          fi
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         if: runner.os == 'Windows'
