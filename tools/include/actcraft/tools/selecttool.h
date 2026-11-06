@@ -1,10 +1,13 @@
 #pragma once
 
+#include <actcraft/core/containers.h>
+#include <actcraft/tools/interactionpolicy.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/toolcontext.h>
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -37,6 +40,13 @@ public:
     // le mode.
     void setShapePointsMode(bool on);
     bool shapePointsMode() const noexcept;
+    // Lot 8 (L8-T16, D8-9) : réglages du mode conception, posés par ui::ToolHost ; nul : tout actif. Non
+    // possédée, lue à chaque geste.
+    void setInteractionPolicy(const InteractionPolicy* policy) noexcept;
+    // Dépôt accepté par un conteneur (F-577) : le conteneur gagnant et son son de confirmation (joué par
+    // L8-T25). Appelé une fois, après le dépôt.
+    using ContainerAccepted = std::function<void(core::ObjectId container, bool chime)>;
+    void setContainerAccepted(ContainerAccepted callback);
 
 private:
     enum class State : std::uint8_t
@@ -80,7 +90,16 @@ private:
     void liftForGesture(std::vector<core::ObjectId> ids, State state);
     // Agrandir et Réduire : la sélection redimensionnable, × factor autour du centre du cadre.
     void scaleSelection(double factor);
-    core::Transform gestureTransform(core::PointF point) const;
+    // Non constante : la rotation à pas retient le dernier angle permis (allowedTurn, L8-T15).
+    core::Transform gestureTransform(core::PointF point);
+    bool restrictionsOn() const noexcept;
+    bool blockersOn() const noexcept;
+    // Page d'essai du glisser (L8-T16), prise avant le soulèvement s'il y a une règle à suivre.
+    void prepareRules(const core::Page& page, const std::vector<core::ObjectId>& ids);
+    // Déplacement permis (limiteurs puis objets bloquants) pour le déplacement voulu, depuis le départ.
+    core::PointF allowedDelta(core::PointF wanted) const;
+    // Verdict du dépôt sur la page d'essai (resolveDrop) ; accrochage ajouté à `delta` s'il y a lieu.
+    core::DropResult settle(core::Transform& delta);
     void updateDrag(core::PointF point);
     void endDrag(core::PointF point, bool cancelled);
     void showBand(core::PointF point);
@@ -114,6 +133,16 @@ private:
     std::vector<core::PageObject>
         m_copySources; // leur fermeture (closureForCopy), prise avant le soulèvement
     int m_modifiers = 0;
+    const InteractionPolicy* m_policy = nullptr;
+    ContainerAccepted m_containerAccepted;
+    std::optional<core::Page> m_probe;  // page avant le soulèvement, objets soulevés compris (L8-T16)
+    std::vector<std::size_t> m_limited; // index dans m_probe des soulevés à déplacement limité
+    bool m_probeBlockers = false;       // un objet bloquant est sur la page d'essai
+    bool m_force = false;               // « déplacer librement » : limiteurs de déplacement ignorés
+    bool m_turning = false;             // rotation à règle (pas, sens, pivot) d'un objet seul
+    double m_turnBase = 0;              // angle de l'objet au départ (degrés)
+    double m_turnFrom = 0;              // dernier angle permis (allowedTurn)
+    core::PointF m_pivot;               // pivot de la rotation à règle (page)
 };
 
 } // namespace actcraft::tools

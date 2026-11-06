@@ -210,9 +210,8 @@ struct Rig
 
     Rig()
     {
-        tool.setContainerAccepted([this](core::ObjectId container, bool chime) {
-            accepted.push_back({container, chime});
-        });
+        tool.setContainerAccepted(
+            [this](core::ObjectId container, bool chime) { accepted.push_back({container, chime}); });
     }
     core::Page& page() { return editor.document.page(0); }
     void press(double x, double y) { tool.onSample(sampleAt(Phase::Press, x, y)); }
@@ -313,8 +312,8 @@ private slots:
         QVERIFY(closePoint(r.centre(kApple), 400, 200));
     }
 
-    // Déplacement vertical : le glisser en diagonale ne change pas x, ni pendant le geste ni au dépôt. Chemin :
-    // l'objet saute sur son trait et le suit.
+    // Déplacement vertical : le glisser en diagonale ne change pas x, ni pendant le geste ni au dépôt. Chemin
+    // : l'objet saute sur son trait et le suit.
     void verticalDragKeepsX()
     {
         {

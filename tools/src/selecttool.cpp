@@ -5,6 +5,7 @@
 #include <actcraft/core/gridsnap.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/restrictors.h>
 #include <actcraft/core/shapeedits.h>
 #include <actcraft/core/shapegeometry.h>
 #include <actcraft/core/shapepoints.h>
@@ -139,6 +140,18 @@ std::optional<std::size_t> shapePointAt(const std::vector<core::PointF>& points,
         }
     }
     return found;
+}
+
+// Angle d'une transformation (degrés, sens de core::rotation).
+double angleOf(const core::Transform& t) noexcept
+{
+    return toDegrees(std::atan2(t.m12, t.m11));
+}
+
+// Rotation à règle (L8-T15) : un pas, un sens, ou un pivot autre que le centre.
+bool turnsByRule(const core::Restrictions& r) noexcept
+{
+    return r.turnStep > 0 || r.turning != core::Turning::Free || r.pivot != core::Mark::Center;
 }
 
 // Dépôt d'un glissement mêlé (D9) : objets ordinaires transformés, objets à copier laissés en place et copiés
@@ -391,6 +404,118 @@ std::vector<core::PointF> SelectTool::shownShapePoints(const std::vector<core::O
     return core::shapePoints(page.objects[index]); // L5-T9 : sommets puis milieux, vide hors d'une forme
 }
 
+void SelectTool::setInteractionPolicy(const InteractionPolicy* policy) noexcept
+{
+    m_policy = policy;
+}
+
+void SelectTool::setContainerAccepted(ContainerAccepted callback)
+{
+    m_containerAccepted = std::move(callback);
+}
+
+bool SelectTool::restrictionsOn() const noexcept
+{
+    return m_policy == nullptr || m_policy->restrictionsEnabled();
+}
+
+bool SelectTool::blockersOn() const noexcept
+{
+    return m_policy == nullptr || m_policy->blockersEnabled();
+}
+
+// Un seul parcours de la page, avant le soulèvement. Sans limiteur, sans bloquant, sans conteneur, rien n'est
+// copié et le glisser reste celui du lot 3. Sinon la page entière est copiée telle qu'avant le soulèvement :
+// les objets soulevés y sont à leur place de départ et à leur rang, ce que demandent allowedTravel,
+// stopAtBlockers (les boîtes des objets déplacés sont lues sur la page) et resolveDrop (« devant »). La page
+// affichée, elle, n'est plus touchée jusqu'au dépôt (aucun redessin du cache pendant le glisser).
+void SelectTool::prepareRules(const core::Page& page, const std::vector<core::ObjectId>& ids)
+{
+    m_probe.reset();
+    m_limited.clear();
+    m_probeBlockers = false;
+    const bool restrictions = restrictionsOn();
+    const bool blockers = blockersOn();
+    if (!restrictions && !blockers) {
+        return;
+    }
+    bool containers = false;
+    bool magnet = false;
+    for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        const core::PageObject& object = page.objects[i];
+        const bool moving = contains(ids, object.common.id);
+        if (blockers && !moving && object.common.restrictions.blocksOthers) {
+            m_probeBlockers = true;
+        }
+        if (restrictions && !moving &&
+            (object.common.container.accepts != core::Accepts::Nothing ||
+             object.common.container.bounceBack)) {
+            containers = true;
+        }
+        if (restrictions && moving) {
+            if (object.common.restrictions.travel != core::Travel::Free && !m_force) {
+                m_limited.push_back(i);
+            }
+            magnet = magnet || object.common.restrictions.magnet;
+        }
+    }
+    if (m_probeBlockers || containers || magnet || !m_limited.empty()) {
+        m_probe = page;
+    } else {
+        m_limited.clear();
+    }
+}
+
+core::PointF SelectTool::allowedDelta(core::PointF wanted) const
+{
+    if (!m_probe) {
+        return wanted;
+    }
+    for (const std::size_t index : m_limited) { // limiteurs d'abord (D8-7), puis les bloquants
+        wanted = core::allowedTravel(*m_probe, m_probe->objects[index], wanted);
+    }
+    if (m_probeBlockers) {
+        wanted = core::stopAtBlockers(*m_probe, m_lifted, wanted);
+    }
+    return wanted;
+}
+
+// Verdict au relâché, avant tout dépôt : la page d'essai reçoit le déplacement par la commande même du dépôt
+// (groupes compris), hors du document. Le choix du conteneur est celui de resolveDrop ; l'accrochage
+// (landingPoint) ne voit que ce conteneur. Mark::Point accroche aussi sans conteneur, jamais un retour.
+core::DropResult SelectTool::settle(core::Transform& delta)
+{
+    core::Document probe;
+    probe.page(0) = std::move(*m_probe);
+    m_probe.reset();
+    core::Changes ignored;
+    core::TransformObjectsCommand(0, m_lifted, delta).redo(probe, ignored);
+    core::Page& page = probe.page(0);
+    const core::DropResult verdict = core::resolveDrop(page, m_lifted);
+    if (verdict.outcome == core::DropOutcome::BounceBack || !m_firstLifted) {
+        return verdict;
+    }
+    const std::size_t index = core::indexOf(page, m_firstLifted->common.id);
+    if (index == page.objects.size()) {
+        return verdict;
+    }
+    const core::Restrictions& r = page.objects[index].common.restrictions;
+    if (!r.magnet || (verdict.outcome == core::DropOutcome::Free && r.magnetMark != core::Mark::Point)) {
+        return verdict;
+    }
+    for (core::PageObject& object : page.objects) {
+        if (object.common.id != verdict.container) {
+            object.common.container.accepts = core::Accepts::Nothing;
+        }
+    }
+    const core::PageObject& moved = page.objects[index];
+    const core::PointF dropped = core::boundsOnPage(page, moved).center();
+    const core::PointF landed = core::landingPoint(page, moved, dropped);
+    delta.dx += landed.x - dropped.x;
+    delta.dy += landed.y - dropped.y;
+    return verdict;
+}
+
 void SelectTool::press(const input::Sample& sample)
 {
     const core::Page& page = m_context.document.page();
@@ -557,6 +682,8 @@ void SelectTool::beginDrag(bool force)
     }
     m_frame =
         layoutSelection(page, m_context.user.selection(), m_context.view.zoom(), {}, m_context.lockIgnored);
+    m_force = force;
+    prepareRules(page, ids); // avant le soulèvement : la page affichée a encore les objets
     liftForGesture(std::move(ids), State::Dragging);
 }
 
@@ -581,6 +708,16 @@ void SelectTool::beginTransform(State kind)
     if (ids.empty() || m_frame.corners.size() != 4 ||
         (kind == State::Resizing && m_frame.handles.size() != 8)) {
         return;
+    }
+    m_turning = false;
+    if (kind == State::Rotating && ids.size() == 1 && restrictionsOn()) {
+        const core::PageObject& object = page.objects[core::indexOf(page, ids.front())];
+        if (turnsByRule(object.common.restrictions)) {
+            m_turning = true;
+            m_turnBase = angleOf(object.common.transform);
+            m_turnFrom = m_turnBase;
+            m_pivot = core::pivotOf(page, object);
+        }
     }
     liftForGesture(std::move(ids), kind);
 }
@@ -718,15 +855,21 @@ void SelectTool::liftForGesture(std::vector<core::ObjectId> ids, State state)
 }
 
 // Transformation du geste en cours, en coordonnées de page, appliquée après celle des objets.
-core::Transform SelectTool::gestureTransform(core::PointF point) const
+core::Transform SelectTool::gestureTransform(core::PointF point)
 {
     if (m_state == State::Rotating) {
-        const core::PointF center{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
-                                  (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
+        const core::PointF center = m_turning
+                                        ? m_pivot
+                                        : core::PointF{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
+                                                       (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
         double delta = toDegrees(std::atan2(point.y - center.y, point.x - center.x)) -
                        toDegrees(std::atan2(m_start.y - center.y, m_start.x - center.x));
         if ((m_modifiers & static_cast<int>(Qt::ShiftModifier)) != 0) {
             delta = std::round(delta / kSnapStepDegrees) * kSnapStepDegrees;
+        }
+        if (m_turning && m_firstLifted) { // L8-T15 : un calcul par mouvement, depuis le dernier angle permis
+            m_turnFrom = core::allowedTurn(*m_firstLifted, m_turnFrom, m_turnBase + delta);
+            delta = m_turnFrom - m_turnBase;
         }
         return core::rotationAbout(center, delta);
     }
@@ -760,7 +903,8 @@ core::Transform SelectTool::gestureTransform(core::PointF point) const
         return core::compose(core::compose(core::rotationAbout(anchor, -angle), scale),
                              core::rotationAbout(anchor, angle));
     }
-    return core::translation(point.x - m_start.x, point.y - m_start.y);
+    const core::PointF allowed = allowedDelta({point.x - m_start.x, point.y - m_start.y});
+    return core::translation(allowed.x, allowed.y);
 }
 
 void SelectTool::updateDrag(core::PointF point)
@@ -799,9 +943,12 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
         probe.height = m_context.document.page().height;
         probe.objects.push_back(*m_firstLifted);
         const core::PointF snapped = core::snapDelta(probe, {m_firstLifted->common.id}, {delta.dx, delta.dy});
-        delta = core::translation(snapped.x, snapped.y);
+        const core::PointF allowed =
+            allowedDelta(snapped); // l'accrochage ne franchit ni limiteur ni bloquant
+        delta = core::translation(allowed.x, allowed.y);
     }
     const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
+    core::DropResult verdict;
     if (trash) {
         std::vector<core::ObjectId> removed; // D9 : un objet à dragCopy reste, même sur la corbeille
         for (const core::ObjectId id : m_lifted) {
@@ -817,9 +964,19 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
     } else if (cancelled || delta.isIdentity()) {
         m_context.document.drop(nullptr);
     } else {
-        // Même chemin qu'au lot 3 (drop : objets remis, une étape) ; D9 : un objet à dragCopy est remis sans
-        // étape et sa copie ajoutée (PasteObjectsCommand), jamais transformé.
-        m_context.document.drop(dragDropCommand(page, m_lifted, m_copied, std::move(m_copySources), delta));
+        // L8-T16 : le verdict des conteneurs est rendu avant le dépôt, jamais corrigé après. Retour : les
+        // objets sont remis à leur place sans étape (drop(nullptr)), jamais déposés puis annulés.
+        if (m_state == State::Dragging && m_probe && restrictionsOn()) {
+            verdict = settle(delta);
+        }
+        if (verdict.outcome == core::DropOutcome::BounceBack) {
+            m_context.document.drop(nullptr);
+        } else {
+            // Même chemin qu'au lot 3 (drop : objets remis, une étape) ; D9 : un objet à dragCopy est remis
+            // sans étape et sa copie ajoutée (PasteObjectsCommand), jamais transformé.
+            m_context.document.drop(
+                dragDropCommand(page, m_lifted, m_copied, std::move(m_copySources), delta));
+        }
     }
     m_context.lift.clear();
     if (m_trashHover) {
@@ -828,6 +985,9 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
     }
     reset();
     showFrame();
+    if (verdict.outcome == core::DropOutcome::Contained && m_containerAccepted) {
+        m_containerAccepted(verdict.container, verdict.chime);
+    }
 }
 
 void SelectTool::showBand(core::PointF point)
@@ -925,6 +1085,11 @@ void SelectTool::reset() noexcept
     m_grabbed.clear();
     m_lifted.clear();
     m_firstLifted.reset();
+    m_probe.reset();
+    m_limited.clear();
+    m_probeBlockers = false;
+    m_force = false;
+    m_turning = false;
 }
 
 } // namespace actcraft::tools
