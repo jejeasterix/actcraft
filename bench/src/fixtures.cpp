@@ -29,6 +29,9 @@ constexpr QLatin1StringView kRectangleAndStrokes("rectangle-et-traits");
 constexpr QLatin1StringView kLockedObject("objet-verrouille");
 // L8-T16 : un panier qui n'accepte que « fruit », renvoie le reste et sonne ; une pomme, une carotte.
 constexpr QLatin1StringView kContainers("conteneurs");
+// L8-T12 (S11.2) : deux pages ; un rond gris en page 1 (centre en 300, 300), un rectangle bleu en page 2
+// (centre en 600, 300).
+constexpr QLatin1StringView kActionBrowser("navigateur-actions");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -188,6 +191,32 @@ bool buildContainers(const QString& path, QString& error)
     return writeOnePage({std::move(basket), std::move(apple), std::move(carrot)}, "Conteneurs", path, error);
 }
 
+bool buildActionBrowser(const QString& path, QString& error)
+{
+    std::vector<core::Page> pages(2);
+    core::Shape disc;
+    disc.kind = core::ShapeKind::Ellipse;
+    disc.bounds = {250, 250, 100, 100};
+    disc.fill = 0xFF808080u;
+    core::PageObject round = disc;
+    round.common.id = 1;
+    round.common.layer = core::Layer::Middle;
+    pages[0].objects.push_back(round);
+
+    core::Shape rect;
+    rect.kind = core::ShapeKind::Rectangle;
+    rect.bounds = {550, 250, 100, 100};
+    rect.fill = 0xFF1E88E5u;
+    core::PageObject blue = rect;
+    blue.common.id = 2;
+    blue.common.layer = core::Layer::Middle;
+    pages[1].objects.push_back(blue);
+
+    core::Document document(std::move(pages));
+    document.setTitle("Navigateur d'actions");
+    return writeActcraft(document, path, error);
+}
+
 // Table des fixtures : nom, écriture du fichier (un seul endroit pour la liste et pour la construction).
 struct FixtureEntry
 {
@@ -202,6 +231,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kRectangleAndStrokes, buildRectangleAndStrokes},
     {kLockedObject, buildLockedObject},
     {kContainers, buildContainers},
+    {kActionBrowser, buildActionBrowser},
 };
 
 } // namespace
