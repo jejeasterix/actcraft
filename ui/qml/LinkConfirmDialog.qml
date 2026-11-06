@@ -39,7 +39,15 @@ Dialog {
         dialog.reason = text
         dialog.open()
     }
-    function openTarget() { dialog.answer(true); dialog.close() }
+    // Jeton mis de côté, boîte fermée, puis « oui » : un refus tardif (fichier changé depuis la demande)
+    // rouvre la boîte avec son motif, que la fermeture n'efface plus.
+    function openTarget() {
+        const pending = dialog.token
+        dialog.token = -1
+        dialog.close()
+        if (pending >= 0 && dialog.launcher)
+            dialog.launcher.answer(pending, true)
+    }
 
     onOpened: cancelButton.forceActiveFocus() // Entrée ou Espace n'ouvrent rien par défaut
     onClosed: dialog.answer(false)
