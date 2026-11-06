@@ -123,10 +123,11 @@ int main(int argc, char* argv[])
     QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
-    // Racines « Mes ressources » et ressources partagées d'essai, sous `<sortie>` et vidées à chaque lancement,
-    // pour que le scénario `ressources` se rejoue sans nettoyage à la main. Le mode test ne déplace pas
-    // DocumentsLocation : sans ce réglage, chaque capture viderait le vrai Documents\ActCraft\Ressources du
-    // poste, et les captures lancées en parallèle par ctest s'effaceraient leurs ressources entre elles.
+    // Racines « Mes ressources » et ressources partagées d'essai, sous `<sortie>`, vidées à
+    // chaque lancement : le scénario `ressources` se rejoue sans nettoyage à la main.
+    // Le mode test ne déplace pas DocumentsLocation : sans ce réglage, chaque capture
+    // viderait le vrai Documents\ActCraft\Ressources du poste, et les captures lancées
+    // en parallèle par ctest s'effaceraient leurs ressources entre elles.
     const QString mineResources = outputDir.filePath(QStringLiteral("mes-ressources"));
     const QString sharedResources = outputDir.filePath(QStringLiteral("ressources-partagees"));
     QDir(mineResources).removeRecursively();
