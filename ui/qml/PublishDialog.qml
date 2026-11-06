@@ -1,7 +1,8 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Dialogs
 import QtQuick.Layouts
+import ActCraft.Ui
 
 // Diffusion protégée (L8-T31, F-680, S18) : informations de l'auteur et quatre interdictions ; « Diffuser… »
 // écrit un nouveau fichier qui porte les règles (DocumentController.publishToUrl). Le document ouvert reste
@@ -11,9 +12,8 @@ Item {
     visible: false
     objectName: "publishDialog"
     property var commands: null
-    // Contrôleur du document ; à défaut, celui de la fenêtre (appDocument).
-    property var document: null
-    readonly property var target: document ? document : (typeof appDocument !== "undefined" ? appDocument : null)
+    required property DocumentController document // lié par Main.qml (appDocument), comme FileActions
+    property var banner: null                       // bandeau de la fenêtre (messageBanner) : succès comme échec
     property string lastMessage: ""
 
     function rules() {
@@ -21,10 +21,10 @@ Item {
                  noCamera: cameraBox.checked, author: authorField.text.trim() }
     }
     function publishTo(url) {
-        if (!root.target || url.toString() === "")
+        if (!root.document || url.toString() === "")
             return
         const r = rules()
-        root.target.publishToUrl(url, r.noCopy, r.noSave, r.noPrint, r.noCamera, r.author)
+        root.document.publishToUrl(url, r.noCopy, r.noSave, r.noPrint, r.noCamera, r.author)
     }
 
     Component.onCompleted: {
@@ -32,18 +32,19 @@ Item {
             return
         // Argument (scénarios) : chemin du fichier diffusé, règles de la boîte ; sinon la boîte s'ouvre.
         commands.setHandler("file.publish", function (arg) {
-            if (arg !== undefined && arg !== null && arg.toString() !== "" && root.target)
-                root.publishTo(root.target.urlFromArgument(arg))
+            if (arg !== undefined && arg !== null && arg.toString() !== "" && root.document)
+                root.publishTo(root.document.urlFromArgument(arg))
             else
                 dialog.open()
         })
     }
 
     Connections {
-        target: root.target
-        ignoreUnknownSignals: true
+        target: root.document
         function onPublishFinished(ok, message) {
-            root.lastMessage = ok ? qsTr("Copie protégée enregistrée.") : message
+            root.lastMessage = ok ? qsTr("Copie protégée enregistrée.") : qsTr("Diffusion impossible : %1").arg(message)
+            if (root.banner)
+                root.banner.show(root.lastMessage)
             console.info("ACTCRAFT DIFFUSE " + (ok ? "OK" : "ECHEC"))
         }
     }
@@ -79,16 +80,23 @@ Item {
             Button {
                 objectName: "publishButton"
                 text: qsTr("Diffuser…")
-                onClicked: { dialog.close(); fileDialog.open() }
+                onClicked: {
+                    dialog.close()
+                    const folder = root.document.defaultFolderUrl(true)
+                    fileDialog.currentFolder = folder
+                    fileDialog.selectedFile = folder + "/" + encodeURIComponent(root.document.title + " - protégé.actcraft")
+                    fileDialog.open()
+                }
             }
         }
     }
 
     FileDialog {
         id: fileDialog
+        objectName: "publishFileDialog"
         fileMode: FileDialog.SaveFile
+        defaultSuffix: "actcraft"
         nameFilters: [qsTr("Document ActCraft (*.actcraft)")]
-        currentFolder: root.target ? root.target.defaultFolderUrl(false) : ""
         onAccepted: root.publishTo(selectedFile)
     }
 }
