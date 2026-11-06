@@ -558,6 +558,50 @@ private slots:
         }
     }
 
+    // L8-C6 essai 2 : le saut à l'appui ne change pas ce qu'un clic fait. Un clic sans glisser sur un objet à
+    // chemin hors de son trait, non sélectionné, le pose sur son trait ET le sélectionne ; un objet dragCopy
+    // n'est jamais copié par un simple clic ; un clic dans une sélection ne déplace pas les autres objets.
+    void clickOnTrackObjectSelectsAndNeverCopiesOrDragsTheOthers()
+    {
+        const auto railed = [](Rig& r, bool copy) {
+            core::Line line;
+            line.points = {{100, 300}, {500, 300}};
+            core::PageObject track{line};
+            track.common.id = 20;
+            r.page().objects.push_back(std::move(track));
+            core::PageObject object = rectangle(1, 100, 100, 50, 50); // centre (125, 125), trait à y = 300
+            object.common.restrictions.travel = core::Travel::AlongTrack;
+            object.common.restrictions.track = 20;
+            object.common.dragCopy = copy;
+            r.page().objects.push_back(std::move(object));
+        };
+        {
+            Rig r;
+            railed(r, false);
+            r.press(125, 125);
+            r.release(125, 125);
+            QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
+        }
+        {
+            Rig r;
+            railed(r, true);
+            r.press(125, 125);
+            r.release(125, 125);
+            QCOMPARE(r.page().objects.size(), std::size_t(2)); // aucune copie collée
+            QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
+        }
+        {
+            Rig r;
+            railed(r, false);
+            r.page().objects.push_back(rectangle(2, 300, 100, 50, 50));
+            r.user.setSelection({1, 2});
+            r.press(325, 125); // clic sur l'objet 2, dans la sélection
+            r.release(325, 125);
+            QVERIFY(closePoint(r.centre(2), 325, 125));
+            QVERIFY(closePoint(r.centre(1), 125, 125));
+        }
+    }
+
     // Mode conception, restrictions désactivées : la carotte reste dans le panier (une étape, sans signal),
     // le déplacement vertical ne retient plus x.
     void designModeLiftsRestrictions()
