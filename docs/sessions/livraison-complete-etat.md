@@ -323,7 +323,7 @@ Référence de la tête après L8-T21 : 245 tests (N8 + 37).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
 Tâche : L8-T26 — media : enregistreur de son (8b, V13) — depuis 2026-11-06
 Tâche : L8-T13 — actions glisser-déposer (V8) — depuis 2026-11-06
-Tâche : L8-T31 — diffusion protégée I (8b ; colonne élargie à `documentcontroller.*` pour `publishToUrl`) — depuis 2026-11-06
+Tâche : L8-T31 — diffusion protégée I (8b, correctifs de la revue : 4 majeurs) — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
@@ -363,6 +363,7 @@ Tâche : L8-T31 — diffusion protégée I (8b ; colonne élargie à `documentco
 - **L8-T16** : `landingPoint` (L8-T15) aimante au conteneur le plus haut sans règle d'acceptation : L8-T16 choisit le conteneur par `resolveDrop` (L8-T14) ; pivot commun : `pivotOf` (L8-T15) et le pivot local de L8-T7 à regrouper (simplification de fin de lot).
 - **L8-T9** : remesurer l'emprise d'un texte modifié par une action (valeur, ajouter, remplacer, nouveau, extraire), même règle que `measuredBounds` / `textediting.cpp:725`, test 9 → 10 (revue de L8-T8) ; `object.toggle-group`, `object.select-all` et `object.align-*` (catalogue) : déclencher les commandes existantes (aucune table du moteur ne les traite) ; déclencher les commandes `edit.*` pour `object.copy/cut/paste` (catalogue à `command` vide) ; contrôle d'occurrences de L8-T19 sur `answer`/`systemOpener`.
 - **L8-T13** : `SetObjectActionsCommand` (L8-T11) remplace toute la liste d'actions : appliquer une action au clic ne doit pas effacer une action de glisser-déposer (et l'inverse) — à tester.
+- **L8-T32** : « Enregistrer les modifications ? » (`ui/qml/FileActions.qml:165`, `:96`) appelle `document.saveToUrl` sans passer par `file.save` : la porte du registre doit aussi garder ce chemin (fermer, quitter, nouveau) ; copie native du texte en cours d'édition (Ctrl+C dans un champ) hors commande.
 - **Fin de lot (3.8)** : duplication du lecteur HTML (`objectactions_edit.cpp` / `spellcheck.cpp:51-144`) ; libellés du catalogue `object.flip-*` contraires aux axes du menu.
 
 ### Restes pour le PC (lot 8)
