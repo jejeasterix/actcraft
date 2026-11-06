@@ -319,7 +319,8 @@ Outils de l'orchestrateur (hors dépôt, `~/pilotage-mac/`) : `wt-lot8.sh <id>` 
 **H8-8** (orchestrateur, 2026-11-06) — `page.copy`, `page.cut` restent non restreignables (D10, défaut) ; la diffusion protégée (8b L8-T31) les refuse au titre de la copie, sans passer par `restrictable`.
 Suite de la tête 62fc5288 (L8-T0 à T6, C0 mergées ; orchestrateur, 2026-11-06) : 229/229, 0 avertissement. Deux agents écrivent en parallèle, le jeton sérialise les constructions (P = 1).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
-Tâche : L8-T9 — ui : exécuteur d'actions (V6) — depuis 2026-11-06
+Tâche : L8-T9 — ui : exécuteur d'actions (V6, correctifs de la revue : 1 bloquant, porte désarmée à l'appui) — depuis 2026-11-06
+Tâche : L8-T20 — modules Qt du lot (8b, avancée en parallèle : ne touche que CI, licences, notices) — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
