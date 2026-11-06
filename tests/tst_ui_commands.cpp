@@ -132,7 +132,7 @@ private slots:
             }
         }
         QVERIFY(found);
-        QCOMPARE(commands.objectBar().size(), 11); // 5 d'avant le lot 5, 6 du lot 5
+        QCOMPARE(commands.objectBar().size(), 13); // 5 d'avant le lot 5, 6 du lot 5, 2 du lot 8
     }
 
     void submenuFilteredByPlatform()
@@ -170,7 +170,7 @@ private slots:
         const QVariantList bar = c.objectBar();
         // Lot 5 (L5-T1, F-521) : les cinq éléments d'avant le lot 5 inchangés en tête, les six du lot à la
         // fin.
-        QCOMPARE(bar.size(), 11);
+        QCOMPARE(bar.size(), 13); // + action.apply, action.remove (lot 8, L8-T1)
         QStringList barIds;
         for (const QVariant& entry : bar) {
             barIds << entry.toMap().value(QStringLiteral("id")).toString();
@@ -178,7 +178,7 @@ private slots:
         QCOMPARE(barIds,
                  (QStringList{"object.move-free", "object.rotate", "object.translucency", "object.enlarge",
                               "object.reduce", "object.menu", "object.group", "arrange.front", "arrange.back",
-                              "edit.duplicate", "object.shape-points"}));
+                              "edit.duplicate", "object.shape-points", "action.apply", "action.remove"}));
         const QVariantMap first = bar.at(0).toMap();
         QCOMPARE(first.value(QStringLiteral("id")).toString(), QStringLiteral("object.move-free"));
         QVERIFY(first.contains(QStringLiteral("label")));

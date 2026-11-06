@@ -167,12 +167,17 @@ private slots:
             QVERIFY2(info->lockable, id);
         }
 
-        const QSet<QString> free{QStringLiteral("file.quit"),          QStringLiteral("classroom.lock"),
+        const QSet<QString> free{QStringLiteral("file.quit"), QStringLiteral("classroom.lock"),
                                  QStringLiteral("classroom.password"), QStringLiteral("help.contents"),
-                                 QStringLiteral("help.website"),       QStringLiteral("help.about"),
-                                 QStringLiteral("page.next"),          QStringLiteral("page.previous"),
-                                 QStringLiteral("view.fullscreen"),    QStringLiteral("view.fit"),
-                                 QStringLiteral("view.zoom")};
+                                 QStringLiteral("help.website"), QStringLiteral("help.about"),
+                                 QStringLiteral("page.next"), QStringLiteral("page.previous"),
+                                 QStringLiteral("view.fullscreen"), QStringLiteral("view.fit"),
+                                 QStringLiteral("view.zoom"),
+                                 // Lot 8 (L8-T1) : navigation, écoute, arrêt d'un enregistrement, cadre web.
+                                 QStringLiteral("page.history-back"), QStringLiteral("page.history-forward"),
+                                 QStringLiteral("media.sound-controller"), QStringLiteral("record.stop"),
+                                 QStringLiteral("record.cancel"), QStringLiteral("webframe.back"),
+                                 QStringLiteral("webframe.forward"), QStringLiteral("webframe.reload")};
         QCOMPARE(idsWhere(QStringLiteral("lockable"), false), free);
 
         const QSet<QString> restrictable{QStringLiteral("edit.copy"),
@@ -187,7 +192,9 @@ private slots:
                                          QStringLiteral("tool.camera-polygon"),
                                          QStringLiteral("tool.camera-freehand"),
                                          QStringLiteral("tool.camera-window"),
-                                         QStringLiteral("tool.camera-screen")};
+                                         QStringLiteral("tool.camera-screen"),
+                                         QStringLiteral("webframe.snapshot"),
+                                         QStringLiteral("file.publish")}; // lot 8 (L8-T1)
         QCOMPARE(idsWhere(QStringLiteral("restrictable"), true), restrictable);
 
         // Le verrou posé sur les données réelles : quitter reste possible, enregistrer non.

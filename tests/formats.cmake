@@ -36,3 +36,8 @@ actcraft_add_test(tst_formats_lot6
 actcraft_add_test(tst_formats_fragment
     SOURCES tst_formats_fragment.cpp
     LIBS ActCraft::formats)
+
+# Lot 8 (L8-T1) : talon.
+actcraft_add_test(tst_formats_interactivity
+    SOURCES tst_formats_interactivity.cpp
+    LIBS ActCraft::formats)

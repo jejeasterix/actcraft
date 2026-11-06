@@ -225,3 +225,27 @@ actcraft_add_test(tst_ui_language
 # Programme d'essai des raccourcis vers des programmes (L6-T29).
 add_executable(launcher_probe launcher_probe.cpp)
 actcraft_set_warnings(launcher_probe)
+
+# Lot 8 (L8-T1) : talons.
+actcraft_add_test(tst_ui_actionrunner
+    SOURCES tst_ui_actionrunner.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_linklauncher
+    SOURCES tst_ui_linklauncher.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_actionbrowser
+    SOURCES tst_ui_actionbrowser.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_dragdropactions
+    SOURCES tst_ui_dragdropactions.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_interactivityprops
+    SOURCES tst_ui_interactivityprops.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_formats_samples_interactivity
+    SOURCES tst_formats_samples_interactivity.cpp
+    LIBS ActCraft::formats ActCraft::tools ActCraft::ui)
+# Paperboards réels : dossier transmis par l'environnement quand il existe (sinon le test se saute).
+if(DEFINED ENV{ACTCRAFT_SAMPLES_DIR})
+    set_property(TEST tst_formats_samples_interactivity APPEND PROPERTY ENVIRONMENT "ACTCRAFT_SAMPLES_DIR=$ENV{ACTCRAFT_SAMPLES_DIR}")
+endif()

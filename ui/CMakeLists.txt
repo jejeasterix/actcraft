@@ -135,6 +135,18 @@ qt_add_qml_module(actcraft_ui
         qml/FileExchangeActions.qml
         qml/PrintSetupDialog.qml
         qml/SheetPreview.qml
+        qml/ActionBrowser.qml
+        qml/DragDropActions.qml
+        qml/ActionOverlays.qml
+        qml/LinkConfirmDialog.qml
+        qml/LinkDialog.qml
+        qml/MediaLayer.qml
+        qml/SoundController.qml
+        qml/RecorderPalette.qml
+        qml/RecordingIndicator.qml
+        qml/WebFrameLayer.qml
+        qml/WebFrameDialog.qml
+        qml/PublishDialog.qml
         ${ACTCRAFT_UI_LOT7_QML}
         ${ACTCRAFT_UI_LOT6_QML}
     RESOURCES
@@ -267,8 +279,38 @@ qt_add_qml_module(actcraft_ui
         icons/orthographe.svg
         icons/aide-sommaire.svg
         icons/programme.svg
+        icons/actions.svg
+        icons/encre-revelatrice.svg
+        icons/lien-fichier.svg
+        icons/lien-site.svg
+        icons/action-objet.svg
+        icons/action-glisser.svg
+        icons/conteneur.svg
+        icons/limiteur.svg
+        icons/historique-precedent.svg
+        icons/historique-suivant.svg
+        icons/son.svg
+        icons/video.svg
+        icons/lecteur-sons.svg
+        icons/enregistrer-son.svg
+        icons/enregistrer-ecran.svg
+        icons/enregistrer-zone.svg
+        icons/cadre-web.svg
+        icons/diffuser.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
+        include/actcraft/ui/actionrunner.h
+        src/actionrunner.cpp
+        include/actcraft/ui/linklauncher.h
+        src/linklauncher.cpp
+        include/actcraft/ui/actionbrowser.h
+        src/actionbrowser.cpp
+        include/actcraft/ui/dragdropactions.h
+        src/dragdropactions.cpp
+        include/actcraft/ui/pagehistory.h
+        src/pagehistory.cpp
+        include/actcraft/ui/interactivityprops.h
+        src/interactivityprops.cpp
         include/actcraft/ui/pageview.h
         include/actcraft/ui/documentcontroller.h
         include/actcraft/ui/commands.h

@@ -199,7 +199,7 @@ private slots:
         // lot 5 suivent (53 de L5-T1, plus connector.caps, extrémités du connecteur, de L5-C18).
         // Les 45 du lot 6 (L6-T1) terminent le fichier.
         QCOMPARE(r.ids().mid(0, expected.size()), expected);
-        QCOMPARE(r.ids().size(), expected.size() + 62 + 47 + 54 + 46);
+        QCOMPARE(r.ids().size(), expected.size() + 62 + 47 + 54 + 46 + 23); // 23 du lot 8 (L8-T1)
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
         QVERIFY(r.find(QStringLiteral("pen.width"))->argument == ArgumentKind::Number);

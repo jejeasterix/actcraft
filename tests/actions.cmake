@@ -17,3 +17,8 @@ actcraft_add_test(tst_actions_profile
 actcraft_add_test(tst_actions_lockable
     SOURCES tst_actions_lockable.cpp
     LIBS ActCraft::actions)
+
+# Lot 8 (L8-T1) : talon.
+actcraft_add_test(tst_actions_objectactions
+    SOURCES tst_actions_objectactions.cpp
+    LIBS ActCraft::actions)

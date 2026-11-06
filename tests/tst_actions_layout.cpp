@@ -335,7 +335,8 @@ private slots:
         for (const MenuSpec& s : tools->submenus) {
             submenuIds << s.id;
         }
-        QCOMPARE(submenuIds, (QStringList{"spot", "camera", "math", "other-tools"}));
+        // Lot 8 (L8-T1) : « Enregistreurs » ferme la liste, après « Autres outils ».
+        QCOMPARE(submenuIds, (QStringList{"spot", "camera", "math", "other-tools", "recorders"}));
         QVERIFY(view->items.contains(QStringLiteral("view.page-zoom")));
         QVERIFY(view->items.contains(QStringLiteral("view.page-effects")));
         QVERIFY(insert->items.contains(QStringLiteral("insert.date-time")));
@@ -356,9 +357,11 @@ private slots:
         for (const MenuSpec& m : layout.menus) {
             if (m.id == QLatin1String("tools")) {
                 QCOMPARE(m.items, (QStringList{"desktop.annotate", "desktop.tools", "-", "tool.pen",
-                                               "tool.highlighter", "tool.eraser", "-", "tool.handwriting",
-                                               "tool.shape-recognition", "-", "present.curtain", ">spot",
-                                               ">camera", ">math", ">other-tools",
+                                               "tool.highlighter", "tool.reveal-ink", "tool.eraser", "-",
+                                               "tool.handwriting", "tool.shape-recognition", "-",
+                                               "present.curtain", ">spot", ">camera", ">math", ">other-tools",
+                                               // Lot 8 (L8-T1) : « Enregistreurs » et le lecteur de sons.
+                                               ">recorders", "media.sound-controller",
                                                // Lot 6 (L6-T1) : fin du menu, après « Autres outils ».
                                                "-", "spell.check", "launcher.edit", "classroom.lock",
                                                "classroom.password", "-", "profile.edit"}));
@@ -605,8 +608,9 @@ private slots:
         for (const char* id : {"page.history-back", "page.history-forward", "media.sound-controller"}) {
             QVERIFY2(!registry.find(QString::fromLatin1(id))->lockable, id);
         }
-        for (const char* id : {"tool.reveal-ink", "action.apply", "action.remove", "link.file", "link.website",
-                               "record.sound", "record.screen-full", "insert.web-frame", "file.publish"}) {
+        for (const char* id :
+             {"tool.reveal-ink", "action.apply", "action.remove", "link.file", "link.website", "record.sound",
+              "record.screen-full", "insert.web-frame", "file.publish"}) {
             QVERIFY2(registry.find(QString::fromLatin1(id))->lockable, id);
         }
         QVERIFY(registry.find(QStringLiteral("file.publish"))->restrictable);

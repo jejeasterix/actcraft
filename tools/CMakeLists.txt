@@ -25,5 +25,8 @@ actcraft_add_module(tools
         src/penshapetool.cpp
         include/actcraft/tools/connectortool.h
         src/connectortool.cpp
+        include/actcraft/tools/revealinktool.h
+        src/revealinktool.cpp
+        include/actcraft/tools/interactionpolicy.h
     DEPENDS
         ActCraft::core ActCraft::actions ActCraft::input ActCraft::render Qt6::Concurrent)

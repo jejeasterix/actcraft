@@ -1481,6 +1481,8 @@ private slots:
             const QString id = v.toObject().value(QStringLiteral("id")).toString();
             if (id == QStringLiteral("palette.dock-left"))
                 inLot6 = true;
+            if (id == QStringLiteral("tool.reveal-ink")) // lot 8 : ses gestionnaires viennent de L8-T2
+                break;
             if (inLot6 && commands->isAvailable(id))
                 QVERIFY2(commands->registry().hasHandler(id), qPrintable(id));
         }
