@@ -339,6 +339,7 @@ private slots:
     void soundActionOnMissingFileIsRefused();
     void replacingTheDocumentStopsSoundsAndDropsFiles();
     void extractionWaitsForPlay();
+    void unreadableVideoFallsBackAsStoredFile();
 
 private:
     void wire(ui::ActionRunner& runner, ui::Commands& commands)
@@ -828,6 +829,31 @@ void TstUiMediaitems::extractionWaitsForPlay()
     open(std::move(g));
     QTRY_COMPARE(m_items->rowCount(), 1);
     QVERIFY(!m_items->data(m_items->index(0), MediaItems::SourceRole).toString().isEmpty());
+}
+
+// Revue L8-T25 (majeur, H8-9). Une vidéo illisible part au système comme un fichier rangé dans le paperboard
+// (LinkLauncher::requestStored : nom d'origine, marque « venu d'ailleurs »), pas comme un fichier du disque
+// (request) : la confirmation montre alors le nom d'origine, pas le fichier temporaire de l'extraction.
+void TstUiMediaitems::unreadableVideoFallsBackAsStoredFile()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(clipMp4(), "mp4");
+    d.page(0).objects.push_back(mediaObject(91, key, 50, 50, 320, 240));
+    mediaOf(d, 0).fileName = "ma-video.mp4";
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QVERIFY(m_items->play(91));
+    const QString extracted =
+        QUrl(m_items->data(m_items->index(0), MediaItems::SourceRole).toString()).toLocalFile();
+    QVERIFY(QFileInfo::exists(extracted));
+    QSignalSpy asked(m_links.get(), &ui::LinkLauncher::confirmationNeeded);
+    QSignalSpy refused(m_links.get(), &ui::LinkLauncher::refused);
+    m_items->videoFailed(91);
+    QCOMPARE(refused.count(), 0);
+    QCOMPARE(asked.count(), 1);
+    const QString shown = asked.first().at(0).toString();
+    QVERIFY2(shown.contains(QLatin1String("ma-video.mp4")), qPrintable(shown));
+    QVERIFY2(!shown.contains(extracted), qPrintable(shown));
 }
 
 // Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du
