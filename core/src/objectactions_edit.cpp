@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
@@ -113,35 +114,62 @@ std::string lowered(const std::string& s)
     return out;
 }
 
+// Entités nommées du HTML 4 : Latin-1 (U+00A0 à U+00FF, dans l'ordre des codes), puis les autres courantes.
+// Même lecteur que core/src/spellcheck.cpp (espace de noms anonyme, avec ses positions) : duplication
+// consignée pour la simplification de fin de lot.
+constexpr const char* kLatin1Entities[] = {
+    "nbsp",   "iexcl",  "cent",   "pound",  "curren", "yen",    "brvbar", "sect",   "uml",    "copy",
+    "ordf",   "laquo",  "not",    "shy",    "reg",    "macr",   "deg",    "plusmn", "sup2",   "sup3",
+    "acute",  "micro",  "para",   "middot", "cedil",  "sup1",   "ordm",   "raquo",  "frac14", "frac12",
+    "frac34", "iquest", "Agrave", "Aacute", "Acirc",  "Atilde", "Auml",   "Aring",  "AElig",  "Ccedil",
+    "Egrave", "Eacute", "Ecirc",  "Euml",   "Igrave", "Iacute", "Icirc",  "Iuml",   "ETH",    "Ntilde",
+    "Ograve", "Oacute", "Ocirc",  "Otilde", "Ouml",   "times",  "Oslash", "Ugrave", "Uacute", "Ucirc",
+    "Uuml",   "Yacute", "THORN",  "szlig",  "agrave", "aacute", "acirc",  "atilde", "auml",   "aring",
+    "aelig",  "ccedil", "egrave", "eacute", "ecirc",  "euml",   "igrave", "iacute", "icirc",  "iuml",
+    "eth",    "ntilde", "ograve", "oacute", "ocirc",  "otilde", "ouml",   "divide", "oslash", "ugrave",
+    "uacute", "ucirc",  "uuml",   "yacute", "thorn",  "yuml"};
+constexpr std::pair<const char*, char32_t> kOtherEntities[] = {
+    {"lt", U'<'},          {"gt", U'>'},          {"amp", U'&'},         {"quot", U'"'},
+    {"apos", U'\''},       {"OElig", U'\u0152'},  {"oelig", U'\u0153'},  {"Scaron", U'\u0160'},
+    {"scaron", U'\u0161'}, {"Yuml", U'\u0178'},   {"circ", U'\u02c6'},   {"tilde", U'\u02dc'},
+    {"ensp", U'\u2002'},   {"emsp", U'\u2003'},   {"thinsp", U'\u2009'}, {"ndash", U'\u2013'},
+    {"mdash", U'\u2014'},  {"lsquo", U'\u2018'},  {"rsquo", U'\u2019'},  {"sbquo", U'\u201a'},
+    {"ldquo", U'\u201c'},  {"rdquo", U'\u201d'},  {"bdquo", U'\u201e'},  {"dagger", U'\u2020'},
+    {"Dagger", U'\u2021'}, {"bull", U'\u2022'},   {"hellip", U'\u2026'}, {"permil", U'\u2030'},
+    {"lsaquo", U'\u2039'}, {"rsaquo", U'\u203a'}, {"euro", U'\u20ac'},   {"trade", U'\u2122'},
+    {"minus", U'\u2212'},
+};
+
+// Code d'une entité (sans « & » ni « ; ») ; 0 si elle est inconnue.
+char32_t entityCode(const QString& name)
+{
+    for (std::size_t k = 0; k < std::size(kLatin1Entities); ++k) {
+        if (name == QLatin1String(kLatin1Entities[k])) {
+            return static_cast<char32_t>(0xA0 + k);
+        }
+    }
+    for (const auto& [entity, code] : kOtherEntities) {
+        if (name == QLatin1String(entity)) {
+            return code;
+        }
+    }
+    if (name.size() > 1 && name[0] == u'#') {
+        const bool hex = name[1] == u'x' || name[1] == u'X';
+        bool ok = false;
+        const uint code = name.mid(hex ? 2 : 1).toUInt(&ok, hex ? 16 : 10);
+        return ok && code > 0 && code <= 0x10FFFF ? static_cast<char32_t>(code) : U'\0';
+    }
+    return U'\0';
+}
+
 QString decodedEntities(const QString& s)
 {
-    static const std::pair<const char*, char32_t> kNamed[] = {
-        {"lt", U'<'}, {"gt", U'>'}, {"amp", U'&'}, {"quot", U'"'}, {"apos", U'\''}, {"nbsp", U' '},
-    };
     QString out;
     out.reserve(s.size());
     for (qsizetype i = 0; i < s.size(); ++i) {
         const qsizetype semi = s[i] == u'&' ? s.indexOf(u';', i) : -1;
-        if (semi < 0 || semi - i > 10) {
-            out += s[i];
-            continue;
-        }
-        const QString name = s.mid(i + 1, semi - i - 1);
-        char32_t code = 0;
-        for (const auto& [entity, value] : kNamed) {
-            if (name == QLatin1String(entity)) {
-                code = value;
-            }
-        }
-        if (code == 0 && name.startsWith(u'#')) {
-            bool ok = false;
-            const bool hex = name.startsWith(QLatin1String("#x")) || name.startsWith(QLatin1String("#X"));
-            const uint v = hex ? name.mid(2).toUInt(&ok, 16) : name.mid(1).toUInt(&ok, 10);
-            if (ok && v > 0 && v <= 0x10FFFF) {
-                code = v;
-            }
-        }
-        if (code == 0) {
+        const char32_t code = semi > i && semi - i <= 10 ? entityCode(s.mid(i + 1, semi - i - 1)) : U'\0';
+        if (code == U'\0') {
             out += s[i];
             continue;
         }
@@ -269,23 +297,37 @@ std::pair<int, qsizetype> lineShape(const QString& plain)
     return {lines, longest};
 }
 
-// Emprise estimée d'un texte neuf (core ne mesure pas : aucun QTextDocument) : largeur au prorata des
-// caractères de la ligne la plus longue du texte de départ, hauteur de ses lignes ; l'éditeur la remesure à
-// la validation.
-RectF estimatedBounds(const Text* source, const QString& plain)
+// Mise en forme d'un texte neuf : ce qui ouvre et ferme le texte visible de la cible si elle est un texte, et
+// les tailles d'un caractère et d'une ligne pour estimer son emprise (core ne mesure pas : aucun
+// QTextDocument ; l'exécuteur, L8-T9, ou l'éditeur la remesurent).
+struct TextFormat
 {
+    std::string open = "<p>";
+    std::string close = "</p>";
     double perChar = kCharWidth;
     double perLine = kLineHeight;
-    if (source != nullptr && source->bounds.width > 0 && source->bounds.height > 0) {
-        const auto [lines, longest] = lineShape(scan(source->html).plain);
-        if (lines > 0 && longest > 0) {
-            perChar = source->bounds.width / static_cast<double>(longest);
-            perLine = source->bounds.height / lines;
-        }
+};
+
+// `s` : le parcours du HTML de `source`, fait une fois par l'appelant.
+TextFormat formatOf(const Text& source, const Scan& s)
+{
+    TextFormat f;
+    if (s.first != std::string::npos) {
+        f.open = source.html.substr(0, s.first);
+        f.close = source.html.substr(s.last);
     }
-    const auto [lines, longest] = lineShape(plain);
-    return {0, 0, std::max(1.0, perChar * static_cast<double>(longest)),
-            std::max(1.0, perLine * std::max(1, lines))};
+    const auto [lines, longest] = lineShape(s.plain);
+    if (source.bounds.width > 0 && source.bounds.height > 0 && lines > 0 && longest > 0) {
+        f.perChar = source.bounds.width / static_cast<double>(longest);
+        f.perLine = source.bounds.height / lines;
+    }
+    return f;
+}
+
+TextFormat formatOf(const PageObject& object)
+{
+    const Text* text = asText(object);
+    return text != nullptr ? formatOf(*text, scan(text->html)) : TextFormat{};
 }
 
 QString numberText(double value)
@@ -305,20 +347,34 @@ std::unique_ptr<UndoCommand> setText(const Target& t, const Text& from, std::str
     return std::make_unique<SetTextCommand>(t.context.page, idOf(t), std::move(text));
 }
 
-// Texte neuf sous la cible, mis en forme comme elle si elle est un texte.
-PageObject newText(const Target& t, const QString& plain, std::size_t rank)
+// Textes neufs en colonne sous la cible, sur sa couche ; la colonne remonte si elle sortirait de la page, et
+// chaque texte est borné à la page.
+std::vector<PageObject> newTexts(const Target& t, const TextFormat& f, const QStringList& plains)
 {
-    const Text* source = asText(t.object);
-    Text text;
-    text.html = source != nullptr ? replacedText(source->html, plain) : "<p>" + escaped(plain) + "</p>";
-    text.bounds = estimatedBounds(source, plain);
-    PageObject object{text};
-    object.common.layer = t.object.common.layer;
+    std::vector<PageObject> out;
+    double column = 0;
+    for (const QString& plain : plains) {
+        Text text;
+        text.html = f.open + escaped(plain) + f.close;
+        const auto [lines, longest] = lineShape(plain);
+        text.bounds = {0, 0, std::max(1.0, f.perChar * static_cast<double>(longest)),
+                       std::max(1.0, f.perLine * std::max(1, lines))};
+        column += kDuplicateOffset + text.bounds.height;
+        PageObject object{text};
+        object.common.layer = t.object.common.layer;
+        out.push_back(std::move(object));
+    }
     const RectF box = boundsOnPage(t.page, t.object);
-    const double y = box.y + box.height + kDuplicateOffset * static_cast<double>(rank + 1) +
-                     text.bounds.height * static_cast<double>(rank);
-    object.common.transform = translation(box.x, y);
-    return object;
+    double y = std::min(box.y + box.height, t.context.pageHeight - column);
+    for (PageObject& object : out) {
+        const RectF b = std::get<Text>(body(object)).bounds;
+        y += kDuplicateOffset;
+        const double x = std::clamp(box.x, 0.0, std::max(0.0, t.context.pageWidth - b.width));
+        object.common.transform =
+            translation(x, std::clamp(y, 0.0, std::max(0.0, t.context.pageHeight - b.height)));
+        y += b.height;
+    }
+    return out;
 }
 
 // ---- Superposition, couches, drapeaux, translucidité ----
@@ -407,19 +463,30 @@ std::unordered_map<std::string, Builder> makeTable()
         if (text == nullptr || !value) {
             return nullptr;
         }
+        // Virgule décimale (« 2,5 ») lue, et gardée dans le résultat.
+        QString written = scan(text->html).plain.trimmed();
+        const bool comma = written.contains(u',') && !written.contains(u'.');
+        if (comma) {
+            written.replace(u',', u'.');
+        }
         bool ok = false;
-        const double now = scan(text->html).plain.trimmed().toDouble(&ok);
+        const double now = written.toDouble(&ok);
         if (!ok || !std::isfinite(now) || !std::isfinite(now + *value)) {
             return nullptr;
         }
-        return setText(t, *text, replacedText(text->html, numberText(now + *value)));
+        QString result = numberText(now + *value);
+        if (comma) {
+            result.replace(u'.', u',');
+        }
+        return setText(t, *text, replacedText(text->html, result));
     };
     table["object.new-text"] = [](const Target& t) -> std::unique_ptr<UndoCommand> {
         const std::optional<QString> plain = textParameter(t.parameters, "text");
         if (!plain || plain->trimmed().isEmpty()) {
             return nullptr;
         }
-        return std::make_unique<AddObjectCommand>(t.context.page, newText(t, *plain, 0));
+        return std::make_unique<AddObjectCommand>(
+            t.context.page, std::move(newTexts(t, formatOf(t.object), {*plain}).front()));
     };
     table["object.extract-text"] = [](const Target& t) -> std::unique_ptr<UndoCommand> {
         // Un objet texte par mot, ajoutés en une étape ; le texte de départ reste.
@@ -427,16 +494,13 @@ std::unordered_map<std::string, Builder> makeTable()
         if (text == nullptr) {
             return nullptr;
         }
-        const QStringList list = words(scan(text->html).plain);
+        const Scan s = scan(text->html); // un seul passage du HTML
+        const QStringList list = words(s.plain);
         if (list.isEmpty()) {
             return nullptr;
         }
-        std::vector<PageObject> added;
-        for (const QString& word : list) {
-            added.push_back(newText(t, word, added.size()));
-        }
         return std::make_unique<ReplaceObjectsCommand>(t.context.page, std::vector<ObjectId>{},
-                                                       std::move(added));
+                                                       newTexts(t, formatOf(*text, s), list));
     };
     table["object.clear-annotations"] = [](const Target& t) { return clear(t, ClearKind::Annotations); };
     table["object.clear-background"] = [](const Target& t) { return clear(t, ClearKind::Background); };
