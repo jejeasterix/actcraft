@@ -8,6 +8,7 @@
 #include <actcraft/ui/broadcastgate.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/resourcelibrary.h>
 #include <actcraft/ui/textediting.h>
 #include <actcraft/ui/toolhost.h>
@@ -112,6 +113,7 @@ private slots:
     void triggerShowsTheRefusal();
     void lockAndRestrictionCombine();
     void resourceDragRefused();
+    void pagesDraggedToTabRefused();
     void pageActionStillRuns();
     void objectCopyActionRefused();
     void rulesFollowTheOpenDocument();
@@ -275,6 +277,36 @@ void TstUiBroadcast::resourceDragRefused()
     QCOMPARE(refused.size(), 1);
 }
 
+// Vignettes glissées sur un autre onglet (DocumentTabBar.qml appelle copyPagesToTab hors registre) : les pages
+// d'un document qui interdit la copie ne vont pas dans un document sans règles ; refus signalé (page.copy).
+void TstUiBroadcast::pagesDraggedToTabRefused()
+{
+    Mount m;
+    ui::DocumentTabs tabs;
+    tabs.setCommands(&m.commands);
+    tabs.setDocument(&m.document);
+    core::BroadcastRules noCopy;
+    noCopy.noCopy = true;
+    m.open(documentWith(noCopy));
+    tabs.newTab();
+    QCOMPARE(tabs.rowCount(), 2);
+    tabs.activate(0);
+    QCOMPARE(tabs.currentIndex(), 0);
+    QVERIFY(m.gate.copyRestricted());
+    QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
+    QVERIFY(!tabs.copyPagesToTab({0}, 1));
+    QCOMPARE(refused.size(), 1);
+    QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("page.copy"));
+    QVERIFY(!m.gate.message().isEmpty());
+    QVERIFY(!tabs.isModifiedAt(1)); // aucune page déposée
+
+    m.open(documentWith({}));
+    QVERIFY(!m.gate.copyRestricted());
+    QVERIFY(tabs.copyPagesToTab({0}, 1)); // le montage dépose bien sans règles
+    QVERIFY(tabs.isModifiedAt(1));
+    QCOMPARE(refused.size(), 1);
+}
+
 // Actions de page d'un objet : elles continuent dans un document protégé (V58).
 void TstUiBroadcast::pageActionStillRuns()
 {
@@ -305,12 +337,15 @@ void TstUiBroadcast::objectCopyActionRefused()
     runner.setDocument(&m.document);
     QSignalSpy refusedByRunner(&runner, &ui::ActionRunner::actionRefused);
     m.open(documentWith(copyAndPrint(), {action("object.copy")}));
+    QSignalSpy refused(&m.gate, &ui::BroadcastGate::refused);
     runner.setContactActive(true);
     runner.press(kOnRound, Qt::LeftButton);
     runner.release(kOnRound);
     runner.setContactActive(false);
     QTRY_COMPARE(refusedByRunner.size(), 1);
     QCOMPARE(copies, 0);
+    QCOMPARE(refused.size(), 1); // message de la diffusion (V58), pas seulement le refus du lanceur
+    QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("edit.copy"));
 }
 
 // Ouvrir un document sans règles rouvre tout ; rouvrir un document protégé referme.
