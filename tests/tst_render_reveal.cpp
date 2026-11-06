@@ -15,8 +15,8 @@
 
 using namespace actcraft;
 
-// Lot 8 (L8-T18, F-255, D8-8) : encre révélatrice. Une encre révélatrice visible de la couche du dessus découpe
-// les objets de la couche du dessus placés SOUS elle (avant elle dans la superposition) ; les couches
+// Lot 8 (L8-T18, F-255, D8-8) : encre révélatrice. Une encre révélatrice visible de la couche du dessus
+// découpe les objets de la couche du dessus placés SOUS elle (avant elle dans la superposition) ; les couches
 // intermédiaire et inférieure et le fond restent ; le trait ne se dessine pas. Page 200 x 200, rendu par
 // `paintPage` sur une QImage transparente (une découpe qui percerait la cible entière laisserait un pixel
 // transparent), puis par la page fixe hors écran (même résultat attendu : le cache est un dessin du peintre).
@@ -35,7 +35,10 @@ bool near(QColor a, QColor b, int tolerance)
            std::abs(a.green() - b.green()) <= tolerance && std::abs(a.blue() - b.blue()) <= tolerance;
 }
 
-QColor argb(core::Argb c) { return QColor::fromRgba(c); }
+QColor argb(core::Argb c)
+{
+    return QColor::fromRgba(c);
+}
 
 // Rectangle plein, sans contour, en coordonnées de page.
 core::PageObject rect(core::Layer layer, double x, double y, double w, double h, core::Argb color)
@@ -92,12 +95,15 @@ QImage paint(const core::Page& page)
     return image;
 }
 
-// Page complète des comparaisons : vert et bleu (intermédiaire), cyan (inférieure), rouge, trait, jaune (dessus).
+// Page complète des comparaisons : vert et bleu (intermédiaire), cyan (inférieure), rouge, trait, jaune
+// (dessus).
 core::Page fullPage()
 {
-    return page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen), rect(core::Layer::Middle, 60, 40, 30, 120, kBlue),
-                    rect(core::Layer::Bottom, 150, 20, 40, 160, kCyan), rect(core::Layer::Top, 20, 20, 170, 160, kRed),
-                    revealer(), rect(core::Layer::Top, 100, 40, 30, 120, kYellow)});
+    return page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
+                    rect(core::Layer::Middle, 60, 40, 30, 120, kBlue),
+                    rect(core::Layer::Bottom, 150, 20, 40, 160, kCyan),
+                    rect(core::Layer::Top, 20, 20, 170, 160, kRed), revealer(),
+                    rect(core::Layer::Top, 100, 40, 30, 120, kYellow)});
 }
 
 int medianDifference(const QImage& a, const QImage& b)
@@ -123,8 +129,8 @@ class TstRenderReveal : public QObject
 {
     Q_OBJECT
 private slots:
-    // Sous le trait, la couche intermédiaire (vert) et la couche inférieure (cyan) apparaissent ; entre les deux,
-    // le fond blanc reste opaque : seule la couche du dessus est percée.
+    // Sous le trait, la couche intermédiaire (vert) et la couche inférieure (cyan) apparaissent ; entre les
+    // deux, le fond blanc reste opaque : seule la couche du dessus est percée.
     void revealsMiddleLayer()
     {
         const QImage image = paint(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
@@ -137,8 +143,8 @@ private slots:
         QVERIFY2(near(image.pixelColor(40, 150), argb(kRed), 8), "hors du trait : le dessus reste");
     }
 
-    // Un objet de la couche intermédiaire placé avant le trait dans la liste n'est pas découpé : la découpe suit
-    // la couche, pas l'ordre de la liste.
+    // Un objet de la couche intermédiaire placé avant le trait dans la liste n'est pas découpé : la découpe
+    // suit la couche, pas l'ordre de la liste.
     void onlyTopObjectsBelowIt()
     {
         const QImage image = paint(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
@@ -152,9 +158,9 @@ private slots:
     // Un objet du dessus placé après le trait reste entier.
     void objectAboveItStays()
     {
-        const QImage image =
-            paint(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen), rect(core::Layer::Top, 20, 20, 170, 160, kRed),
-                           revealer(), rect(core::Layer::Top, 100, 40, 30, 120, kYellow)}));
+        const QImage image = paint(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
+                                            rect(core::Layer::Top, 20, 20, 170, 160, kRed), revealer(),
+                                            rect(core::Layer::Top, 100, 40, 30, 120, kYellow)}));
         QVERIFY2(near(image.pixelColor(115, 100), argb(kYellow), 8), "le jaune au-dessus du trait reste");
         QVERIFY2(near(image.pixelColor(40, 100), argb(kGreen), 8), "le rouge sous le trait est découpé");
     }
@@ -162,7 +168,8 @@ private slots:
     // Le trait ne se dessine pas : aucun pixel de sa couleur, même sans objet du dessus à découper.
     void noOwnPaint()
     {
-        const QImage image = paint(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen), revealer()}));
+        const QImage image =
+            paint(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen), revealer()}));
         int inked = 0;
         for (int y = 0; y < image.height(); ++y) {
             for (int x = 0; x < image.width(); ++x) {
@@ -174,8 +181,8 @@ private slots:
         QVERIFY2(near(image.pixelColor(15, 100), Qt::white, 8), "le fond sous le trait");
     }
 
-    // Trait déplacé de 50 px vers le bas (transformation de l'objet, comme le déplacement par la sélection) : la
-    // découpe suit.
+    // Trait déplacé de 50 px vers le bas (transformation de l'objet, comme le déplacement par la sélection) :
+    // la découpe suit.
     void movingMovesTheHole()
     {
         const QImage image = paint(page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
@@ -205,8 +212,8 @@ private slots:
         QCOMPARE(page->cachedObjectCount(), std::size_t{1});
     }
 
-    // Même page par le peintre et par la page fixe hors écran : écart médian <= 2 sur 255, et la découpe est bien
-    // dans la page fixe (le médian seul ne verrait pas une bande de 40 px absente).
+    // Même page par le peintre et par la page fixe hors écran : écart médian <= 2 sur 255, et la découpe est
+    // bien dans la page fixe (le médian seul ne verrait pas une bande de 40 px absente).
     void softwareAndRhiAgree()
     {
         const core::Page source = fullPage();
@@ -240,13 +247,15 @@ private slots:
         QVERIFY2(near(fixed.pixelColor(40, 100), argb(kGreen), 8), "page fixe : découpe sous le trait");
         QVERIFY2(near(fixed.pixelColor(75, 100), argb(kBlue), 8), "page fixe : intermédiaire gardé");
         QVERIFY2(near(fixed.pixelColor(170, 100), argb(kCyan), 8), "page fixe : inférieure révélée");
-        QVERIFY2(near(fixed.pixelColor(115, 100), argb(kYellow), 8), "page fixe : dessus après le trait gardé");
+        QVERIFY2(near(fixed.pixelColor(115, 100), argb(kYellow), 8),
+                 "page fixe : dessus après le trait gardé");
         const int median = medianDifference(opaque, fixed);
         QVERIFY2(median <= 2, qPrintable(QStringLiteral("écart médian %1").arg(median)));
 
         const auto api = window.rendererInterface()->graphicsApi();
         if (api == QSGRendererInterface::Software) {
-            QSKIP("Chemin RHI indisponible hors écran ici : comparaison faite au graphe logiciel de la page fixe ; "
+            QSKIP("Chemin RHI indisponible hors écran ici : comparaison faite au graphe logiciel de la page "
+                  "fixe ; "
                   "le chemin RHI se compare sur le PC.");
         }
     }
