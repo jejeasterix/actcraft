@@ -1,5 +1,8 @@
 #include <actcraft/ui/broadcastgate.h>
 
+#include <QKeyEvent>
+#include <QQuickTextDocument>
+
 #include <string_view>
 
 namespace actcraft::ui {
@@ -64,6 +67,70 @@ void BroadcastGate::setDocument(DocumentController* document)
     }
     emit wiringChanged();
     apply();
+}
+
+TextEditing* BroadcastGate::textEditing() const noexcept
+{
+    return m_textEditing.data();
+}
+
+void BroadcastGate::setTextEditing(TextEditing* editing)
+{
+    if (m_textEditing == editing) {
+        return;
+    }
+    QObject::disconnect(m_textConnection);
+    m_textEditing = editing;
+    if (m_textEditing) {
+        m_textConnection =
+            connect(m_textEditing, &TextEditing::wiringChanged, this, &BroadcastGate::watchTextField);
+    }
+    watchTextField();
+    emit wiringChanged();
+}
+
+// Chaque document du texte a pour parent le TextEdit qui le porte : le filtre ne voit que leurs événements.
+void BroadcastGate::watchTextField()
+{
+    QQuickTextDocument* documents[2] = {m_textEditing ? m_textEditing->textDocument() : nullptr,
+                                        m_textEditing ? m_textEditing->columnDocument() : nullptr};
+    for (std::size_t i = 0; i < m_textFields.size(); ++i) {
+        QObject* field = documents[i] ? documents[i]->parent() : nullptr;
+        if (field == m_textFields[i]) {
+            continue;
+        }
+        if (m_textFields[i]) {
+            m_textFields[i]->removeEventFilter(this);
+        }
+        m_textFields[i] = field;
+        if (field) {
+            field->installEventFilter(this);
+        }
+    }
+}
+
+bool BroadcastGate::eventFilter(QObject* watched, QEvent* event)
+{
+    const bool watchedField =
+        watched != nullptr && (watched == m_textFields[0] || watched == m_textFields[1]);
+    if (!watchedField || !m_rules.noCopy ||
+        (event->type() != QEvent::ShortcutOverride && event->type() != QEvent::KeyPress)) {
+        return QObject::eventFilter(watched, event);
+    }
+    auto* key = static_cast<QKeyEvent*>(event);
+    const bool copy = key->matches(QKeySequence::Copy);
+    const bool cut = key->matches(QKeySequence::Cut);
+    if (!copy && !cut) {
+        return QObject::eventFilter(watched, event);
+    }
+    if (event->type() == QEvent::ShortcutOverride) {
+        // Pris par le champ, comme il le ferait : aucun raccourci de la fenêtre ne part ; l'appui suit,
+        // refusé.
+        event->accept();
+        return true;
+    }
+    onRefused(copy ? QStringLiteral("edit.copy") : QStringLiteral("edit.cut"));
+    return true;
 }
 
 bool BroadcastGate::active() const noexcept

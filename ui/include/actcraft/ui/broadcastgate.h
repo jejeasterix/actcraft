@@ -4,12 +4,15 @@
 #include <actcraft/core/broadcast.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/textediting.h>
 
 #include <QObject>
 #include <QPointer>
 #include <QSet>
 #include <QString>
 #include <QtQml/qqmlregistration.h>
+
+#include <array>
 
 namespace actcraft::ui {
 
@@ -24,6 +27,11 @@ class BroadcastGate : public QObject
     Q_PROPERTY(actcraft::ui::Commands* commands READ commands WRITE setCommands NOTIFY wiringChanged)
     Q_PROPERTY(
         actcraft::ui::DocumentController* document READ document WRITE setDocument NOTIFY wiringChanged)
+    // Champs de texte de la page (TextEditor.qml) : Copier et Couper du clavier, hors commande, y sont
+    // refusés quand la copie est interdite (filtre posé sur les seuls éléments qui portent les documents du
+    // texte).
+    Q_PROPERTY(
+        actcraft::ui::TextEditing* textEditing READ textEditing WRITE setTextEditing NOTIFY wiringChanged)
     Q_PROPERTY(bool active READ active NOTIFY rulesChanged)
     Q_PROPERTY(bool copyRestricted READ copyRestricted NOTIFY rulesChanged)
     Q_PROPERTY(bool saveRestricted READ saveRestricted NOTIFY rulesChanged)
@@ -38,6 +46,8 @@ public:
     void setCommands(Commands* commands);
     DocumentController* document() const noexcept;
     void setDocument(DocumentController* document);
+    TextEditing* textEditing() const noexcept;
+    void setTextEditing(TextEditing* editing);
 
     bool active() const noexcept;
     bool copyRestricted() const noexcept;
@@ -59,8 +69,12 @@ signals:
     void rulesChanged();
     void refused(const QString& id, const QString& message);
 
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
 private:
     void apply();
+    void watchTextField();
     void onRefused(const QString& id);
 
     QPointer<Commands> m_commands;
@@ -69,6 +83,9 @@ private:
     QString m_message;
     QMetaObject::Connection m_documentConnection;
     QMetaObject::Connection m_commandsConnection;
+    QPointer<TextEditing> m_textEditing;
+    std::array<QPointer<QObject>, 2> m_textFields; // champ horizontal, colonne verticale
+    QMetaObject::Connection m_textConnection;
 };
 
 } // namespace actcraft::ui
