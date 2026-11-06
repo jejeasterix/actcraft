@@ -641,8 +641,8 @@ private slots:
         QTRY_VERIFY(!s.view->inputBlocked());
     }
 
-    // L8-C7 : les refus de l'exécuteur d'actions, du navigateur d'actions, du glisser-déposer et de l'insertion
-    // de média arrivent à la bannière de la fenêtre (avant, aucun abonné).
+    // L8-C7 : les refus de l'exécuteur d'actions, du navigateur d'actions, du glisser-déposer et de
+    // l'insertion de média arrivent à la bannière de la fenêtre (avant, aucun abonné).
     void refusalsReachTheBanner()
     {
         Shell s;
@@ -673,13 +673,14 @@ private slots:
             QObject* emitter = s.window->findChild<QObject*>(QString::fromLatin1(source.object));
             QVERIFY2(emitter, source.object);
             QMetaObject::invokeMethod(banner, "dismiss");
-            QVERIFY(QMetaObject::invokeMethod(emitter, source.signal, Q_ARG(QString, QString::fromUtf8(source.text))));
+            QVERIFY(QMetaObject::invokeMethod(emitter, source.signal,
+                                              Q_ARG(QString, QString::fromUtf8(source.text))));
             QCOMPARE(banner->property("message").toString(), QString::fromUtf8(source.text));
         }
     }
 
-    // L8-C7 : le lecteur de sons prend l'appui du stylet (couverture d'entrée, patron de DragDropActions) : un
-    // trait commencé sur son bouton d'arrêt ou sur son texte ne dessine rien derrière.
+    // L8-C7 : le lecteur de sons prend l'appui du stylet (couverture d'entrée, patron de DragDropActions) :
+    // un trait commencé sur son bouton d'arrêt ou sur son texte ne dessine rien derrière.
     void soundStopButtonCoversThePageInput()
     {
         Shell s;
@@ -706,8 +707,9 @@ private slots:
         }
     }
 
-    // L8-C7 : « Enregistrer les modifications ? » de Quitter passe par file.save du registre, comme la croix d'un
-    // onglet : sous le verrou de classe il est refusé, rien n'est enregistré (ni dialogue ouvert), la question reste.
+    // L8-C7 : « Enregistrer les modifications ? » de Quitter passe par file.save du registre, comme la croix
+    // d'un onglet : sous le verrou de classe il est refusé, rien n'est enregistré (ni dialogue ouvert), la
+    // question reste.
     void quitSaveGoesThroughTheRegistry()
     {
         Shell s;
