@@ -325,7 +325,7 @@ Outils de l'orchestrateur (hors dépôt, `~/pilotage-mac/`) : `wt-lot8.sh <id>` 
 Suite de la tête 62fc5288 (L8-T0 à T6, C0 mergées ; orchestrateur, 2026-11-06) : 229/229, 0 avertissement. Deux agents écrivent en parallèle, le jeton sérialise les constructions (P = 1).
 Référence de la tête après L8-T21 : 245 tests (N8 + 37).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
-Tâche : L8-T27 — enregistreur d'écran (8b, Windows ; écrit sur le Mac, preuve par la CI) — depuis 2026-11-06
+Tâche : L8-T27 — enregistreur d'écran (8b, Windows ; essai 2 : 3 majeurs de la revue — fin du MP4 par le moteur, opt-in `ACTCRAFT_TEST_ECRAN`, cadence 30 i/s et découpe sans `toImage`) — depuis 2026-11-06
 Tâche : L8-T25 — médias sur la page (8b ; reprise sous H8-17) — depuis 2026-11-06
 Tâche : L8-T30 — cadre web (8b, correctifs de la 2e revue : 1 bloquant, valeurs d'attribut en RCDATA/RAWTEXT ; réécriture hors du fil de l'interface) — depuis 2026-11-06
 
