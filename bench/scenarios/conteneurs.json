@@ -21,6 +21,7 @@
     {"pointer": [[150, 200], [350, 275], [550, 350]], "space": "page"},
     {"waitReady": true},
     {"checkPixel": "contenu-accepte", "at": [550, 350], "color": "#FF0000", "tolerance": 40},
+    {"expect": "documentController.canUndo", "value": true},
     {"capture": "contenu"}
   ]
 }

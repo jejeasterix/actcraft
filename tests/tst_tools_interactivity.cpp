@@ -479,6 +479,166 @@ private slots:
         QCOMPARE(r.accepted.front().container, kBasket);
         QVERIFY(r.accepted.front().chime);
     }
+
+    // Le test qui distingue (revue L8-T16, point 1) : en multi-sélection, un objet à rotation réglée (bloquée,
+    // à sens, à pas ou à pivot décentré) retire le bouton de rotation de la barre, comme un objet non
+    // pivotable ; tiré à l'endroit où il serait, rien ne tourne. Mode conception : la sélection tourne.
+    void multiSelectionRefusesRuledRotation()
+    {
+        const auto fixed = [](core::Restrictions& r) { r.turning = core::Turning::Fixed; };
+        const auto clockwise = [](core::Restrictions& r) { r.turning = core::Turning::Clockwise; };
+        const auto stepped = [](core::Restrictions& r) { r.turnStep = 45; };
+        const auto pivoted = [](core::Restrictions& r) { r.pivot = core::Mark::TopLeft; };
+        const std::vector<void (*)(core::Restrictions&)> rules{fixed, clockwise, stepped, pivoted};
+        for (std::size_t k = 0; k < rules.size(); ++k) {
+            Rig r;
+            FakePolicy policy;
+            r.tool.setInteractionPolicy(&policy);
+            core::PageObject ruled = rectangle(1, 100, 100, 100, 100);
+            rules[k](ruled.common.restrictions);
+            r.page().objects.push_back(std::move(ruled));
+            r.page().objects.push_back(rectangle(2, 300, 100, 100, 100));
+            const core::PointF centre{250, 150}; // centre du cadre des deux
+            const auto turnBy = [&](core::PointF button, double degrees) {
+                const auto at = [&](double d) { return core::rotationAbout(centre, d).map(button); };
+                r.press(button.x, button.y);
+                r.move(at(degrees / 2).x, at(degrees / 2).y);
+                r.move(at(degrees).x, at(degrees).y);
+                r.release(at(degrees).x, at(degrees).y);
+            };
+            policy.restrictions = false;
+            r.user.setSelection({1, 2});
+            r.tool.refresh();
+            const core::PointF spot = r.barSpot(QStringLiteral("object.rotate"));
+            QVERIFY2(spot.x > -1e8, qPrintable(QString::number(k)));
+            policy.restrictions = true;
+            r.tool.refresh();
+            QVERIFY2(r.barSpot(QStringLiteral("object.rotate")).x < -1e8, qPrintable(QString::number(k)));
+            QVERIFY(r.barSpot(QStringLiteral("object.enlarge")).x > -1e8); // la barre reste
+            turnBy(spot, 30);
+            QVERIFY2(closeTo(angleOf(r.editor.find(1)->common.transform), 0, 1e-6),
+                     qPrintable(QString::number(k)));
+            QVERIFY2(closeTo(angleOf(r.editor.find(2)->common.transform), 0, 1e-6),
+                     qPrintable(QString::number(k)));
+            policy.restrictions = false;
+            r.user.setSelection({1, 2});
+            r.tool.refresh();
+            turnBy(spot, 30);
+            QVERIFY2(closeTo(angleOf(r.editor.find(1)->common.transform), 30, 1e-6),
+                     qPrintable(QString::number(k)));
+            QVERIFY(closeTo(angleOf(r.editor.find(2)->common.transform), 30, 1e-6));
+        }
+    }
+
+    // Revue L8-T16, point 2 : la page d'essai n'est construite qu'au relâché, une fois par geste à règle ;
+    // jamais pendant les mouvements, jamais sans règle.
+    void probePageBuiltOnlyAtRelease()
+    {
+        Rig r;
+        r.basket();
+        core::PageObject wall = rectangle(30, 600, 400, 20, 100);
+        wall.common.restrictions.blocksOthers = true;
+        r.page().objects.push_back(std::move(wall));
+        r.dragTo(70, 220, 400, 200, 6);
+        QCOMPARE(r.tool.probePagesBuilt(), std::size_t(0));
+        r.release(400, 200);
+        QCOMPARE(r.tool.probePagesBuilt(), std::size_t(1));
+        QCOMPARE(r.editor.calls, (std::vector<std::string>{"lift", "drop:null"})); // le retour reste exact
+        r.dragTo(70, 70, 400, 200, 6);
+        QCOMPARE(r.tool.probePagesBuilt(), std::size_t(1));
+        r.release(400, 200);
+        QCOMPARE(r.tool.probePagesBuilt(), std::size_t(2));
+        QCOMPARE(r.accepted.size(), std::size_t(1));
+
+        Rig plain; // sans règle : aucune page d'essai
+        plain.page().objects.push_back(rectangle(1, 100, 100, 50, 50));
+        plain.drag(125, 125, 225, 205, 4);
+        QCOMPARE(plain.tool.probePagesBuilt(), std::size_t(0));
+        QVERIFY(closePoint(plain.centre(1), 225, 205));
+    }
+
+    // Revue L8-T16, point 3 : l'aimantation passe par les limiteurs et les bloquants, et un dépôt accepté reste
+    // dans son conteneur, même si le point d'aimantation (Mark::Point) est ailleurs.
+    void magnetObeysRulesAndContainer()
+    {
+        {
+            Rig r; // aimant hors du panier : la pomme acceptée reste dans le panier
+            r.basket();
+            core::Restrictions& apple = r.page().objects[1].common.restrictions;
+            apple.magnet = true;
+            apple.magnetMark = core::Mark::Point;
+            apple.magnetPoint = {700, 500};
+            r.drag(70, 70, 400, 200, 4);
+            const core::PointF c = r.centre(kApple);
+            const core::RectF basket = r.bounds(kBasket);
+            QVERIFY2(c.x > basket.x && c.x < basket.x + basket.width && c.y > basket.y &&
+                         c.y < basket.y + basket.height,
+                     qPrintable(QString::number(c.x) + QLatin1Char(',') + QString::number(c.y)));
+            QCOMPARE(r.editor.dropped.size(), std::size_t(1));
+            QCOMPARE(r.accepted.size(), std::size_t(1));
+            QCOMPARE(r.accepted.front().container, kBasket);
+        }
+        {
+            Rig r; // aimant dans le panier : la pomme s'y pose
+            r.basket();
+            core::Restrictions& apple = r.page().objects[1].common.restrictions;
+            apple.magnet = true;
+            apple.magnetMark = core::Mark::Point;
+            apple.magnetPoint = {450, 250};
+            r.drag(70, 70, 400, 200, 4);
+            QVERIFY(closePoint(r.centre(kApple), 450, 250));
+            QCOMPARE(r.accepted.size(), std::size_t(1));
+        }
+        {
+            Rig r; // déplacement horizontal : l'aimant ne change pas y
+            core::PageObject object = rectangle(1, 50, 50, 40, 40);
+            object.common.restrictions.travel = core::Travel::Horizontal;
+            object.common.restrictions.magnet = true;
+            object.common.restrictions.magnetMark = core::Mark::Point;
+            object.common.restrictions.magnetPoint = {400, 300};
+            r.page().objects.push_back(std::move(object));
+            r.drag(70, 70, 200, 70, 4);
+            const core::PointF c = r.centre(1);
+            QVERIFY2(closePoint(c, 400, 70),
+                     qPrintable(QString::number(c.x) + QLatin1Char(',') + QString::number(c.y)));
+        }
+        {
+            Rig r; // un mur entre le dépôt et l'aimant : l'objet s'arrête au contact
+            core::PageObject object = rectangle(1, 50, 50, 40, 40);
+            object.common.restrictions.magnet = true;
+            object.common.restrictions.magnetMark = core::Mark::Point;
+            object.common.restrictions.magnetPoint = {500, 70};
+            r.page().objects.push_back(std::move(object));
+            core::PageObject wall = rectangle(30, 300, 0, 20, 200);
+            wall.common.restrictions.blocksOthers = true;
+            r.page().objects.push_back(std::move(wall));
+            r.drag(70, 70, 200, 70, 4);
+            QVERIFY2(closeTo(r.bounds(1).x, 260), qPrintable(QString::number(r.bounds(1).x)));
+        }
+    }
+
+    // Revue L8-T16, point 6 : les flèches du clavier ne déplacent pas la sélection (SelectTool::onKey ne
+    // connaît qu'Échap et Suppr) ; elles ne contournent donc ni limiteur ni bloquant. Garde-fou si elles
+    // viennent un jour : un objet fixe ou vertical ne bouge pas de travers.
+    void arrowKeysDoNotBypassRules()
+    {
+        Rig r;
+        core::PageObject still = rectangle(1, 100, 100, 50, 50);
+        still.common.restrictions.travel = core::Travel::Fixed;
+        r.page().objects.push_back(std::move(still));
+        core::PageObject upright = rectangle(2, 300, 100, 50, 50);
+        upright.common.restrictions.travel = core::Travel::Vertical;
+        r.page().objects.push_back(std::move(upright));
+        r.user.setSelection({1, 2});
+        r.tool.refresh();
+        for (const int key : {int(Qt::Key_Right), int(Qt::Key_Left), int(Qt::Key_Up), int(Qt::Key_Down)}) {
+            r.tool.onKey(key, 0);
+            r.tool.onKey(key, int(Qt::ShiftModifier));
+        }
+        QVERIFY(closePoint(r.centre(1), 125, 125));
+        QVERIFY(closeTo(r.centre(2).x, 325));
+        QCOMPARE(r.editor.executes, 0);
+    }
 };
 
 QTEST_GUILESS_MAIN(TstToolsInteractivity)

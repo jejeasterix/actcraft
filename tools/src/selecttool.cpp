@@ -414,6 +414,11 @@ void SelectTool::setContainerAccepted(ContainerAccepted callback)
     m_containerAccepted = std::move(callback);
 }
 
+std::size_t SelectTool::probePagesBuilt() const noexcept
+{
+    return m_probePagesBuilt;
+}
+
 bool SelectTool::restrictionsOn() const noexcept
 {
     return m_policy == nullptr || m_policy->restrictionsEnabled();
@@ -461,6 +466,7 @@ void SelectTool::prepareRules(const core::Page& page, const std::vector<core::Ob
     }
     if (m_probeBlockers || containers || magnet || !m_limited.empty()) {
         m_probe = page;
+        ++m_probePagesBuilt;
     } else {
         m_limited.clear();
     }

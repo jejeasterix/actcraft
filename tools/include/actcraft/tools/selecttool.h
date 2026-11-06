@@ -47,6 +47,9 @@ public:
     // L8-T25). Appelé une fois, après le dépôt.
     using ContainerAccepted = std::function<void(core::ObjectId container, bool chime)>;
     void setContainerAccepted(ContainerAccepted callback);
+    // Mesure (tests, banc) : pages d'essai construites depuis la création de l'outil. Au plus une par geste,
+    // au relâché d'un glisser soumis à une règle ; aucune pendant les mouvements (fluidité).
+    std::size_t probePagesBuilt() const noexcept;
 
 private:
     enum class State : std::uint8_t
@@ -143,6 +146,7 @@ private:
     double m_turnBase = 0;              // angle de l'objet au départ (degrés)
     double m_turnFrom = 0;              // dernier angle permis (allowedTurn)
     core::PointF m_pivot;               // pivot de la rotation à règle (page)
+    std::size_t m_probePagesBuilt = 0;  // probePagesBuilt()
 };
 
 } // namespace actcraft::tools
