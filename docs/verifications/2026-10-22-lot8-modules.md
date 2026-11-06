@@ -9,7 +9,7 @@ Pas de repli (L8-C1, L8-T21r… ne se font pas). Aucun module Qt WebEngine n'est
 
 - `ci.yml` (5 lignes `aqt install-qt` : Windows, kit macOS `clang_64` de la matrice, Linux, Android arm64 et x86_64) et
   `release.yml` (3 lignes : Windows, Linux, Android arm64) : `-m … qtmultimedia qtwebview`. YAML valide (ruby).
-  `release.yml` n'installe pas `android_x86_64` : inchangé. `preuves-windows.yml` n'a pas été touché (hors périmètre).
+  `release.yml` n'installe pas `android_x86_64` : inchangé. `preuves-windows.yml` installe aussi `qtmultimedia` et `qtwebview` (c28ababf).
 - `CLAUDE.md` : ligne d'installation du poste.
 - `packaging/qt-autorises.txt` : `Qt6Multimedia`, `Qt6MultimediaQuick`, `Qt6WebView`, `Qt6WebViewQuick`. Licence lue
   dans les en-têtes SPDX de Qt 6.12.0 (Homebrew) : `LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`.
