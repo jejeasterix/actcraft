@@ -229,8 +229,8 @@ jobs:
 
   # S1 : installateur construit et essayé, jamais téléversé (DA9).
   # Reste sur windows-latest : l'essai S1 installe ActCraft dans le profil de l'utilisateur (HKCU, menu Démarrer,
-  # association .actcraft) et ouvre une fenêtre ; sur le PC, ce serait le profil et l'écran de Jérôme. Le job tient
-  # dans ses 25 min.
+  # association .actcraft) et ouvre une fenêtre ; sur le PC, ce serait le profil et l'écran de Jérôme. Son délai de
+  # 25 min est dépassé depuis le 2026-11-06 (runs 42172283244 à 42203688470) : à traiter à part.
   paquet-windows:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: windows-latest
