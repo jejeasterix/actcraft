@@ -81,22 +81,28 @@ private slots:
 
     // Le genre de l'action ne choisit pas l'identifiant : seule la paire (genre, commande) de la table le
     // fait. Une commande absente de la table garde son numéro et sa cible, sans identifiant (« action non
-    // prise en charge »), même dans un genre dont une autre commande est connue (ouverture : 270).
+    // prise en charge »), même dans un genre dont une autre commande est connue (ouverture : 270), et une
+    // commande connue dans un genre ne vaut pas dans un autre (184 en ouverture, 270 sur objet). Aucun
+    // avertissement.
     void unknownCommandKeptWithoutId()
     {
         using fctest::synth::io;
         const auto r =
             readPage({Node(1010, 7, 1011), Node(1012, 28, 1013), Node(1014, 26, 1015), Node(1016, 26, 1017),
-                      Node(1018, 7, 1019)},
+                      Node(1020, 26, 1021), Node(1022, 28, 1023), Node(1018, 7, 1019)},
                      {io(1011, shape(1011, "Declencheur", 1)),
                       io(1013, fctest::synth::objectAction(1013, 9999, 1018, 1019, 7)),
                       io(1015, fctest::synth::openFileAction(1015, 9999)),
-                      io(1017, fctest::synth::openFileAction(1017, 270)), io(1019, shape(1019, "Cible", 2))});
+                      io(1017, fctest::synth::openFileAction(1017, 270)),
+                      io(1021, fctest::synth::openFileAction(1021, 184)),
+                      io(1023, fctest::synth::objectAction(1023, 270, 1018, 1019, 7)),
+                      io(1019, shape(1019, "Cible", 2))});
         QVERIFY2(r.ok, qPrintable(r.error));
+        QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n')));
         const auto& objects = r.document.page(0).objects;
         QCOMPARE(objects.size(), std::size_t{2});
         const std::vector<core::Action>& actions = objects[0].common.actions;
-        QCOMPARE(actions.size(), std::size_t{3});
+        QCOMPARE(actions.size(), std::size_t{5});
 
         const core::Action& onObject = actions[0];
         QCOMPARE(onObject.kind, core::ActionKind::OnObject);
@@ -118,6 +124,17 @@ private slots:
         QCOMPARE(open.command, 270);
         QCOMPARE(str(open.catalogId), u"document.open-file"_s);
         QVERIFY(core::isSupported(open));
+
+        const core::Action& openWithObjectCommand = actions[3];
+        QCOMPARE(openWithObjectCommand.kind, core::ActionKind::OpenExternal);
+        QCOMPARE(openWithObjectCommand.command, 184);
+        QVERIFY(openWithObjectCommand.catalogId.empty());
+
+        const core::Action& objectWithOpenCommand = actions[4];
+        QCOMPARE(objectWithOpenCommand.kind, core::ActionKind::OnObject);
+        QCOMPARE(objectWithOpenCommand.command, 270);
+        QVERIFY(objectWithOpenCommand.catalogId.empty());
+        QCOMPARE(objectWithOpenCommand.target, objects[1].common.id);
     }
 
     // Les booléens du lot 2 restent la source du « bloqué » : le lecteur les lit, puis tient les modes
@@ -149,12 +166,13 @@ private slots:
         QVERIFY(core::isDefault(free));
     }
 
-    // Encre de type 2 : encre révélatrice, posée sur la couche du dessus.
+    // Encre de type 2 : encre révélatrice ; sa couche est lue telle quelle (1 : intermédiaire), le lecteur
+    // n'en invente pas.
     void revealInkRead()
     {
         using fctest::synth::io;
         using fctest::synth::ir;
-        Obj stroke = fctest::synth::item(3, 1011, "Encre", 2, 1, fctest::synth::place(10, 10));
+        Obj stroke = fctest::synth::item(3, 1011, "Encre", 1, 1, fctest::synth::place(10, 10));
         stroke.object(10, 6, Obj(20, 0).integer(2, 2).real(3, 6).integer(5, 32).argb(7, kBlack))
             .integer(39, 2201);
         const auto r = readPage({Node(1010, 3, 1011)}, {io(1011, stroke)},
@@ -166,7 +184,7 @@ private slots:
         const auto* s = std::get_if<core::Stroke>(&objects[0]);
         QVERIFY(s);
         QCOMPARE(s->kind, core::StrokeKind::Revealer);
-        QCOMPARE(objects[0].common.layer, core::Layer::Top);
+        QCOMPARE(objects[0].common.layer, core::Layer::Middle);
     }
 
     // Aucun identifiant au préfixe des noms de l'original dans nos numéros du format.
