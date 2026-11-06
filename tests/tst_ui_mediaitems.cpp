@@ -4,6 +4,7 @@
 // Données écrites par nous : vidéo H.264 de 3 s (64 × 48, 10 images/s, damier qui glisse, AVAssetWriter),
 // sons WAV et GIF de deux images produits ici.
 #include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/media/player.h>
 #include <actcraft/render/fixedpageitem.h>
@@ -350,6 +351,8 @@ private slots:
     void stopSoundDuringTheWriteCancelsIt();
     void pageChangeDuringTheWriteCancelsAutoSound();
     void soundFailureIsNotAnUnsupportedAction();
+    void addingAMediaKeepsThePlayingVideoDelegate();
+    void removingAMediaKeepsThePlayingVideoDelegate();
 
 private:
     void wire(ui::ActionRunner& runner, ui::Commands& commands)
@@ -1101,6 +1104,80 @@ void TstUiMediaitems::soundFailureIsNotAnUnsupportedAction()
     const QString text = refused.first().at(0).toString();
     QVERIFY2(!text.contains(QLatin1String("Action non prise en charge")), qPrintable(text));
     QVERIFY2(text.contains(QLatin1String("format illisible")), qPrintable(text));
+}
+
+// Mise à jour par identifiant : une vidéo en lecture garde son délégué quand un autre média arrive. Sous la
+// remise à zéro du modèle (beginResetModel), le Repeater détruit tous ses délégués : le délégué neuf n'a ni
+// la marque posée ici, ni son lecteur armé, et l'index persistant de la ligne de la vidéo est invalidé.
+void TstUiMediaitems::addingAMediaKeepsThePlayingVideoDelegate()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(clipMp4(), "mp4");
+    const std::string tone = d.addResource(toneWav(400), "wav");
+    d.page(0).objects.push_back(mediaObject(11, key, 50, 50, 320, 240));
+    open(std::move(d));
+    QVERIFY(m_scene->mount(*m_controller, *m_items));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QVERIFY(m_items->play(11));
+    QQuickItem* before = nullptr;
+    QTRY_VERIFY((before = m_scene->item(QStringLiteral("mediaFrame-11"))) != nullptr);
+    QTRY_VERIFY_WITH_TIMEOUT(before->property("armed").toBool(), 5000);
+    QObject* playerBefore = before->property("mediaPlayer").value<QObject*>();
+    QVERIFY(playerBefore);
+    before->setProperty("marqueDuDelegue", 42);
+    const QPersistentModelIndex row(m_items->index(0));
+    QPointer<QQuickItem> guard(before);
+    QSignalSpy resets(m_items.get(), &QAbstractItemModel::modelReset);
+    QSignalSpy inserted(m_items.get(), &QAbstractItemModel::rowsInserted);
+
+    m_controller->execute(std::make_unique<core::AddObjectCommand>(0, mediaObject(0, tone, 450, 50, 64, 64)));
+    QTRY_COMPARE(m_items->rowCount(), 2);
+    QTest::qWait(50); // les délégués détruits par une remise à zéro partent à la boucle suivante
+
+    QCOMPARE(resets.count(), 0);
+    QCOMPARE(inserted.count(), 1);
+    QVERIFY2(row.isValid(), "la ligne de la vidéo doit survivre à l'ajout d'une autre");
+    QCOMPARE(m_items->data(row, MediaItems::IdRole).toULongLong(), 11ULL);
+    QVERIFY2(!guard.isNull(), "le délégué de la vidéo a été détruit");
+    QQuickItem* after = m_scene->item(QStringLiteral("mediaFrame-11"));
+    QCOMPARE(after, before);
+    QCOMPARE(after->property("marqueDuDelegue").toInt(), 42);
+    QVERIFY(after->property("armed").toBool());
+    QCOMPARE(after->property("mediaPlayer").value<QObject*>(), playerBefore);
+}
+
+// Même invariant au retrait d'un autre média : seule la ligne retirée disparaît.
+void TstUiMediaitems::removingAMediaKeepsThePlayingVideoDelegate()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(clipMp4(), "mp4");
+    const std::string tone = d.addResource(toneWav(400), "wav");
+    d.page(0).objects.push_back(mediaObject(11, key, 50, 50, 320, 240));
+    d.page(0).objects.push_back(mediaObject(12, tone, 450, 50, 64, 64));
+    open(std::move(d));
+    QVERIFY(m_scene->mount(*m_controller, *m_items));
+    QTRY_COMPARE(m_items->rowCount(), 2);
+    QVERIFY(m_items->play(11));
+    QQuickItem* before = nullptr;
+    QTRY_VERIFY((before = m_scene->item(QStringLiteral("mediaFrame-11"))) != nullptr);
+    QTRY_VERIFY_WITH_TIMEOUT(before->property("armed").toBool(), 5000);
+    before->setProperty("marqueDuDelegue", 42);
+    const QPersistentModelIndex row(m_items->index(0));
+    QSignalSpy resets(m_items.get(), &QAbstractItemModel::modelReset);
+    QSignalSpy removed(m_items.get(), &QAbstractItemModel::rowsRemoved);
+
+    m_controller->deleteObjects({12});
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QTest::qWait(50);
+
+    QCOMPARE(resets.count(), 0);
+    QCOMPARE(removed.count(), 1);
+    QVERIFY(row.isValid());
+    QCOMPARE(m_items->data(row, MediaItems::IdRole).toULongLong(), 11ULL);
+    QQuickItem* after = m_scene->item(QStringLiteral("mediaFrame-11"));
+    QCOMPARE(after, before);
+    QCOMPARE(after->property("marqueDuDelegue").toInt(), 42);
+    QVERIFY(after->property("armed").toBool());
 }
 
 // Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du
