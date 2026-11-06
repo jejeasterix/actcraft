@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QMediaDevices>
+#include <QMediaFormat>
+#include <QPointer>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
@@ -80,19 +82,34 @@ bool writeSilentWav(const QString& path, qint64 milliseconds)
 }
 
 // Source simulée, au contrat de Qt Multimedia : le temps ne compte que hors pause ; le fichier n'existe
-// qu'à la fermeture, 80 ms après stop() (un vrai moteur écrit et ferme son conteneur sur ses fils) ; sans
-// chemin imposé, il écrit à son emplacement par défaut, comme QMediaRecorder dans le dossier Musique.
+// qu'à la fermeture, 80 ms après stop() (un vrai moteur écrit et ferme son conteneur sur ses fils), ou à la
+// destruction du moteur s'il n'est pas encore fermé ; sans chemin imposé, il écrit à son emplacement par
+// défaut, comme QMediaRecorder dans le dossier Musique. failAfterMs > 0 : panne du micro en cours de route.
 class SimulatedEngine : public RecordingEngine
 {
 public:
-    explicit SimulatedEngine(QString defaultFolder) : m_defaultFolder(std::move(defaultFolder)) {}
+    SimulatedEngine(QString defaultFolder, int failAfterMs)
+        : m_defaultFolder(std::move(defaultFolder)), m_failAfterMs(failAfterMs)
+    {}
+    ~SimulatedEngine() override
+    {
+        if (m_open)
+            writeSilentWav(target(), duration());
+    }
 
     void start(const QString& path) override
     {
         m_path = path;
         m_total = 0;
         m_running = true;
+        m_open = true;
         m_clock.start();
+        if (m_failAfterMs > 0) {
+            QTimer::singleShot(m_failAfterMs, this, [this] {
+                emit failed(QStringLiteral("panne simulée du micro"));
+                stop(); // fermeture tardive : le fichier s'écrit encore après la panne
+            });
+        }
     }
     void pause() override
     {
@@ -109,18 +126,25 @@ public:
     void stop() override
     {
         pause();
-        const QString path =
-            m_path.isEmpty() ? m_defaultFolder + QStringLiteral("/enregistrement.wav") : m_path;
-        const qint64 total = m_total;
-        QTimer::singleShot(80, this, [this, path, total] {
-            writeSilentWav(path, total);
-            emit stopped(path);
+        QTimer::singleShot(80, this, [this] {
+            if (!m_open)
+                return;
+            m_open = false;
+            writeSilentWav(target(), m_total);
+            emit stopped(target());
         });
     }
     qint64 duration() const override { return m_total + (m_running ? m_clock.elapsed() : 0); }
 
 private:
+    QString target() const
+    {
+        return m_path.isEmpty() ? m_defaultFolder + QStringLiteral("/enregistrement.wav") : m_path;
+    }
+
     QString m_defaultFolder;
+    int m_failAfterMs = 0;
+    bool m_open = false;
     QString m_path;
     QElapsedTimer m_clock;
     qint64 m_total = 0;
@@ -169,7 +193,9 @@ class TstMediaSoundrecorder : public QObject
     QTemporaryDir m_root;
     QString m_folder;    // dossier temporaire du document : seul endroit permis
     QString m_elsewhere; // emplacement par défaut du moteur : doit rester vide
+    QPointer<RecordingEngine> m_lastEngine;
     int m_enginesMade = 0;
+    int m_failAfterMs = 0;
     int m_asked = 0;
     int m_case = 0;
 
@@ -179,12 +205,16 @@ class TstMediaSoundrecorder : public QObject
         if (micro) {
             engines = [this]() -> std::unique_ptr<RecordingEngine> {
                 ++m_enginesMade;
-                return SoundRecorder::createCaptureEngine();
+                auto engine = SoundRecorder::createCaptureEngine();
+                m_lastEngine = engine.get();
+                return engine;
             };
         } else {
             engines = [this]() -> std::unique_ptr<RecordingEngine> {
                 ++m_enginesMade;
-                return std::make_unique<SimulatedEngine>(m_elsewhere);
+                auto engine = std::make_unique<SimulatedEngine>(m_elsewhere, m_failAfterMs);
+                m_lastEngine = engine.get();
+                return engine;
             };
         }
         // Permission simulée, répondue au tour suivant de la boucle comme une fenêtre du système.
@@ -218,8 +248,22 @@ private slots:
         m_folder = m_root.filePath(QStringLiteral("document-%1").arg(m_case)); // créé par l'enregistreur
         m_elsewhere = m_root.filePath(QStringLiteral("ailleurs-%1").arg(m_case));
         QVERIFY(QDir().mkpath(m_elsewhere));
+        m_lastEngine.clear();
         m_enginesMade = 0;
+        m_failAfterMs = 0;
         m_asked = 0;
+    }
+
+    // Le vrai moteur, construit sans enregistrer (le micro n'est pas ouvert) : WAV, et encodable ici.
+    void captureEngineWritesWav()
+    {
+        const std::unique_ptr<RecordingEngine> engine = SoundRecorder::createCaptureEngine();
+        QVERIFY(engine);
+        const QMediaFormat format = engine->mediaFormat();
+        QCOMPARE(format.fileFormat(), QMediaFormat::Wave);
+        QCOMPARE(format.audioCodec(), QMediaFormat::AudioCodec::Wave);
+        QVERIFY2(format.isSupported(QMediaFormat::Encode),
+                 "WAV non encodable par le moteur de Qt Multimedia");
     }
 
     void writesAWav_data() { addEngines(); }
@@ -375,6 +419,86 @@ private slots:
         QVERIFY(!recorder->isRecording());
         QCOMPARE(handed, 0);
         QVERIFY(filesIn(m_folder).isEmpty());
+    }
+
+    // Panne en cours d'enregistrement : message, aucun rappel ; le fichier, réécrit par la fermeture tardive
+    // ou par la destruction du moteur, est effacé après elles.
+    void engineFailureLeavesNothing()
+    {
+        m_failAfterMs = 300;
+        const auto recorder = makeRecorder(false);
+        int handed = 0;
+        recorder->setInsertHandler([&handed](const QString&) { ++handed; });
+        QSignalSpy finished(recorder.get(), &SoundRecorder::finished);
+        QSignalSpy failed(recorder.get(), &SoundRecorder::failed);
+        recorder->toggle();
+        QTRY_VERIFY(recorder->isRecording());
+        QTRY_COMPARE(failed.count(), 1);
+        QCOMPARE(failed.first().at(0).toString(), QStringLiteral("panne simulée du micro"));
+        QVERIFY(!recorder->isRecording());
+        QVERIFY(!recorder->isPaused());
+        QTRY_VERIFY(m_lastEngine.isNull());
+        QTest::qWait(300);
+        QCOMPARE(handed, 0);
+        QCOMPARE(finished.count(), 0);
+        QVERIFY2(filesIn(m_folder).isEmpty(), qPrintable(filesIn(m_folder).join(u' ')));
+        QVERIFY(recorder->isAvailable()); // une panne ne désactive pas la commande
+    }
+
+    void unreachableFolderFailsWithAMessage()
+    {
+        const QString blocker = m_root.filePath(QStringLiteral("fichier-%1").arg(m_case));
+        {
+            QFile file(blocker);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+        }
+        const auto recorder = makeRecorder(false);
+        recorder->setFolder(blocker + QStringLiteral("/sous-dossier")); // sous un fichier : mkpath échoue
+        int handed = 0;
+        recorder->setInsertHandler([&handed](const QString&) { ++handed; });
+        QSignalSpy failed(recorder.get(), &SoundRecorder::failed);
+        recorder->toggle();
+        QTRY_COMPARE(failed.count(), 1);
+        QVERIFY(failed.first().at(0).toString().contains(QStringLiteral("sous-dossier")));
+        QVERIFY(!recorder->isRecording());
+        QCOMPARE(m_enginesMade, 0);
+        QTest::qWait(200);
+        QCOMPARE(handed, 0);
+        QVERIFY(filesIn(m_elsewhere).isEmpty());
+    }
+
+    void engineReleasedBetweenRecordings()
+    {
+        const auto recorder = makeRecorder(false);
+        QStringList handed;
+        recorder->setInsertHandler([&handed](const QString& path) { handed << path; });
+        for (int round = 1; round <= 2; ++round) {
+            recorder->toggle();
+            QTRY_VERIFY(recorder->isRecording());
+            QCOMPARE(m_enginesMade, round);
+            QVERIFY(!m_lastEngine.isNull());
+            QTest::qWait(200);
+            recorder->stop();
+            QTRY_COMPARE(handed.size(), round);
+            QTRY_VERIFY2(m_lastEngine.isNull(), "moteur gardé après l'arrêt : micro non relâché");
+        }
+        QCOMPARE(filesIn(m_folder).size(), 2);
+        QVERIFY(handed.at(0) != handed.at(1));
+    }
+
+    void destroyedWhileRecordingLeavesNothing()
+    {
+        auto recorder = makeRecorder(false);
+        int handed = 0;
+        recorder->setInsertHandler([&handed](const QString&) { ++handed; });
+        recorder->toggle();
+        QTRY_VERIFY(recorder->isRecording());
+        QTest::qWait(300);
+        recorder.reset(); // document fermé : le moteur écrit son fichier partiel en se détruisant
+        QVERIFY(m_lastEngine.isNull());
+        QTest::qWait(200);
+        QCOMPARE(handed, 0);
+        QVERIFY2(filesIn(m_folder).isEmpty(), qPrintable(filesIn(m_folder).join(u' ')));
     }
 
     void indicatorStateFollows_data() { addEngines(); }

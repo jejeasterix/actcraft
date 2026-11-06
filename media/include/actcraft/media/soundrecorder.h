@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QMediaFormat>
 #include <QObject>
 #include <QString>
 
@@ -26,6 +27,8 @@ public:
     virtual void stop() = 0;
     // Durée enregistrée en millisecondes, pauses exclues.
     virtual qint64 duration() const = 0;
+    // Format du fichier écrit (vide pour une source simulée).
+    virtual QMediaFormat mediaFormat() const { return {}; }
 
 signals:
     // Fichier fermé et complet ; path est l'emplacement réel, qui peut différer de celui demandé.
@@ -99,6 +102,7 @@ private:
     void begin();
     void engineStopped(const QString& path);
     void engineFailed(const QString& reason);
+    void retireEngine(bool removeFile);
     void end();
     void setPaused(bool paused);
     QString nextPath() const;

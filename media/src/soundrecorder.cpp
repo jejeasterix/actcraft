@@ -61,6 +61,7 @@ public:
     void resume() override { m_recorder.record(); }
     void stop() override { m_recorder.stop(); }
     qint64 duration() const override { return m_recorder.duration(); }
+    QMediaFormat mediaFormat() const override { return m_recorder.mediaFormat(); }
 
 private:
     QMediaCaptureSession m_session;
@@ -84,8 +85,14 @@ SoundRecorder::SoundRecorder(EngineFactory engines, PermissionRequest permission
 
 SoundRecorder::~SoundRecorder()
 {
-    if (m_engine)
-        m_engine->disconnect(this); // le moteur détruit ne rappelle plus un enregistreur à demi détruit
+    if (!m_engine)
+        return;
+    // Document fermé pendant l'enregistrement : le moteur ferme son fichier en se détruisant, puis le fichier
+    // partiel est effacé. Il ne rappelle plus un enregistreur à demi détruit.
+    const QString path = m_path;
+    m_engine->disconnect(this);
+    m_engine.reset();
+    QFile::remove(path);
 }
 
 std::unique_ptr<RecordingEngine> SoundRecorder::createCaptureEngine()
@@ -259,15 +266,14 @@ void SoundRecorder::begin()
         emit failed(tr("Dossier d'enregistrement inaccessible : %1").arg(m_folder));
         return;
     }
+    // Un moteur par enregistrement : le micro est relâché entre deux enregistrements.
+    m_engine = m_engines ? m_engines() : nullptr;
     if (!m_engine) {
-        m_engine = m_engines ? m_engines() : nullptr;
-        if (!m_engine) {
-            emit failed(tr("Enregistrement du son impossible."));
-            return;
-        }
-        connect(m_engine.get(), &RecordingEngine::stopped, this, &SoundRecorder::engineStopped);
-        connect(m_engine.get(), &RecordingEngine::failed, this, &SoundRecorder::engineFailed);
+        emit failed(tr("Enregistrement du son impossible."));
+        return;
     }
+    connect(m_engine.get(), &RecordingEngine::stopped, this, &SoundRecorder::engineStopped);
+    connect(m_engine.get(), &RecordingEngine::failed, this, &SoundRecorder::engineFailed);
     ++m_generation;
     m_path = nextPath();
     m_cancelled = false;
@@ -278,19 +284,14 @@ void SoundRecorder::begin()
 
 void SoundRecorder::engineStopped(const QString& path)
 {
-    if (m_state == State::Idle || m_state == State::Asking) {
-        // Fermeture tardive d'un enregistrement abandonné sur erreur (m_path n'est gardé que dans ce cas).
-        if (!path.isEmpty() && path == m_path) {
-            QFile::remove(path);
-            m_path.clear();
-        }
+    if (m_state != State::Recording && m_state != State::Paused && m_state != State::Finishing)
         return;
-    }
     const bool cancelled = m_cancelled;
+    retireEngine(false);
     m_path.clear();
     end();
     if (cancelled) {
-        QFile::remove(path);
+        QFile::remove(path); // fichier fermé par le moteur : rien ne le réécrira
         return;
     }
     emit finished(path);
@@ -302,9 +303,27 @@ void SoundRecorder::engineFailed(const QString& reason)
 {
     if (m_state != State::Recording && m_state != State::Paused && m_state != State::Finishing)
         return;
+    QFile::remove(m_path);
+    retireEngine(true);
+    m_path.clear();
     end();
-    QFile::remove(m_path); // fichier incomplet ; une fermeture tardive l'effacera aussi
     emit failed(reason);
+}
+
+// Le moteur sort par deleteLater (on peut être dans l'un de ses signaux). En échec, son fichier incomplet
+// s'efface aussi après sa destruction : un moteur ferme son conteneur en se détruisant.
+void SoundRecorder::retireEngine(bool removeFile)
+{
+    if (!m_engine)
+        return;
+    RecordingEngine* const engine = m_engine.release();
+    engine->disconnect(this);
+    if (removeFile) {
+        const QString path = m_path;
+        connect(engine, &QObject::destroyed, engine, [path] { QFile::remove(path); });
+    }
+    engine->setParent(this);
+    engine->deleteLater();
 }
 
 void SoundRecorder::end()
