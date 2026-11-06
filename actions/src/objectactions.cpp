@@ -1,2 +1,15 @@
-// Talon L8 : rempli par L8-T6.
-#include <QtGlobal> // une unité de traduction jamais vide (C4206 sous /W4 /WX)
+#include <actcraft/actions/objectactions.h>
+
+namespace actcraft::actions {
+
+bool ObjectActionCatalog::load(const QByteArray&, QString& error)
+{
+    error = QStringLiteral("non implémenté");
+    return false;
+}
+const ObjectActionInfo* ObjectActionCatalog::find(const QString&) const { return nullptr; }
+QList<const ObjectActionInfo*> ObjectActionCatalog::inCategory(ActionCategory) const { return {}; }
+QList<const ObjectActionInfo*> ObjectActionCatalog::dragDropList() const { return {}; }
+QByteArray defaultObjectActionsJson() { return {}; }
+
+} // namespace actcraft::actions
