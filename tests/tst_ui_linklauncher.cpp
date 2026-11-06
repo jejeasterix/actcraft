@@ -387,12 +387,14 @@ private slots:
         fake(l);
         QQmlEngine engine;
         QQmlComponent component(&engine);
-        // Échap est aussi le raccourci de l'outil de sélection : il passe avant la boîte s'il n'est pas retenu.
+        // Échap est aussi le raccourci de l'outil de sélection : il passe avant la boîte s'il n'est pas
+        // retenu.
         component.setData("import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\nWindow {\n"
                           "  width: 800; height: 600; visible: true\n"
                           "  property QtObject dialogue: confirm\n"
                           "  property bool selectChosen: false\n"
-                          "  Shortcut { sequence: \"Esc\"; context: Qt.ApplicationShortcut; onActivated: selectChosen = true }\n"
+                          "  Shortcut { sequence: \"Esc\"; context: Qt.ApplicationShortcut; onActivated: "
+                          "selectChosen = true }\n"
                           "  LinkConfirmDialog { id: confirm }\n"
                           "}\n",
                           QUrl());
