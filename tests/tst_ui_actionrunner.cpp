@@ -2,20 +2,31 @@
 // un contact ; un glisser, un clic droit ou le mode conception laissent tout à l'outil de sélection.
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
+#include <actcraft/input/sample.h>
+#include <actcraft/render/fixedpageitem.h>
+#include <actcraft/render/liftlayeritem.h>
+#include <actcraft/tools/tool.h>
 #include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/designmode.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/linklauncher.h>
 #include <actcraft/ui/pagehistory.h>
+#include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QMouseEvent>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
+#include <QQuickWindow>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTextDocument>
 #include <QTextDocumentFragment>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
 #include <cmath>
@@ -23,6 +34,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
 
@@ -97,6 +110,80 @@ core::Document documentWith(std::vector<core::Action> roundActions, int pages = 
     return document;
 }
 
+double roundX(const core::Document& document)
+{
+    for (const core::PageObject& o : document.page(0).objects) {
+        if (o.common.id == kRound) {
+            return std::get<core::Shape>(core::body(o)).bounds.x;
+        }
+    }
+    return -1;
+}
+
+// Zone de page réelle hors écran, rendu logiciel (comme ViewFixture de tst_ui_propertymodel) : la porte de
+// l'exécuteur ne s'arme qu'avec une vue (ToolHost::armGate), l'outil de sélection n'existe qu'avec elle.
+struct ViewMount
+{
+    QQmlEngine engine;
+    std::unique_ptr<QObject> root;
+    QQuickWindow* window = nullptr;
+    ui::PageView* view = nullptr;
+
+    bool mount(ui::DocumentController& controller, ui::ToolHost& tools)
+    {
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\n"
+                          "Window { width: 800; height: 600; visible: true\n"
+                          "  PageArea { objectName: \"area\"; anchors.fill: parent } }",
+                          QUrl(QStringLiteral("qrc:/tst_ui_actionrunner/Window.qml")));
+        root.reset(component.create());
+        if (!root) {
+            qWarning() << component.errors();
+            return false;
+        }
+        window = qobject_cast<QQuickWindow*>(root.get());
+        QQuickItem* area = window ? window->findChild<QQuickItem*>(QStringLiteral("area")) : nullptr;
+        if (!area) {
+            return false;
+        }
+        area->setProperty("documentController", QVariant::fromValue(&controller));
+        view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        auto* fixed = window->findChild<render::FixedPageItem*>(QStringLiteral("fixedPage"));
+        auto* lift = window->findChild<render::LiftLayerItem*>(QStringLiteral("liftLayer"));
+        if (!view || !fixed || !lift) {
+            return false;
+        }
+        controller.setFixedPage(fixed);
+        area->setProperty("tools", QVariant::fromValue(&tools));
+        tools.setView(view);
+        tools.setLiftLayer(lift); // comme Main.qml : sans couche, aucun outil (ToolHost::adapters)
+        return QTest::qWaitForWindowExposed(window) &&
+               QTest::qWaitFor([&] { return fixed->isReady() && view->cacheReady(); }, 10000);
+    }
+};
+
+// Appui gauche tel que le filtre de l'application le voit (ToolHost::armGate), avant que la vue n'en fasse
+// un échantillon.
+void armAt(const ui::PageView& view, QPointF page)
+{
+    const QPointF scene = view.pageToScene(page);
+    QMouseEvent press(QEvent::MouseButtonPress, scene, scene, scene, Qt::LeftButton, Qt::LeftButton,
+                      Qt::NoModifier);
+    QObject receiver;
+    QCoreApplication::sendEvent(&receiver, &press);
+}
+
+// Échantillon en coordonnées de page, comme ToolDispatch le rend à l'outil actif.
+input::Sample sampleAt(QPointF page, input::Phase phase)
+{
+    input::Sample sample{};
+    sample.x = static_cast<decltype(sample.x)>(page.x());
+    sample.y = static_cast<decltype(sample.y)>(page.y());
+    sample.phase = phase;
+    sample.pointer = 0; // souris
+    return sample;
+}
+
 } // namespace
 
 class TstUiActionrunner : public QObject
@@ -127,6 +214,9 @@ private slots:
     void commandWithoutHandlerIsUnsupported();
     void textActionRemeasuresBounds();
     void alignGroupAndSelectAllUseRegistry();
+    // Correctifs de la revue de L8-T9 : le geste réel, par l'outil actif de l'hôte.
+    void gateClickRunsThroughActiveTool();
+    void gateDragMovesWithoutRunning();
 
 private:
     void load(core::Document document);
@@ -551,6 +641,60 @@ void TstUiActionrunner::textActionRemeasuresBounds()
     QVERIFY(!m_controllerOwner->canUndo());
     const auto* undone = std::get_if<core::Text>(&core::body(*object(kLabel)));
     QCOMPARE(undone->bounds.width, before);
+}
+
+// Constat bloquant de la revue : à l'appui, la porte se désarmait (drop appelait done) ; le relâché allait à
+// la sélection nue, l'exécuteur ne le voyait jamais. Sous ce patron, l'étiquette reste visible.
+void TstUiActionrunner::gateClickRunsThroughActiveTool()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    ViewMount mount;
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    QVERIFY(mount.mount(*m_controllerOwner, tools));
+    tools.setActionRunner(m_runner.get());
+    tools.selectObjects({}); // l'outil de sélection
+    QCOMPARE(tools.currentTool(), QStringLiteral("select"));
+    m_runner->setContactActive(true);
+    armAt(*mount.view, kOnRound);
+    QVERIFY(tools.activeTool() != nullptr);
+    tools.activeTool()->onSample(sampleAt(kOnRound, input::Phase::Press));
+    tools.activeTool()->onSample(sampleAt(kOnRound, input::Phase::Release));
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY2(hidden(kLabel), "le clic exécute l'action");
+    tools.setActionRunner(nullptr);
+}
+
+// Même constat : les déplacements allaient à une sélection qui n'avait pas reçu l'appui ; le glisser ne
+// démarrait pas. Sous ce patron, le rond reste à 100.
+void TstUiActionrunner::gateDragMovesWithoutRunning()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    ViewMount mount;
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    QVERIFY(mount.mount(*m_controllerOwner, tools));
+    tools.setActionRunner(m_runner.get());
+    tools.selectObjects({});
+    QCOMPARE(tools.currentTool(), QStringLiteral("select"));
+    QCOMPARE(roundX(m_controllerOwner->document()), 100.0);
+    m_runner->setContactActive(true);
+    armAt(*mount.view, kOnRound);
+    QVERIFY(tools.activeTool() != nullptr);
+    const QPointF end = kOnRound + QPointF(30, 0);
+    tools.activeTool()->onSample(sampleAt(kOnRound, input::Phase::Press));
+    tools.activeTool()->onSample(sampleAt(kOnRound + QPointF(10, 0), input::Phase::Move));
+    tools.activeTool()->onSample(sampleAt(kOnRound + QPointF(20, 0), input::Phase::Move));
+    tools.activeTool()->onSample(sampleAt(end, input::Phase::Move));
+    tools.activeTool()->onSample(sampleAt(end, input::Phase::Release));
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY(!hidden(kLabel)); // aucune action
+    QVERIFY2(roundX(m_controllerOwner->document()) > 110.0, "le glisser déplace le rond");
+    tools.setActionRunner(nullptr);
 }
 
 QTEST_MAIN(TstUiActionrunner)
