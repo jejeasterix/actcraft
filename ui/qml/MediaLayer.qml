@@ -6,7 +6,7 @@ import QtMultimedia
 // ne lui demande de redessin. Placés par view.pageToScene ; aucune surcouche ne prend l'entrée : le stylet écrit
 // à travers une vidéo qui joue, et le clic sur un média reste à l'exécuteur des actions (au relâché).
 Item {
-    id: layer
+    id: mediaLayer
     objectName: "mediaLayer"
     anchors.fill: parent
     property var items: null // MediaItems de la fenêtre
@@ -15,26 +15,26 @@ Item {
     visible: items !== null && view !== null
 
     Connections {
-        target: layer.view
+        target: mediaLayer.view
         ignoreUnknownSignals: true
-        function onZoomChanged() { layer.tick++ }
-        function onPanChanged() { layer.tick++ }
-        function onContentChanged() { layer.tick++ }
+        function onZoomChanged() { mediaLayer.tick++ }
+        function onPanChanged() { mediaLayer.tick++ }
+        function onContentChanged() { mediaLayer.tick++ }
     }
     onWidthChanged: tick++
     onHeightChanged: tick++
 
     function frameOf(bounds) {
-        layer.tick // dépendance de liaison
-        if (!layer.view || !bounds)
+        mediaLayer.tick // dépendance de liaison
+        if (!mediaLayer.view || !bounds)
             return Qt.rect(0, 0, 0, 0)
-        const a = layer.mapFromItem(null, layer.view.pageToScene(Qt.point(bounds.x, bounds.y)))
-        const b = layer.mapFromItem(null, layer.view.pageToScene(Qt.point(bounds.x + bounds.width, bounds.y + bounds.height)))
+        const a = mediaLayer.mapFromItem(null, mediaLayer.view.pageToScene(Qt.point(bounds.x, bounds.y)))
+        const b = mediaLayer.mapFromItem(null, mediaLayer.view.pageToScene(Qt.point(bounds.x + bounds.width, bounds.y + bounds.height)))
         return Qt.rect(a.x, a.y, b.x - a.x, b.y - a.y)
     }
 
     Repeater {
-        model: layer.visible ? layer.items : null
+        model: mediaLayer.visible ? mediaLayer.items : null
         delegate: Loader {
             id: slot
             required property var mediaId
@@ -46,7 +46,7 @@ Item {
             required property bool aspectLocked
             required property bool clearBackground
             required property bool autoPlay
-            readonly property rect frame: layer.frameOf(bounds)
+            readonly property rect frame: mediaLayer.frameOf(bounds)
             x: frame.x
             y: frame.y
             width: frame.width
@@ -97,7 +97,7 @@ Item {
                         }
                     }
                     Connections {
-                        target: layer.items
+                        target: mediaLayer.items
                         function onVideoPlayRequested(id) {
                             if (id === slot.mediaId)
                                 player.play()
