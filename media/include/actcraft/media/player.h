@@ -29,7 +29,9 @@ public:
     ~Player() override;
 
     void setFallback(std::function<void(const QString& path)> fallback); // ui/ : LinkLauncher::SystemMedia
-    // Rend la main tout de suite. Fichier absent : rien n'est joué ni confié au système.
+    // Rend la main tout de suite ; aucun signal n'est émis avant ce retour. Seul un format illisible est
+    // confié au système (fellBack) ; chemin réseau, fichier absent ou illisible faute de droits, autre erreur
+    // de lecture : failed, sans repli.
     void play(const QString& path, Track track, bool loop);
     void pause(Track track);
     void stopAll(); // fermeture du document : les deux pistes s'arrêtent, aucun repli en attente ne part
@@ -40,16 +42,21 @@ signals:
     void positionChanged(int track, qint64 position);
     void finished(int track);
     void fellBack(const QString& path);
+    void failed(int track, const QString& reason);
 
 private:
     struct Channel
     {
         QMediaPlayer* player = nullptr;
         QAudioOutput* output = nullptr;
-        QString path;        // fichier en cours ; vide : rien (arrêté, absent ou déjà confié au système)
-        bool loaded = false; // chargé par Qt Multimedia : une erreur ultérieure ne bascule plus
+        QString path;           // fichier en cours ; vide : rien (arrêté, absent ou déjà confié au système)
+        bool loaded = false;    // chargé par Qt Multimedia : une erreur ultérieure ne bascule plus
+        quint64 generation = 0; // change à chaque play() et stopAll() : un signal différé périmé se tait
     };
+    void settle(int track, int error); // fin de chargement en échec : repli ou erreur signalée
     void fallBack(int track);
+    void fail(int track, const QString& reason);
+    void failLater(int track, const QString& reason);
 
     std::array<Channel, 2> m_channels;
     std::function<void(const QString& path)> m_fallback;

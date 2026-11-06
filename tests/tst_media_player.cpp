@@ -6,7 +6,9 @@
 #include <QDesktopServices>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QFileInfo>
 #include <QMediaDevices>
+#include <QMediaPlayer>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QThread>
@@ -209,9 +211,13 @@ private slots:
         QSignalSpy fellBack(&player, &Player::fellBack);
         bool ranInsidePlay = false;
         QTimer::singleShot(0, this, [&ranInsidePlay] { ranInsidePlay = true; });
+        QElapsedTimer clock;
+        clock.start();
         player.play(m_unreadable, Player::First, false);
         player.play(m_second, Player::Second, false);
+        const qint64 spent = clock.elapsed();
         QVERIFY2(!ranInsidePlay, "play() a fait tourner la boucle d'événements");
+        QVERIFY2(spent < 50, qPrintable(QStringLiteral("play() a tenu la main %1 ms").arg(spent)));
         QTRY_COMPARE(fellBack.count(), 1);
         QVERIFY(ranInsidePlay);
     }
@@ -251,6 +257,10 @@ private slots:
         }
         player.play(m_unreadable, Player::First, false); // repli encore en attente à la fermeture
         player.stopAll();
+        const QList<QMediaPlayer*> engines = player.findChildren<QMediaPlayer*>();
+        QCOMPARE(engines.size(), 2);
+        for (QMediaPlayer* engine : engines)
+            QCOMPARE(engine->playbackState(), QMediaPlayer::StoppedState); // pas seulement oubliés
         QVERIFY(!player.isPlaying(Player::First));
         QVERIFY(!player.isPlaying(Player::Second));
         QCOMPARE(player.position(Player::First), 0);
@@ -277,15 +287,89 @@ private slots:
         int handed = 0;
         player.setFallback([&handed](const QString&) { ++handed; });
         QSignalSpy fellBack(&player, &Player::fellBack);
+        QSignalSpy failed(&player, &Player::failed);
         player.play(m_dir.path() + QStringLiteral("/absent.wav"), Player::First, false);
+        QCOMPARE(failed.count(), 0); // jamais avant le retour de play()
         Player witness;
         QSignalSpy witnessFell(&witness, &Player::fellBack);
         witness.play(m_unreadable, Player::First, false);
         QTRY_COMPARE(witnessFell.count(), 1);
         QCOMPARE(fellBack.count(), 0);
         QCOMPARE(handed, 0);
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(failed.first().at(0).toInt(), int(Player::First));
         QVERIFY(!player.isPlaying(Player::First));
         QVERIFY(trap.urls.isEmpty());
+    }
+
+    // Revue, point 1 : l'arrêt du son lisible ne doit pas marquer « chargé » le fichier illisible qui le
+    // suit.
+    void readableThenUnreadableOnTheSameTrackFallsBack()
+    {
+        Player player;
+        QSignalSpy fellBack(&player, &Player::fellBack);
+        player.play(m_second, Player::First, false);
+        if (hasAudioOutput())
+            QTRY_VERIFY(player.position(Player::First) > 0);
+        else
+            QTest::qWait(500);
+        player.play(m_unreadable, Player::First, false);
+        QTRY_COMPARE(fellBack.count(), 1);
+        QCOMPARE(fellBack.first().at(0).toString(), m_unreadable);
+    }
+
+    // Revue, point 2 : rejouer le même fichier illisible le recharge et le confie de nouveau.
+    void sameUnreadableTwiceFallsBackTwice()
+    {
+        Player player;
+        QSignalSpy fellBack(&player, &Player::fellBack);
+        player.play(m_unreadable, Player::First, false);
+        QTRY_COMPARE(fellBack.count(), 1);
+        player.play(m_unreadable, Player::First, false);
+        QTRY_COMPARE(fellBack.count(), 2);
+    }
+
+    // Revue, point 4 : seul un format illisible part au système ; un accès refusé est une erreur signalée.
+    void deniedFileIsReportedWithoutFallback()
+    {
+        const QString denied = writeSilentWav(m_dir.path(), QStringLiteral("interdit.wav"), 500);
+        QVERIFY(!denied.isEmpty());
+        QVERIFY(QFile::setPermissions(denied, QFileDevice::Permissions{}));
+        if (QFileInfo(denied).isReadable())
+            QSKIP("droits de lecture non retirables sur ce système de fichiers");
+        OpenTrap trap;
+        Player player;
+        int handed = 0;
+        player.setFallback([&handed](const QString&) { ++handed; });
+        QSignalSpy fellBack(&player, &Player::fellBack);
+        QSignalSpy failed(&player, &Player::failed);
+        player.play(denied, Player::First, false);
+        QTRY_COMPARE(failed.count(), 1);
+        QTest::qWait(300);
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(fellBack.count(), 0);
+        QCOMPARE(handed, 0);
+        QVERIFY(trap.urls.isEmpty());
+        QFile::setPermissions(denied, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    }
+
+    // Revue, point 5 : un chemin réseau est refusé avant tout accès au disque, sans repli.
+    void networkPathIsRefusedWithoutFallback()
+    {
+        Player player;
+        int handed = 0;
+        player.setFallback([&handed](const QString&) { ++handed; });
+        QSignalSpy fellBack(&player, &Player::fellBack);
+        QSignalSpy failed(&player, &Player::failed);
+        QElapsedTimer clock;
+        clock.start();
+        player.play(QStringLiteral("//serveur.invalid/partage/son.wav"), Player::First, false);
+        player.play(QStringLiteral("\\\\serveur.invalid\\partage\\son.wav"), Player::Second, false);
+        QVERIFY(clock.elapsed() < 50);
+        QTRY_COMPARE(failed.count(), 2);
+        QTest::qWait(200);
+        QCOMPARE(fellBack.count(), 0);
+        QCOMPARE(handed, 0);
     }
 
     void pauseHoldsThePosition()
