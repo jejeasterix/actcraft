@@ -79,64 +79,100 @@ QRectF revealerRect(const core::PageObject& object)
         .mapRect(QRectF(minX, minY, maxX - minX, maxY - minY).adjusted(-margin, -margin, margin, margin));
 }
 
-// Fenêtre de l'encre soulevée : le dessous de la page (resté à sa place : la transformation supplémentaire
-// est défaite), vu par la forme de l'encre (CompositionMode_DestinationIn), sur le blanc de la page comme
-// renderPage. Peinte par le peintre partagé, à l'échelle de la page fixe ; seulement le rectangle de l'encre.
-QSGNode* revealWindowNode(QQuickWindow* window, const core::Page& page, const ImageStore* store,
-                          const core::PageObject& revealer, const core::Transform& extra, double scale)
+// Échelle réelle de l'élément : densité de l'écran × zoom de la scène.
+double screenScale(const QQuickItem& item)
 {
-    const QRectF rect = revealerRect(revealer);
-    if (!window || rect.isEmpty()) {
-        return nullptr;
-    }
-    const core::Page beneath = beneathTopLayer(page);
-    DecodedImages images;
-    if (store) {
-        for (const core::PageObject& object : beneath.objects) {
-            if (const auto* im = std::get_if<core::ImageObject>(&object); im && !im->resource.empty()) {
-                images.insert(im->resource, store->resourceImage(im->resource));
-            } else if (const auto* m = std::get_if<core::Media>(&object); m && !m->placeholder.empty()) {
-                images.insert(m->placeholder, store->resourceImage(m->placeholder));
+    const QRectF unit = item.mapRectToScene(QRectF(0, 0, 1, 1));
+    const double dpr = item.window() ? item.window()->effectiveDevicePixelRatio() : 1.0;
+    return std::max(0.01, std::max(unit.width(), unit.height()) * dpr);
+}
+
+// Fenêtre de l'encre soulevée (revue de L8-T18) : le dessous de la page (fond, grille du dessous, couches
+// inférieure et intermédiaire) est peint une seule fois, au soulèvement, par le peintre partagé, sur le blanc
+// de la page comme renderPage. À chaque changement de matrice, seul le rectangle de l'encre est recomposé :
+// le dessous resté en place (transformation supplémentaire défaite), vu par la forme de l'encre
+// (CompositionMode_DestinationIn).
+class RevealWindowNode final : public QSGNode
+{
+public:
+    RevealWindowNode(QQuickWindow* window, const core::Page& page, const ImageStore* store,
+                     core::PageObject revealer, double scale)
+        : m_window(window), m_mask(std::move(revealer)), m_rect(revealerRect(m_mask))
+    {
+        std::get<core::Stroke>(m_mask).color = 0xFF000000u; // la couleur du trait ne compte pas
+        const core::Page beneath = beneathTopLayer(page);
+        DecodedImages images;
+        if (store) {
+            for (const core::PageObject& object : beneath.objects) {
+                if (const auto* im = std::get_if<core::ImageObject>(&object); im && !im->resource.empty()) {
+                    images.insert(im->resource, store->resourceImage(im->resource));
+                } else if (const auto* m = std::get_if<core::Media>(&object); m && !m->placeholder.empty()) {
+                    images.insert(m->placeholder, store->resourceImage(m->placeholder));
+                }
+            }
+            if (!beneath.background.image.empty()) {
+                images.insert(beneath.background.image, store->resourceImage(beneath.background.image));
             }
         }
-        if (!beneath.background.image.empty()) {
-            images.insert(beneath.background.image, store->resourceImage(beneath.background.image));
-        }
-    }
-    const double s = boundedRasterScale(rect.width(), rect.height(), scale);
-    QImage image(std::max(1, static_cast<int>(std::ceil(rect.width() * s))),
-                 std::max(1, static_cast<int>(std::ceil(rect.height() * s))),
-                 QImage::Format_ARGB32_Premultiplied);
-    image.fill(Qt::transparent);
-    {
-        QPainter p(&image);
+        m_pageRect = QRectF(0, 0, std::max(beneath.width, 1.0), std::max(beneath.height, 1.0));
+        m_scale = boundedRasterScale(m_pageRect.width(), m_pageRect.height(), scale);
+        m_beneath = QImage(std::max(1, static_cast<int>(std::ceil(m_pageRect.width() * m_scale))),
+                           std::max(1, static_cast<int>(std::ceil(m_pageRect.height() * m_scale))),
+                           QImage::Format_ARGB32_Premultiplied);
+        m_beneath.fill(Qt::white);
+        QPainter p(&m_beneath);
         p.setRenderHint(QPainter::Antialiasing, true);
-        p.scale(image.width() / rect.width(), image.height() / rect.height());
-        p.translate(-rect.x(), -rect.y());
-        p.save();
-        bool invertible = false;
-        const QTransform undo =
-            QTransform(extra.m11, extra.m12, extra.m21, extra.m22, extra.dx, extra.dy).inverted(&invertible);
-        if (invertible) {
-            p.setTransform(undo, true);
-        }
-        p.fillRect(QRectF(0, 0, beneath.width, beneath.height), Qt::white);
+        p.scale(m_beneath.width() / m_pageRect.width(), m_beneath.height() / m_pageRect.height());
         PaintOptions options;
         options.grid = !beneath.grid.drawnAbove; // la grille du dessus est une surcouche, au-dessus de tout
         paintPage(p, beneath, images.lookup(), options);
-        p.restore();
-        core::PageObject mask = revealer;
-        std::get<core::Stroke>(mask).color = 0xFF000000u; // la couleur du trait ne compte pas
-        p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-        paintObject(p, mask, ImageLookup{});
+        p.end();
+        m_image = window->createImageNode();
+        m_image->setOwnsTexture(true);
+        m_image->setFiltering(QSGTexture::Linear);
+        appendChildNode(m_image);
     }
-    QSGImageNode* node = window->createImageNode();
-    node->setTexture(window->createTextureFromImage(image));
-    node->setOwnsTexture(true);
-    node->setFiltering(QSGTexture::Linear);
-    node->setRect(rect);
-    return node;
-}
+
+    bool isEmpty() const noexcept { return m_rect.isEmpty(); }
+
+    void follow(const core::Transform& extra)
+    {
+        const double s = boundedRasterScale(m_rect.width(), m_rect.height(), m_scale);
+        QImage window(std::max(1, static_cast<int>(std::ceil(m_rect.width() * s))),
+                      std::max(1, static_cast<int>(std::ceil(m_rect.height() * s))),
+                      QImage::Format_ARGB32_Premultiplied);
+        window.fill(Qt::transparent);
+        {
+            QPainter p(&window);
+            p.setRenderHint(QPainter::Antialiasing, true);
+            p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+            p.scale(window.width() / m_rect.width(), window.height() / m_rect.height());
+            p.translate(-m_rect.x(), -m_rect.y());
+            p.save();
+            bool invertible = false;
+            const QTransform undo = QTransform(extra.m11, extra.m12, extra.m21, extra.m22, extra.dx, extra.dy)
+                                        .inverted(&invertible);
+            if (invertible) {
+                p.setTransform(undo, true);
+            }
+            p.drawImage(m_pageRect, m_beneath);
+            p.restore();
+            p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+            paintObject(p, m_mask, ImageLookup{});
+        }
+        m_image->setTexture(m_window->createTextureFromImage(window)); // l'ancienne, possédée, est rendue
+        m_image->setRect(m_rect);
+    }
+
+private:
+    QQuickWindow* m_window;
+    core::PageObject m_mask;
+    QRectF m_rect;
+    QRectF m_pageRect;
+    double m_scale = 1;
+    QImage m_beneath;
+    QSGImageNode* m_image = nullptr;
+};
 } // namespace
 
 LiftLayerItem::LiftLayerItem(QQuickItem* parent)
@@ -200,9 +236,7 @@ QSGNode* LiftLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     // logiciel, c'est aussi la racine qu'exige le piège des nœuds ajoutés sous une racine déjà rendue).
     auto* root = old ? static_cast<QSGTransformNode*>(old) : new QSGTransformNode;
     const QMatrix4x4 matrix = matrixOf(m_extra);
-    // F-255 : la fenêtre d'une encre soulevée suit le glisser ; elle seule oblige à refaire les nœuds.
-    const bool reveals = std::any_of(m_objects.begin(), m_objects.end(), cutsTopLayer);
-    if (m_rebuild || !old || (reveals && root->matrix() != matrix)) {
+    if (m_rebuild || !old) {
         // Graphe recréé (old nul) : les anciens nœuds sont partis avec lui ; sinon on les retire ici.
         while (QSGNode* child = root->firstChild()) {
             root->removeChildNode(child);
@@ -227,8 +261,12 @@ QSGNode* LiftLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             for (std::size_t i = 0; i < m_objects.size(); ++i) {
                 if (cutsTopLayer(m_objects[i])) {
                     if (page) {
-                        if (QSGNode* node = revealWindowNode(window(), page->page(), store, m_objects[i],
-                                                             m_extra, scale)) {
+                        auto* node = new RevealWindowNode(window(), page->page(), store, m_objects[i],
+                                                          std::max(scale, screenScale(*this)));
+                        if (node->isEmpty()) {
+                            delete node;
+                        } else {
+                            node->follow(m_extra);
                             root->appendChildNode(node);
                             ++m_builtCount;
                         }
@@ -244,6 +282,13 @@ QSGNode* LiftLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             }
         }
         m_rebuild = false;
+    } else if (root->matrix() != matrix) {
+        // Glisser : la matrice seule, et la fenêtre de chaque encre soulevée recomposée (F-255).
+        for (QSGNode* child = root->firstChild(); child; child = child->nextSibling()) {
+            if (auto* reveal = dynamic_cast<RevealWindowNode*>(child)) {
+                reveal->follow(m_extra);
+            }
+        }
     }
     if (root->matrix() != matrix) {
         root->setMatrix(matrix);
