@@ -3,8 +3,10 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/pageedits.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/liftlayeritem.h>
+#include <actcraft/render/pagepainter.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
@@ -207,6 +209,12 @@ private slots:
     void diagonalStrokeBlocksOnlyItsLine();
     void lockedTargetActionKeepsSelection();
     void clickSlopInScreenPixels();
+    // Correctifs de la revue L8-C3.
+    void historyFollowsPageEdits();
+    void historyKeptBySaveAsResetByOpen();
+    void textActionRemeasuresVerticalColumn();
+    void textActionKeepsTheWidthOfReadLines();
+    void textActionRecomputesFirstBaseline();
 
 private:
     void load(core::Document document);
@@ -382,8 +390,9 @@ void TstUiActionrunner::rightClickSelectsWithoutRunning()
     QCoreApplication::processEvents();
     QVERIFY(!hidden(kLabel));
     QVERIFY(!m_controllerOwner->canUndo());
-    // Revue, point 7 : par le geste réel, rien ne tourne (le bouton droit ne va pas à l'exécuteur).
-    QVERIFY(selectedAfterClick(Qt::RightButton) >= 0);
+    // Revue, point 7 : par le geste réel, rien ne tourne (le bouton droit ne va pas à l'exécuteur). Revue
+    // L8-C3 : le clic droit sélectionne l'objet sous le pointeur (la vue le rend à l'outil de sélection).
+    QCOMPARE(selectedAfterClick(Qt::RightButton), 1);
     QVERIFY(!hidden(kLabel));
     QVERIFY(!m_controllerOwner->canUndo());
 }
@@ -799,6 +808,203 @@ void TstUiActionrunner::clickSlopInScreenPixels()
     QCoreApplication::processEvents();
     QVERIFY2(hidden(kLabel), "2 px d'écran : un clic");
     tools.setActionRunner(nullptr);
+}
+
+namespace {
+
+// Rond « page précédente de l'historique », étiquette « suivante », sur chacune des `pages` pages.
+core::Document historyDocument(int pages)
+{
+    core::Document document =
+        documentWith({action("page.history-back")}, pages, {action("page.history-forward")});
+    for (int i = 1; i < pages; ++i) {
+        document.page(static_cast<std::size_t>(i)).objects.push_back(document.page(0).objects[0]);
+        document.page(static_cast<std::size_t>(i)).objects.push_back(document.page(0).objects[1]);
+    }
+    return document;
+}
+
+} // namespace
+
+void TstUiActionrunner::historyFollowsPageEdits()
+{
+    // Une entrée hors du document est sautée, sans consommer l'avancée ; rien en arrière : la position reste.
+    ui::PageHistory history;
+    for (const int page : {4, 0, 5, 1}) {
+        history.visited(page);
+    }
+    QCOMPARE(history.back(3), 0);
+    QCOMPARE(history.back(3), -1);
+    QCOMPARE(history.forward(3), 1);
+    QCOMPARE(history.forward(3), -1);
+
+    // Cinq pages A…E (0…4) visitées A, C, E, B ; C retirée : A, B, D, E (0…3). Les numéros suivent la lecture
+    // des changements de core::applyToCache (indice du moment, dans l'ordre).
+    load(historyDocument(5));
+    for (const int page : {2, 4, 1}) {
+        m_controllerOwner->showPage(page);
+    }
+    m_controllerOwner->execute(std::make_unique<core::RemovePagesCommand>(std::vector<std::size_t>{2}));
+    QCOMPARE(m_controllerOwner->currentIndex(), 1); // B
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 3); // E, recalée (4 → 3), sans entrée perdue pour C
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 0); // A
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 0); // rien avant A
+    click(kOnLabel);
+    QCOMPARE(m_controllerOwner->currentIndex(), 3); // E
+    click(kOnLabel);
+    QCOMPARE(m_controllerOwner->currentIndex(), 1); // B
+
+    // Annuler le retrait réinsère C au rang 2 : E repasse à 4.
+    m_controllerOwner->undo();
+    QCOMPARE(m_controllerOwner->currentIndex(), 1);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 4); // E
+    click(kOnLabel);
+    QCOMPARE(m_controllerOwner->currentIndex(), 1); // B
+
+    // Une page ajoutée avant B : B passe à 2, E à 5, et B n'est pas réinscrite.
+    const core::Page& first = m_controllerOwner->document().page(0);
+    m_controllerOwner->execute(std::make_unique<core::AddPageCommand>(1, first.width, first.height));
+    QCOMPARE(m_controllerOwner->currentIndex(), 2);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 5); // E
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 0); // A
+}
+
+void TstUiActionrunner::historyKeptBySaveAsResetByOpen()
+{
+    load(historyDocument(3));
+    m_controllerOwner->showPage(1);
+    m_controllerOwner->showPage(2);
+    // « Enregistrer sous » change le fichier du même document : l'historique reste.
+    const QUrl copy = QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("copie.actcraft")));
+    QSignalSpy saved(m_controllerOwner.get(), &ui::DocumentController::saveFinished);
+    QSignalSpy renamed(m_controllerOwner.get(), &ui::DocumentController::fileUrlChanged);
+    m_controllerOwner->saveToUrl(copy);
+    QTRY_COMPARE_WITH_TIMEOUT(saved.count(), 1, 10000);
+    QVERIFY(saved.first().first().toBool());
+    QCOMPARE(renamed.count(), 1);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 1);
+
+    // Un autre document ouvert : l'historique repart de sa première page.
+    m_controllerOwner->showPage(2);
+    load(historyDocument(3));
+    QCOMPARE(m_controllerOwner->currentIndex(), 0);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 0);
+    m_controllerOwner->showPage(1);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 0);
+}
+
+namespace actcraft::ui {
+void measureFirstBaselines(core::Document& document); // ui/src/textediting.cpp (L4-C5), chemin de référence
+} // namespace actcraft::ui
+
+namespace {
+
+// Colonne d'un texte de haut en bas, mesurée comme l'éditeur (ui/src/textediting.cpp, columnSize).
+core::RectF column(const QString& html, double x, double y)
+{
+    std::unique_ptr<QTextDocument> doc = ui::isolatedTextDocument({});
+    doc->setHtml(ui::safeTextHtml(html, {}));
+    render::layOutVerticalColumn(*doc);
+    return core::RectF{x, y, std::max(1.0, doc->textWidth()), std::ceil(doc->size().height())};
+}
+
+// Étiquette 2 du document : rond 1 « valeur du texte + 1 » visant l'étiquette « 9 ».
+core::Document counterDocument()
+{
+    return documentWith({action("object.text-value", kLabel, R"({"value":1})")});
+}
+
+core::Text* labelOf(core::Document& document)
+{
+    return std::get_if<core::Text>(&core::body(document.page(0).objects[1]));
+}
+
+} // namespace
+
+void TstUiActionrunner::textActionRemeasuresVerticalColumn()
+{
+    // Revue L8-C3 : un texte de haut en bas n'était pas remesuré, « 10 » restait coupé au cadre de « 9 ».
+    core::Document document = counterDocument();
+    core::Text* label = labelOf(document);
+    QVERIFY(label != nullptr);
+    label->html = "9";
+    label->vertical = true;
+    label->bounds = column(QStringLiteral("9"), 400, 100);
+    const core::RectF before = label->bounds;
+    load(std::move(document));
+    click(kOnRound);
+    const auto* after = std::get_if<core::Text>(&core::body(*object(kLabel)));
+    QVERIFY(after != nullptr);
+    QVERIFY(after->vertical);
+    const core::RectF ten = column(QString::fromStdString(after->html), 400, 100);
+    QVERIFY2(after->bounds.height > before.height, "colonne allongée");
+    QCOMPARE(after->bounds.height, ten.height);
+    QCOMPARE(after->bounds.width, ten.width);
+    QVERIFY(!after->firstBaseline); // une colonne n'a pas de première ligne horizontale (commit de l'éditeur)
+    m_controllerOwner->undo();
+    QCOMPARE(std::get_if<core::Text>(&core::body(*object(kLabel)))->bounds.height, before.height);
+}
+
+void TstUiActionrunner::textActionKeepsTheWidthOfReadLines()
+{
+    // Revue L8-C3 : un texte lu avec ses lignes (`runs`) a la largeur de son cadre ; l'action vide `runs`
+    // (core/src/objectactions_edit.cpp) et la remesure ne doit pas l'élargir à sa largeur naturelle.
+    core::Document document = counterDocument();
+    core::Text* label = labelOf(document);
+    QVERIFY(label != nullptr);
+    label->html = "9";
+    core::TextSpan span;
+    span.text = "9";
+    label->runs.push_back(span);
+    const core::RectF nine = measured(QStringLiteral("9"), 400, 100);
+    label->bounds = core::RectF{400, 100, nine.width, nine.height}; // cadre juste à « 9 » : « 10 » le dépasse
+    const double width = label->bounds.width;
+    load(std::move(document));
+    click(kOnRound);
+    const auto* after = std::get_if<core::Text>(&core::body(*object(kLabel)));
+    QVERIFY(after != nullptr);
+    QVERIFY(after->runs.empty());
+    QVERIFY(measured(QString::fromStdString(after->html), 400, 100).width > width); // l'élargir se verrait
+    QCOMPARE(after->bounds.width, width);
+}
+
+void TstUiActionrunner::textActionRecomputesFirstBaseline()
+{
+    // Revue L8-C3 : la ligne de base de la première ligne suit le texte écrit, comme measureFirstBaselines la
+    // mesure à l'ouverture (même document, même largeur).
+    core::Document document = counterDocument();
+    core::Text* label = labelOf(document);
+    QVERIFY(label != nullptr);
+    label->html = "<span style=\"font-size:12pt\">9</span>";
+    label->bounds = measured(QString::fromStdString(label->html), 400, 100);
+    label->firstBaseline = core::PointF{0, 0}; // valeur périmée : la remesure doit la remplacer
+    load(std::move(document));
+    click(kOnRound);
+    const core::PageObject* written = object(kLabel);
+    QVERIFY(written != nullptr);
+    const auto* after = std::get_if<core::Text>(&core::body(*written));
+    QVERIFY(after != nullptr && after->firstBaseline);
+    core::Document probe(1024, 768);
+    probe.page(0).objects.push_back(*written);
+    std::get_if<core::Text>(&core::body(probe.page(0).objects[0]))->firstBaseline.reset();
+    ui::measureFirstBaselines(probe);
+    const auto& expected = std::get_if<core::Text>(&core::body(probe.page(0).objects[0]))->firstBaseline;
+    QVERIFY(expected);
+    QVERIFY2(std::abs(after->firstBaseline->x - expected->x) < 0.5 &&
+                 std::abs(after->firstBaseline->y - expected->y) < 0.5,
+             "ligne de base de measureFirstBaselines");
+    m_controllerOwner->undo();
+    const auto* undone = std::get_if<core::Text>(&core::body(*object(kLabel)));
+    QVERIFY(undone->firstBaseline && undone->firstBaseline->x == 0 && undone->firstBaseline->y == 0);
 }
 
 QTEST_MAIN(TstUiActionrunner)
