@@ -244,8 +244,8 @@ bool usesPaintedRenderer(const core::PageObject& object) noexcept
     }
     if (std::get_if<core::Text>(&object) || std::get_if<core::Line>(&object) ||
         std::get_if<core::Media>(&object) || std::get_if<core::Connector>(&object) ||
-        std::get_if<core::Equation>(&object)) {
-        return true;
+        std::get_if<core::Equation>(&object) || std::get_if<core::WebFrame>(&object)) {
+        return true; // cadre web (R-T3b) : repère neutre peint, jamais la vue (surcouche QML)
     }
     if (const auto* s = std::get_if<core::Shape>(&object)) {
         return s->kind == core::ShapeKind::Path;

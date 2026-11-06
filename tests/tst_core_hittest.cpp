@@ -123,6 +123,22 @@ private slots:
         QCOMPARE(objectAt(page, {120, 120}, 0).value_or(0), ObjectId{9});
         QCOMPARE(objectsTouching(page, normalizedRect({170, 130}, {200, 160})), (std::vector<ObjectId>{9}));
     }
+    void webFrameIsSelectableByItsBox()
+    {
+        // R-T3b (L8-T30) : le cadre web se désigne par sa boîte, comme une équation ; son emprise la couvre.
+        Page page;
+        WebFrame frame;
+        frame.bounds = {100, 100, 160, 90};
+        PageObject o{frame};
+        o.common.id = 11;
+        insertAtTopOfLayer(page, o);
+        QVERIFY(hasExtent(page.objects[0]));
+        QVERIFY(isSelectable(page.objects[0]));
+        const RectF b = boundsOnPage(page.objects[0]);
+        QVERIFY(b.x <= 100 && b.y <= 100 && b.x + b.width >= 260 && b.y + b.height >= 190);
+        QCOMPARE(objectAt(page, {150, 150}, 0).value_or(0), ObjectId{11});
+        QCOMPARE(objectsTouching(page, normalizedRect({250, 180}, {300, 220})), (std::vector<ObjectId>{11}));
+    }
     void annotationsAreTopLayerStrokes()
     {
         QVERIFY(isAnnotation(strokeObject(1, {{0, 0, 0.5f}, {1, 1, 0.5f}}, 2)));
