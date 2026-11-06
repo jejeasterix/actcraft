@@ -321,8 +321,9 @@ Outils de l'orchestrateur (hors dépôt, `~/pilotage-mac/`) : `wt-lot8.sh <id>` 
 Suite de la tête 62fc5288 (L8-T0 à T6, C0 mergées ; orchestrateur, 2026-11-06) : 229/229, 0 avertissement. Deux agents écrivent en parallèle, le jeton sérialise les constructions (P = 1).
 Référence de la tête après L8-T21 : 245 tests (N8 + 37).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
-Tâche : L8-T24 — media : lecteur intégré (8b, V12) — depuis 2026-11-06
-Tâche : L8-T16 — tools : sélection, limiteurs, rotation, conteneurs (V7) — depuis 2026-11-06
+Tâche : L8-T24 — media : lecteur intégré (8b, correctifs de la revue : 3 majeurs) — depuis 2026-11-06
+Tâche : L8-T16 — tools : sélection, limiteurs, rotation, conteneurs (V7, correctifs de la revue : 1 majeur) — depuis 2026-11-06
+Tâche : L8-T12 — QML : navigateur d'actions (V7) — depuis 2026-11-06
 
 ### Tâches du lot 8
 | id | statut | essais | worktree / commit | note |
