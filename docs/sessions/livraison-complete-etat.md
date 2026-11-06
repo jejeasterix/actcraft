@@ -319,12 +319,13 @@ Outils de l'orchestrateur (hors dépôt, `~/pilotage-mac/`) : `wt-lot8.sh <id>` 
 **H8-13** (orchestrateur, 2026-11-06, revue de L8-T29) — la politique de contenu du cadre web est tenue **par document** (origines saisies, déblocages, drapeau « reçu », dossier de ressources) : une origine saisie dans un document ne vaut jamais pour un autre. L8-T30 l'emploie ainsi.
 **H8-14** (orchestrateur, 2026-11-06, revue de L8-T26) — décision 28 du cadrage (« aucune permission Android ») amendée pour F-293 : la seule permission autorisée est `android.permission.RECORD_AUDIO` (micro non requis : `uses-feature … required="false"`) ; macOS : `NSMicrophoneUsageDescription`. À revoir par Jérôme.
 **H8-15** (orchestrateur, 2026-11-06, L8-T30) — permission Android `android.permission.INTERNET` autorisée en plus de `RECORD_AUDIO` : le cadre web (F-302, accordé avec H8-6) lit ses pages par `QNetworkAccessManager`. À revoir par Jérôme.
+**H8-16** (orchestrateur, 2026-11-06, revue de L8-T32) — les notes de la page font partie du contenu protégé : leur copie est refusée dans un document diffusé sans copie. À confronter au PC.
 **H8-8** (orchestrateur, 2026-11-06) — `page.copy`, `page.cut` restent non restreignables (D10, défaut) ; la diffusion protégée (8b L8-T31) les refuse au titre de la copie, sans passer par `restrictable`.
 Suite de la tête 62fc5288 (L8-T0 à T6, C0 mergées ; orchestrateur, 2026-11-06) : 229/229, 0 avertissement. Deux agents écrivent en parallèle, le jeton sérialise les constructions (P = 1).
 Référence de la tête après L8-T21 : 245 tests (N8 + 37).
 Référence rapide du lot 8 (Mac, 1dd14c2f, base du lot ; c0eae718 n’y ajoute que l’état ; `build-mac` debug hors écran, orchestrateur, 2026-11-06) : **208/208** (4 sautés : `tst_formats_oracle`, `tst_formats_oracle_synth`, `tst_flipchart_miniatures_samples`, `tst_captures_raccourcis_programmes`), 0 avertissement. N8 = 208.
 Tâche : L8-T23 — insertion des médias (8b, V13) — depuis 2026-11-06
-Tâche : L8-T32 — diffusion protégée II (8b, V15) — depuis 2026-11-06
+Tâche : L8-T32 — diffusion protégée II (8b, correctifs de la revue : 1 bloquant, copie de pages entre onglets) — depuis 2026-11-06
 Tâche : L8-T30 — cadre web (8b, correctifs de la revue : 1 bloquant de sécurité, `<meta/http-equiv=refresh>`) — depuis 2026-11-06
 
 ### Tâches du lot 8
