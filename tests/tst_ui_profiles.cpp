@@ -84,7 +84,8 @@ private slots:
         }
         QVERIFY(filtered >= 1); // au moins le clavier à l'écran ou la reconnaissance d'écriture
         // L'enregistreur d'écran n'existe que sous Windows (lot 8).
-        for (const QString& id : {QStringLiteral("record.screen-full"), QStringLiteral("record.screen-area")}) {
+        for (const QString& id :
+             {QStringLiteral("record.screen-full"), QStringLiteral("record.screen-area")}) {
             QVERIFY2(registry.isAvailable(id, actions::Platform::Windows), qPrintable(id));
             QVERIFY2(!registry.isAvailable(id, actions::Platform::Android), qPrintable(id));
         }
@@ -96,9 +97,12 @@ private slots:
         QVERIFY(registry.loadDeclarations(actions::defaultCommandsJson(), error));
         const auto p = builtins().load(QStringLiteral("son-image"), error);
         QVERIFY2(p, qPrintable(error));
-        const QStringList lot8{QStringLiteral("media.sound-controller"), QStringLiteral("record.sound"),
-                               QStringLiteral("record.screen-full"),     QStringLiteral("record.screen-area"),
-                               QStringLiteral("insert.web-frame"),       QStringLiteral("link.file"),
+        const QStringList lot8{QStringLiteral("media.sound-controller"),
+                               QStringLiteral("record.sound"),
+                               QStringLiteral("record.screen-full"),
+                               QStringLiteral("record.screen-area"),
+                               QStringLiteral("insert.web-frame"),
+                               QStringLiteral("link.file"),
                                QStringLiteral("link.website")};
         for (const QString& id : lot8) {
             QVERIFY2(p->pinned.contains(id), qPrintable(id + QStringLiteral(" : non épinglé")));
