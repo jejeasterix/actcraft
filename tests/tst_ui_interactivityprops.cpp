@@ -1,8 +1,10 @@
 // L8-T17 : sections de propriétés de l'interactivité (F-577 à F-579, F-582) dans le navigateur de propriétés.
 //
 // Invariants gardés (ce qui distingue le bon patron du mauvais) :
-// - « Contenir des mots » lit et écrit ObjectCommon::keywords du conteneur (mots-clés du lot 6), jamais la
-//   copie ContainerRule::keywords : keywordsFromLot6 pose deux listes différentes et regarde laquelle bouge.
+// - « Mots acceptés » lit et écrit ContainerRule::keywords, la règle que lit core::resolveDrop (H8-12),
+// jamais
+//   ObjectCommon::keywords du conteneur : keywordsFromLot6 pose deux listes différentes, regarde laquelle
+//   bouge et joue le dépôt d'un candidat.
 // - Une édition de mode passe par la forme normalisée (core::setTravel, core::normalize) : les booléens du
 //   lot 2 priment. Un objet bloqué au lot 2 (movable faux) dont le mode resterait « librement » se lit « non
 //   » ; le passer à « verticalement » rend movable vrai. Une écriture brute du mode serait ramenée à « non »
@@ -11,6 +13,7 @@
 // jamais
 //   ObjectChanged (patron de propertyedits.cpp, changeFor ; SetObjectActionsCommand).
 // - Une modification sur plusieurs objets est une seule étape : un undo les rétablit tous.
+#include <actcraft/core/containers.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/interactivity.h>
 #include <actcraft/core/model.h>
@@ -322,15 +325,22 @@ void TstUiInteractivityprops::fixedTravelGreysTheTrack()
     QVERIFY(roleOf(f.model, QStringLiteral("name"), ui::kEnabledRole).toBool());
 }
 
-// « Contenir des mots » : les mots-clés du lot 6 du conteneur, pas la copie de ContainerRule.
+// « Mots acceptés » (H8-12) : la règle du conteneur, ContainerRule::keywords ; les mots-clés du lot 6
+// (ObjectCommon::keywords) décrivent l'objet et servent côté candidat. L'éditeur écrit la règle, n'altère pas
+// les mots-clés du conteneur, et core::resolveDrop juge contenu un candidat dont les mots-clés portent un mot
+// accepté.
 void TstUiInteractivityprops::keywordsFromLot6()
 {
     Fixture f;
-    core::PageObject box = shapeAt(100);
-    box.common.keywords = {"chat"};
+    core::PageObject box = shapeAt(100); // 100, 100, 80 × 60 : centre (140, 130)
+    box.common.keywords = {"boîte"};
     box.common.container.accepts = core::Accepts::Keywords;
-    box.common.container.keywords = {"copie"}; // jamais lue ni écrite par le navigateur
+    box.common.container.keywords = {"chat"};
     const core::ObjectId container = addObject(f.controller, box);
+    core::PageObject fruit =
+        core::makeShapeObject("rectangle", core::RectF{120, 110, 40, 40}, core::ShapeStyle{}); // même centre
+    fruit.common.keywords = {"pomme"};
+    const core::ObjectId candidate = addObject(f.controller, fruit);
     f.select({container});
 
     QCOMPARE(roleOf(f.model, QStringLiteral("contain-words"), ui::PropertyModel::EditorRole).toString(),
@@ -338,16 +348,21 @@ void TstUiInteractivityprops::keywordsFromLot6()
     QCOMPARE(valueOf(f.model, QStringLiteral("contain-words")).toStringList(),
              QStringList{QStringLiteral("chat")});
     QVERIFY(roleOf(f.model, QStringLiteral("contain-words"), ui::kEnabledRole).toBool());
+    QCOMPARE(core::resolveDrop(f.controller.document().page(0), {candidate}).outcome,
+             core::DropOutcome::Free);
 
-    QVERIFY(f.set(QStringLiteral("contain-words"), QStringLiteral("lion tigre")));
+    QVERIFY(f.set(QStringLiteral("contain-words"), QStringLiteral("lion pomme")));
     const core::ObjectCommon& common = objectOf(f.controller, container)->common;
-    const QStringList written = {QStringLiteral("lion"), QStringLiteral("tigre")};
-    QCOMPARE(asList(common.keywords), written);
-    QCOMPARE(asList(common.container.keywords), QStringList{QStringLiteral("copie")});
+    const QStringList written = {QStringLiteral("lion"), QStringLiteral("pomme")};
+    QCOMPARE(asList(common.container.keywords), written);
+    QCOMPARE(asList(common.keywords), QStringList{QStringLiteral("boîte")}); // mots-clés du conteneur intacts
     QVERIFY(f.noRedraw());
-    // La ligne du lot 6 montre la même liste : un seul champ.
-    QCOMPARE(valueOf(f.model, QStringLiteral("keywords")).toStringList(), written);
     QCOMPARE(valueOf(f.model, QStringLiteral("contain-words")).toStringList(), written);
+    QCOMPARE(valueOf(f.model, QStringLiteral("keywords")).toStringList(),
+             QStringList{QStringLiteral("boîte")});
+    const core::DropResult drop = core::resolveDrop(f.controller.document().page(0), {candidate});
+    QCOMPARE(drop.outcome, core::DropOutcome::Contained);
+    QCOMPARE(drop.container, container);
 
     // Accepte autre chose que des mots : la ligne est grisée.
     QVERIFY(f.set(QStringLiteral("accepts"), static_cast<int>(core::Accepts::Anything)));
