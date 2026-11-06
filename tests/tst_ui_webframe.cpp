@@ -169,6 +169,8 @@ private slots:
     void staleRewriteIsDropped();
     void engineNavigationAlwaysReturnsToTheModel();
     void receivedCodeFrameUnblocks();
+    void unblockDuringRewriteHolds();
+    void hrefOutsideSvgResourceBecomesALink();
 };
 
 namespace {
@@ -852,6 +854,54 @@ void TstUiWebFrame::receivedCodeFrameUnblocks()
     QVERIFY(!role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
     QTRY_VERIFY2_WITH_TIMEOUT(content(reader.frames, 1).contains(image),
                               qPrintable(content(reader.frames, 1)), 10000);
+}
+
+// Un href hors <a>, <area>, <link> et des éléments SVG à ressource (ici MathML) est un lien pour le moteur :
+// il passe par la voie des liens (renvoi interne), l'adresse absolue n'est jamais gardée.
+void TstUiWebFrame::hrefOutsideSvgResourceBecomesALink()
+{
+    OnlyOk decide;
+    const auto prepared = ui::WebFrameItems::prepareHtml(
+        QStringLiteral(R"h(<math><mi href="https://ok.example/m" xlink:href="https://ok.example/x">clic</mi></math>)h"
+                       R"h(<svg><image href="https://ok.example/i.png"/></svg>)h"),
+        QUrl(QStringLiteral("https://ok.example/")), std::ref(decide));
+    const qsizetype from = prepared.html.indexOf(QStringLiteral("<math"));
+    const QString mathml = prepared.html.mid(from, prepared.html.indexOf(QStringLiteral("</math>")) - from);
+    QVERIFY2(!mathml.contains(QStringLiteral("ok.example")), qPrintable(prepared.html));
+    QVERIFY2(mathml.contains(QStringLiteral("href=\"#")), qPrintable(prepared.html));
+    QVERIFY2(prepared.html.contains(QStringLiteral("<image href=\"https://ok.example/i.png\"")),
+             qPrintable(prepared.html));
+}
+
+// Déblocage confirmé pendant la réécriture d'un gros cadre : la réécriture en cours (faite avec la politique
+// d'avant) est refaite, le cadre rendu laisse passer l'image.
+void TstUiWebFrame::unblockDuringRewriteHolds()
+{
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/page"), "<p>distant</p>");
+    const QString image = server.url(QStringLiteral("/fin.png")).toString();
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Fixture writer;
+    QVERIFY(writer.frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
+    QVERIFY(writer.frames.insertFrame(
+        bigPage(2 * 1024 * 1024, QStringLiteral("FIN")) + QStringLiteral("<img src=\"%1\">").arg(image), {}));
+    QTRY_VERIFY_WITH_TIMEOUT(content(writer.frames, 1).contains(QStringLiteral("<p>FIN</p>")), 60000);
+    QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
+    Fixture reader;
+    QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("gros.actcraft"))));
+    QCOMPARE(reader.frames.count(), 2);
+    QVERIFY(role(reader.frames, 0, ui::WebFrameItems::BlockedRole).toBool());
+    QVERIFY(role(reader.frames, 1, ui::WebFrameItems::LoadingRole).toBool()); // réécriture en cours
+    reader.frames.requestUnblock(0);
+    QVERIFY(reader.frames.unblockPending());
+    reader.frames.answer(true);
+    QTRY_VERIFY_WITH_TIMEOUT(!role(reader.frames, 1, ui::WebFrameItems::LoadingRole).toBool(), 60000);
+    QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
+    QTest::qWait(100);
+    QVERIFY2(content(reader.frames, 1).contains(image), "image decidee apres deblocage");
+    QVERIFY(!role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
 }
 
 int main(int argc, char** argv)
