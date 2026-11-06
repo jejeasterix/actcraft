@@ -1,5 +1,6 @@
 #include "flipchartids.h"
 
+#include <actcraft/core/interactivity.h>
 #include <actcraft/formats/bamboo.h>
 #include <actcraft/formats/flipchart.h>
 #include <actcraft/formats/objectstream.h>
@@ -710,6 +711,10 @@ private:
             break;
         }
         p.action.command = command ? intOr(&o, command, 0) : 0;
+        // Table écrite à la main (flipchartids.h) : hors table, aucun identifiant ni avertissement.
+        if (const char* id = ids::catalogIdOf(treeNode.type, p.action.command)) {
+            p.action.catalogId = id;
+        }
         if (target) {
             if (const std::optional<Pointer> ptr = asPointer(o.find(target)); ptr && !ptr->isNull()) {
                 p.targetNode = ptr->nodeId;
@@ -1008,6 +1013,8 @@ private:
         c.restrictions.movable = flagOr(&o, ids::itemKeys::kMovable, true);
         c.restrictions.resizable = flagOr(&o, ids::itemKeys::kResizable, true);
         c.restrictions.rotatable = flagOr(&o, ids::itemKeys::kRotatable, true);
+        // Les booléens restent la source du « bloqué » : les modes du lot 8 suivent (empreinte inchangée).
+        core::normalize(c.restrictions);
         c.transform = localTransform(o, bounds);
         if (!isFinite(c.transform)) {
             warn(u"%1 : transformation non finie (nœud %2), identité"_s.arg(where).arg(treeNode.nodeId));
