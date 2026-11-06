@@ -7,6 +7,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/media/player.h>
 #include <actcraft/render/fixedpageitem.h>
+#include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/linklauncher.h>
@@ -266,6 +267,7 @@ private slots:
     void gifAnimates();
     void chimePlaysOnAcceptedDrop();
     void soundControllerToggles();
+    void playSoundActionUsesPlayer();
 
 private:
     void open(core::Document document)
@@ -321,7 +323,9 @@ void TstUiMediaitems::videoIsAboveTheCache()
     Q_UNUSED(scene);
 }
 
-// 2 s de lecture réelle (des images arrivent au VideoOutput) : aucune demande de redessin du cache.
+// 2 s de lecture demandée : aucune demande de redessin du cache, vérifié partout. Que des images arrivent bien
+// au VideoOutput (sans quoi l'espion ne prouverait rien) n'est vérifié que hors macOS : sous macOS hors écran,
+// sans le répartiteur Core Foundation, le moteur darwin ne livre aucune image (décision H8-17).
 void TstUiMediaitems::videoNeverEntersTheCache()
 {
     core::Document d(1024, 768);
@@ -339,11 +343,13 @@ void TstUiMediaitems::videoNeverEntersTheCache()
     QSignalSpy content(m_scene->fixed, &render::FixedPageItem::contentChanged);
     QVERIFY(m_items->play(11));
     QTest::qWait(2000);
-    // Lecture réelle : sans images, l'espion ne prouverait rien.
-    QVERIFY2(frames.count() >= 2, qPrintable(QStringLiteral("%1 image(s) reçue(s)").arg(frames.count())));
     QCOMPARE(refresh.count(), 0);
     QCOMPARE(updated.count(), 0);
     QCOMPARE(content.count(), 0);
+#if defined(Q_OS_MACOS)
+    QSKIP("images vidéo indisponibles hors écran sous macOS (piège GCD) ; prouvé sous Windows");
+#endif
+    QVERIFY2(frames.count() >= 2, qPrintable(QStringLiteral("%1 image(s) reçue(s)").arg(frames.count())));
 }
 
 void TstUiMediaitems::controlsHiddenOption()
@@ -363,7 +369,8 @@ void TstUiMediaitems::controlsHiddenOption()
     QVERIFY(!hidden->isVisible());
 }
 
-// Fin de lecture : un son en boucle reprend (sa position repart en arrière), l'autre s'arrête.
+// Fin de lecture : un son en boucle joue encore après trois fois sa durée sans jamais finir ; l'autre s'arrête
+// à la fin de la sienne.
 void TstUiMediaitems::loopOption()
 {
     core::Document d(1024, 768);
@@ -374,21 +381,16 @@ void TstUiMediaitems::loopOption()
     open(std::move(d));
     QTRY_COMPARE(m_items->rowCount(), 2);
     Player* player = m_items->player();
-    qint64 last = -1;
-    bool wrapped = false;
-    connect(player, &Player::positionChanged, this, [&](int track, qint64 position) {
-        if (track == Player::First) {
-            wrapped = wrapped || (last > 200 && position < last);
-            last = position;
-        }
-    });
     QSignalSpy finished(player, &Player::finished);
     QVERIFY(m_items->play(21));
-    QTRY_VERIFY_WITH_TIMEOUT(wrapped, 5000);
-    QVERIFY(player->isPlaying(Player::First));
+    QTRY_VERIFY_WITH_TIMEOUT(player->isPlaying(Player::First), 5000);
+    QTest::qWait(3 * 400 + 200);
+    QVERIFY2(player->isPlaying(Player::First), "le son en boucle doit jouer encore après 3 fois sa durée");
     QCOMPARE(finished.count(), 0);
     QVERIFY(m_items->play(22));
+    QTRY_VERIFY_WITH_TIMEOUT(player->isPlaying(Player::First), 5000);
     QTRY_VERIFY_WITH_TIMEOUT(!player->isPlaying(Player::First), 5000);
+    QVERIFY(finished.count() >= 1);
 }
 
 // « Lecture auto » démarre le lecteur intégré à l'affichage de la page ; jamais LinkLauncher. Sans l'option,
@@ -506,14 +508,48 @@ void TstUiMediaitems::soundControllerToggles()
     QCOMPARE(controller->property("visible").toBool(), false);
 }
 
-// Sous macOS, le moteur darwin de Qt Multimedia livre par la file principale de GCD : répartiteur Core
-// Foundation obligatoire (patron de tst_media_player).
+// F-552 : l'action « jouer un son » d'un objet de la page passe par le lecteur intégré (piste 1, lecteur de sons
+// ouvert), jamais par le système : LinkLauncher n'est que le repli du lecteur (media::Player). Sous l'ancien
+// chemin (LinkLauncher::requestStored, SystemMedia), la confirmation serait demandée et rien ne jouerait.
+void TstUiMediaitems::playSoundActionUsesPlayer()
+{
+    core::Document d(1024, 768);
+    const std::string key = d.addResource(toneWav(3000), "wav");
+    core::ImageObject box;
+    box.bounds.x = 100;
+    box.bounds.y = 100;
+    box.bounds.width = 200;
+    box.bounds.height = 200;
+    core::PageObject object = std::move(box);
+    object.common.id = 61;
+    object.common.layer = core::Layer::Middle;
+    core::Action action;
+    action.command = "document.play-sound";
+    action.resource = key;
+    object.common.actions.push_back(action);
+    d.page(0).objects.push_back(std::move(object));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 0); // l'image porteuse n'est pas un média
+    ui::ActionRunner runner;
+    runner.setDocument(m_controller.get());
+    runner.setLinks(m_links.get());
+    runner.setMediaItems(m_items.get());
+    QSignalSpy asked(m_links.get(), &ui::LinkLauncher::confirmationNeeded);
+    QSignalSpy opened(m_links.get(), &ui::LinkLauncher::opened);
+    QSignalSpy refused(&runner, &ui::ActionRunner::actionRefused);
+    QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+    QVERIFY(runner.press(QPointF(200, 200), Qt::LeftButton));
+    runner.release(QPointF(200, 200));
+    QTRY_VERIFY_WITH_TIMEOUT(m_items->player()->isPlaying(Player::First), 5000);
+    QCOMPARE(started.count(), 1);
+    QCOMPARE(asked.count(), 0);
+    QCOMPARE(opened.count(), 0);
+    QCOMPARE(refused.count(), 0);
+}
+
+// Sans répartiteur Core Foundation (décision H8-17) : sous macOS hors écran, il fige le chargement QML du test.
 int main(int argc, char* argv[])
 {
-#if defined(Q_OS_DARWIN)
-    if (!qEnvironmentVariableIsSet("ACTCRAFT_TEST_NO_CF"))
-        qputenv("QT_EVENT_DISPATCHER_CORE_FOUNDATION", "1");
-#endif
     QGuiApplication app(argc, argv);
     TstUiMediaitems test;
     QTEST_SET_MAIN_SOURCE_PATH
