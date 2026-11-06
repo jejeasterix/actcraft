@@ -1,11 +1,480 @@
+// Exécuteur d'actions (lot 8, L8-T9) : une action s'exécute au relâché d'un clic, jamais à l'appui ni pendant
+// un contact ; un glisser, un clic droit ou le mode conception laissent tout à l'outil de sélection.
+#include <actcraft/core/document.h>
+#include <actcraft/core/model.h>
+#include <actcraft/ui/actionrunner.h>
+#include <actcraft/ui/commands.h>
+#include <actcraft/ui/designmode.h>
+#include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/linklauncher.h>
+#include <actcraft/ui/pagehistory.h>
+
+#include <QSettings>
+#include <QSignalSpy>
+#include <QStandardPaths>
+#include <QTemporaryDir>
 #include <QtTest>
+
+#include <memory>
+#include <string>
+#include <vector>
+
+using namespace actcraft;
+
+namespace {
+
+constexpr core::ObjectId kRound = 1;
+constexpr core::ObjectId kLabel = 2;
+const QPointF kOnRound(150, 150);  // rond 1 : 100…200
+const QPointF kOnLabel(430, 120);  // étiquette 2 : 400…480 × 100…140
+const QPointF kNowhere(900, 700);
+
+core::Action action(const std::string& catalogId, core::ObjectId target = 0,
+                    const std::string& parameters = std::string("{}"))
+{
+    core::Action a;
+    a.catalogId = catalogId;
+    a.target = target;
+    a.parameters = parameters;
+    return a;
+}
+
+core::PageObject roundObject(std::vector<core::Action> actions)
+{
+    core::Shape shape;
+    shape.kind = core::ShapeKind::Ellipse;
+    shape.bounds = core::RectF{100, 100, 100, 100};
+    core::PageObject object{shape};
+    object.common.id = kRound;
+    object.common.actions = std::move(actions);
+    return object;
+}
+
+core::PageObject labelObject(const std::string& text, std::vector<core::Action> actions = {})
+{
+    core::Text label;
+    label.bounds = core::RectF{400, 100, 80, 40};
+    core::TextSpan span;
+    span.text = text;
+    label.spans.push_back(span);
+    core::PageObject object{label};
+    object.common.id = kLabel;
+    object.common.actions = std::move(actions);
+    return object;
+}
+
+// Une page : le rond 1 porteur des actions, l'étiquette 2 ; `pages` pages en tout.
+core::Document documentWith(std::vector<core::Action> roundActions, int pages = 1,
+                            std::vector<core::Action> labelActions = {})
+{
+    core::Document document(1024, 768);
+    document.page(0).objects.push_back(roundObject(std::move(roundActions)));
+    document.page(0).objects.push_back(labelObject("Étiquette", std::move(labelActions)));
+    for (int i = 1; i < pages; ++i) {
+        document.addPage();
+    }
+    return document;
+}
+
+} // namespace
 
 class TstUiActionrunner : public QObject
 {
     Q_OBJECT
+
 private slots:
-    void reserved() { QSKIP("Talon L8 : rempli par L8-T9."); }
+    void initTestCase();
+    void init();
+    void cleanup();
+
+    void clickRunsEveryActionInOrder();
+    void dragDoesNotRun();
+    void rightClickSelectsWithoutRunning();
+    void designModeSelectsInstead();
+    void lockedCommandActionRefused();
+    void pageActionCreatesNoStep();
+    void objectActionIsOneStep();
+    void neverDuringContact();
+    void hiddenObjectStillClickable();
+    void lockedObjectStillRuns();
+    void historyBackAndForward();
+    void unsupportedActionDoesNothing();
+    void documentOpenLaunchesNothing();
+    void refusedWithoutCommands();
+    // Travail ajouté par l'orchestrateur (constats des tâches précédentes).
+    void editActionsTriggerEditCommands();
+    void commandWithoutHandlerIsUnsupported();
+    void textActionRemeasuresBounds();
+
+private:
+    void load(core::Document document);
+    const core::PageObject* object(core::ObjectId id, std::size_t page = 0) const;
+    bool hidden(core::ObjectId id) const;
+    // Clic réel : contact posé, appui, relâché, contact retombé, puis un tour de boucle.
+    void click(QPointF point, Qt::MouseButton button = Qt::LeftButton);
+    core::Document linkedDocument() const;
+
+    QTemporaryDir m_settings;
+    QTemporaryDir m_dir;
+    std::unique_ptr<ui::DocumentController> m_controllerOwner;
+    std::unique_ptr<ui::Commands> m_commands;
+    std::unique_ptr<ui::DesignMode> m_design;
+    ui::LinkLauncher* m_links = nullptr;
+    std::unique_ptr<ui::LinkLauncher> m_linksOwner;
+    std::unique_ptr<ui::ActionRunner> m_runner;
+    int m_openerCalls = 0;
+    int m_penCalls = 0;
 };
+
+void TstUiActionrunner::initTestCase()
+{
+    QVERIFY(m_settings.isValid());
+    QVERIFY(m_dir.isValid());
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settings.path());
+    QStandardPaths::setTestModeEnabled(true);
+    QSettings probe;
+    QCOMPARE(probe.format(), QSettings::IniFormat);
+    QVERIFY(probe.fileName().startsWith(m_settings.path()));
+}
+
+void TstUiActionrunner::init()
+{
+    m_controllerOwner = std::make_unique<ui::DocumentController>();
+    m_commands = std::make_unique<ui::Commands>();
+    m_design = std::make_unique<ui::DesignMode>();
+    m_linksOwner = std::make_unique<ui::LinkLauncher>();
+    m_links = m_linksOwner.get();
+    m_openerCalls = 0;
+    m_penCalls = 0;
+    m_links->setOpener([this](const QUrl&) {
+        ++m_openerCalls;
+        return true;
+    });
+    m_commands->setNativeHandler(QStringLiteral("tool.pen"), [this](const QVariant&) { ++m_penCalls; });
+    m_runner = std::make_unique<ui::ActionRunner>();
+    m_runner->setCommands(m_commands.get());
+    m_runner->setDocument(m_controllerOwner.get());
+    m_runner->setDesignMode(m_design.get());
+    m_runner->setLinks(m_links);
+}
+
+void TstUiActionrunner::cleanup()
+{
+    m_runner.reset();
+    m_linksOwner.reset();
+    m_links = nullptr;
+    m_design.reset();
+    m_commands.reset();
+    m_controllerOwner.reset();
+}
+
+void TstUiActionrunner::load(core::Document document)
+{
+    m_controllerOwner->replaceDocument(std::move(document),
+                                       QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("essai.actcraft"))),
+                                       QStringLiteral("essai"));
+}
+
+const core::PageObject* TstUiActionrunner::object(core::ObjectId id, std::size_t page) const
+{
+    for (const core::PageObject& o : m_controllerOwner->document().page(page).objects) {
+        if (o.common.id == id) {
+            return &o;
+        }
+    }
+    return nullptr;
+}
+
+bool TstUiActionrunner::hidden(core::ObjectId id) const
+{
+    const core::PageObject* o = object(id);
+    return o != nullptr && o->common.hidden;
+}
+
+void TstUiActionrunner::click(QPointF point, Qt::MouseButton button)
+{
+    m_runner->setContactActive(true);
+    m_runner->press(point, button);
+    m_runner->release(point);
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+}
+
+core::Document TstUiActionrunner::linkedDocument() const
+{
+    core::Document document(1024, 768);
+    document.page(0).objects.push_back(roundObject(
+        {action("document.open-website", 0, R"({"url":"https://example.org/"})")}));
+    return document;
+}
+
+// Deux actions sur la même cible : la seconde voit l'effet de la première (masquer puis réafficher).
+void TstUiActionrunner::clickRunsEveryActionInOrder()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel), action("object.toggle-hidden", kLabel)}));
+    QVERIFY(!hidden(kLabel));
+    click(kOnRound);
+    QVERIFY(m_controllerOwner->canUndo());
+    QVERIFY(!hidden(kLabel)); // calculées d'avance, les deux masqueraient
+    m_controllerOwner->undo();
+    QVERIFY(hidden(kLabel)); // la première a bien masqué
+    m_controllerOwner->undo();
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(!m_controllerOwner->canUndo());
+}
+
+// Patron interdit : une exécution à l'appui masquerait l'étiquette dès le début du glisser.
+void TstUiActionrunner::dragDoesNotRun()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
+    m_runner->setContactActive(true);
+    QVERIFY(m_runner->press(kOnRound, Qt::LeftButton));
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(m_runner->move(kOnRound + QPointF(2, 2))); // sous 4 px : l'échantillon reste au runner
+    QVERIFY(!m_runner->move(kOnRound + QPointF(10, 0))); // au-delà : rendu à l'outil
+    QVERIFY(!m_runner->move(kOnRound + QPointF(20, 0)));
+    QVERIFY(!m_runner->release(kOnRound + QPointF(20, 0)));
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(!m_controllerOwner->canUndo());
+    QCOMPARE(refused.size(), 0);
+}
+
+void TstUiActionrunner::rightClickSelectsWithoutRunning()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    m_runner->setContactActive(true);
+    QVERIFY(!m_runner->press(kOnRound, Qt::RightButton)); // l'outil de sélection sélectionne
+    QVERIFY(!m_runner->release(kOnRound));
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(!m_controllerOwner->canUndo());
+}
+
+void TstUiActionrunner::designModeSelectsInstead()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    m_design->setSetting(ui::DesignMode::DisableActions, true);
+    m_design->setActive(true);
+    QVERIFY(m_design->actionsDisabled());
+    m_runner->setContactActive(true);
+    QVERIFY(!m_runner->press(kOnRound, Qt::LeftButton));
+    QVERIFY(!m_runner->release(kOnRound));
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY(!hidden(kLabel));
+    // Hors du mode conception, le même clic exécute.
+    m_design->setActive(false);
+    click(kOnRound);
+    QVERIFY(hidden(kLabel));
+}
+
+void TstUiActionrunner::lockedCommandActionRefused()
+{
+    load(documentWith({action("command.tool.pen")}));
+    click(kOnRound);
+    QCOMPARE(m_penCalls, 1); // déverrouillé : la commande passe par le registre
+    m_commands->registry().setLocked(true);
+    QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
+    click(kOnRound);
+    QCOMPARE(m_penCalls, 1);
+    QCOMPARE(refused.size(), 1);
+}
+
+void TstUiActionrunner::pageActionCreatesNoStep()
+{
+    load(documentWith({action("page.next")}, 2));
+    QCOMPARE(m_controllerOwner->currentIndex(), 0);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 1);
+    QVERIFY(!m_controllerOwner->canUndo());
+}
+
+void TstUiActionrunner::objectActionIsOneStep()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    click(kOnRound);
+    QVERIFY(hidden(kLabel));
+    QVERIFY(m_controllerOwner->canUndo());
+    m_controllerOwner->undo();
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(!m_controllerOwner->canUndo()); // une seule étape
+}
+
+// Patron interdit : à l'appui, ou au relâché sans attendre, l'action tournerait pendant le contact.
+void TstUiActionrunner::neverDuringContact()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    m_runner->setContactActive(true);
+    QVERIFY(m_runner->press(kOnRound, Qt::LeftButton));
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(m_runner->release(kOnRound));
+    QCoreApplication::processEvents();
+    QVERIFY(!hidden(kLabel)); // contact encore vrai : rien
+    QVERIFY(!m_controllerOwner->canUndo());
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY(hidden(kLabel)); // à la retombée : exécution, une fois
+    m_runner->setContactActive(true);
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY(hidden(kLabel));
+    m_controllerOwner->undo();
+    QVERIFY(!m_controllerOwner->canUndo());
+}
+
+// D5 : un objet masqué reste cliquable.
+void TstUiActionrunner::hiddenObjectStillClickable()
+{
+    core::Document document = documentWith({action("object.toggle-hidden", kLabel)});
+    document.page(0).objects[0].common.hidden = true;
+    load(std::move(document));
+    click(kOnRound);
+    QVERIFY(hidden(kLabel));
+}
+
+// D4 : un objet verrouillé exécute ses actions.
+void TstUiActionrunner::lockedObjectStillRuns()
+{
+    core::Document document = documentWith({action("object.toggle-hidden", kLabel)});
+    document.page(0).objects[0].common.locked = true;
+    load(std::move(document));
+    click(kOnRound);
+    QVERIFY(hidden(kLabel));
+}
+
+void TstUiActionrunner::historyBackAndForward()
+{
+    // Historique seul : une navigation par l'historique n'est pas réinscrite, pile bornée à 100.
+    ui::PageHistory history;
+    QCOMPARE(history.back(), -1);
+    history.visited(0);
+    history.visited(1);
+    history.visited(2);
+    QCOMPARE(history.back(), 1);
+    QCOMPARE(history.back(), 0);
+    QCOMPARE(history.back(), -1);
+    QCOMPARE(history.forward(), 1);
+    QCOMPARE(history.forward(), 2);
+    QCOMPARE(history.forward(), -1);
+    ui::PageHistory bounded;
+    for (int i = 0; i < 150; ++i) {
+        bounded.visited(i);
+    }
+    int steps = 0;
+    while (bounded.back() >= 0) {
+        ++steps;
+    }
+    QCOMPARE(steps, 99);
+
+    // Par les actions : rond 1 « page précédente de l'historique », étiquette 2 « suivante ».
+    core::Document document =
+        documentWith({action("page.history-back")}, 3, {action("page.history-forward")});
+    document.page(1).objects.push_back(document.page(0).objects[0]);
+    document.page(1).objects.push_back(document.page(0).objects[1]);
+    document.page(2).objects.push_back(document.page(0).objects[0]);
+    document.page(2).objects.push_back(document.page(0).objects[1]);
+    load(std::move(document));
+    m_controllerOwner->showPage(1);
+    m_controllerOwner->showPage(2);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 1);
+    click(kOnRound);
+    QCOMPARE(m_controllerOwner->currentIndex(), 0);
+    click(kOnLabel);
+    QCOMPARE(m_controllerOwner->currentIndex(), 1);
+    click(kOnLabel);
+    QCOMPARE(m_controllerOwner->currentIndex(), 2);
+    QVERIFY(!m_controllerOwner->canUndo());
+}
+
+void TstUiActionrunner::unsupportedActionDoesNothing()
+{
+    load(documentWith({action(""), action("object.does-not-exist", kLabel)}));
+    QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
+    click(kOnRound);
+    QCOMPARE(refused.size(), 2);
+    QVERIFY(!hidden(kLabel));
+    QVERIFY(!m_controllerOwner->canUndo());
+    // Un clic hors de tout objet d'action : rien à prendre.
+    QVERIFY(!m_runner->press(kNowhere, Qt::LeftButton));
+    QVERIFY(!m_runner->release(kNowhere));
+    QCOMPARE(refused.size(), 2);
+}
+
+void TstUiActionrunner::documentOpenLaunchesNothing()
+{
+    // Document « reçu » : un rond portant document.open-website vers https://example.org/.
+    // replaceDocument(core::Document, const QUrl& fileUrl, const QString& title) : documentcontroller.h:94
+    m_controllerOwner->replaceDocument(linkedDocument(),
+                                       QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("recu.actcraft"))),
+                                       QStringLiteral("recu"));
+    QSignalSpy ask(m_links, &ui::LinkLauncher::confirmationNeeded);
+    QTest::qWait(500);
+    QCOMPARE(ask.size(), 0);
+    QCOMPARE(m_openerCalls, 0);
+    // Le clic demande une confirmation, et n'ouvre toujours rien.
+    click(kOnRound);
+    QCOMPARE(ask.size(), 1);
+    QCOMPARE(m_openerCalls, 0);
+}
+
+void TstUiActionrunner::refusedWithoutCommands()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel), action("command.tool.pen")}));
+    m_runner->setCommands(nullptr);
+    QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
+    click(kOnRound);
+    QVERIFY(refused.size() >= 1);
+    QVERIFY(!hidden(kLabel));
+    QCOMPARE(m_penCalls, 0);
+    QVERIFY(!m_controllerOwner->canUndo());
+}
+
+// Copier, couper, coller ne sont pas des actions du moteur : l'exécuteur déclenche edit.* du registre.
+void TstUiActionrunner::editActionsTriggerEditCommands()
+{
+    QStringList fired;
+    for (const QString& id : {QStringLiteral("edit.copy"), QStringLiteral("edit.cut"), QStringLiteral("edit.paste")}) {
+        m_commands->setNativeHandler(id, [&fired, id](const QVariant&) { fired.append(id); });
+    }
+    load(documentWith({action("object.copy", kLabel), action("object.cut", kLabel), action("object.paste")}));
+    click(kOnRound);
+    QCOMPARE(fired, (QStringList{QStringLiteral("edit.copy"), QStringLiteral("edit.cut"),
+                                 QStringLiteral("edit.paste")}));
+}
+
+// H8-7 : une commande déclarée sans gestionnaire sur la tête (lot 7 absent) est une action non prise en charge.
+void TstUiActionrunner::commandWithoutHandlerIsUnsupported()
+{
+    load(documentWith({action("command.present.curtain"), action("object.toggle-hidden", kLabel)}));
+    QSignalSpy refused(m_runner.get(), &ui::ActionRunner::actionRefused);
+    click(kOnRound);
+    QCOMPARE(refused.size(), 1);
+    QVERIFY(hidden(kLabel)); // l'action suivante tourne quand même
+}
+
+// « 9 » + 1 → « 10 » : l'emprise du texte est remesurée (le peintre découpe le texte à son cadre), dans la même
+// étape d'annulation que la valeur.
+void TstUiActionrunner::textActionRemeasuresBounds()
+{
+    core::Document document = documentWith({action("object.text-add", kLabel, R"({"value":1})")});
+    core::Text& label = std::get<core::Text>(document.page(0).objects[1]);
+    label.spans.front().text = "9";
+    load(std::move(document));
+    const double before = std::get<core::Text>(*object(kLabel)).bounds.width;
+    click(kOnRound);
+    const core::Text& after = std::get<core::Text>(*object(kLabel));
+    QCOMPARE(QString::fromStdString(after.spans.front().text), QStringLiteral("10"));
+    QVERIFY(after.bounds.width > before);
+    m_controllerOwner->undo();
+    QVERIFY(!m_controllerOwner->canUndo());
+    QCOMPARE(std::get<core::Text>(*object(kLabel)).bounds.width, before);
+}
 
 QTEST_MAIN(TstUiActionrunner)
 #include "tst_ui_actionrunner.moc"
