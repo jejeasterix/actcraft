@@ -319,8 +319,8 @@ std::unordered_map<std::string, Builder> makeTable()
             return scaleIn(t, f, a, *width / f.box.width, *height / f.box.height);
         };
         table["object.stretch-step-" + suffix] = [a](const Target& t) -> std::unique_ptr<UndoCommand> {
-            const std::optional<double> fx = number(t.parameters, "factorX");
-            const std::optional<double> fy = number(t.parameters, "factorY");
+            const std::optional<double> fx = number(t.parameters, "ratioX");
+            const std::optional<double> fy = number(t.parameters, "ratioY");
             if (!fx || !fy) {
                 return nullptr;
             }

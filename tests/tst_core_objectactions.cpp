@@ -193,7 +193,7 @@ private slots:
         QVERIFY(objectActionCommand(d, "object.angle", R"({"angle":30})", on(1)));
         QVERIFY(objectActionCommand(d, "object.place-center", "{}", on(1)));
     }
-    void fitKeepsAFixedObjectInPlace()
+    void fitLeavesAFixedObjectUnmoved()
     {
         Document d = page(2048, 100);
         setTravel(d.page(0).objects[0].common.restrictions, Travel::Fixed);
