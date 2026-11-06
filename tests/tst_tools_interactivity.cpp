@@ -3,6 +3,7 @@
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/lift.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/propertyedits.h>
 #include <actcraft/core/restrictors.h>
 #include <actcraft/tools/interactionpolicy.h>
 #include <actcraft/tools/selecttool.h>
@@ -446,6 +447,96 @@ private slots:
         QCOMPARE(t.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
         QVERIFY2(closeTo(angleOf(t.editor.find(1)->common.transform), 135, 1e-6),
                  qPrintable(QString::number(angleOf(t.editor.find(1)->common.transform))));
+    }
+
+    // L8-C6 (revue de L8-T15) : le pas de rotation porte sur l'angle de l'objet (core::objectAngle), celui de
+    // la propriété Rotation, pas sur atan2(m12, m11). Un objet retourné gauche-droite a l'angle 0 (atan2 :
+    // 180) : tiré à 50° avec un pas de 40°, il tourne de 0 à 40°. Rouge sous l'angle brut : 180 + 50
+    // s'arrondit à 240, la poignée pose 60°.
+    void rotationStepIgnoresTheMirrorHalfTurn()
+    {
+        Rig r;
+        core::PageObject object = rectangle(1, 100, 100, 200, 100);
+        object.common.transform = core::scalingAbout({200, 150}, -1, 1);
+        object.common.restrictions.turnStep = 40;
+        r.page().objects.push_back(std::move(object));
+        QVERIFY(closeTo(core::objectAngle(r.page().objects.front().common.transform), 0, 1e-4));
+        r.user.setSelection({1});
+        r.tool.refresh();
+        const core::PointF centre{200, 150};
+        const core::PointF button = r.barSpot(QStringLiteral("object.rotate"));
+        QVERIFY(button.x > -1e8);
+        const auto at = [&](double degrees) { return core::rotationAbout(centre, degrees).map(button); };
+        r.press(button.x, button.y);
+        r.move(at(20).x, at(20).y);
+        r.move(at(50).x, at(50).y);
+        QVERIFY2(closeTo(angleOf(r.lift.last), 40, 1e-4), qPrintable(QString::number(angleOf(r.lift.last))));
+        r.release(at(50).x, at(50).y);
+        QCOMPARE(r.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
+        const double dropped = core::objectAngle(r.editor.find(1)->common.transform);
+        QVERIFY2(closeTo(dropped, 40, 1e-4), qPrintable(QString::number(dropped)));
+    }
+
+    // L8-C6 (revue de L8-T16) : sur un rail courbe, un bloquant raccourcit le déplacement, mais l'objet reste
+    // sur son rail. Rail en équerre (100, 300) → (500, 300) → (500, 600) ; l'objet part de (100, 300) vers
+    // (500, 500), un mur en travers de la corde, loin du rail. Rouge sous l'arrêt en ligne droite : l'objet
+    // s'arrête sur la corde, à y = 377,5, hors du rail.
+    void blockerStopsOnTheRailNotOnTheChord()
+    {
+        Rig r;
+        core::Line line;
+        line.points = {{100, 300}, {500, 300}, {500, 600}};
+        core::PageObject track{line};
+        track.common.id = 20;
+        r.page().objects.push_back(std::move(track));
+        core::PageObject object = rectangle(1, 75, 275, 50, 50); // centre (100, 300), sur le rail
+        object.common.restrictions.travel = core::Travel::AlongTrack;
+        object.common.restrictions.track = 20;
+        r.page().objects.push_back(std::move(object));
+        core::PageObject wall = rectangle(30, 280, 390, 40, 40);
+        wall.common.restrictions.blocksOthers = true;
+        r.page().objects.push_back(std::move(wall));
+        r.drag(100, 300, 500, 500, 8);
+        QCOMPARE(r.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
+        const core::PointF c = r.centre(1);
+        QVERIFY2(closeTo(c.y, 300, 1e-4),
+                 qPrintable(QStringLiteral("hors du rail : (%1, %2)").arg(c.x).arg(c.y)));
+        QVERIFY2(c.x > 100 && c.x < 400, qPrintable(QStringLiteral("arrêté avant le mur : x = %1").arg(c.x)));
+    }
+
+    // L8-C6 (revue de L8-T16) : l'objet à chemin saute sur son trait à l'appui (plan L8-T16), pas au premier
+    // déplacement de 2 px. Appui puis relâché sans bouger, hors du trait : posé sur le trait, en une étape.
+    // Déjà sur son trait : ni soulevé ni déposé, le clic le sélectionne.
+    void jumpsOntoItsTrackAtPress()
+    {
+        const auto railed = [](Rig& r, double top) {
+            core::Line line;
+            line.points = {{100, 300}, {500, 300}};
+            core::PageObject track{line};
+            track.common.id = 20;
+            r.page().objects.push_back(std::move(track));
+            core::PageObject object = rectangle(1, 100, top, 50, 50);
+            object.common.restrictions.travel = core::Travel::AlongTrack;
+            object.common.restrictions.track = 20;
+            r.page().objects.push_back(std::move(object));
+        };
+        {
+            Rig r;
+            railed(r, 100); // centre (125, 125), trait à y = 300
+            r.press(125, 125);
+            r.release(125, 125);
+            QCOMPARE(r.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
+            QVERIFY(closePoint(r.centre(1), 125, 300));
+        }
+        {
+            Rig r;
+            railed(r, 275); // centre (125, 300) : déjà sur son trait
+            r.press(125, 300);
+            r.release(125, 300);
+            QVERIFY(r.editor.calls.empty());
+            QCOMPARE(r.user.selection(), (std::vector<core::ObjectId>{1}));
+            QVERIFY(closePoint(r.centre(1), 125, 300));
+        }
     }
 
     // Mode conception, restrictions désactivées : la carotte reste dans le panier (une étape, sans signal),
