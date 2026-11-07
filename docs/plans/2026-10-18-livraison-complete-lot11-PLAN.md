@@ -20,9 +20,9 @@ et une seule version (1.0.0) pour les deux sous-lots, comme les lots 2 et 6.
 | L11-T5 | `PageView` : politique remplaçable, utilisateur transmis à l'hôte d'outils, `Sample::deviceId` rempli, appuis groupés, fin des contacts, appui long signalé, ancre au redimensionnement | L11-T2, L11-T4 | `ui/include/actcraft/ui/pageview.h`, `ui/src/pageview.cpp`, `tests/tst_ui_pageinput.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_pageinput` : 9 fonctions en `PASS` (dont `decisionUserReachesTheView`, `finishContactsKeepsTheStroke`, `resizeEndsTheContact`) ; mutation rouge puis remise ; `tst_ui_shell`, `tst_ui_drawing` toujours `Passed` ; banc sans écran joint | S28, S3.2, S3.3, S3.4 | #tache-l11-t5 |
 | L11-T6 | Réglage du mode du toucher (F-930) : contrôleur, commande `touch.mode`, menu, réglage du poste, changement différé hors contact ; scénario `modes-toucher` | L11-T3, L11-T5 | `ui/include/actcraft/ui/touchmode.h`, `ui/src/touchmode.cpp`, `ui/qml/TouchModeMenu.qml`, `tests/tst_ui_touchmode.cpp`, `bench/scenarios/modes-toucher.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_touchmode` 6 fonctions `PASS` ; `tst_captures_modes_toucher` Passed ; `LU appTouchMode.mode=full OK`, `CAPTURES OK` | S28 | #tache-l11-t6 |
 | L11-T7 | Second utilisateur I : politique à deux utilisateurs (schéma d'entrée D11-2), gestes suspendus, un `UserState` par utilisateur | L11-T4 | `input/include/actcraft/input/twouserpolicy.h`, `input/src/twouserpolicy.cpp`, `tools/include/actcraft/tools/userstate.h`, `tools/src/userstate.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `input/include/actcraft/input/routing.h`, `tests/tst_input_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_input_twousers` 7 fonctions `PASS` (dont `noGestureInDualMode`, `eachUserKeepsItsTool`) ; test enregistré en F4 (lie `ActCraft::ui`) ; mutation rouge puis remise | S28 | #tache-l11-t7 |
-| L11-T8 | Second utilisateur II : sélection propre, objet tenu inaccessible à l'autre, outils de maths par utilisateur | L11-T7 | `tools/include/actcraft/tools/grabs.h`, `tools/src/grabs.cpp`, `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, fichiers des outils de maths du lot 7 relevés par L11-T0 (A11, écrits dans cette ligne par l'orchestrateur), `tests/tst_tools_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_twousers` 6 fonctions `PASS` (dont `heldObjectRefusedToTheOther`, `rulerBelongsToItsUser`) ; `tst_tools_select` toujours `Passed` | S28 | #tache-l11-t8 |
+| L11-T8 | Second utilisateur II : sélection propre, objet tenu inaccessible à l'autre, outils de maths par utilisateur | L11-T7 | `tools/include/actcraft/tools/grabs.h`, `tools/src/grabs.cpp`, `tools/include/actcraft/tools/selecttool.h`, `tools/src/selecttool.cpp`, fichiers des outils de maths du lot 7 relevés par L11-T0 (A11, écrits dans cette ligne par l'orchestrateur ; **aucun** tant que le lot 7 est absent, amendement 3), `tests/tst_tools_twousers.cpp` | isolé | concepteur-critique | `TESTS OK` ; `tst_tools_twousers` 6 fonctions `PASS` (dont `heldObjectRefusedToTheOther`, `rulerBelongsToItsUser`) — lot 7 absent (amendement 3) : 4 `PASS` et 2 `SKIP` nommés (`rulerBelongsToItsUser`, `inkOfTheOtherNotGuided`) ; `tst_tools_select` toujours `Passed` | S28 | #tache-l11-t8 |
 | L11-T9 | Deux utilisateurs III : attribut `opensDialog`, commandes à boîte refusées au second, mode à deux utilisateurs (F-110, F-303), deuxième palette ; scénario S28 `deux-utilisateurs` | L11-T3, L11-T6, L11-T8, L11-T10 | `actions/include/actcraft/actions/commandregistry.h`, `actions/src/commandregistry.cpp`, `actions/data/commands.json`, `ui/include/actcraft/ui/commands.h`, `ui/src/commands.cpp`, `ui/include/actcraft/ui/dualmode.h`, `ui/src/dualmode.cpp`, `ui/include/actcraft/ui/toolhost.h`, `ui/src/toolhost.cpp`, `ui/qml/Main.qml`, `ui/qml/SecondPalette.qml`, `bench/include/actcraft/bench/uiscenario.h`, `bench/src/uiscenario.cpp`, `tests/tst_bench_uiscenario.cpp`, `tests/tst_ui_secondpalette.cpp`, `bench/scenarios/deux-utilisateurs.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_secondpalette` 8 fonctions `PASS` (dont `secondUserReceivesInDualMode`), `tst_bench_uiscenario` : `commandStepCarriesTheUser` `PASS` ; `tst_captures_deux_utilisateurs` Passed ; `LU appDualMode.active=false OK`, deux `PIXEL … OK` de couleurs différentes, zoom inchangé en mode allumé (`expect pageView.zoom = ${z0}`) puis `CHANGE pageView.zoom OK` éteint, `CAPTURES OK` | S28 | #tache-l11-t9 |
-| L11-T10 | Tablette I : mise en page étroite (navigateurs en tiroir, palette repliable, ligne supérieure en débordement), cibles tactiles de 48 dp | L11-T2, L11-T3 | `ui/include/actcraft/ui/layoutmetrics.h`, `ui/src/layoutmetrics.cpp`, `ui/qml/Main.qml`, `ui/qml/Theme.qml`, `ui/qml/PaletteFrame.qml`, `ui/qml/BrowserPanel.qml`, `tests/tst_ui_narrowlayout.cpp`, `bench/scenarios/tablette-etroite.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_narrowlayout` 6 fonctions `PASS` (dont `everyTargetAtLeast48dp`) ; `tst_captures_tablette_etroite` Passed (déclaration ctest inchangée, 1280 × 800 au départ) ; `LU appLayout.narrow=false OK` (lecture finale, après le retour en 1280 × 800), `CAPTURES OK` ; banc sans écran joint | S3.1 | #tache-l11-t10 |
+| L11-T10 | Tablette I : mise en page étroite (navigateurs en tiroir, palette repliable, ligne supérieure en débordement), cibles tactiles de 48 dp | L11-T2, L11-T3 | `ui/include/actcraft/ui/layoutmetrics.h`, `ui/src/layoutmetrics.cpp`, `ui/qml/Main.qml`, `ui/qml/Theme.qml`, `ui/qml/PaletteFrame.qml`, `ui/qml/ToolPalette.qml`, `ui/qml/BrowserPanel.qml`, `tests/tst_ui_narrowlayout.cpp`, `bench/scenarios/tablette-etroite.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_narrowlayout` 7 fonctions `PASS` (dont `everyTargetAtLeast48dp`, `paletteFitsShortWindow`) ; mutation `AlwaysOn` → `AsNeeded` rouge puis remise ; `tst_ui_palette` toujours `Passed` ; `tst_captures_tablette_etroite` Passed (déclaration ctest inchangée, 1280 × 800 au départ) ; `TAILLE 1280x720 OK` et `paletteScrollBar.visible` vrai ; `LU appLayout.narrow=false OK` (lecture finale, après le retour en 1280 × 800), `CAPTURES OK` ; banc sans écran joint | S3.1 | #tache-l11-t10 |
 | L11-T11 | Tablette II : rotation de l'écran (ancre, contact terminé), clavier logiciel (curseur de texte gardé au-dessus) ; essai sur l'émulateur de tablette | L11-T5, L11-T10, L11-T14 | `ui/include/actcraft/ui/keyboardinset.h`, `ui/src/keyboardinset.cpp`, `ui/qml/PageArea.qml`, `tests/tst_ui_orientation.cpp`, `bench/scenarios/rotation-clavier.json`, `scripts/essai-android-tablette.ps1` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_orientation` 5 fonctions `PASS` ; `tst_captures_rotation_clavier` Passed ; `ANDROID TABLETTE OK` | S3.2 | #tache-l11-t11 |
 | L11-T12 | Tablette III : menus et palette au doigt (appui long → menu de l'objet ou de la page ; libellé d'un bouton par appui long ; rangées de 48 dp) | L11-T3, L11-T5, L11-T10 | `ui/include/actcraft/ui/fingermenus.h`, `ui/src/fingermenus.cpp`, `ui/qml/FingerMenu.qml`, `ui/qml/CommandMenu.qml`, `ui/qml/ToolPalette.qml`, `tests/tst_ui_fingermenus.cpp`, `bench/scenarios/au-doigt.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_fingermenus` 6 fonctions `PASS` ; `tst_captures_au_doigt` Passed ; `LU fingerMenu.visible=true OK`, `CAPTURES OK` | S3.3 | #tache-l11-t12 |
 | L11-T13 | Tablette IV : cycle de vie — copie de reprise à la mise en arrière-plan, reprise sans perte au retour ou au relancement ; essai sur l'émulateur | L11-T2, L11-T3, L11-T5, L11-T9, L11-T14 | `ui/include/actcraft/ui/lifecycle.h`, `ui/src/lifecycle.cpp`, `ui/qml/RecoveryBanner.qml`, `ui/qml/Main.qml`, `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `bench/captures/main.cpp`, `tests/tst_ui_lifecycle.cpp`, `bench/scenarios/cycle-de-vie.json`, `scripts/essai-android-cycle.ps1` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_lifecycle` 7 fonctions `PASS` (dont `processKilledInBackgroundLosesNothing`) ; `tst_captures_cycle_de_vie` Passed ; `ANDROID CYCLE OK` | S3.4 | #tache-l11-t13 |
@@ -68,6 +68,52 @@ touchées sont corrigées en place. Noms vérifiés par la relecture à la tête
 | m10 | `pm clear` ne retire pas les permissions | `content delete --uri`, vérifié par L11-T0 | L11-T14 |
 | m11 | AVD sans nom | `actcraft-tablette`, taille au rapport | L11-T11 |
 | m12 à m18 | 11b | voir l'amendement de 11b | 11b |
+
+## Amendement 3 (exécution sur le Mac, 2026-11-07)
+
+**Ordre d'autorité : amendement 3, puis 2, puis 1, puis le texte d'origine.** Trois volets ; corrections faites en
+place dans les sections nommées.
+
+**Volet 1 — Paquet `.dmg` non signé du Mac** (demande du pilote, 2026-11-06). Le paragraphe « Paquet macOS » de ce plan
+et D11-15 sont remplacés : la 1.0.0 livre aussi `ActCraft-1.0.0-macos-arm64.dmg`, signé ad hoc, sans Developer ID ni
+notarisation. Tâche neuve **L11-T29m** du plan de 11b (ligne de table et section), en V15 avec L11-T29 ; rien ne change
+dans les tâches de 11a.
+
+**Volet 2 — Palette d'outils coupée à 1 000 px de haut** (constat du pilote), rattaché à **L11-T10**.
+- Cause, lue dans le code : la palette est un `Flickable` vertical (`clip: true`, `StopAtBounds`) **sans barre ni
+  indicateur de défilement** (`ui/qml/ToolPalette.qml:31-42`) ; ancrée, elle prend la hauteur de sa région
+  (`ui/qml/PaletteFrame.qml:57`, `return root.regionH` ; 560 px au plus en flottant, `:56`), alors que son contenu
+  (8 groupes de `actions/data/layout.json`, boutons de 44 px sur deux colonnes, `ui/qml/Theme.qml:35-36`, corbeille
+  réservée en bas, `ToolPalette.qml:37`) fait ≈ 1 000 px (estimation ; le test la mesure). Sous ≈ 1 000 px de fenêtre,
+  les dernières rangées sont rognées sans aucun signe ; on ne les atteint qu'à la molette ou par un glisser que rien
+  n'annonce.
+- Choix : **barre de défilement verticale visible dès que le contenu déborde** (`ScrollBar.AlwaysOn` dans ce cas,
+  `AlwaysOff` sinon), 8 dp (`Theme.espace2`) dans la marge droite de la palette (12 px libres : 112 − 8 − 92), sans
+  recouvrir de bouton. `ScrollBar.AsNeeded` ne suffit pas : le style Basic laisse sa poignée transparente hors survol
+  (`QtQuick/Controls/Basic/ScrollBar.qml`, état `active` : `policy === AlwaysOn || (active && size < 1.0)`), même défaut
+  qu'aujourd'hui. Écartés : une deuxième colonne (elle élargirait `largeurPalette`, donc `slotWidth`,
+  `PaletteFrame.qml:44`, et la page : contraire à l'interdit de L11-T10 sur la disposition en largeur ≥ 960) ; un repli
+  automatique (il change la disposition sans preuve tirée de l'original). Comportement de l'original : non vérifiable sur
+  le Mac (REA absent), relevé au PC (restes PC) ; un écart rouvre ce choix par une tâche de correction `L11-C<n>`.
+- Effets : `ui/qml/ToolPalette.qml` entre dans la ligne de L11-T10 (chaîne `L11-T3 → L11-T10 → L11-T12`, V3 reste
+  disjointe) ; fonction `paletteFitsShortWindow` ajoutée à `tst_ui_narrowlayout` (**7 fonctions**) ; étape
+  `1280 × 720` ajoutée au scénario `tablette-etroite` ; `tst_ui_palette` cité parmi les tests à garder verts ; mutation
+  `AlwaysOn` → `AsNeeded`.
+
+**Volet 3 — Lecture Mac des preuves.**
+- L'exécution se fait sur le Mac selon `~/pilotage-mac/regles-tache-lot11-mac.md` (hors dépôt, non recopié ici) : il
+  remplace sur le Mac les commandes PowerShell, `jeton.ps1` et les chemins `C:\…` ; le reste du plan vaut tel quel.
+- Branche du lot : `feat/livraison-complete-l11`. Toute commande qui cite `feat/livraison-complete...HEAD` (contrôle N4
+  des API privées compris) se lit `feat/livraison-complete-l11...HEAD` ; les worktrees de tâche en sont issus.
+- Restes pour le PC : preuves Android (`APK OK`, `ANDROID OK`, `ANDROID FICHIERS OK`, `ANDROID TABLETTE OK`,
+  `ANDROID CYCLE OK`, `ANDROID PORTAIL OK`, `APK BANC OK`, mesure sur l'émulateur), REA et ancien dépôt, corpus vidéo
+  (contrôle des titres), `NOMS OK`, captures et banc D3D11 (`captures.ps1`, `bench.ps1`), preuve MSVC `/W4 /WX`. Chaque
+  tâche les liste dans son rapport ; l'orchestrateur les groupe dans la section « Restes pour le PC (lot 11) » du
+  fichier d'état. Ils ne bloquent pas une tâche du Mac.
+- Lot 7 absent de la tête (H8-7) : **L11-T8** se fait sans outils de maths (sélection et objets tenus seulement ;
+  `rulerBelongsToItsUser` et `inkOfTheOtherNotGuided` écrites avec `QSKIP` « lot 7 absent (H8-7), à raccorder à la
+  fusion du lot 7 », sans le marqueur de talon ; raccord à la fusion du lot 7) ; **L11-T27** (11b) sans les épinglages
+  du lot 7.
 
 ## Amendement 2 (relecture tour 2)
 
@@ -118,8 +164,8 @@ L11-T4, L11-T6. Pages d'aide, mises à jour, traductions : 11b. **Décision 14 d
 L11-T16), passe de fluidité finale (L11-T30 de 11b), raccourcis F-950 à F-953 (L11-T23), `CHANGELOG.md` et guide de
 `README.md` (L11-T28), flux de release en essai à blanc (L11-T29).
 
-**Paquet macOS.** Aucun : exclu par le § 6 du cadrage, maintenu par l'amendement 1 (§ 1). macOS reste construit et
-testé par la CI.
+**Paquet macOS.** ~~Aucun : exclu par le § 6 du cadrage, maintenu par l'amendement 1 (§ 1).~~ Remplacé par
+l'amendement 3 (volet 1) : `.dmg` non signé, tâche L11-T29m du plan de 11b. macOS reste construit et testé par la CI.
 
 ## Liste de réservation (L11-T1)
 
@@ -212,7 +258,7 @@ Vérification des recoupements (colonne « fichiers touchés ») :
   — disjoints. L11-T4 attend L11-T0 (V1 finie).
 - V3 : L11-T5 (`pageview.*`, `tst_ui_pageinput.cpp`) / L11-T7 (`twouserpolicy.*`, `userstate.*`,
   `toolhost.*`, `tst_input_twousers.cpp`) / L11-T10 (`layoutmetrics.*`, `Main.qml`, `Theme.qml`, `PaletteFrame.qml`,
-  `BrowserPanel.qml`, un test, un scénario) — disjoints.
+  `ToolPalette.qml` (amendement 3), `BrowserPanel.qml`, un test, un scénario) — disjoints.
 - V4 : L11-T6 (`touchmode.*`, `TouchModeMenu.qml`, un test, un scénario) / L11-T8 (`grabs.*`, `selecttool.*`, fichiers
   des outils de maths, un test) / L11-T14 (`documentportal.*`, `recentdocuments.cpp`, un test, un script, `paquet-android.ps1`) — disjoints.
 - V5 : L11-T9 (`commandregistry.*`, `commands.json`, `commands.*`, `dualmode.*`, `toolhost.*`, `Main.qml`, `SecondPalette.qml`,
@@ -222,7 +268,7 @@ Vérification des recoupements (colonne « fichiers touchés ») :
   L11-T13 (`lifecycle.*`, `RecoveryBanner.qml`, `Main.qml`, `app/startup.*`, `app/main.cpp`, `bench/captures/main.cpp`,
   un test, un scénario, un script) — disjoints.
 - Fichiers repris d'une vague à l'autre, tenus par « dépend de » : talons de L11-T1 → leur tâche ; `commands.json`
-  (L11-T1 → L11-C0 → L11-T9) ; `uiscenario.cpp` (L11-T2 → L11-T9) ; `ToolPalette.qml` (L11-T3 → L11-T12) ; `Main.qml` (L11-T3 → L11-T10 → L11-T9 → L11-T13) ; R2 de `ui/` (L11-T3 → L11-T6, L11-T9, L11-T10,
+  (L11-T1 → L11-C0 → L11-T9) ; `uiscenario.cpp` (L11-T2 → L11-T9) ; `ToolPalette.qml` (L11-T3 → L11-T10 → L11-T12) ; `Main.qml` (L11-T3 → L11-T10 → L11-T9 → L11-T13) ; R2 de `ui/` (L11-T3 → L11-T6, L11-T9, L11-T10,
   L11-T13, L11-T14, L11-T21) ; `toolhost.*` (L11-T7 → L11-T9) ; `paquet-android.ps1` (L11-T14, puis employé par
   L11-T11, L11-T13, L11-T15, L11-T16) ; QML des
   emplacements (L11-T3 → leur tâche) ; `pageview.*` (L11-T5 seul).
@@ -1052,12 +1098,20 @@ utilisateur saute les objets tenus par l'autre ; un outil de maths ouvert par un
 **Fichiers.** Ceux de la ligne de la table ; les fichiers des outils de maths sont relevés par L11-T0 (A11) et écrits
 dans la ligne par l'orchestrateur avant le lancement.
 
+**Lot 7 absent (amendement 3, H8-7).** Sur la tête du lot (`feat/livraison-complete-l11`), les outils de maths du lot 7
+n'existent pas : ne pas les créer. Sélection et objets tenus sont faits en entier ; `rulerBelongsToItsUser` et
+`inkOfTheOtherNotGuided` sont écrites (corps prêt pour le lot 7) et commencent par
+`QSKIP("lot 7 absent (H8-7), à raccorder à la fusion du lot 7");` — jamais le marqueur de talon `Talon L11`. Preuve :
+4 `PASS`, ces 2 `SKIP`, `Totals: 6 passed, 0 failed, 2 skipped` (4 fonctions, `initTestCase` et `cleanupTestCase` passées). Au rapport : « à raccorder à la fusion du
+lot 7 ». Exécution sur le Mac : règles `~/pilotage-mac/regles-tache-lot11-mac.md`.
+
 **Test et commande bornée.** Commande ciblée `-R 'tst_tools_twousers|tst_tools_select'`.
 
 **Interdits.** Aucune sélection globale gardée dans la vue ; aucun changement de comportement à un seul utilisateur
 (`tst_tools_select` reste vert).
 
-**Terminé quand** les 6 fonctions passent.
+**Terminé quand** les 6 fonctions passent (lot 7 absent : les 4 sans outil de maths passent, les 2 autres en `SKIP`
+nommé, amendement 3).
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_tools_twousers.cpp` : `selectionsAreSeparate` ; `heldObjectRefusedToTheOther`
@@ -1171,32 +1225,145 @@ taille du lot 6), `spacing` (8 si `touchUi`). `Theme.qml` lie ses tailles de bou
 `BrowserPanel.qml` devient un tiroir (`Drawer`) quand `narrow`, fermé par défaut ; `PaletteFrame.qml` offre un bouton
 de repli quand `narrow` ; `Main.qml` regroupe les menus de la ligne supérieure dans un menu « … » quand `compact`.
 
+**Palette entière dans une fenêtre basse (amendement 3, volet 2).** Quand la fenêtre fait 1 000 px de haut ou moins,
+la palette d'outils reste entière et utilisable : chaque bouton est visible ou atteignable, et un signe visible dit
+qu'il y a une suite. Cause du défaut : `ui/qml/ToolPalette.qml:31-42`, `Flickable` vertical rogné (`clip: true`) sans
+barre ni indicateur, dans un panneau de la hauteur de la région (`ui/qml/PaletteFrame.qml:57` ; 560 px en flottant,
+`:56`) plus bas que le contenu (≈ 1 000 px). Choix : `ScrollBar.vertical` sur ce `Flickable`, `objectName:
+"paletteScrollBar"`, largeur `Theme.espace2`, politique `ScrollBar.AlwaysOn` quand le contenu déborde et `AlwaysOff`
+sinon (pas `AsNeeded` : le style Basic garde alors la poignée transparente hors survol) ; le `Flickable` reçoit
+`objectName: "paletteFlick"`. En `touchUi`, `Theme.largeurPalette` vaut `2 * targetSize + spacing + 3 * Theme.espace2`
+(128 : deux colonnes de 48, leur écart, deux marges et la barre) ; hors `touchUi`, 112 inchangé. Pas de deuxième
+colonne ni de repli automatique (amendement 3 : disposition en largeur ≥ 960 inchangée).
+
 **Fichiers.** Ceux de la ligne de la table.
 
-**Test et commande bornée.** Commande ciblée `-R 'tst_ui_narrowlayout|tst_captures_tablette_etroite|tst_ui_shell'`.
+**Test et commande bornée.** Commande ciblée `-R 'tst_ui_narrowlayout|tst_captures_tablette_etroite|tst_ui_shell|tst_ui_palette'`
+(`tst_ui_palette` : cadre de la palette, à garder vert, amendement 3). Sur le Mac : règles
+`~/pilotage-mac/regles-tache-lot11-mac.md` (test ciblé `^<test>$`, un test à la fois ; captures par
+`ctest --test-dir build-mac -R '^tst_captures_tablette_etroite$' -V`).
 
 **Preuve visuelle.** Un passage (les `-Lire` sont lus **après** le scénario, `bench/captures/main.cpp:134-137` ; le
 scénario change lui-même la taille par `resize`) :
 `captures.ps1 -Scenario tablette-etroite -Rendu logiciel -HorsEcran -Sortie .tmp/captures -Lire "appLayout.narrow=false"` :
-`TAILLE 800x1280 OK`, `TAILLE 1280x800 OK`, `LU … OK`, `CAPTURES OK` ; décrire `portrait.png` (navigateurs masqués,
-palette repliée en un bouton, page entière visible), `tiroir-ouvert.png` et `large.png` (disposition d'origine).
+`TAILLE 800x1280 OK`, `TAILLE 1280x720 OK`, `TAILLE 1280x800 OK`, `LU … OK`, `CAPTURES OK` ; décrire `portrait.png`
+(navigateurs masqués, palette repliée en un bouton, page entière visible), `tiroir-ouvert.png`, `palette-courte.png`
+(barre de défilement visible à droite de la palette, aucun bouton recouvert, corbeille entière) et `large.png`
+(disposition d'origine).
 
 **Interdits.** Aucune taille en pixels physiques (dp logiques seulement) ; aucun changement de la disposition Windows
 en largeur ≥ 960 sans `touch-ui` (comportement et disposition de l'original, décision 0100).
 
-**Terminé quand** les 6 fonctions et le scénario passent.
+**Terminé quand** les 7 fonctions et le scénario passent, la mutation de l'étape 2 est rouge puis remise, et
+`tst_ui_palette` reste vert.
 
 **Étapes.**
 - [ ] **Étape 1 : test rouge** `tst_ui_narrowlayout.cpp` : `thresholds` (959 → `narrow`, 960 → non ; 599 → `compact`) ;
   `touchUiFromSetting` ; `everyTargetAtLeast48dp` (fenêtre 800 × 1280, `touchUi` vrai : chaque `CommandButton` visible
   de la palette, de la ligne supérieure et du tiroir a `width` et `height` ≥ 48, et deux voisins sont espacés d'au
   moins 8) ; `browsersHiddenWhenNarrow` ; `paletteCollapsible` ; `wideLayoutUnchanged` (1280 × 800 sans `touchUi` :
-  positions des éléments de la palette identiques à celles relevées avant la tâche, liste écrite dans le test).
-- [ ] **Étape 2 : implémentation** et QML.
+  positions des éléments de la palette identiques à celles relevées avant la tâche, liste écrite dans le test) ;
+  `paletteFitsShortWindow` (amendement 3 ; fenêtre 1280 × 1000 puis 1280 × 720, sans `touchUi` : dernier bouton de
+  la palette visible, ou atteignable à la molette avec la barre visible ; la barre ne recouvre aucun bouton). Code, avec
+  le harnais `Shell`, `start`, `item` de `tests/tst_ui_shell.cpp:45-96` et les réglages d'essai de la règle commune :
+  ```cpp
+  #include <QWheelEvent>
+  #include <algorithm>
+
+  // Boutons de commande visibles sous `root` : un CommandButton porte la propriété `commandId`.
+  void collectCommandButtons(QQuickItem* root, QList<QQuickItem*>& out)
+  {
+      const QList<QQuickItem*> children = root->childItems();
+      for (QQuickItem* child : children) {
+          if (child->isVisible() && child->property("commandId").isValid()) {
+              out.append(child);
+          }
+          collectCommandButtons(child, out);
+      }
+  }
+
+      // Amendement 3, volet 2 : palette entière dans une fenêtre de 1 000 px de haut ou moins.
+      void paletteFitsShortWindow()
+      {
+          Shell s;
+          QVERIFY(start(s));
+          for (const QSize size : {QSize(1280, 1000), QSize(1280, 720)}) {
+              s.window->resize(size);
+              QTRY_COMPARE(s.window->size(), size);
+              QQuickItem* flick = item(s, "paletteFlick");
+              QQuickItem* bar = item(s, "paletteScrollBar");
+              QQuickItem* rows = item(s, "paletteRows");
+              QVERIFY(flick && bar && rows);
+              flick->setProperty("contentY", 0.0);
+              QTRY_VERIFY(flick->height() > 0);
+
+              QList<QQuickItem*> buttons;
+              collectCommandButtons(rows, buttons);
+              QVERIFY(!buttons.isEmpty());
+              const auto bottomIn = [rows](QQuickItem* b) { return b->mapToItem(rows, QPointF(0, b->height())).y(); };
+              QQuickItem* last = *std::max_element(buttons.cbegin(), buttons.cend(),
+                                                   [&](QQuickItem* a, QQuickItem* b) { return bottomIn(a) < bottomIn(b); });
+              const auto inView = [flick, last] {
+                  const qreal top = last->mapToItem(flick, QPointF(0, 0)).y();
+                  const qreal bottom = last->mapToItem(flick, QPointF(0, last->height())).y();
+                  return top >= -0.5 && bottom <= flick->height() + 0.5;
+              };
+
+              const bool overflows = flick->property("contentHeight").toReal() > flick->height();
+              if (size.height() == 720) {
+                  QVERIFY2(overflows, "à 720 px de haut la palette doit déborder, sinon la fonction ne prouve rien");
+                  QVERIFY(!inView());
+              }
+              if (!overflows) {
+                  QVERIFY(!bar->isVisible());
+                  QVERIFY(inView());
+                  continue;
+              }
+              // Débordement : la poignée se voit, elle ne recouvre aucun bouton, la molette amène le dernier bouton.
+              QVERIFY(bar->isVisible());
+              QCOMPARE(bar->property("policy").toInt(), 2); // ScrollBar.AlwaysOn
+              auto* thumb = bar->property("contentItem").value<QQuickItem*>();
+              QVERIFY(thumb && thumb->opacity() > 0.5);
+              const QRectF barRect = bar->mapRectToItem(flick, QRectF(0, 0, bar->width(), bar->height()));
+              for (QQuickItem* b : std::as_const(buttons)) {
+                  QVERIFY(!b->mapRectToItem(flick, QRectF(0, 0, b->width(), b->height())).intersects(barRect));
+              }
+              const QPointF at = flick->mapToScene(QPointF(flick->width() / 2, flick->height() / 2));
+              for (int i = 0; i < 40 && !inView(); ++i) {
+                  QWheelEvent wheel(at, s.window->mapToGlobal(at), QPoint(), QPoint(0, -120), Qt::NoButton,
+                                    Qt::NoModifier, Qt::NoScrollPhase, false);
+                  QCoreApplication::sendEvent(s.window, &wheel);
+                  QTest::qWait(20);
+              }
+              QTRY_VERIFY(inView());
+          }
+      }
+  ```
+  `collectCommandButtons` va dans l'espace de noms anonyme du fichier, à côté du harnais ; la fonction, dans les
+  `private slots`. Aucune API privée : propriétés lues par `QObject::property`, jamais `QQuickFlickable`.
+- [ ] **Étape 2 : implémentation** et QML. Dans `ui/qml/ToolPalette.qml`, le `Flickable` (ligne 31) reçoit
+  `id: flick`, `objectName: "paletteFlick"` et :
+  ```qml
+          // Amendement 3 : poignée toujours visible quand le contenu déborde (AsNeeded la laisserait transparente hors
+          // survol, style Basic) ; dans la marge droite, sans recouvrir de bouton.
+          ScrollBar.vertical: ScrollBar {
+              objectName: "paletteScrollBar"
+              width: Theme.espace2
+              policy: !paletteRoot.horizontal && flick.contentHeight > flick.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+          }
+  ```
+  `Theme.largeurPalette` suit `touchUi` comme les tailles de boutons (formule de l'objectif). **Mutation** (le fichier
+  porte les ajouts non commités de la tâche : `git checkout` les effacerait ; aller et retour par `sed`, prouvés par
+  `grep`) : `cd <wt> && sed -i '' 's/? ScrollBar.AlwaysOn :/? ScrollBar.AsNeeded :/' ui/qml/ToolPalette.qml` → commande
+  ciblée : `paletteFitsShortWindow` en `FAIL!` (politique 0, poignée transparente) ; puis
+  `cd <wt> && sed -i '' 's/? ScrollBar.AsNeeded :/? ScrollBar.AlwaysOn :/' ui/qml/ToolPalette.qml && grep -c 'ScrollBar.AlwaysOn :' ui/qml/ToolPalette.qml`
+  → `1` ; vert rejoué.
 - [ ] **Étape 3 : scénario** `tablette-etroite.json` : `waitReady` ; `{"resize": [800, 1280]}` ;
   `{"expect": "appLayout.narrow", "value": true}` ; capture `portrait` ; ouvrir le tiroir des navigateurs par son bouton (`pointer`, coordonnées de fenêtre
   relevées) ; `expect browserPanel.opened = true` ; capture `tiroir-ouvert` ; appui hors du tiroir ;
   `expect browserPanel.opened = false` ; un trait au doigt (`touch`) visible (`checkPixel`) ;
+  `{"resize": [1280, 720]}` ; `{"expect": "appLayout.narrow", "value": false}` ;
+  `{"expect": "paletteScrollBar.visible", "value": true}` ; capture `palette-courte` (amendement 3) ;
   `{"resize": [1280, 800]}` ; `{"expect": "appLayout.narrow", "value": false}` ; capture `large`.
 - [ ] **Étape 4 : vert**, preuve visuelle, banc sans écran, preuve de tâche ; commit « Lot 11 : mise en
   page étroite et cibles tactiles (L11-T10) ».
