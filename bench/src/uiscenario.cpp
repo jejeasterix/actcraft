@@ -14,6 +14,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -24,6 +25,7 @@
 #include <QPointingDevice>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QRegularExpression>
 #include <QShortcutEvent>
 #include <QTabletEvent>
 #include <QTest>
@@ -55,6 +57,9 @@ constexpr int kLoopProbeIntervalMs = 5;
 constexpr int kLoopSettleTimeoutMs = 1000; // image en attente rendue avant d'armer la sonde
 constexpr int kPinchMaxSteps = 1000;       // pas d'un pincement (entrée non fiable)
 constexpr int kHoldMaxMs = 60000;          // maintien du pointeur
+constexpr int kResizeMax = 16384;          // côté de la fenêtre d'une étape « resize »
+constexpr int kLongPressDefaultMs = 600;   // appui long sans « holdMs »
+constexpr int kResizeTimeoutMs = 2000;     // fenêtre à la taille demandée
 constexpr double kToleranceEpsilon = 1e-9; // arrondi des flottants à la borne de la tolérance
 // Variables réservées d'un scénario (${SORTIE}, ${SAMPLES}) ; les autres viennent de « remember ».
 constexpr QLatin1StringView kOutputVariable("SORTIE");
@@ -477,6 +482,135 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             return false;
         }
         step.value = text.toString();
+        return true;
+    }
+    if (o.contains(QStringLiteral("parallel"))) {
+        step.kind = UiStepKind::Parallel;
+        const QJsonValue list = o.value(QStringLiteral("parallel"));
+        if (!list.isArray() || list.toArray().isEmpty()) {
+            why = QStringLiteral("contacts invalides (parallel : liste non vide de {device, kind, points})");
+            return false;
+        }
+        for (const QJsonValue& item : list.toArray()) {
+            const QJsonObject c = item.toObject();
+            UiContact contact;
+            const QJsonValue device = c.value(QStringLiteral("device"));
+            contact.device = device.isDouble() ? device.toInt(0) : 0;
+            contact.kind = c.value(QStringLiteral("kind")).toString();
+            const bool kindOk = contact.kind == QLatin1String("stylus") ||
+                                contact.kind == QLatin1String("touch") ||
+                                contact.kind == QLatin1String("mouse");
+            if (contact.device < 1 || !kindOk ||
+                !parsePoints(c.value(QStringLiteral("points")), contact.points)) {
+                why = QStringLiteral("contact invalide (device ≥ 1, kind stylus, touch ou mouse, au moins un "
+                                     "point [x, y])");
+                return false;
+            }
+            for (const UiContact& other : step.contacts) {
+                if (other.device == contact.device) {
+                    why = QStringLiteral("appareil %1 en double (parallel)").arg(contact.device);
+                    return false;
+                }
+            }
+            step.contacts.push_back(std::move(contact));
+        }
+        if (o.contains(QStringLiteral("pressure"))) {
+            const QJsonValue pressure = o.value(QStringLiteral("pressure"));
+            if (!pressure.isDouble() || pressure.toDouble() < 0.0 || pressure.toDouble() > 1.0) {
+                why = QStringLiteral("pression invalide (parallel : nombre de 0 à 1)");
+                return false;
+            }
+            step.pressure = pressure.toDouble();
+        }
+        return readSpace(o, step.windowSpace, why);
+    }
+    if (o.contains(QStringLiteral("resize"))) {
+        step.kind = UiStepKind::Resize;
+        QPointF size;
+        if (!readPoint(o.value(QStringLiteral("resize")), size) || size.x() < 1 || size.y() < 1 ||
+            size.x() > kResizeMax || size.y() > kResizeMax) {
+            why = QStringLiteral("taille invalide (resize [largeur, hauteur], de 1 à %1)").arg(kResizeMax);
+            return false;
+        }
+        step.size = QSize(qRound(size.x()), qRound(size.y()));
+        return true;
+    }
+    if (o.contains(QStringLiteral("appState"))) {
+        step.kind = UiStepKind::AppState;
+        const QString state = o.value(QStringLiteral("appState")).toString();
+        if (state == QLatin1String("suspended")) {
+            step.appState = Qt::ApplicationSuspended;
+        } else if (state == QLatin1String("hidden")) {
+            step.appState = Qt::ApplicationHidden;
+        } else if (state == QLatin1String("inactive")) {
+            step.appState = Qt::ApplicationInactive;
+        } else if (state == QLatin1String("active")) {
+            step.appState = Qt::ApplicationActive;
+        } else {
+            why = QStringLiteral("état inconnu « %1 » (suspended, hidden, inactive ou active)").arg(state);
+            return false;
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("longPress"))) {
+        step.kind = UiStepKind::LongPress;
+        if (!readPoint(o.value(QStringLiteral("longPress")), step.at)) {
+            why = QStringLiteral("appui long invalide (longPress [x, y])");
+            return false;
+        }
+        if (o.contains(QStringLiteral("kind"))) {
+            step.pointerKind = o.value(QStringLiteral("kind")).toString();
+            if (step.pointerKind != QLatin1String("touch") && step.pointerKind != QLatin1String("mouse")) {
+                why = QStringLiteral("sorte inconnue « %1 » (touch ou mouse)").arg(step.pointerKind);
+                return false;
+            }
+        }
+        step.holdMs = kLongPressDefaultMs;
+        if (o.contains(QStringLiteral("holdMs"))) {
+            const QJsonValue hold = o.value(QStringLiteral("holdMs"));
+            step.holdMs = hold.isDouble() ? hold.toInt(-1) : -1;
+            if (step.holdMs < 0 || step.holdMs > kHoldMaxMs) {
+                why = QStringLiteral("maintien invalide (holdMs de 0 à %1)").arg(kHoldMaxMs);
+                return false;
+            }
+        }
+        return readSpace(o, step.windowSpace, why);
+    }
+    if (o.contains(QStringLiteral("visibleTexts"))) {
+        step.kind = UiStepKind::VisibleTexts;
+        if (o.value(QStringLiteral("visibleTexts")).toString() != QLatin1String("pseudo")) {
+            why = QStringLiteral("textes invalides (visibleTexts : « pseudo »)");
+            return false;
+        }
+        if (o.contains(QStringLiteral("marks"))) {
+            const QJsonArray marks = o.value(QStringLiteral("marks")).toArray();
+            if (marks.size() != 2 || marks.at(0).toString().isEmpty() || marks.at(1).toString().isEmpty()) {
+                why = QStringLiteral("marques invalides (marks : deux textes non vides)");
+                return false;
+            }
+            step.markOpen = marks.at(0).toString();
+            step.markClose = marks.at(1).toString();
+        }
+        if (o.contains(QStringLiteral("ignore"))) {
+            if (!o.value(QStringLiteral("ignore")).isArray()) {
+                why = QStringLiteral("ignore invalide (liste d'objectName)");
+                return false;
+            }
+            for (const QJsonValue& name : o.value(QStringLiteral("ignore")).toArray()) {
+                step.ignore << name.toString();
+            }
+        }
+        return true;
+    }
+    if (o.contains(QStringLiteral("expectChanged"))) {
+        step.kind = UiStepKind::ExpectChanged;
+        if (!splitTarget(o.value(QStringLiteral("expectChanged")).toString(), step.target, step.property) ||
+            !o.value(QStringLiteral("from")).isString() ||
+            o.value(QStringLiteral("from")).toString().isEmpty()) {
+            why = QStringLiteral("changement invalide (expectChanged « objet.propriété », from « ${nom} »)");
+            return false;
+        }
+        step.value = o.value(QStringLiteral("from")).toString();
         return true;
     }
     why = QStringLiteral("étape inconnue");
@@ -1063,7 +1197,232 @@ void deliverFingers(QWindow* window, GesturePhase phase, const std::vector<QPoin
     sequence.commit();
 }
 
+// Témoin de l'étape « parallel » : appuis et relâchés reçus par la fenêtre, par appareil (systemId).
+class ParallelWitness : public QObject
+{
+public:
+    explicit ParallelWitness(const QObject* window) : m_window(window) {}
+    QHash<qint64, int> presses;
+    QHash<qint64, int> releases;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (watched != m_window) {
+            return false;
+        }
+        const auto* pointer = dynamic_cast<QPointerEvent*>(event);
+        if (!pointer || !pointer->pointingDevice()) {
+            return false;
+        }
+        const qint64 id = pointer->pointingDevice()->systemId();
+        switch (event->type()) {
+        case QEvent::TabletPress:
+        case QEvent::MouseButtonPress:
+        case QEvent::TouchBegin:
+            ++presses[id];
+            break;
+        case QEvent::TabletRelease:
+        case QEvent::MouseButtonRelease:
+        case QEvent::TouchEnd:
+            ++releases[id];
+            break;
+        default:
+            break;
+        }
+        return false;
+    }
+
+private:
+    const QObject* m_window;
+};
+
+// Témoin de l'étape « appState » : événements d'état de l'application vus par un filtre posé sur qApp.
+class StateWitness : public QObject
+{
+public:
+    int count = 0;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (watched == QCoreApplication::instance() && event->type() == QEvent::ApplicationStateChange) {
+            ++count;
+        }
+        return false;
+    }
+};
+
+// Textes de « visibleTexts » : parcours des éléments visibles, texte lu par la propriété « text ».
+void collectTexts(QQuickItem* item, const UiStep& step, QStringList& lines, int& checked)
+{
+    if (!item || !item->isVisible()) {
+        return;
+    }
+    static const QRegularExpression numberOnly(QStringLiteral("^[\\p{N}\\s.,:;%/+\\-]+$"));
+    const QVariant property = item->property("text");
+    if (property.typeId() == QMetaType::QString && !step.ignore.contains(item->objectName())) {
+        const QString text = property.toString().trimmed();
+        if (!text.isEmpty() && !numberOnly.match(text).hasMatch()) {
+            ++checked;
+            if (!(text.startsWith(step.markOpen) && text.endsWith(step.markClose))) {
+                const QString label = item->objectName().isEmpty()
+                                          ? QString::fromLatin1(item->metaObject()->className())
+                                          : item->objectName();
+                lines << QStringLiteral("TEXTE ECART %1 \"%2\"").arg(label, text);
+            }
+        }
+    }
+    for (QQuickItem* child : item->childItems()) {
+        collectTexts(child, step, lines, checked);
+    }
+}
+
 } // namespace
+
+bool UiScenarioPlayer::parallel(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("PARALLELE %1 contacts").arg(step.contacts.size());
+    if (!step.windowSpace && !view()) {
+        report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
+        return false;
+    }
+    m_window->grabWindow(); // mise en page terminée avant les premiers points
+    std::vector<ParallelContact> contacts;
+    for (const UiContact& c : step.contacts) {
+        contacts.push_back({c.device, c.kind, c.points});
+    }
+    ParallelWitness witness(m_window);
+    QCoreApplication::instance()->installEventFilter(&witness);
+    const bool sent = gestures().postParallel(contacts, step.pressure,
+                                              step.windowSpace ? PointSpace::Window : PointSpace::Page);
+    QCoreApplication::processEvents();
+    QCoreApplication::instance()->removeEventFilter(&witness);
+    QStringList missing;
+    for (const UiContact& c : step.contacts) {
+        const qint64 id = 6000 + c.device;
+        if (witness.presses.value(id) != 1 || witness.releases.value(id) != 1) {
+            missing << QStringLiteral("appareil %1 : %2 appui(s), %3 relâché(s)")
+                           .arg(c.device)
+                           .arg(witness.presses.value(id))
+                           .arg(witness.releases.value(id));
+        }
+    }
+    const bool ok = sent && missing.isEmpty();
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head +
+                        QStringLiteral(" ECHEC (%1 ; 1 et 1 attendus)")
+                            .arg(sent ? missing.join(QStringLiteral("; ")) : QStringLiteral("envoi refusé")));
+    return ok;
+}
+
+bool UiScenarioPlayer::resize(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("TAILLE %1x%2").arg(step.size.width()).arg(step.size.height());
+    m_window->resize(step.size);
+    const bool ok = waitUntil([this, &step] { return m_window->size() == step.size; }, kResizeTimeoutMs);
+    m_window->grabWindow(); // la mise en page prend la nouvelle taille avant l'étape suivante
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head + QStringLiteral(" ECHEC (la fenêtre mesure %1x%2)")
+                               .arg(m_window->width())
+                               .arg(m_window->height()));
+    return ok;
+}
+
+bool UiScenarioPlayer::appState(const UiStep& step, QStringList& report)
+{
+    static const QHash<int, QString> names{{Qt::ApplicationSuspended, QStringLiteral("suspended")},
+                                           {Qt::ApplicationHidden, QStringLiteral("hidden")},
+                                           {Qt::ApplicationInactive, QStringLiteral("inactive")},
+                                           {Qt::ApplicationActive, QStringLiteral("active")}};
+    const QString head = QStringLiteral("ETAT %1").arg(names.value(step.appState));
+    // Voie publique : l'événement est livré à l'application, où les filtres le voient (A22).
+    StateWitness witness;
+    QCoreApplication::instance()->installEventFilter(&witness);
+    QApplicationStateChangeEvent event(step.appState);
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &event);
+    QCoreApplication::processEvents();
+    QCoreApplication::instance()->removeEventFilter(&witness);
+    const bool ok = witness.count == 1;
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head + QStringLiteral(" ECHEC (%1 événement(s) d'état reçu(s), 1 attendu)")
+                               .arg(witness.count));
+    return ok;
+}
+
+bool UiScenarioPlayer::longPress(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("APPUI LONG");
+    if (!step.windowSpace && !view()) {
+        report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
+        return false;
+    }
+    if (step.pointerKind == QLatin1String("mouse")) {
+        UiStep hold;
+        hold.kind = UiStepKind::Pointer;
+        hold.points.push_back(step.at);
+        hold.holdMs = step.holdMs;
+        hold.windowSpace = step.windowSpace;
+        QStringList inner;
+        const bool ok = pointer(hold, inner);
+        report << (ok ? head + QStringLiteral(" OK")
+                      : head + QStringLiteral(" ECHEC (%1)").arg(inner.join(QStringLiteral("; "))));
+        return ok;
+    }
+    m_window->grabWindow();
+    GestureWitness witness(m_window);
+    QCoreApplication::instance()->installEventFilter(&witness);
+    const bool sent = gestures().longPress(
+        step.at, step.holdMs,
+        [this](GesturePhase phase, const std::vector<QPointF>& f) { deliverFingers(m_window, phase, f); },
+        step.windowSpace ? PointSpace::Window : PointSpace::Page);
+    QCoreApplication::instance()->removeEventFilter(&witness);
+    const bool ok = sent && witness.touchBegin == 1 && witness.touchEnd == 1;
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head +
+                        QStringLiteral(" ECHEC (la fenêtre a reçu %1 début(s) et %2 fin(s) tactile(s), 1 et "
+                                       "1 attendus)")
+                            .arg(witness.touchBegin)
+                            .arg(witness.touchEnd));
+    return ok;
+}
+
+bool UiScenarioPlayer::visibleTexts(const UiStep& step, QStringList& report)
+{
+    m_window->grabWindow(); // mise en page terminée avant la lecture
+    QStringList lines;
+    int checked = 0;
+    for (QWindow* window : QGuiApplication::allWindows()) {
+        auto* quick = qobject_cast<QQuickWindow*>(window);
+        if (quick && quick->isVisible()) {
+            collectTexts(quick->contentItem(), step, lines, checked);
+        }
+    }
+    report << lines;
+    report << (lines.isEmpty() ? QStringLiteral("TEXTES OK %1").arg(checked)
+                               : QStringLiteral("TEXTES EN ECART %1").arg(lines.size()));
+    return lines.isEmpty();
+}
+
+bool UiScenarioPlayer::expectChanged(const UiStep& step, QStringList& report)
+{
+    const QString head = QStringLiteral("CHANGE %1.%2").arg(step.target, step.property);
+    QString from;
+    if (!expandOrFail(step.value, head, from, report)) {
+        return false;
+    }
+    QObject* object = find(step.target);
+    const QVariant value = object ? object->property(step.property.toUtf8().constData()) : QVariant();
+    const QString actual = propertyText(value);
+    const bool ok = object && value.isValid() && actual != from;
+    report << (ok ? head + QStringLiteral(" OK")
+                  : head + QStringLiteral(" ECART (%1)")
+                               .arg(!object ? QStringLiteral("objet introuvable")
+                                    : !value.isValid()
+                                        ? QStringLiteral("propriété absente")
+                                        : QStringLiteral("valeur inchangée : %1").arg(actual)));
+    return ok;
+}
 
 Injector& UiScenarioPlayer::gestures()
 {
@@ -1722,6 +2081,18 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return typeText(step, report);
     case UiStepKind::Tap:
         return tap(step, report);
+    case UiStepKind::Parallel:
+        return parallel(step, report);
+    case UiStepKind::Resize:
+        return resize(step, report);
+    case UiStepKind::AppState:
+        return appState(step, report);
+    case UiStepKind::LongPress:
+        return longPress(step, report);
+    case UiStepKind::VisibleTexts:
+        return visibleTexts(step, report);
+    case UiStepKind::ExpectChanged:
+        return expectChanged(step, report);
     }
     return false;
 }
