@@ -44,20 +44,55 @@ std::unique_ptr<media::RecordingEngine> makeSound()
     return std::make_unique<FakeSound>();
 }
 
+// Écran simulé : écrit un fichier non vide à la fermeture.
+class FakeScreen final : public media::DisplayEngine
+{
+public:
+    void start(const QString& path) override { m_path = path; }
+    void encode(const QVideoFrame&) override {}
+    void stop() override
+    {
+        QFile file(m_path);
+        (void)file.open(QIODevice::WriteOnly);
+        (void)file.write("mp4");
+        file.close();
+        const QString path = m_path;
+        QMetaObject::invokeMethod(this, [this, path] { emit stopped(path); }, Qt::QueuedConnection);
+    }
+
+private:
+    QString m_path;
+};
+
+media::DisplayRecorder makeDisplay(bool withScreen)
+{
+    if (!withScreen)
+        return media::DisplayRecorder(); // sans moteur d'écran hors Windows, avec son motif
+    return media::DisplayRecorder(
+        media::DisplayRecorder::EngineFactory([] { return std::unique_ptr<media::DisplayEngine>(new FakeScreen); }));
+}
+
 struct Rig
 {
     QTemporaryDir dir;
     ui::Commands commands;
     ui::Preferences preferences{dir.filePath("preferences.ini"), nullptr};
-    media::SoundRecorder sound{&makeSound, [](std::function<void(bool)> answer) { answer(true); }};
-    media::DisplayRecorder display; // sans moteur d'écran hors Windows, avec son motif
+    media::SoundRecorder sound;
+    media::DisplayRecorder display;
     ui::Recorders recorders;
-    Rig()
+    // microphoneGranted : réponse de la permission simulée ; withScreen : un écran simulé (sinon l'enregistreur
+    // d'écran de la plateforme, absent hors Windows).
+    explicit Rig(bool microphoneGranted = true, bool withScreen = false)
+        : sound(&makeSound, [microphoneGranted](std::function<void(bool)> answer) { answer(microphoneGranted); }),
+          display(makeDisplay(withScreen))
     {
         sound.setFolder(dir.filePath("son"));
+        display.setFolder(dir.filePath("ecran"));
         recorders.useRecorders(&sound, &display);
         recorders.setCommands(&commands);
         recorders.setPreferences(&preferences);
+        if (withScreen)
+            commands.setPlatform(actions::Platform::Windows); // les commandes d'écran sont déclarées pour Windows
     }
 };
 
@@ -191,6 +226,68 @@ private slots:
         QVERIFY(!rig.recorders.isRecording());
         QVERIFY(!rig.recorders.message().isEmpty());
 #endif
+    }
+
+    // L8-C10, constat 1 (F-292 « plein écran ou zone »). Distingue le bon chemin (la commande demande un tracé,
+    // la zone de l'enregistrement est celle que l'utilisateur a tracée, convertie par pixelArea) de l'ancien
+    // (la commande démarre sur-le-champ sur la moitié centrale de l'écran principal, sans sélecteur).
+    void screenAreaCommandRecordsTheDrawnArea()
+    {
+        Rig rig(true, true);
+        QSignalSpy asked(&rig.recorders, &ui::Recorders::areaSelectionRequested);
+        QVERIFY(rig.commands.trigger(QStringLiteral("record.screen-area")));
+        QCOMPARE(asked.count(), 1);
+        QVERIFY(rig.recorders.isSelectingArea());
+        QVERIFY(!rig.recorders.isRecording()); // rien ne part avant que l'utilisateur ait tracé la zone
+        QVERIFY(!rig.recorders.separateIndicator());
+
+        rig.recorders.finishAreaSelection(100, 50, 300, 200, 2.0);
+        QVERIFY(!rig.recorders.isSelectingArea());
+        QVERIFY(rig.recorders.isRecording());
+        // Rapport de pixels 2 : la zone tracée en pixels logiques, pas la moitié centrale de l'écran.
+        QCOMPARE(rig.display.area(), ui::Recorders::pixelArea(QRectF(100, 50, 300, 200), 2.0));
+        QCOMPARE(rig.display.area(), QRect(QPoint(200, 100), QSize(600, 400)));
+        // L'indicateur d'un enregistrement d'écran vit dans une fenêtre à part (L8-T28), pas celui du son.
+        QVERIFY(rig.recorders.separateIndicator());
+        rig.recorders.cancel();
+        QTRY_VERIFY(!rig.recorders.isRecording());
+        QVERIFY(!rig.recorders.separateIndicator());
+    }
+
+    void escapingTheAreaSelectionStartsNothing()
+    {
+        Rig rig(true, true);
+        QVERIFY(rig.commands.trigger(QStringLiteral("record.screen-area")));
+        QVERIFY(rig.recorders.isSelectingArea());
+        rig.recorders.cancelAreaSelection(); // Échap
+        QVERIFY(!rig.recorders.isSelectingArea());
+        QVERIFY(!rig.recorders.isRecording());
+        QVERIFY(rig.display.area().isEmpty());
+    }
+
+    void soundIndicatorStaysInTheMainWindow()
+    {
+        Rig rig;
+        rig.recorders.toggleSound();
+        QVERIFY(rig.recorders.indicatorVisible());
+        QVERIFY(!rig.recorders.separateIndicator()); // seul l'écran capture la fenêtre : le son n'en a pas besoin
+        rig.recorders.cancel();
+        QTRY_VERIFY(!rig.recorders.isRecording());
+    }
+
+    // L8-C10, constat 3 (S26 « la commande se désactive »). Distingue l'état propagé au registre de l'état
+    // seulement porté par l'enregistreur : sous l'ancien patron, isAvailable() est faux mais la commande reste
+    // active et déclenchable.
+    void refusedMicrophoneDisablesTheCommand()
+    {
+        Rig rig(false);
+        QVERIFY(rig.commands.registry().isEnabled(QStringLiteral("record.sound")));
+        QVERIFY(rig.commands.trigger(QStringLiteral("record.sound"))); // l'utilisateur demande, le système refuse
+        QTRY_VERIFY(!rig.sound.isAvailable());
+        QVERIFY(!rig.recorders.isRecording());
+        QVERIFY(!rig.recorders.message().isEmpty());
+        QVERIFY(!rig.commands.registry().isEnabled(QStringLiteral("record.sound")));
+        QVERIFY(!rig.commands.trigger(QStringLiteral("record.sound")));
     }
 
     void finishedSoundIsHandedToTheInsertion()

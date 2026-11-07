@@ -31,6 +31,8 @@ class Recorders : public QObject
     Q_PROPERTY(bool paused READ isPaused NOTIFY stateChanged)
     Q_PROPERTY(QString kind READ kind NOTIFY stateChanged) // « sound », « screen » ou vide
     Q_PROPERTY(bool indicatorVisible READ indicatorVisible NOTIFY stateChanged)
+    Q_PROPERTY(bool separateIndicator READ separateIndicator NOTIFY stateChanged)
+    Q_PROPERTY(bool selectingArea READ isSelectingArea NOTIFY selectingAreaChanged)
     Q_PROPERTY(bool paletteVisible READ paletteVisible NOTIFY paletteVisibleChanged)
     Q_PROPERTY(bool noticeVisible READ noticeVisible NOTIFY noticeChanged)
     Q_PROPERTY(QString notice READ notice CONSTANT)
@@ -66,6 +68,10 @@ public:
     bool isPaused() const;
     QString kind() const;
     bool indicatorVisible() const;
+    // Vrai pendant un enregistrement d'écran : l'indicateur vit alors dans une fenêtre à part.
+    bool separateIndicator() const;
+    // Vrai entre la commande « zone de l'écran » et le tracé (ou l'abandon) de la zone.
+    bool isSelectingArea() const;
     bool paletteVisible() const;
     bool noticeVisible() const;
     QString notice() const;
@@ -87,6 +93,11 @@ public:
     Q_INVOKABLE void toggleScreen(bool area);
     Q_INVOKABLE void chooseScreenArea(qreal x, qreal y, qreal width, qreal height, qreal pixelRatio,
                                       qreal originX = 0, qreal originY = 0);
+    // Fin du tracé : la zone (coordonnées logiques de l'écran) est convertie, puis l'enregistrement part.
+    Q_INVOKABLE void finishAreaSelection(qreal x, qreal y, qreal width, qreal height, qreal pixelRatio,
+                                         qreal originX = 0, qreal originY = 0);
+    // Échap pendant le tracé : rien ne part.
+    Q_INVOKABLE void cancelAreaSelection();
     Q_INVOKABLE void pause();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void cancel();
@@ -100,6 +111,10 @@ signals:
     void mediaInsertChanged();
     void preferencesChanged();
     void stateChanged();
+    // L'interface doit proposer le tracé d'une zone (calque plein écran) ; réponse : finishAreaSelection
+    // ou cancelAreaSelection.
+    void areaSelectionRequested();
+    void selectingAreaChanged();
     void paletteVisibleChanged();
     void noticeChanged();
     void messageChanged();

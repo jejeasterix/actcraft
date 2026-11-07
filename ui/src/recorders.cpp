@@ -424,6 +424,21 @@ void Recorders::chooseScreenArea(qreal x, qreal y, qreal width, qreal height, qr
         m_display->setArea(pixelArea(QRectF(x, y, width, height), pixelRatio, QPointF(originX, originY)));
 }
 
+// Souches du test rouge : le comportement vient avec le commit suivant.
+bool Recorders::separateIndicator() const
+{
+    return false;
+}
+
+bool Recorders::isSelectingArea() const
+{
+    return false;
+}
+
+void Recorders::finishAreaSelection(qreal, qreal, qreal, qreal, qreal, qreal, qreal) {}
+
+void Recorders::cancelAreaSelection() {}
+
 void Recorders::pause()
 {
     if (media::SoundRecorder* sound = activeSound())
