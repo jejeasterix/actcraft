@@ -186,11 +186,13 @@ QStringList ViewInfoAdapter::objectBarCommands() const
     return ids;
 }
 
-CommandSinkAdapter::CommandSinkAdapter(Commands* commands) : m_commands(commands) {}
+CommandSinkAdapter::CommandSinkAdapter(Commands* commands, input::UserId user)
+    : m_commands(commands), m_user(user)
+{}
 
 bool CommandSinkAdapter::trigger(const QString& id, const QVariant& argument)
 {
-    return m_commands && m_commands->trigger(id, argument);
+    return m_commands && m_commands->trigger(id, argument, int{m_user});
 }
 
 ToolAdapters::ToolAdapters(DocumentController& controller, PageView& pageView, render::InkItem& inkItem,
@@ -200,7 +202,7 @@ ToolAdapters::ToolAdapters(DocumentController& controller, PageView& pageView, r
     : controllerRef(&controller), viewRef(&pageView), inkRef(&inkItem), layerRef(&layer),
       commandsRef(commandList), document(controller, user.id()), ink(inkItem), strokes(controller, pageView),
       lift(layer), selection(commandList, std::move(showSelection)),
-      view(pageView, commandList, std::move(trashArea), std::move(trashHover)), commands(commandList),
+      view(pageView, commandList, std::move(trashArea), std::move(trashHover)), commands(commandList, user.id()),
       context{document, ink, strokes, lift, selection, view, commands, user, false, false}
 {}
 
