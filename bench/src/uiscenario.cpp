@@ -167,6 +167,15 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         if (o.contains(QStringLiteral("argument"))) {
             step.argument = o.value(QStringLiteral("argument")).toVariant();
         }
+        if (o.contains(QStringLiteral("user"))) { // L11-T9 : entier ≥ 0
+            const QJsonValue user = o.value(QStringLiteral("user"));
+            const double value = user.toDouble(-1);
+            if (!user.isDouble() || value < 0 || value > 255 || value != static_cast<double>(user.toInt())) {
+                why = QStringLiteral("utilisateur invalide");
+                return false;
+            }
+            step.user = user.toInt();
+        }
         if (step.command.isEmpty()) {
             why = QStringLiteral("commande vide");
             return false;
@@ -799,6 +808,26 @@ bool parseReadSpec(const QString& text, UiStep& out)
     return true;
 }
 
+// Chemin lu par expect, expectChanged, waitFor et remember : la propriété de l'objet, puis, après chaque
+// point, la clé d'une table (L11-T9 : « appTools.selectionFrame.visible »). Un nom sans point lit la
+// propriété seule, comme avant ; une clé absente ou une valeur qui n'est pas une table rend une valeur
+// invalide.
+QVariant readPath(const QObject* object, const QString& path)
+{
+    if (!object) {
+        return {};
+    }
+    const QStringList parts = path.split(QLatin1Char('.'));
+    QVariant value = object->property(parts.first().toUtf8().constData());
+    for (qsizetype i = 1; i < parts.size(); ++i) {
+        if (value.metaType() != QMetaType::fromType<QVariantMap>()) {
+            return {};
+        }
+        value = value.toMap().value(parts.at(i));
+    }
+    return value;
+}
+
 QString propertyText(const QVariant& value)
 {
     if (!value.isValid()) {
@@ -1003,8 +1032,8 @@ bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
     }
     QObject* object = find(step.target);
     // Propriété absente : « <absente> » (propertyText), jamais « "" » qui égalerait une valeur attendue vide.
-    const QString actual = object ? propertyText(object->property(step.property.toUtf8().constData()))
-                                  : QStringLiteral("<introuvable>");
+    const QString actual =
+        object ? propertyText(readPath(object, step.property)) : QStringLiteral("<introuvable>");
     bool ok = false;
     QString expectation = expected;
     if (step.above) {
@@ -1412,7 +1441,7 @@ bool UiScenarioPlayer::expectChanged(const UiStep& step, QStringList& report)
         return false;
     }
     QObject* object = find(step.target);
-    const QVariant value = object ? object->property(step.property.toUtf8().constData()) : QVariant();
+    const QVariant value = readPath(object, step.property);
     const QString actual = propertyText(value);
     const bool ok = object && value.isValid() && actual != from;
     report << (ok ? head + QStringLiteral(" OK")
@@ -1754,7 +1783,7 @@ bool UiScenarioPlayer::waitFor(const UiStep& step, QStringList& report)
             if (!target) {
                 return true;
             }
-            actual = propertyText(target->property(property.constData()));
+            actual = propertyText(readPath(target, QString::fromUtf8(property)));
             return matches(actual);
         },
         step.ms);
@@ -1833,7 +1862,7 @@ bool UiScenarioPlayer::remember(const UiStep& step, QStringList& report)
     }
     // Propriété absente ou sans texte : rien à mémoriser (« <absente> » relu plus tard égalerait une autre
     // propriété absente).
-    const QVariant value = target->property(step.property.toUtf8().constData());
+    const QVariant value = readPath(target, step.property);
     if (!value.isValid() || !value.canConvert<QString>()) {
         report << QStringLiteral("MEMO %1 ECHEC (%2.%3 : %4)")
                       .arg(step.name, step.target, step.property, propertyText(value));
@@ -1981,15 +2010,24 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
             argumentValue = expanded;
         }
         QVariant result;
-        const bool invoked = QMetaObject::invokeMethod(m_window, "runCommand", Q_RETURN_ARG(QVariant, result),
-                                                       Q_ARG(QVariant, QVariant(step.command)),
-                                                       Q_ARG(QVariant, argumentValue));
+        // L11-T9 : un utilisateur autre que le premier passe par runCommandAs (Commands::trigger(id,
+        // argument, user)) ; le premier garde runCommand.
+        const bool invoked =
+            step.user == 0
+                ? QMetaObject::invokeMethod(m_window, "runCommand", Q_RETURN_ARG(QVariant, result),
+                                            Q_ARG(QVariant, QVariant(step.command)),
+                                            Q_ARG(QVariant, argumentValue))
+                : QMetaObject::invokeMethod(m_window, "runCommandAs", Q_RETURN_ARG(QVariant, result),
+                                            Q_ARG(QVariant, QVariant(step.command)),
+                                            Q_ARG(QVariant, argumentValue),
+                                            Q_ARG(QVariant, QVariant(step.user)));
         QCoreApplication::processEvents();
         const bool ok = invoked && result.toBool();
         const QString argument =
             argumentValue.isValid() ? QStringLiteral(" ") + propertyText(argumentValue) : QString();
-        report << QStringLiteral("COMMANDE %1%2 %3")
-                      .arg(step.command, argument, ok ? QStringLiteral("OK") : QStringLiteral("ECHEC"));
+        const QString who = step.user == 0 ? QString() : QStringLiteral(" utilisateur %1").arg(step.user);
+        report << QStringLiteral("COMMANDE %1%2%3 %4")
+                      .arg(step.command, argument, who, ok ? QStringLiteral("OK") : QStringLiteral("ECHEC"));
         return ok;
     }
     case UiStepKind::Stroke:

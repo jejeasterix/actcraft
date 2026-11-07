@@ -57,6 +57,9 @@ struct CommandInfo
     // l'interdire (F-680, lot 8). Défaut sûr : verrouillable, non restreignable.
     bool lockable = true;
     bool restrictable = false;
+    // L11-T9 (F-303) : la commande ouvre une boîte (Dialog, Popup modale, sélecteur de fichier) ; le second
+    // utilisateur du mode à deux ne la déclenche pas (ui::Commands::trigger). Absente : faux.
+    bool opensDialog = false;
 };
 
 bool argumentIsValid(ArgumentKind kind, const QVariant& argument);

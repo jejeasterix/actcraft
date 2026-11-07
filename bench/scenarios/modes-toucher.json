@@ -25,6 +25,7 @@
     {"touch": [[700, 575], [700, 575]]},
     {"waitReady": true},
     {"expect": "appTools.selectionCount", "value": 1},
+    {"expect": "appTools.selectionFrame.visible", "value": true},
     {"capture": "select"},
     {"command": "touch.mode", "argument": "full"},
     {"touch": [[200, 400], [400, 400]]},

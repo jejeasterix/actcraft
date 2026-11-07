@@ -68,6 +68,11 @@ public:
     const actions::CommandRegistry& registry() const noexcept;
 
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument = QVariant());
+    // L11-T9 (F-303, M7) : déclenchement pour un utilisateur (0 : le premier ; l'ancienne signature vaut 0).
+    // Une commande qui ouvre une boîte (CommandInfo::opensDialog) est refusée à tout autre : faux, aucun
+    // effet, refusedForSecondUser(id). Le gestionnaire JavaScript reçoit (argument, user) ; un gestionnaire
+    // C++, l'argument seul.
+    Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument, int user);
     Q_INVOKABLE void setHandler(const QString& id, const QJSValue& handler);
     // Gestionnaire C++ (L6-T5 : `profile.activate`, posé par ProfileController), gardé à travers reload() et
     // prioritaire sur un gestionnaire JavaScript ; un gestionnaire vide le retire.
@@ -110,6 +115,8 @@ signals:
     // Refus de la diffusion protégée : essai d'une commande restreinte par trigger (menu, raccourci), ou
     // geste hors trigger signalé par reportRestrictionRefusal (action d'objet, ressources, onglets).
     void refusedByRestriction(const QString& id);
+    // L11-T9 : commande à boîte essayée par le second utilisateur, refusée par trigger.
+    void refusedForSecondUser(const QString& id);
 
 private:
     // Éléments d'un menu : `submenus` nul = pas de sous-menu possible (sous-menu lui-même, menu contextuel).
@@ -127,6 +134,7 @@ private:
     QHash<QString, actions::CommandRegistry::Handler> m_nativeHandlers;
     // Gestionnaire en cours : le registre qui le porte n'est ni remplacé ni modifié avant son retour.
     int m_triggerDepth = 0;
+    int m_triggerUser = 0; // utilisateur du déclenchement en cours, passé au gestionnaire JavaScript
     bool m_reloadPending = false;
     int m_revision = 0;
 };

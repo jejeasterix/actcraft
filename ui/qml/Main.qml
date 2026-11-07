@@ -111,7 +111,7 @@ Window {
 
     // Lot 11 (L11-T3) : contrôleurs du lot, posés une fois ; chaque tâche suivante y ajoute son comportement.
     TouchModeController { id: appTouchMode; objectName: "appTouchMode"; commands: appCommands; preferences: appPreferences; view: pageArea.view }
-    DualMode { id: appDualMode; objectName: "appDualMode"; commands: appCommands; view: pageArea.view }
+    DualMode { id: appDualMode; objectName: "appDualMode"; commands: appCommands; view: pageArea.view; tools: appTools; touchMode: appTouchMode }
     LayoutMetrics { id: appLayout; objectName: "appLayout"; windowWidth: root.width; windowHeight: root.height; preferences: appPreferences }
     // L11-T10 (D11-5, D11-6) : les tailles du jeu de jetons suivent la mise en page (48 dp au doigt, jamais moins de
     // 44 ; palette élargie d'une colonne de barre de défilement).
@@ -256,6 +256,10 @@ Window {
     // Pilotage sans souris (actcraft-captures, tests) : même chemin que les boutons.
     function runCommand(id, argument) {
         return appCommands.trigger(id, argument)
+    }
+    // L11-T9 : même chemin pour un utilisateur (étape command à champ "user" ; 0 : le premier).
+    function runCommandAs(id, argument, user) {
+        return appCommands.trigger(id, argument, user)
     }
 
     function setFullScreen(on) {
@@ -1021,17 +1025,21 @@ Window {
         appCommands.setHandler("view.zoom", function (percent) { pageArea.view.zoom = percent / 100 })
         appCommands.setHandler("page.next", function () { appDocument.nextPage() })
         appCommands.setHandler("page.previous", function () { appDocument.pageBack() })
-        appCommands.setHandler("tool.pen", function () { appTools.activate("pen") })
+        appCommands.setHandler("tool.pen", function (argument, user) { appTools.activateFor("pen", user) })
         // La vue n'a plus de couleur propre : appTools la tient à jour (inkColor, inkWidth).
-        appCommands.setHandler("pen.color", function (color) { appTools.setColor(color) })
-        appCommands.setHandler("pen.width", function (width) { appTools.setWidth(width) })
+        appCommands.setHandler("pen.color", function (color, user) { appTools.setColor(color, user) })
+        appCommands.setHandler("pen.width", function (width, user) { appTools.setWidth(width, user) })
         // Échap (M9) : abandon du geste en cours ; au repos, outil Sélectionner. Jamais livré à l'outil.
-        appCommands.setHandler("tool.select", function () {
+        appCommands.setHandler("tool.select", function (argument, user) {
+            if (user) { // L11-T9 : le second utilisateur n'a pas d'Échap ; son outil seul change
+                appTools.activateFor("select", user)
+                return
+            }
             appTools.cancelGesture()
             appTools.activate("select")
         })
-        appCommands.setHandler("tool.highlighter", function () { appTools.activate("highlighter") })
-        appCommands.setHandler("tool.eraser", function () { appTools.activate("eraser") })
+        appCommands.setHandler("tool.highlighter", function (argument, user) { appTools.activateFor("highlighter", user) })
+        appCommands.setHandler("tool.eraser", function (argument, user) { appTools.activateFor("eraser", user) })
         appCommands.setHandler("edit.undo", function () { appDocument.undo() })
         appCommands.setHandler("edit.redo", function () { appDocument.redo() })
         appCommands.setHandler("edit.delete", function () { appTools.deleteSelection() })
@@ -1056,13 +1064,13 @@ Window {
         appCommands.setHandler("help.about", function () { aboutDialog.open() })
         appCommands.setHandler("help.website", function () { Qt.openUrlExternally(AppInfo.projectUrl) })
         // Lot 4 : formes, texte, navigateurs, pages, grille (une ligne vers sa cible chacune).
-        appCommands.setHandler("tool.shape", function () { appTools.activate("shape") })
+        appCommands.setHandler("tool.shape", function (argument, user) { appTools.activateFor("shape", user) })
         appCommands.setHandler("shape.choose", function (preset) { appTools.chooseShape(preset) })
         appCommands.setHandler("shape.filled", function () { appTools.setShapeFilled(!appTools.shapeFilled) })
         appCommands.setHandler("shape.fill-color", function (color) { appTools.setShapeFillColor(color) })
         appCommands.setHandler("shape.draw-from-center", function () { appTools.setShapeFromCenter(!appTools.shapeFromCenter) })
-        appCommands.setHandler("tool.text", function () { appTools.activate("text") })
-        appCommands.setHandler("tool.text-vertical", function () { appTools.activate("text-vertical") })
+        appCommands.setHandler("tool.text", function (argument, user) { appTools.activateFor("text", user) })
+        appCommands.setHandler("tool.text-vertical", function (argument, user) { appTools.activateFor("text-vertical", user) })
         appCommands.setHandler("text.edit-at", function (arg) {
             const at = root.editAtArgument(arg)
             if (at === null)
@@ -1128,8 +1136,8 @@ Window {
         appCommands.setHandler("object.menu", function () { objectEditMenu.popupAtSelection() })
         // L5-T17 : l'argument de l'outil (style, forme) est passé par les outils eux-mêmes.
         appCommands.setHandler("object.shape-points", function () { appTools.activate("select-points") })
-        appCommands.setHandler("tool.fill", function () { appTools.activate("fill") })
-        appCommands.setHandler("tool.connector", function () { appTools.activate("connector") })
+        appCommands.setHandler("tool.fill", function (argument, user) { appTools.activateFor("fill", user) })
+        appCommands.setHandler("tool.connector", function (argument, user) { appTools.activateFor("connector", user) })
         appCommands.setHandler("pen.shape", function (shape) {
             if (root.hasArgument(shape))
                 appTools.activate("pen-shape", shape)

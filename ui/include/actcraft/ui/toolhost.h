@@ -2,6 +2,7 @@
 
 #include <actcraft/input/routing.h>
 #include <actcraft/render/liftlayeritem.h> // types complets exigés par moc pour les propriétés
+#include <actcraft/tools/grabs.h>
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
@@ -116,6 +117,13 @@ public:
     // (F-134).
     Q_INVOKABLE void setColor(const QColor& color);
     Q_INVOKABLE void setWidth(qreal width);
+    // L11-T9 (M7, n1) : outil, couleur et épaisseur d'un utilisateur, pour les gestionnaires (argument, user)
+    // de Main.qml. activateFor porte un nom distinct d'activate(toolId, argument) : en QML, activate("pen",
+    // 1) prendrait 1 pour l'argument de l'outil et changerait l'outil du premier utilisateur. Utilisateur 0,
+    // ou mode à deux éteint : activate(toolId), setColor(color), setWidth(width).
+    Q_INVOKABLE void activateFor(const QString& toolId, int user);
+    Q_INVOKABLE void setColor(const QColor& color, int user);
+    Q_INVOKABLE void setWidth(qreal width, int user);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();
     // H5-15 : active l'outil Sélection et sélectionne ces objets de la page affichée (ceux qui existent).
@@ -200,6 +208,13 @@ private:
     tools::Tool* toolFor(const QString& id) const;      // créé à la première demande
     tools::Tool* existingTool(const QString& id) const; // jamais créé
     tools::SelectTool* selectTool() const;              // l'outil Sélectionner, créé à la première demande
+    // L11-T9 : outils du second utilisateur (mode allumé), dans leurs propres adaptateurs (contexte de son
+    // UserState, surface d'encre et de sélection à lui) ; nullptr tant que le branchement manque.
+    bool isSecond(input::UserId user) const noexcept;
+    ToolAdapters* secondAdapters() const;
+    tools::Tool* secondToolFor(const QString& id) const;
+    tools::Tool* secondExistingTool(const QString& id) const;
+    void adopt(tools::Tool* tool) const; // registre des objets tenus posé sur un sélecteur neuf (L11-T8)
     tools::InkSettings settingsOf(const QString& id) const; // réglages de l'utilisateur, ou ceux par défaut
     // Réglages rangés chez l'utilisateur, écrits dans le fichier et rendus à la vue.
     void storeSettings(const QString& id, const tools::InkSettings& settings);
@@ -235,7 +250,15 @@ private:
     std::unique_ptr<tools::UserState> m_user;
     std::unique_ptr<tools::UserState> m_secondUser; // L11-T7 : créé au premier allumage du mode
     bool m_dualUsers = false;
+    // L11-T8, L11-T9 : objets tenus, un registre pour les deux utilisateurs, posé sur leurs sélecteurs ;
+    // déclaré avant les adaptateurs, donc détruit après les outils qui le regardent.
+    mutable tools::Grabs m_grabs;
     mutable std::unique_ptr<ToolAdapters> m_adapters;
+    mutable std::unique_ptr<ToolAdapters> m_secondAdapters; // L11-T9 : outils du second utilisateur
+    QString m_secondLastInk = QStringLiteral("pen");        // dernier outil d'encre du second utilisateur
+    // L11-T9 (rapport de L11-T6) : le doigt sélectionne par le sélecteur imposé alors que l'outil courant
+    // n'est pas Sélectionner ; son cadre est montré.
+    mutable bool m_fingerSelecting = false;
     QPointer<ActionRunner> m_actionRunner;
     mutable std::unique_ptr<ActionGate> m_gate; // refait quand l'outil de sélection change
     bool m_gateArmed = false;    // geste en cours armé par armGate : activeTool() rend la porte

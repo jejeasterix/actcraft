@@ -92,6 +92,7 @@ struct UiStep
     UiStepKind kind = UiStepKind::Wait;
     QString command;
     QVariant argument; // invalide : commande sans argument
+    int user = 0;      // étape command : utilisateur qui la déclenche (L11-T9 ; 0 : le premier)
     std::vector<QPointF> points;
     double pressure = 0.5;
     QString key;
