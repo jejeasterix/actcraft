@@ -1,4 +1,5 @@
 #include "isolatedtext.h"
+#include "textwidth.h"
 
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
@@ -120,14 +121,6 @@ core::Text* measurableText(core::PageObject* object)
     return text;
 }
 
-// Largeur naturelle du HTML sur le document du peintre (ui/src/textediting.cpp, measuredBounds : marge 0,
-// ceil(idealWidth) + 1).
-qreal naturalWidth(QTextDocument& measure)
-{
-    measure.setTextWidth(-1);
-    return std::ceil(measure.idealWidth()) + 1;
-}
-
 std::unique_ptr<QTextDocument> measureDocument(const std::string& html)
 {
     std::unique_ptr<QTextDocument> measure = isolatedTextDocument({});
@@ -140,7 +133,7 @@ std::unique_ptr<QTextDocument> measureDocument(const std::string& html)
 qreal fixedWidthOf(const core::Text& text)
 {
     std::unique_ptr<QTextDocument> measure = measureDocument(text.html);
-    return std::abs(naturalWidth(*measure) - text.bounds.width) > 0.5 ? text.bounds.width : 0;
+    return std::abs(naturalTextWidth(*measure) - text.bounds.width) > 0.5 ? text.bounds.width : 0;
 }
 
 // Largeur fixe du texte visé, lue avant l'action (revue L8-C3) : un texte lu avec ses lignes (`runs`) a la
@@ -172,7 +165,7 @@ core::RectF measuredBounds(const core::Text& text, qreal fixedWidth)
         return core::RectF{text.bounds.x, text.bounds.y, std::max<qreal>(1.0, measure->textWidth()),
                            std::ceil(measure->size().height())};
     }
-    const qreal width = fixedWidth > 0 ? fixedWidth : naturalWidth(*measure);
+    const qreal width = fixedWidth > 0 ? fixedWidth : naturalTextWidth(*measure);
     measure->setTextWidth(width);
     return core::RectF{text.bounds.x, text.bounds.y, width, std::ceil(measure->size().height())};
 }
@@ -333,11 +326,7 @@ bool refusedByRestrictionOnly(const actions::CommandRegistry& registry, const QS
 
 } // namespace
 
-ActionRunner::ActionRunner(QObject* parent) : QObject(parent)
-{
-    QString error;
-    m_catalog.load(actions::defaultObjectActionsJson(), error);
-}
+ActionRunner::ActionRunner(QObject* parent) : QObject(parent) {}
 
 ActionRunner::~ActionRunner()
 {
@@ -507,7 +496,8 @@ void ActionRunner::runOne(const core::Action& action, const Pending& pending)
         return;
     }
     const QString id = QString::fromStdString(action.catalogId);
-    const actions::ObjectActionInfo* info = id.isEmpty() ? nullptr : m_catalog.find(id);
+    const actions::ObjectActionInfo* info =
+        id.isEmpty() ? nullptr : actions::builtInObjectActionCatalog().find(id);
     if (info == nullptr) {
         refuse(QStringLiteral("Action non prise en charge"));
         return;

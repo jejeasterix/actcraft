@@ -1,4 +1,6 @@
+#include <actcraft/core/networkpath.h>
 #include <actcraft/media/player.h>
+#include <actcraft/ui/mediainsert.h>
 #include <actcraft/ui/mediaitems.h>
 #include <actcraft/ui/toolhost.h>
 
@@ -19,20 +21,6 @@
 namespace actcraft::ui {
 
 namespace {
-
-bool isVideoExtension(const QString& extension)
-{
-    static const QStringList videos{"mp4", "m4v", "mov", "avi", "webm", "mkv", "mpg", "mpeg", "wmv"};
-    return videos.contains(extension.toLower());
-}
-
-// Règle de media::Player (et de LinkLauncher) : un chemin réseau est refusé avant tout accès au disque (sous
-// Windows, tester son existence envoie l'authentification du compte à l'hôte).
-bool isNetworkPath(QString path)
-{
-    path.replace(u'\\', u'/');
-    return path.startsWith(QStringLiteral("//"));
-}
 
 // Nom du fichier extrait d'une ressource : clé assainie (jamais de séparateur) et extension du document.
 QString extractedName(const std::string& key, const std::string& extension)
@@ -330,7 +318,7 @@ bool MediaItems::isSoundResource(const std::string& key) const
 // disque, puis fichier absent. L'action est alors refusée et le lecteur de sons ne s'ouvre pas.
 bool MediaItems::playFile(const QString& path)
 {
-    if (path.isEmpty() || isNetworkPath(path) || !QFileInfo(path).isFile())
+    if (path.isEmpty() || core::isNetworkPath(path) || !QFileInfo(path).isFile())
         return false;
     return startSound(path, false);
 }

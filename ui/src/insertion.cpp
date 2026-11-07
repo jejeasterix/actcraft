@@ -28,7 +28,6 @@ namespace actcraft::ui {
 enum class Mode
 {
     Image,
-    Media,
     Any, // dépôt : image si le fichier se décode, sinon média
     Pasted,
 };
@@ -70,9 +69,7 @@ struct Result
 
 bool isMediaExtension(const QString& suffix)
 {
-    static const QStringList known{"mp3", "wav", "ogg",  "oga", "m4a", "aac",  "flac", "mp4", "m4v",
-                                   "mov", "avi", "webm", "mkv", "mpg", "mpeg", "wmv",  "opus"};
-    return known.contains(suffix.toLower());
+    return isSoundExtension(suffix) || isVideoExtension(suffix);
 }
 
 // Fil secondaire : lecture et décodage. Aucune requête réseau : formats::readUrl n'ouvre que fichier et
@@ -112,18 +109,16 @@ Result work(const std::vector<InsertionJob>& jobs, QThread* mainThread)
         item.fileName = info.fileName().toStdString();
         item.extension = info.suffix().toLower().toStdString();
         item.data = read.data;
-        bool media = job.mode == Mode::Media;
-        if (!media) {
-            QImage image;
-            if (image.loadFromData(read.data)) {
-                item.width = image.width();
-                item.height = image.height();
-            } else if (job.mode == Mode::Any && isMediaExtension(info.suffix())) {
-                media = true;
-            } else {
-                result.error = QStringLiteral("Image illisible : %1").arg(info.fileName());
-                continue;
-            }
+        bool media = false;
+        QImage image;
+        if (image.loadFromData(read.data)) {
+            item.width = image.width();
+            item.height = image.height();
+        } else if (job.mode == Mode::Any && isMediaExtension(info.suffix())) {
+            media = true;
+        } else {
+            result.error = QStringLiteral("Image illisible : %1").arg(info.fileName());
+            continue;
         }
         item.isMedia = media;
         result.items.push_back(std::move(item));

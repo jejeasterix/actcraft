@@ -118,7 +118,6 @@ private:
     QPointer<LinkLauncher> m_links;
     QPointer<MediaItems> m_media;
     QPointer<ToolHost> m_tools;
-    actions::ObjectActionCatalog m_catalog;
     PageHistory m_history;
     // Revue L8-C3 : l'historique suit les pages insérées et retirées par l'observateur des changements du
     // contrôleur, et ne repart à zéro qu'avec un autre document (DocumentController::generation(), qui ne

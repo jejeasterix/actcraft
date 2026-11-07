@@ -165,18 +165,9 @@ core::PointF centerInObject(const core::Page& page, const core::PageObject& obje
     return back ? back->map(onPage) : onPage;
 }
 
-// Même accès au catalogue que ActionBrowserModel (actionbrowser.cpp) : la ressource intégrée, lue une fois.
 const actions::ObjectActionCatalog& catalog()
 {
-    static const actions::ObjectActionCatalog loaded = [] {
-        actions::ObjectActionCatalog c;
-        QString error;
-        if (!c.load(actions::defaultObjectActionsJson(), error)) {
-            qWarning() << "Propriétés de l'interactivité : catalogue des actions illisible :" << error;
-        }
-        return c;
-    }();
-    return loaded;
+    return actions::builtInObjectActionCatalog();
 }
 
 core::PageObject* find(core::Page& page, core::ObjectId id) noexcept

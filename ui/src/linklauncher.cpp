@@ -1,5 +1,7 @@
 #include "actcraft/ui/linklauncher.h"
 
+#include <actcraft/core/networkpath.h>
+
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QDir>
@@ -100,15 +102,6 @@ QString suffixRefusal(const QString& name)
     return {};
 }
 
-// « \\hôte\… », « //hôte/… », « file://hôte/… », « file:////hôte/… » : un chemin réseau, quel que soit le
-// système (un document fait sous Windows porte des antislashs). Aucun accès au disque.
-bool isNetworkPath(const QUrl& url)
-{
-    QString path = url.toLocalFile();
-    path.replace(u'\\', u'/');
-    return !url.host().isEmpty() || path.startsWith(QStringLiteral("//"));
-}
-
 // Chemin d'un fichier local, nettoyé, nom débarrassé de ses points et espaces finaux : le fichier que le
 // système ouvrirait. À n'appeler qu'après le refus des chemins réseau (cleanPath réduirait « // » hors de
 // Windows).
@@ -206,7 +199,7 @@ QString rawRefusal(const QUrl& url, int kind)
         return LinkLauncher::tr("Seul un fichier de cet ordinateur s'ouvre : %1").arg(shown);
     // Avant tout accès au disque : sous Windows, tester l'existence d'un chemin réseau envoie
     // l'authentification du compte à l'hôte.
-    if (isNetworkPath(url))
+    if (core::isNetworkPath(url))
         return LinkLauncher::tr("Un chemin réseau ne s'ouvre pas depuis un paperboard : %1").arg(shown);
     const QString path = strippedLocalPath(url);
     const QString native = QDir::toNativeSeparators(path);

@@ -53,4 +53,8 @@ private:
 
 QByteArray defaultObjectActionsJson(); // actions/data/object-actions.json, ressource intégrée
 
+// Catalogue de la ressource intégrée, chargé une fois (premier appel) et partagé : l'explorateur d'actions,
+// les propriétés d'interactivité, les glisser-déposer et l'exécuteur lisent le même.
+const ObjectActionCatalog& builtInObjectActionCatalog();
+
 } // namespace actcraft::actions

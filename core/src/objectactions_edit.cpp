@@ -1,3 +1,5 @@
+#include "objectactions_common.h"
+
 #include <actcraft/core/arrange.h>
 #include <actcraft/core/clipboardedits.h>
 #include <actcraft/core/edits.h>
@@ -37,10 +39,9 @@
 // (L8-T9) déclenche edit.*.
 namespace actcraft::core {
 
-std::unique_ptr<UndoCommand> editActionCommand(const Document& document, const std::string& id,
-                                               const std::string& parameters, const ActionContext& context);
-
 namespace {
+
+using detail::number;
 
 constexpr int kTranslucencyStep = 32;
 // Emprise d'un texte neuf quand la cible n'est pas un texte : core ne mesure pas le texte (aucun
@@ -70,15 +71,6 @@ public:
 private:
     std::unique_ptr<UndoCommand> m_inner;
 };
-
-std::optional<double> number(const QJsonObject& parameters, const char* name)
-{
-    const QJsonValue v = parameters.value(QString::fromLatin1(name));
-    if (!v.isDouble() || !std::isfinite(v.toDouble())) {
-        return std::nullopt;
-    }
-    return v.toDouble();
-}
 
 std::optional<QString> textParameter(const QJsonObject& parameters, const char* name)
 {
@@ -531,8 +523,9 @@ bool isEditAction(const std::string& id) noexcept
 
 // Appelée par objectActionCommand (objectactions_geometry.cpp). La cible doit être sur la page ; une emprise
 // n'est pas exigée (un texte vide se modifie, un objet masqué se réaffiche).
-std::unique_ptr<UndoCommand> editActionCommand(const Document& document, const std::string& id,
-                                               const std::string& parameters, const ActionContext& context)
+std::unique_ptr<UndoCommand> detail::editActionCommand(const Document& document, const std::string& id,
+                                                       const std::string& parameters,
+                                                       const ActionContext& context)
 {
     const auto& table = editTable();
     const auto builder = table.find(id);
@@ -540,20 +533,15 @@ std::unique_ptr<UndoCommand> editActionCommand(const Document& document, const s
         return nullptr;
     }
     const Page& page = document.page(context.page);
-    const ObjectId targetId = context.target != 0 ? context.target : context.source;
-    const std::size_t index = indexOf(page, targetId);
-    if (targetId == 0 || index >= page.objects.size()) {
+    const std::size_t index = detail::targetIndex(page, context);
+    if (index >= page.objects.size()) {
         return nullptr;
     }
-    QJsonObject values;
-    if (!parameters.empty()) {
-        const QJsonDocument json = QJsonDocument::fromJson(QByteArray::fromStdString(parameters));
-        if (!json.isObject()) {
-            return nullptr;
-        }
-        values = json.object();
+    const std::optional<QJsonObject> values = detail::parseParameters(parameters);
+    if (!values) {
+        return nullptr;
     }
-    return builder->second(Target{page, page.objects[index], context, values});
+    return builder->second(Target{page, page.objects[index], context, *values});
 }
 
 } // namespace actcraft::core

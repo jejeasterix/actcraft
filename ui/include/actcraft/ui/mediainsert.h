@@ -15,6 +15,11 @@
 
 namespace actcraft::ui {
 
+// Extensions de fichier (sans le point, casse ignorée) des sons et des vidéos que le lecteur sait jouer :
+// l'unique liste, pour l'insertion, le dépôt de fichiers et les médias de la page.
+bool isSoundExtension(const QString& suffix);
+bool isVideoExtension(const QString& suffix);
+
 // Insertion d'un son ou d'une vidéo (F-552, S25, lot 8) : un fichier ou une ressource du document devient un
 // `core::Media` à image d'espace réservé, portant l'action « jouer un son ». Aucune lecture ici (le lecteur
 // est dans media/). Une insertion = une étape d'historique. Le décodage de la première image d'une vidéo se

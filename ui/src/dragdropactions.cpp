@@ -18,15 +18,7 @@ namespace {
 
 const actions::ObjectActionCatalog& catalog()
 {
-    static const actions::ObjectActionCatalog loaded = [] {
-        actions::ObjectActionCatalog c;
-        QString error;
-        if (!c.load(actions::defaultObjectActionsJson(), error)) {
-            qWarning() << "DragDropActions : catalogue des actions illisible :" << error;
-        }
-        return c;
-    }();
-    return loaded;
+    return actions::builtInObjectActionCatalog();
 }
 
 const core::Page* currentPage(const DocumentController* controller)

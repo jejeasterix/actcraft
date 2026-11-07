@@ -23,15 +23,7 @@ constexpr int kCategoryCount = 4; // plus « Toutes » (0)
 
 const actions::ObjectActionCatalog& catalog()
 {
-    static const actions::ObjectActionCatalog loaded = [] {
-        actions::ObjectActionCatalog c;
-        QString error;
-        if (!c.load(actions::defaultObjectActionsJson(), error)) {
-            qWarning() << "ActionBrowserModel : catalogue des actions illisible :" << error;
-        }
-        return c;
-    }();
-    return loaded;
+    return actions::builtInObjectActionCatalog();
 }
 
 QString parameterLabel(const QString& type)

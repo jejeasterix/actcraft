@@ -30,12 +30,6 @@ constexpr std::size_t kBackgroundSlot = std::numeric_limits<std::size_t>::max();
 constexpr std::size_t kGridSlot = kBackgroundSlot - 1;
 constexpr std::size_t kRevealSlot = kBackgroundSlot - 2; // couche du dessus découpée (F-255)
 
-bool isRevealer(const core::PageObject& object)
-{
-    const auto* stroke = std::get_if<core::Stroke>(&object);
-    return stroke && stroke->kind == core::StrokeKind::Revealer;
-}
-
 // F-255 : objets de la couche du dessus jusqu'à la dernière encre révélatrice visible, parmi les `limit`
 // premiers (ordre du vecteur : couche, profondeur) ; `any` faux : aucune.
 struct RevealRange
@@ -48,13 +42,10 @@ struct RevealRange
 RevealRange revealRange(const core::Page& page, std::size_t limit)
 {
     RevealRange r;
-    for (std::size_t i = std::min(limit, page.objects.size()); i-- > 0;) {
-        const core::PageObject& o = page.objects[i];
-        if (isRevealer(o) && o.common.visible && o.common.layer == core::Layer::Top) {
-            r.last = i;
-            r.any = true;
-            break;
-        }
+    const std::size_t last = lastCuttingRevealer(page, limit);
+    if (last < page.objects.size()) {
+        r.last = last;
+        r.any = true;
     }
     if (r.any) {
         r.first = r.last;
@@ -97,11 +88,7 @@ QSGNode* createRevealedNode(const core::Page& page, const RevealRange& r, const 
                         page.objects.begin() + static_cast<std::ptrdiff_t>(r.last + 1));
     DecodedImages images;
     for (const core::PageObject& object : part.objects) {
-        if (const auto* im = std::get_if<core::ImageObject>(&object); im && !im->resource.empty()) {
-            images.insert(im->resource, store.resourceImage(im->resource));
-        } else if (const auto* m = std::get_if<core::Media>(&object); m && !m->placeholder.empty()) {
-            images.insert(m->placeholder, store.resourceImage(m->placeholder));
-        }
+        addObjectImages(images, object, store);
     }
     PaintOptions options;
     options.background = false;
