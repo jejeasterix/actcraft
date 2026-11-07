@@ -517,8 +517,6 @@ Window {
         onClosed: root.popupClosed()
     }
 
-    // Lot 8 (L8-T2) : coquille. Les types C++ sont encore des talons (QtObject marqués) ; chaque tâche
-    // propriétaire remplace l'instance par le vrai type.
     // L8-T9 : exécuteur des actions d'objet, devant l'outil de sélection (appTools.setActionRunner) ; exécute au
     // relâché d'un clic, après la retombée du contact ; porte l'historique des pages (page.history-*).
     ActionRunner {
@@ -592,6 +590,8 @@ Window {
     LinkConfirmDialog {
         objectName: "linkConfirmDialog"
         launcher: appLinks
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
     WebFrameDialog { objectName: "webFrameDialog" }
     PublishDialog {
@@ -599,6 +599,8 @@ Window {
         commands: appCommands
         document: appDocument
         banner: messageBanner
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
     }
     // L8-T32 : diffusion protégée, porte du registre. Les règles du document ouvert grisent et refusent les
     // commandes de leurs catégories (verrou de classe compris), la copie du champ de texte aussi ; un essai
@@ -615,6 +617,7 @@ Window {
         id: soundController
         commands: appCommands
         items: appMediaItems
+        view: pageArea.view
     }
     RecorderPalette {
         id: recorderPalette
@@ -638,6 +641,7 @@ Window {
         textEditing: appText
         preferences: appPreferences // documents récents gardés (L6-T24)
         broadcast: appBroadcast // L8-T32 : « Enregistrer les modifications ? » refusé dans un document protégé
+        commands: appCommands // L8-C7 : « Enregistrer » de Quitter passe par file.save, comme la croix d'un onglet
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
         onSaveAbandoned: documentTabBar.closeAfterSave = false
@@ -665,6 +669,24 @@ Window {
         anchors.right: parent.right
         anchors.margins: Theme.espace2
         z: 10
+    }
+    // L8-C7 : les refus de l'exécuteur d'actions, du navigateur d'actions et du glisser-déposer, et l'échec d'une
+    // insertion de média, arrivent à la bannière.
+    Connections {
+        target: appActionRunner
+        function onActionRefused(reason) { messageBanner.show(reason) }
+    }
+    Connections {
+        target: appActionBrowser
+        function onRefused(reason) { messageBanner.show(reason) }
+    }
+    Connections {
+        target: appDragDrop
+        function onRefused(reason) { messageBanner.show(reason) }
+    }
+    Connections {
+        target: appMediaInsert
+        function onFailed(message) { messageBanner.show(message) }
     }
     // Échanges de fichiers (L5-T25) : l'échec et la fin arrivent à la bannière.
     Connections {

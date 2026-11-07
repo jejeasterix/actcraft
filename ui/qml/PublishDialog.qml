@@ -15,6 +15,8 @@ Item {
     required property DocumentController document // lié par Main.qml (appDocument), comme FileActions
     property var banner: null                       // bandeau de la fenêtre (messageBanner) : succès comme échec
     property string lastMessage: ""
+    signal popupOpened()
+    signal popupClosed()
 
     function rules() {
         return { noCopy: copyBox.checked, noSave: saveBox.checked, noPrint: printBox.checked,
@@ -57,6 +59,8 @@ Item {
         modal: true
         title: qsTr("Diffuser en protégé")
         standardButtons: Dialog.Cancel
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
 
         ColumnLayout {
             spacing: 8

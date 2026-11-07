@@ -4,6 +4,7 @@
 #include <actcraft/bench/options.h>
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/runner.h>
+#include <actcraft/bench/testroots.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
 
@@ -61,6 +62,7 @@ int main(int argc, char* argv[])
     QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
+    actcraft::bench::useIsolatedResourceRoots(defaultDir); // jamais le Documents/ActCraft/Ressources du poste
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);

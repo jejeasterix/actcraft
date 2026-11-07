@@ -326,7 +326,8 @@ FocusScope {
                 const x = Number.parseFloat(fieldX.text)
                 const y = Number.parseFloat(fieldY.text)
                 if (Number.isFinite(x) && Number.isFinite(y)
-                        && (!root.hasValue || x !== root.value.x || y !== root.value.y))
+                        && (!root.hasValue || x !== Number.parseFloat(point.shownX)
+                                         || y !== Number.parseFloat(point.shownY)))   // arrondi contre arrondi
                     root.commit(Qt.point(x, y))
                 else if (fieldX.text !== "" && fieldY.text !== "")
                     root.resync()

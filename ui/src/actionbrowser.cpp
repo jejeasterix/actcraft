@@ -66,7 +66,27 @@ QVariant defaultValue(const actions::ActionParameter& parameter)
     if (parameter.type == QLatin1String("page")) {
         return qMax(1, int(parameter.minimum));
     }
+    if (parameter.hasDefault) {
+        return parameter.defaultValue;
+    }
     return parameter.minimum;
+}
+
+// Une borne stricte (facteur > 0) refuse la valeur égale au minimum ou en dessous, comme le moteur de core/.
+bool parametersValid(const QVariantMap& values, const actions::ObjectActionInfo& info)
+{
+    for (const actions::ActionParameter& parameter : info.parameters) {
+        if (!parameter.exclusiveMinimum) {
+            continue;
+        }
+        const QVariant value = values.value(parameter.name);
+        bool ok = false;
+        const double number = value.toDouble(&ok);
+        if (!ok || !(number > parameter.minimum)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Paramètres du catalogue seulement, en JSON compact (core::Action::parameters) ; aucun : chaîne vide.
@@ -294,7 +314,10 @@ QVariantList ActionBrowserModel::propertyRows() const
                                 {QStringLiteral("type"), parameter.type},
                                 {QStringLiteral("label"), parameterLabel(parameter.type)},
                                 {QStringLiteral("minimum"), parameter.minimum},
-                                {QStringLiteral("maximum"), parameter.maximum}});
+                                {QStringLiteral("maximum"), parameter.maximum},
+                                {QStringLiteral("exclusiveMinimum"), parameter.exclusiveMinimum},
+                                {QStringLiteral("decimals"), parameter.decimals},
+                                {QStringLiteral("step"), parameter.step}});
     }
     if (info->target) {
         rows.append(QVariantMap{{QStringLiteral("name"), QStringLiteral("target")},
@@ -343,6 +366,10 @@ bool ActionBrowserModel::apply()
     const std::vector<core::ObjectId> ids = selectedOnPage();
     if (!info || ids.empty()) {
         return false; // liste grisée : rien à faire
+    }
+    if (!parametersValid(m_parameters, *info)) {
+        emit refused(QStringLiteral("Valeur hors limites : le facteur doit être strictement positif."));
+        return false;
     }
     dropVanishedTarget(); // objet supprimé, page changée : aucune action vers un objet absent
     core::Action action;  // créée par ActCraft : kind, sourceType et command restent nuls
@@ -509,9 +536,11 @@ void ActionBrowserModel::flush()
             rows.push_back(Row{info, carriedByAll(info->id)});
         }
     }
-    beginResetModel();
-    m_rows = std::move(rows);
-    endResetModel();
+    if (rows != m_rows) { // un document qui change sans toucher aux lignes ne remet rien à zéro
+        beginResetModel();
+        m_rows = std::move(rows);
+        endResetModel();
+    }
     m_hasSelection = !ids.empty();
     dropVanishedTarget();
     updateEnabled();

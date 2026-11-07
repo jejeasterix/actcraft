@@ -90,6 +90,8 @@ private slots:
         QTest::newRow("taille") << "pageSizeDialog" << "file.new-custom";
         QTest::newRow("a-propos") << "aboutDialog" << "help.about";
         QTest::newRow("enregistrer") << "tabSaveChangesDialog" << "file.close";
+        QTest::newRow("lien") << "linkConfirmDialog" << "open"; // L8-C7 : popupOpened/popupClosed relayés
+        QTest::newRow("diffusion") << "publishDialogBox" << "file.publish";
     }
 
     // Boîte modale ouverte : Échap la ferme comme « Annuler », sans changer d'outil ni créer d'étape.
