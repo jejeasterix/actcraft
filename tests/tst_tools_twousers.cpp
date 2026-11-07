@@ -91,10 +91,11 @@ public:
 class FakeView final : public tools::ViewInfo
 {
 public:
+    QStringList bar; // boutons de la barre d'objet ; aucun par défaut
     double zoom() const override { return 1.0; }
     bool overTrash(core::PointF p) const override { return p.x > 1000; }
     void setTrashHover(bool) override {}
-    QStringList objectBarCommands() const override { return {}; }
+    QStringList objectBarCommands() const override { return bar; }
 };
 
 class FakeInk final : public tools::InkSurface
@@ -114,7 +115,12 @@ public:
 class FakeCommands final : public tools::CommandSink
 {
 public:
-    bool trigger(const QString&, const QVariant&) override { return true; }
+    QStringList triggered;
+    bool trigger(const QString& id, const QVariant&) override
+    {
+        triggered.push_back(id);
+        return true;
+    }
 };
 
 core::PageObject rectangle(core::ObjectId id, double x, double y, double w, double h)
@@ -297,6 +303,58 @@ private slots:
             QVERIFY(b.editor.find(3) != nullptr);
             b.first.release(420, 420);
         }
+        {
+            Board b;
+            b.first.press(420, 420); // tient 3
+            // L'arbre des objets pose la sélection puis rafraîchit (ToolHost::selectObjects) : l'objet tenu
+            // en sort.
+            b.second.user.setSelection({1, 3});
+            b.second.tool.refresh();
+            QVERIFY(b.second.user.selection() == Ids{1});
+            // Agrandir, réduire, translucidité, Suppr : l'objet tenu sort de la sélection, le cadre est
+            // republié sans lui, rien n'est exécuté.
+            const auto pruned = [&b](const auto& command) {
+                b.second.user.setSelection({3});
+                const std::size_t before = b.second.selection.views.size();
+                command();
+                return b.second.user.selection().empty() && b.second.selection.views.size() > before &&
+                       !b.second.selection.views.back().visible;
+            };
+            QVERIFY(pruned([&b] { b.second.tool.enlarge(); }));
+            QVERIFY(pruned([&b] { b.second.tool.reduce(); }));
+            QVERIFY(pruned([&b] { b.second.tool.setTranslucency(100); }));
+            bool handled = true;
+            QVERIFY(pruned([&b, &handled] { handled = b.second.tool.onKey(Qt::Key_Delete, 0); }));
+            QVERIFY(!handled); // rien à supprimer
+            QVERIFY(std::find(b.editor.calls.begin(), b.editor.calls.end(), "execute") ==
+                    b.editor.calls.end());
+            QCOMPARE(b.bounds(3).x, 400.0);
+            b.first.release(420, 420);
+        }
+        {
+            Board b;
+            b.view.bar = {QStringLiteral("object.enlarge")};
+            b.first.click(420, 420); // l'utilisateur 0 sélectionne 3
+            const tools::SelectionView frame = b.first.selection.views.back();
+            QVERIFY(frame.visible);
+            QVERIFY(!frame.handles.empty());
+            QVERIFY(!frame.bar.empty());
+            // Poignée saisie : la sélection est tenue.
+            b.first.press(frame.handles[0].x, frame.handles[0].y);
+            QVERIFY(b.grabs.holder(3) == std::optional<input::UserId>(input::kFirstUser));
+            b.second.click(420, 420);
+            QVERIFY(b.second.user.selection().empty());
+            b.first.tool.cancel();
+            QVERIFY(b.grabs.holder(3) == kNobody);
+            // Bouton de la barre appuyé : tenue jusqu'au relâché, la commande part ensuite.
+            b.first.press(frame.bar[0].center.x, frame.bar[0].center.y);
+            QVERIFY(b.grabs.holder(3) == std::optional<input::UserId>(input::kFirstUser));
+            b.second.click(420, 420);
+            QVERIFY(b.second.user.selection().empty());
+            b.first.release(frame.bar[0].center.x, frame.bar[0].center.y);
+            QVERIFY(b.grabs.holder(3) == kNobody);
+            QCOMPARE(b.first.commands.triggered, QStringList{QStringLiteral("object.enlarge")});
+        }
     }
 
     void releasedObjectIsFreeAgain()
@@ -332,12 +390,29 @@ private slots:
         QVERIFY(grabs.holder(1) == kNobody);
         QVERIFY(grabs.holder(3) == std::optional<input::UserId>(input::kSecondUser));
         QVERIFY(grabs.hold(1, input::kSecondUser));
+
+        // Changer de registre relâche ce que l'utilisateur tenait dans l'ancien ; détruire l'outil aussi.
+        tools::Grabs other; // déclaré avant le montage : il survit aux outils
+        Board c;
+        c.first.press(420, 420);
+        QVERIFY(c.grabs.holder(3) == std::optional<input::UserId>(input::kFirstUser));
+        c.first.tool.setGrabs(&other);
+        QVERIFY(c.grabs.holder(3) == kNobody);
+        c.first.tool.cancel();
+        auto seat = std::make_unique<Seat>(c.editor, c.view, input::kSecondUser);
+        seat->tool.setGrabs(&c.grabs);
+        seat->press(150, 150);
+        QVERIFY(c.grabs.holder(1) == std::optional<input::UserId>(input::kSecondUser));
+        seat.reset();
+        QVERIFY(c.grabs.holder(1) == kNobody);
     }
 
-    // Lot 7 absent (amendement 3, H8-7) : corps prêts plus bas, rattachés à la fusion du lot 7 (le QSKIP sera
-    // alors remplacé par l'appel du corps ; un corps placé après le QSKIP serait du code inaccessible,
-    // C4702).
+    // Lot 7 absent (amendement 3, H8-7) : rattachées à la fusion du lot 7. Corps prêt pour la règle :
+    // rulerBelongsToItsUserBody, dont l'ouverture passera alors par la commande du lot 7.
     void rulerBelongsToItsUser() { QSKIP("lot 7 absent (H8-7), à raccorder à la fusion du lot 7"); }
+    // Corps à écrire à la fusion du lot 7 : l'utilisateur 0 ouvre la règle par la commande du lot 7,
+    // l'utilisateur 1 trace au stylo le long de son bord ; le trait enregistré de l'utilisateur 1 garde ses
+    // points (non redressé), alors que le même trait de l'utilisateur 0 est redressé contre la règle.
     void inkOfTheOtherNotGuided() { QSKIP("lot 7 absent (H8-7), à raccorder à la fusion du lot 7"); }
 
     // Un seul utilisateur : un registre posé ne change rien (mêmes appels au document, même sélection,
@@ -377,16 +452,6 @@ private:
         const std::vector<QString>& theirs = b.second.user.openMathTools();
         QVERIFY(std::find(mine.begin(), mine.end(), QStringLiteral("math.ruler")) != mine.end());
         QVERIFY(std::find(theirs.begin(), theirs.end(), QStringLiteral("math.ruler")) == theirs.end());
-    }
-    // Trait de l'utilisateur 1 le long de la règle de l'utilisateur 0 : non redressé.
-    void inkOfTheOtherNotGuidedBody()
-    {
-        Board b;
-        // À la fusion du lot 7 : règle ouverte par l'utilisateur 0, trait du stylo de l'utilisateur 1 le long
-        // de son bord ; le trait enregistré garde ses points. Ici : aucune règle dans l'état de l'utilisateur
-        // 1, donc rien ne guide son encre.
-        b.first.user.setOpenMathTools({QStringLiteral("math.ruler")});
-        QVERIFY(b.second.user.openMathTools().empty());
     }
 };
 

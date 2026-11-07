@@ -213,6 +213,13 @@ QString SelectTool::id() const
     return QStringLiteral("select");
 }
 
+SelectTool::~SelectTool()
+{
+    if (m_grabs) {
+        m_grabs->release(m_context.user.id());
+    }
+}
+
 void SelectTool::activate()
 {
     showFrame();
@@ -372,7 +379,9 @@ void SelectTool::setTranslucency(std::uint8_t value)
 
 void SelectTool::refresh()
 {
-    std::vector<core::ObjectId> kept = present(m_context.document.page(), m_context.user.selection());
+    // L11-T8 : ce que tient l'autre utilisateur en sort aussi (sélection posée par l'arbre des objets).
+    std::vector<core::ObjectId> kept =
+        withoutHeldByOthers(present(m_context.document.page(), m_context.user.selection()));
     if (kept != m_context.user.selection()) {
         m_context.user.setSelection(std::move(kept));
     }
@@ -413,6 +422,9 @@ void SelectTool::setInteractionPolicy(const InteractionPolicy* policy) noexcept
 
 void SelectTool::setGrabs(Grabs* grabs) noexcept
 {
+    if (m_grabs && m_grabs != grabs) {
+        m_grabs->release(m_context.user.id());
+    }
     m_grabs = grabs;
 }
 
@@ -439,6 +451,7 @@ void SelectTool::dropHeldByOthers()
     if (std::any_of(selection.begin(), selection.end(),
                     [this](core::ObjectId id) { return heldByOther(id); })) {
         m_context.user.setSelection(withoutHeldByOthers(selection));
+        showFrame(); // le cadre ne montre plus ce que tient l'autre
     }
 }
 

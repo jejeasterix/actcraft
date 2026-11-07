@@ -20,6 +20,7 @@ class SelectTool final : public Tool
 {
 public:
     explicit SelectTool(ToolContext& context);
+    ~SelectTool() override;      // relâche ce que l'utilisateur tient (setGrabs)
     QString id() const override; // « select »
     void activate() override;
     void deactivate() override; // garde la sélection, masque le cadre
@@ -49,7 +50,9 @@ public:
     // utilisateurs, posé par ui::ToolHost en mode à deux utilisateurs. Un geste tient les objets qu'il vise,
     // de l'appui au relâché ou à l'abandon ; la désignation (appui, rectangle, tout sélectionner) et les
     // commandes de la sélection sautent les objets tenus par un autre utilisateur. Nul : un seul utilisateur,
-    // rien n'est tenu. Non possédé.
+    // rien n'est tenu. Non possédé : le registre et l'état de l'utilisateur (ToolContext::user) vivent plus
+    // longtemps que l'outil. Changer de registre relâche ce que l'utilisateur tenait dans l'ancien ; la
+    // destruction de l'outil aussi.
     void setGrabs(Grabs* grabs) noexcept;
     // Dépôt accepté par un conteneur (F-577) : le conteneur gagnant et son son de confirmation (joué par
     // L8-T25). Appelé une fois, après le dépôt.
