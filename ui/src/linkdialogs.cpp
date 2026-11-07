@@ -1,5 +1,8 @@
 #include "actcraft/ui/linkdialogs.h"
 
+#include "isolatedtext.h"
+#include "textwidth.h"
+
 #include <actcraft/core/actionedits.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
@@ -397,7 +400,7 @@ bool LinkDialogs::commit(const QString& label, const QString& catalogId, const Q
             const QString html = label.toHtmlEscaped();
             std::unique_ptr<QTextDocument> measure = isolatedTextDocument({});
             measure->setHtml(safeTextHtml(html, {}));
-            const double width = std::ceil(measure->idealWidth()) + 1;
+            const double width = naturalTextWidth(*measure);
             measure->setTextWidth(width);
             core::Text text;
             text.html = html.toStdString();
