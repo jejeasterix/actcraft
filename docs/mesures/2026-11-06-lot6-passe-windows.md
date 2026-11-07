@@ -45,7 +45,41 @@ comme à chaque banc D3D11 depuis le lot 1 (décision 38). Deux passages valides
 Les écarts de P2 (`onglets`, `zones-zoom`) ne se voient pas en P1 : machine chargée, cause non cherchée. À rejouer
 sur machine calme avant de conclure à une régression ; le lot 8 en cours est dans la tête mesurée.
 
-## Non fait (PC fermé)
+## Suite de la passe (PC, nuit du 2026-11-07)
 
-`PAQUET OK`, `verifier-licences.ps1`, suite debug complète sur la tête finale, captures à décrire (S9, S19, S20, S21),
-`APK OK`, PBKDF2 sur le Dell 3510 (machine de référence de Jérôme), L6-T29 à l'écran, PR relue.
+Tête bf4d4cf3 : merge de `feat/livraison-complete` (57ecfb14), qui apporte L8-C14 (captures et banc hors du vrai
+dossier des ressources). Conflit unique, `actions/data/object-actions.json` : bornes de A gardées, paramètres renommés
+`ratioX` et `ratioY` comme le lit `core/src/objectactions_geometry.cpp:322-323`.
+
+- **Préalable** : témoin `Documents\ActCraft\Ressources\temoin-o33.txt` posé avant la suite ; présent après la suite
+  debug (captures comprises) et après le banc.
+- `scripts/test.ps1 -Preset debug` (P = 4) : 246/252. Rejoués seuls, verts : `tst_ui_filemenu` (892 s) et
+  `tst_bench_verdict` (485 s), délais dus à la charge. Restent 4 échecs, tous dans du code du lot 8 en cours chez A :
+  - `tst_media_player` `deniedFileIsReportedWithoutFallback` : `QFile::setPermissions(denied, Permissions{}) returned FALSE`
+    (refuser la lecture par les permissions ne marche pas sous Windows) ;
+  - `tst_media_soundrecorder` `writesAWav(micro)` 1 792 ms pour 3 s, `pauseAndResume(micro)` 1 013 ms (vrai micro du PC) ;
+  - `tst_ui_webframe` : SegFault dans `viewFetchesOnlyDecidedSubResources`, près de `qt_plugin_instance` ;
+  - `tst_captures_glisser_deposer` : `PIXEL icone-retiree ECART (lu #3a3d44, attendu #1e88e5)` (scénario en cours).
+- `scripts/paquet.ps1` : `PAQUET OK` (`build\paquet\ActCraft-0.6.0-setup.exe`, 22,8 min) ;
+  `verifier-licences.ps1 -Dossier build\paquet\windows` : `LICENCES OK` (1 483 fichiers).
+
+### Banc D3D11 plein écran, machine calme (05 h 05)
+
+`scripts/bench.ps1 -Rendu d3d11 -SansConstruire` sur bf4d4cf3, copie OneDrive suspendue, processeur à 0 %, écran
+allumé et session ouverte. Premier passage invalide (`export-fond` : `content-check-failed`), second valide
+(`bench/results/2026-11-07_050513-Dell-Inc-Latitude-5450-direct3d11.json`).
+
+| Scénario | Hier P2 | Machine calme | Lecture |
+|---|---|---|---|
+| `zones-zoom` | p95 45,8 ms, 13,4 % > 25 ms | p95 17,2 ms, 0,00 % | écart de P2 dû à la charge |
+| `pauses` | 1,37 % > 25 ms | 0,34 % | sous 1 %, mieux que la référence |
+| `onglets` | 34,2 i/s, 90 % > 25 ms | 49,9 i/s, p95 21,4 ms, 0,00 % | comme P1 et le lot 5 (52,3 / 52,5), sous 58 comme eux |
+
+Critères de la référence tenus : `stroke`, `zoom`, `scroll` à 60 i/s, p95 16,9 à 17,0 ms, 0 % > 25 ms, latence p50
+10,1 ms. Hors critères : `page` p95 43,3 ms (hier 66 à 73), `gommer` 27,7 ms, `forme-page-annotee` 35,3 ms,
+`miniatures-pauses` 1,02 %. **Pic mémoire 1 150 Mio** (hier 1 041 à 1 055, lot 5 : 1 036) : +100 Mio, lot 8 dans la
+tête mesurée, cause non cherchée.
+
+## Non fait
+
+Captures à décrire (S9, S19, S20, S21), `APK OK`, PBKDF2 sur le Dell 3510 (non joignable), L6-T29 à l'écran.
