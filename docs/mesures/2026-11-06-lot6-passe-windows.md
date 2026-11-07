@@ -83,3 +83,14 @@ tête mesurée, cause non cherchée.
 ## Non fait
 
 Captures à décrire (S9, S19, S20, S21), `APK OK`, PBKDF2 sur le Dell 3510 (non joignable), L6-T29 à l'écran.
+## Preuves à l'écran avec Jérôme (2026-11-07, 7 h 45)
+
+Machine non calme (copie OneDrive en cours) : sans effet sur ces preuves, qui ne mesurent aucun temps.
+
+- Captures D3D11 à l'écran, `captures.ps1 -Scenario <nom> -Rendu d3d11 -Preset release -Sortie .tmp\o42-captures`, 4 × `CAPTURES OK` :
+  - S9 `reglages-gardes` : après relance, palette toujours ancrée à gauche et couleur personnalisée verte gardée en fin de grille ; `LU appProperties.title=Page OK`.
+  - S19 `classe-protegee` : verrouillé, `LU appClassroom.locked=true`, `LU commands.lockedCount=238` ; les icônes de la palette sont grisées, les pastilles de couleur non ; déverrouillé, tout revient.
+  - S20 `raccourcis-programmes` : après suppression, `LU shortcutBar.launcherCount=0`.
+  - S21 `orthographe` : la page 2 s'affiche, « mosieur » surligné, suggestions « monsieur » puis « sieur » ; Entrée remplace ; « exemplle » ignoré toujours ; « Vérification terminée » ; texte relu « bonjour monsieur ».
+- **Constat visuel, toutes captures** : une icône « </> » se superpose au premier bouton de la palette (en haut à gauche de la grille d'icônes) ; dans S20, deux icônes « </> » se superposent aux deux premiers boutons. Ce sont des boutons d'une rangée de raccourcis dessinés par-dessus la palette. Non élucidé, à trancher par A.
+- L6-T29 sous Windows : `tst_ui_launchers` release, 27 PASS, 0 FAIL, 0 SKIP (clé du trousseau, signature, retouche détectée, `.exe` explicite, NUL et flux NTFS par `colonAndSeparatorRefused` et `controlInArgumentRefused`, `launcher_probe.exe` par `runStartsTheProgram`). Sortie : `.tmp/o42-tst_ui_launchers.txt`.
