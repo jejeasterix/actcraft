@@ -1990,14 +1990,16 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
             argumentValue = expanded;
         }
         QVariant result;
-        // L11-T9 : un utilisateur autre que le premier passe par runCommandAs (Commands::trigger(id, argument,
-        // user)) ; le premier garde runCommand.
+        // L11-T9 : un utilisateur autre que le premier passe par runCommandAs (Commands::trigger(id,
+        // argument, user)) ; le premier garde runCommand.
         const bool invoked =
             step.user == 0
                 ? QMetaObject::invokeMethod(m_window, "runCommand", Q_RETURN_ARG(QVariant, result),
-                                            Q_ARG(QVariant, QVariant(step.command)), Q_ARG(QVariant, argumentValue))
+                                            Q_ARG(QVariant, QVariant(step.command)),
+                                            Q_ARG(QVariant, argumentValue))
                 : QMetaObject::invokeMethod(m_window, "runCommandAs", Q_RETURN_ARG(QVariant, result),
-                                            Q_ARG(QVariant, QVariant(step.command)), Q_ARG(QVariant, argumentValue),
+                                            Q_ARG(QVariant, QVariant(step.command)),
+                                            Q_ARG(QVariant, argumentValue),
                                             Q_ARG(QVariant, QVariant(step.user)));
         QCoreApplication::processEvents();
         const bool ok = invoked && result.toBool();

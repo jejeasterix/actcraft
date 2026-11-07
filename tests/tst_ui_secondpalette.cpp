@@ -18,10 +18,10 @@
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
-#include <QTabletEvent>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
+#include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -43,15 +43,19 @@ struct HandlerProbe
     }
     QJSValue handler(const QString& name)
     {
-        return engine.evaluate(QStringLiteral("(function (argument, user) { calls['%1'] = (calls['%1'] || 0) + "
-                                              "1; args['%1'] = argument; users['%1'] = user; })")
-                                   .arg(name));
+        return engine.evaluate(
+            QStringLiteral("(function (argument, user) { calls['%1'] = (calls['%1'] || 0) + "
+                           "1; args['%1'] = argument; users['%1'] = user; })")
+                .arg(name));
     }
     int calls(const QString& name)
     {
         return engine.evaluate(QStringLiteral("calls['%1'] || 0").arg(name)).toInt();
     }
-    QJSValue lastUser(const QString& name) { return engine.evaluate(QStringLiteral("users['%1']").arg(name)); }
+    QJSValue lastUser(const QString& name)
+    {
+        return engine.evaluate(QStringLiteral("users['%1']").arg(name));
+    }
     QJSValue lastArgument(const QString& name)
     {
         return engine.evaluate(QStringLiteral("args['%1']").arg(name));
@@ -90,9 +94,10 @@ bool start(App& app)
 std::unique_ptr<QPointingDevice> makeStylus(qint64 systemId, qint64 uniqueId)
 {
     return std::make_unique<QPointingDevice>(
-        QStringLiteral("tst-secondpalette-stylus-%1").arg(uniqueId), systemId, QInputDevice::DeviceType::Stylus,
-        QPointingDevice::PointerType::Pen, QInputDevice::Capability::Position | QInputDevice::Capability::Pressure,
-        1, 3, QString(), QPointingDeviceUniqueId::fromNumericId(uniqueId));
+        QStringLiteral("tst-secondpalette-stylus-%1").arg(uniqueId), systemId,
+        QInputDevice::DeviceType::Stylus, QPointingDevice::PointerType::Pen,
+        QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3, QString(),
+        QPointingDeviceUniqueId::fromNumericId(uniqueId));
 }
 
 void tablet(App& app, const QPointingDevice* device, QEvent::Type type, QPointF page)
@@ -100,8 +105,8 @@ void tablet(App& app, const QPointingDevice* device, QEvent::Type type, QPointF 
     const bool press = type == QEvent::TabletPress;
     const bool release = type == QEvent::TabletRelease;
     const QPointF scene = app.view->pageToScene(page);
-    QTabletEvent event(type, device, scene, app.window->mapToGlobal(scene), release ? 0.0 : 0.7, 0, 0, 0, 0, 0,
-                       Qt::NoModifier, (press || release) ? Qt::LeftButton : Qt::NoButton,
+    QTabletEvent event(type, device, scene, app.window->mapToGlobal(scene), release ? 0.0 : 0.7, 0, 0, 0, 0,
+                       0, Qt::NoModifier, (press || release) ? Qt::LeftButton : Qt::NoButton,
                        release ? Qt::NoButton : Qt::LeftButton);
     QCoreApplication::sendEvent(app.window, &event);
 }
@@ -191,9 +196,10 @@ void TstUiSecondpalette::opensDialogParsed()
 void TstUiSecondpalette::everyDialogCommandMarked()
 {
     // Liste relevée dans les gestionnaires QML (corps des setHandler et fonctions qu'ils appellent) : Dialog,
-    // Popup modale, sélecteur de fichier (argument d'URL facultatif : boîte sans argument). Non retenus : menus
-    // et surcouches sans boîte (object.menu, object.translucency, color.more, color.pick, view.dashboard,
-    // help.contents). Exacte dans les deux sens : une commande marquée hors de la liste rougit aussi.
+    // Popup modale, sélecteur de fichier (argument d'URL facultatif : boîte sans argument). Non retenus :
+    // menus et surcouches sans boîte (object.menu, object.translucency, color.more, color.pick,
+    // view.dashboard, help.contents). Exacte dans les deux sens : une commande marquée hors de la liste
+    // rougit aussi.
     const QStringList dialogs = {
         QStringLiteral("classroom.lock"),
         QStringLiteral("classroom.password"),
@@ -339,8 +345,8 @@ void TstUiSecondpalette::offRestoresTheTouchMode()
     QVERIFY(commands.trigger(QStringLiteral("users.dual")));
     QVERIFY(dynamic_cast<input::PenTouchPolicy*>(view.router().policy()));
 
-    // L11-T6 : un changement du mode du toucher pendant le mode à deux ne remplace pas sa politique ; il vaut à
-    // l'extinction.
+    // L11-T6 : un changement du mode du toucher pendant le mode à deux ne remplace pas sa politique ; il vaut
+    // à l'extinction.
     QVERIFY(commands.trigger(QStringLiteral("users.dual")));
     QVERIFY(touch.setMode(QStringLiteral("select")));
     QVERIFY(dynamic_cast<input::TwoUserPolicy*>(view.router().policy()));
@@ -350,9 +356,10 @@ void TstUiSecondpalette::offRestoresTheTouchMode()
 
 void TstUiSecondpalette::pinchZoomsOnlyWhenOff()
 {
-    // Le pincement réel (zoom inchangé allumé, changé éteint) est joué par le scénario S28 : son injection passe
-    // par l'interface système privée de Qt, interdite aux tests (N4). Ici, sa cause : un deuxième doigt fait un
-    // geste en gestion complète, mais va à l'outil d'un utilisateur en mode à deux, et le geste revient éteint.
+    // Le pincement réel (zoom inchangé allumé, changé éteint) est joué par le scénario S28 : son injection
+    // passe par l'interface système privée de Qt, interdite aux tests (N4). Ici, sa cause : un deuxième doigt
+    // fait un geste en gestion complète, mais va à l'outil d'un utilisateur en mode à deux, et le geste
+    // revient éteint.
     App app;
     QVERIFY(start(app));
     auto* touch = app.window->findChild<ui::TouchModeController*>(QStringLiteral("appTouchMode"));
@@ -380,8 +387,8 @@ void TstUiSecondpalette::secondUserReceivesInDualMode()
     QVERIFY(dynamic_cast<input::TwoUserPolicy*>(app.view->router().policy()));
     QVERIFY(palette->isVisible());
 
-    // Gestionnaires (argument, user) de Main.qml : l'outil et les réglages de l'utilisateur 1 changent, jamais
-    // ceux du premier (activate("highlighter", 1) prendrait 1 pour l'argument de l'outil du premier ;
+    // Gestionnaires (argument, user) de Main.qml : l'outil et les réglages de l'utilisateur 1 changent,
+    // jamais ceux du premier (activate("highlighter", 1) prendrait 1 pour l'argument de l'outil du premier ;
     // setColor(color) à un argument ignorerait l'utilisateur).
     ui::ToolHost& tools = *app.tools;
     QVERIFY(app.commands->trigger(QStringLiteral("tool.highlighter"), QVariant(), 1));

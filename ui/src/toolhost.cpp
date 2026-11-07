@@ -1074,8 +1074,9 @@ tools::Tool* ToolHost::imposedTool(input::UserId user, input::FingerTool tool) c
         return nullptr;
     }
     if (isSecond(user)) { // L11-T9 : le sélecteur du second utilisateur
-        return m_secondUser->currentTool() == QLatin1String("select") ? activeTool(user)
-                                                                       : secondToolFor(QStringLiteral("select"));
+        return m_secondUser->currentTool() == QLatin1String("select")
+                   ? activeTool(user)
+                   : secondToolFor(QStringLiteral("select"));
     }
     if (currentTool() == QLatin1String("select")) {
         return activeTool(user);

@@ -15,8 +15,8 @@ namespace actcraft::ui {
 // Mode à deux utilisateurs (F-110, F-303, D11-2 ; L11-T9). La commande users.dual le bascule (gestionnaire
 // C++ posé sur `commands`) ; la bascule attend la fin des contacts en cours de la vue. Allumé : deux états
 // d'utilisateur (ToolHost::setDualUsers), input::TwoUserPolicy posée sur la vue, aire du second utilisateur =
-// moitié gauche de la vue (côté de la deuxième palette), suivie au redimensionnement ; un changement du mode du
-// toucher pendant ce temps ne la remplace pas. Éteint : la politique du mode du toucher courant
+// moitié gauche de la vue (côté de la deuxième palette), suivie au redimensionnement ; un changement du mode
+// du toucher pendant ce temps ne la remplace pas. Éteint : la politique du mode du toucher courant
 // (`touchMode.mode`, gestion complète sans contrôleur).
 class DualMode : public QObject
 {

@@ -118,9 +118,9 @@ public:
     Q_INVOKABLE void setColor(const QColor& color);
     Q_INVOKABLE void setWidth(qreal width);
     // L11-T9 (M7, n1) : outil, couleur et épaisseur d'un utilisateur, pour les gestionnaires (argument, user)
-    // de Main.qml. activateFor porte un nom distinct d'activate(toolId, argument) : en QML, activate("pen", 1)
-    // prendrait 1 pour l'argument de l'outil et changerait l'outil du premier utilisateur. Utilisateur 0, ou
-    // mode à deux éteint : activate(toolId), setColor(color), setWidth(width).
+    // de Main.qml. activateFor porte un nom distinct d'activate(toolId, argument) : en QML, activate("pen",
+    // 1) prendrait 1 pour l'argument de l'outil et changerait l'outil du premier utilisateur. Utilisateur 0,
+    // ou mode à deux éteint : activate(toolId), setColor(color), setWidth(width).
     Q_INVOKABLE void activateFor(const QString& toolId, int user);
     Q_INVOKABLE void setColor(const QColor& color, int user);
     Q_INVOKABLE void setWidth(qreal width, int user);
@@ -250,8 +250,8 @@ private:
     std::unique_ptr<tools::UserState> m_user;
     std::unique_ptr<tools::UserState> m_secondUser; // L11-T7 : créé au premier allumage du mode
     bool m_dualUsers = false;
-    // L11-T8, L11-T9 : objets tenus, un registre pour les deux utilisateurs, posé sur leurs sélecteurs ; déclaré
-    // avant les adaptateurs, donc détruit après les outils qui le regardent.
+    // L11-T8, L11-T9 : objets tenus, un registre pour les deux utilisateurs, posé sur leurs sélecteurs ;
+    // déclaré avant les adaptateurs, donc détruit après les outils qui le regardent.
     mutable tools::Grabs m_grabs;
     mutable std::unique_ptr<ToolAdapters> m_adapters;
     mutable std::unique_ptr<ToolAdapters> m_secondAdapters; // L11-T9 : outils du second utilisateur

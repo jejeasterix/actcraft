@@ -69,9 +69,9 @@ public:
 
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument = QVariant());
     // L11-T9 (F-303, M7) : déclenchement pour un utilisateur (0 : le premier ; l'ancienne signature vaut 0).
-    // Une commande qui ouvre une boîte (CommandInfo::opensDialog) est refusée à tout autre : faux, aucun effet,
-    // refusedForSecondUser(id). Le gestionnaire JavaScript reçoit (argument, user) ; un gestionnaire C++,
-    // l'argument seul.
+    // Une commande qui ouvre une boîte (CommandInfo::opensDialog) est refusée à tout autre : faux, aucun
+    // effet, refusedForSecondUser(id). Le gestionnaire JavaScript reçoit (argument, user) ; un gestionnaire
+    // C++, l'argument seul.
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument, int user);
     Q_INVOKABLE void setHandler(const QString& id, const QJSValue& handler);
     // Gestionnaire C++ (L6-T5 : `profile.activate`, posé par ProfileController), gardé à travers reload() et
