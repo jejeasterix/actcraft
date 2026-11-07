@@ -284,7 +284,10 @@ bool MediaItems::play(quint64 id)
     }
     if (entry->kind != QLatin1String("sound"))
         return false;
-    return extract(entry->resource, id, [this, loop = entry->loop](const QString& path) {
+    const std::uint64_t request = ++m_soundRequest;
+    return extract(entry->resource, id, [this, request, loop = entry->loop](const QString& path) {
+        if (request != m_soundRequest)
+            return; // une demande plus récente, un arrêt ou un changement de page est passé par là
         if (path.isEmpty())
             emit soundFailed(QStringLiteral("fichier non extrait du document"));
         else
@@ -302,7 +305,10 @@ void MediaItems::videoFailed(quint64 id)
 
 bool MediaItems::playResource(const std::string& key)
 {
-    return extract(key, 0, [this](const QString& path) {
+    const std::uint64_t request = ++m_soundRequest;
+    return extract(key, 0, [this, request](const QString& path) {
+        if (request != m_soundRequest)
+            return;
         if (path.isEmpty())
             emit soundFailed(QStringLiteral("fichier non extrait du document"));
         else
@@ -340,6 +346,7 @@ bool MediaItems::startSound(const QString& path, bool loop)
 
 void MediaItems::stopSound()
 {
+    ++m_soundRequest; // un son encore en cours d'écriture ne partira pas
     m_player->pause(media::Player::First);
     updateSound();
 }
@@ -439,8 +446,11 @@ std::vector<MediaItems::Entry> MediaItems::collect(bool pageShown)
     const int current = m_document->currentIndex();
     if (current < 0 || static_cast<std::size_t>(current) >= m_document->document().pageCount())
         return out;
-    if (pageShown)
+    if (pageShown) {
+        if (m_shownPage >= 0 && m_shownPage != current)
+            ++m_soundRequest; // un son demandé pour la page précédente ne part pas sur celle-ci
         m_shownPage = current;
+    }
     const core::Document& document = m_document->document();
     const core::Page& page = document.page(static_cast<std::size_t>(current));
     for (const core::PageObject& object : page.objects) {

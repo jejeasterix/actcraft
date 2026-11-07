@@ -310,9 +310,11 @@ private slots:
         QVERIFY2(near(image.pixelColor(40, 100), argb(kRed), 8), "l'ancienne place : le dessus entier");
     }
 
-    // Revue (point 4) : la part découpée rastérisée suit l'échelle réelle (densité × zoom), ici 2 : un filet
-    // du dessus de 0,5 unité de page couvre exactement un pixel de la fenêtre, plein rouge (flou à l'échelle
-    // 1).
+    // Revue (point 4) : la part découpée rastérisée suit l'échelle réelle (densité × zoom) que la vue pose
+    // par setRasterScale, ici 2 : un filet du dessus de 0,5 unité de page couvre exactement un pixel de la
+    // fenêtre, plein rouge (flou à l'échelle 1). L8-C6 : l'échelle de l'élément n'est plus relue (le test la
+    // posait par setScale seul) ; la vue pose l'échelle une fois le zoom fini, comme pour le fond et la
+    // grille.
     void revealedLayerFollowsScreenScale()
     {
         Scene s;
@@ -322,6 +324,7 @@ private slots:
                           400));
         s.page->setTransformOrigin(QQuickItem::TopLeft);
         s.page->setScale(2);
+        s.page->setRasterScale(2);
         s.page->setForceRasterized(true);
         QVERIFY(QTest::qWaitFor([&] { return near(grab(s).pixelColor(80, 200), argb(kGreen), 8); }, 5000));
         const QImage image = grab(s);
@@ -332,6 +335,42 @@ private slots:
         s.page->update();
         (void)grab(s);
         QCOMPARE(s.page->rasterizationCount(), rasterized); // refaite au changement d'échelle seulement
+    }
+
+    // L8-C6 (revue de L8-T18) : un zoom continu ne rastérise rien. La part découpée suit l'échelle que la vue
+    // pose une fois le zoom fini (setRasterScale, ui/src/pageview.cpp:1349-1353), jamais l'échelle de
+    // l'élément relue à chaque image ou à chaque redessin : sinon chaque image d'un zoom rastérise toute la
+    // page sur le fil de rendu. Rouge sous « relire screenScale » : le compteur monte à chaque pas.
+    void revealedLayerIsNotRasterizedWhileScaleChanges()
+    {
+        Scene s;
+        QVERIFY(openScene(s,
+                          page200({rect(core::Layer::Middle, 20, 20, 120, 160, kGreen),
+                                   rect(core::Layer::Top, 50, 20, 0.5, 160, kRed), revealer()}),
+                          400));
+        s.page->setTransformOrigin(QQuickItem::TopLeft);
+        s.page->setForceRasterized(true);
+        QVERIFY(QTest::qWaitFor([&] { return near(grab(s).pixelColor(40, 100), argb(kGreen), 8); }, 5000));
+        const int rasterized = s.page->rasterizationCount();
+        QVERIFY(rasterized > 0); // la part découpée est bien un nœud rastérisé
+        for (const double scale : {1.2, 1.4, 1.6, 1.8, 2.0}) {
+            s.page->setScale(scale);
+            s.page->update(); // tout redessin pendant le zoom (trait, curseur, animation)
+            (void)grab(s);
+            QCOMPARE(s.page->rasterizationCount(), rasterized);
+        }
+        // Le zoom est posé : la vue pousse l'échelle, la part découpée est refaite, une fois, à cette
+        // échelle.
+        s.page->setRasterScale(2.0);
+        const QImage image = grab(s);
+        QVERIFY(s.page->rasterizationCount() > rasterized);
+        QVERIFY2(near(image.pixelColor(100, 60), argb(kRed), 40),
+                 qPrintable(QStringLiteral("filet : %1").arg(image.pixelColor(100, 60).name())));
+        const int posed = s.page->rasterizationCount();
+        (void)grab(s);
+        s.page->update();
+        (void)grab(s);
+        QCOMPARE(s.page->rasterizationCount(), posed); // à échelle égale, rien
     }
 
     // Revue (point 6) : à l'export PDF (périphérique à 96 ppp), la couche découpée est rastérisée à 300 ppp

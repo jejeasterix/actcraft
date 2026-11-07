@@ -346,6 +346,9 @@ private slots:
     void repeatedClickDuringTheWriteStartsOnce();
     void replacingDuringTheWriteDiscardsTheResult();
     void replacedFilesOutliveTheModelReset();
+    void lastSoundRequestWins();
+    void stopSoundDuringTheWriteCancelsIt();
+    void pageChangeDuringTheWriteCancelsAutoSound();
     void soundFailureIsNotAnUnsupportedAction();
 
 private:
@@ -987,6 +990,7 @@ void TstUiMediaitems::replacingDuringTheWriteDiscardsTheResult()
     QCOMPARE(video.count(), 0);
     QCOMPARE(started.count(), 0);
     QTRY_COMPARE(m_items->rowCount(), 0);
+    QThreadPool::globalInstance()->waitForDone();
     QTest::qWait(500);
     QCOMPARE(video.count(), 0);
     QCOMPARE(started.count(), 0);
@@ -1019,6 +1023,68 @@ void TstUiMediaitems::replacedFilesOutliveTheModelReset()
     QTRY_VERIFY(reset);
     QVERIFY2(stillThere, "le dossier extrait a été supprimé avant la fin de la remise à zéro du modèle");
     QTRY_VERIFY_WITH_TIMEOUT(!QFileInfo::exists(extracted), 5000);
+}
+
+QByteArray bigTone()
+{
+    QByteArray big = toneWav(3000);
+    big.append(QByteArray(32 * 1024 * 1024, '\0'));
+    return big;
+}
+
+// Troisième revue L8-T25. Gros son A puis petit son B : B part en premier, A finit d'être écrit après ; seul
+// B doit jouer à la fin.
+void TstUiMediaitems::lastSoundRequestWins()
+{
+    core::Document d(1024, 768);
+    const std::string a = d.addResource(bigTone(), "wav");
+    const std::string b = d.addResource(toneWav(400), "wav");
+    d.page(0).objects.push_back(mediaObject(81, a, 50, 50, 64, 64));
+    d.page(0).objects.push_back(mediaObject(82, b, 150, 50, 64, 64));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 2);
+    QVERIFY(m_items->play(81));
+    QVERIFY(m_items->play(82));
+    QThreadPool::globalInstance()->waitForDone();
+    QTest::qWait(500);
+    QVERIFY(m_items->player()->isPlaying(Player::First));
+    QCOMPARE(QFileInfo(playedFile(m_items->player(), Player::First)).size(), qint64(toneWav(400).size()));
+}
+
+// Troisième revue L8-T25. Arrêter pendant l'écriture annule la demande.
+void TstUiMediaitems::stopSoundDuringTheWriteCancelsIt()
+{
+    core::Document d(1024, 768);
+    const std::string a = d.addResource(bigTone(), "wav");
+    d.page(0).objects.push_back(mediaObject(83, a, 50, 50, 64, 64));
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+    QVERIFY(m_items->play(83));
+    m_items->stopSound();
+    QThreadPool::globalInstance()->waitForDone();
+    QTest::qWait(500);
+    QCOMPARE(started.count(), 0);
+    QVERIFY(!m_items->player()->isPlaying(Player::First));
+}
+
+// Troisième revue L8-T25. Un son lancé à l'ouverture d'une page ne part pas sur la page suivante.
+void TstUiMediaitems::pageChangeDuringTheWriteCancelsAutoSound()
+{
+    core::Document d(1024, 768);
+    const std::string a = d.addResource(bigTone(), "wav");
+    d.page(0).objects.push_back(mediaObject(84, a, 50, 50, 64, 64));
+    mediaOf(d, 0).playOnOpen = true;
+    d.insertPage(1, core::Page{});
+    open(std::move(d));
+    QTRY_COMPARE(m_items->rowCount(), 1);
+    QSignalSpy started(m_items.get(), &MediaItems::soundStarted);
+    m_controller->showPage(1);
+    QTRY_COMPARE(m_items->rowCount(), 0);
+    QThreadPool::globalInstance()->waitForDone();
+    QTest::qWait(500);
+    QCOMPARE(started.count(), 0);
+    QVERIFY(!m_items->player()->isPlaying(Player::First));
 }
 
 // Seconde revue L8-T25 (mineur). Un échec de lecture du lecteur de sons (soundFailed) n'est pas « Action non

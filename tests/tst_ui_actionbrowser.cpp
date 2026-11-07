@@ -24,6 +24,8 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QElapsedTimer>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -458,6 +460,57 @@ private slots:
         QVERIFY(f.model.parameters().isEmpty());
     }
 
+    // Revue L8-C13 : « Agrandir ou réduire » attend un facteur réel, 1 au départ, jamais <= 0.
+    void fractionalFactorIsAppliedAsIs()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        f.model.setCurrentId(QStringLiteral("object.size-step-center"));
+        QCOMPARE(f.model.parameters().value(QStringLiteral("factor")).toDouble(), 1.0);
+        const QVariantMap row = f.model.propertyRows().first().toMap();
+        QVERIFY(row.value(QStringLiteral("decimals")).toInt() > 0);
+        QVERIFY(row.value(QStringLiteral("exclusiveMinimum")).toBool());
+        f.model.setParameters({{QStringLiteral("factor"), 1.5}});
+        QVERIFY(f.model.apply());
+        const core::PageObject* object = objectOf(f.controller, f.shape1);
+        QVERIFY(object && object->common.actions.size() == 1);
+        const QJsonObject parameters =
+            QJsonDocument::fromJson(
+                QByteArray::fromStdString(std::string(object->common.actions.front().parameters)))
+                .object();
+        QCOMPARE(parameters.value(QStringLiteral("factor")).toDouble(), 1.5);
+    }
+    void nonPositiveFactorIsRefused()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        f.model.setCurrentId(QStringLiteral("object.size-step-center"));
+        QSignalSpy refused(&f.model, &ui::ActionBrowserModel::refused);
+        for (const double factor : {0.0, -2.0}) {
+            f.model.setParameters({{QStringLiteral("factor"), factor}});
+            QVERIFY(!f.model.apply());
+        }
+        QCOMPARE(refused.count(), 2);
+        QVERIFY(actionsOf(f.controller, f.shape1).isEmpty());
+    }
+    // Revue L8-C13 : un document qui change sans toucher aux lignes ne remet pas le catalogue à zéro.
+    void unchangedRowsEmitNothing()
+    {
+        Fixture f;
+        f.select({f.shape1});
+        QCoreApplication::processEvents();
+        QSignalSpy resets(&f.model, &QAbstractItemModel::modelReset);
+        QSignalSpy changes(&f.model, &QAbstractItemModel::dataChanged);
+        addShape(f.controller, 550); // documentChanged, sélection et actions inchangées
+        QCoreApplication::processEvents();
+        QCOMPARE(resets.count(), 0);
+        QCOMPARE(changes.count(), 0);
+        f.model.setCurrentId(QStringLiteral("page.next"));
+        QVERIFY(f.model.apply()); // les lignes changent vraiment : la vue est prévenue
+        QCoreApplication::processEvents();
+        QVERIFY(resets.count() + changes.count() >= 1);
+    }
+
     void targetPickedFromThePage()
     {
         Fixture f;
@@ -528,6 +581,13 @@ private slots:
     void refreshDeferredDuringContact()
     {
         Fixture f;
+        // Revue L8-C13 : une remise à zéro n'a lieu que si les lignes changent ; page.next, portée par les
+        // formes 1 et 2, rend le changement de sélection visible (ligne « existante » ou non).
+        f.select({f.shape1, f.shape2});
+        f.model.setCurrentId(QStringLiteral("page.next"));
+        QVERIFY(f.model.apply());
+        f.select({f.shape3});
+        QCoreApplication::processEvents();
         QSignalSpy resets(&f.model, &QAbstractItemModel::modelReset);
         f.model.setContactActive(true);
         f.select({f.shape1});

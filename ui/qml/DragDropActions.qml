@@ -64,9 +64,10 @@ Rectangle {
         x: tray.margin
         y: tray.headerHeight + tray.margin
         columns: tray.columns
-        readonly property int count: tray.model ? tray.model.rowCount() : 0
+        readonly property int count: rep.count
 
         Repeater {
+            id: rep
             model: tray.model
             delegate: Item {
                 id: slot
@@ -119,13 +120,17 @@ Rectangle {
                 DragHandler {
                     id: drag
                     target: ghost
-                    onActiveChanged: {
-                        if (active)
+                    // Déposer sur un vrai relâché seulement : une annulation du grab (autre poignée, perte du
+                    // pointeur) remet l'icône en place sans rien déposer.
+                    onGrabChanged: (transition, point) => {
+                        if (transition !== PointerDevice.UngrabExclusive
+                                && transition !== PointerDevice.CancelGrabExclusive)
                             return
                         const scene = ghost.mapToItem(null, ghost.width / 2, ghost.height / 2)
                         ghost.x = 4
                         ghost.y = 4
-                        tray.dropAt(scene, slot.id)
+                        if (transition === PointerDevice.UngrabExclusive)
+                            tray.dropAt(scene, slot.id)
                     }
                 }
             }
