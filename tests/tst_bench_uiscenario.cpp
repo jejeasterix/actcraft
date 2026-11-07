@@ -820,18 +820,19 @@ private slots:
         UiScenario s;
         QString error;
         const QString here = QSysInfo::productType();
-        QVERIFY2(parseSteps(QStringLiteral("{\"expect\": \"nulle-part.x\", \"value\": 1, \"skipOn\": [\"%1\"], "
-                                           "\"skipReason\": \"motif-ecrit\"}")
-                                .arg(here)
-                                .toUtf8(),
-                            s, error),
-                 qPrintable(error));
+        QVERIFY2(
+            parseSteps(QStringLiteral("{\"expect\": \"nulle-part.x\", \"value\": 1, \"skipOn\": [\"%1\"], "
+                                      "\"skipReason\": \"motif-ecrit\"}")
+                           .arg(here)
+                           .toUtf8(),
+                       s, error),
+            qPrintable(error));
         Fixture f;
         QVERIFY(load(f));
         QStringList report;
         QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
-        QVERIFY2(report.join(QLatin1Char('\n')).contains(QStringLiteral("SAUTE étape 1 (") + here +
-                                                            QStringLiteral(") : motif-ecrit")),
+        QVERIFY2(report.join(QLatin1Char('\n'))
+                     .contains(QStringLiteral("SAUTE étape 1 (") + here + QStringLiteral(") : motif-ecrit")),
                  qPrintable(report.join(QLatin1Char('\n'))));
     }
 
