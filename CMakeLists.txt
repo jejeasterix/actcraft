@@ -34,14 +34,18 @@ endif()
 option(ACTCRAFT_IMPORT_PDF "Import PDF par Qt PDF" ${_actcraft_pdf_default})
 message(STATUS "ACTCRAFT_IMPORT_PDF=${ACTCRAFT_IMPORT_PDF}")
 
-# Lot 8 : lecteur et enregistreurs (Qt Multimedia), cadre web (Qt WebView) ; ON si le module est trouvé.
+# Lot 8 : lecteur et enregistreurs (Qt Multimedia) : REQUIS, ui/ inclut actcraft/media/* sans condition (une
+# configuration sans lui passerait, puis échouerait à la compilation). Cadre web (Qt WebView) : ON si trouvé.
 find_package(Qt6 6.12 QUIET COMPONENTS Multimedia)
-if(Qt6Multimedia_FOUND)
-    set(_actcraft_media_default ON)
-else()
-    set(_actcraft_media_default OFF)
+if(NOT Qt6Multimedia_FOUND)
+    message(FATAL_ERROR "Qt Multimedia 6.12 est requis (lecteur et enregistreurs). Windows, macOS officiel : "
+            "ajouter « -m qtmultimedia » à la commande aqt (voir CLAUDE.md) ; Homebrew : brew install qt.")
 endif()
-option(ACTCRAFT_MEDIA "Lecteur et enregistreurs par Qt Multimedia" ${_actcraft_media_default})
+option(ACTCRAFT_MEDIA "Lecteur et enregistreurs par Qt Multimedia (requis, ON)" ON)
+if(NOT ACTCRAFT_MEDIA)
+    message(FATAL_ERROR "ACTCRAFT_MEDIA=OFF n'est pas pris en charge : le module media est requis par ui/. "
+            "Retirer l'option ou la passer à ON.")
+endif()
 find_package(Qt6 6.12 QUIET COMPONENTS WebView)
 if(Qt6WebView_FOUND)
     set(_actcraft_webframe_default ON)

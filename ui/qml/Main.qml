@@ -627,6 +627,7 @@ Window {
         preferences: appPreferences
     }
     RecordingIndicator { recorders: recorderPalette.recorders }
+    AreaSelector { recorders: recorderPalette.recorders; view: pageArea.view }
 
     AboutDialog {
         id: aboutDialog

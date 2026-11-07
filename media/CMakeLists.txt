@@ -1,5 +1,7 @@
 # Lecteur et enregistreurs (Qt Multimedia). Ne dépend que de core et de Qt : aucun ui/.
 set(ACTCRAFT_MEDIA_SOURCES
+    include/actcraft/media/media.h
+    src/media.cpp
     include/actcraft/media/player.h
     src/player.cpp
     include/actcraft/media/soundrecorder.h

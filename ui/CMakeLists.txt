@@ -144,6 +144,7 @@ qt_add_qml_module(actcraft_ui
         qml/SoundController.qml
         qml/RecorderPalette.qml
         qml/RecordingIndicator.qml
+        qml/AreaSelector.qml
         qml/WebFrameLayer.qml
         qml/WebFrameDialog.qml
         qml/PublishDialog.qml

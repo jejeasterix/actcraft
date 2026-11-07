@@ -363,6 +363,22 @@ private slots:
         QVERIFY(!recorder->isRecording());
     }
 
+    // L8-C10, essai 2, constat 5 : document fermé pendant l'enregistrement, le moteur garde la main jusqu'à
+    // la fermeture de son fichier (stopped), qui est alors effacé ; le détruire sur-le-champ puis effacer
+    // précède la fermeture.
+    void destroyedWhileRecordingLetsTheEngineCloseFirst()
+    {
+        auto recorder = makeRecorder(false);
+        recorder->toggle();
+        QTRY_VERIFY(recorder->isRecording());
+        QVERIFY(!m_lastEngine.isNull());
+        recorder.reset();
+        QVERIFY2(!m_lastEngine.isNull(), "moteur détruit avant la fermeture de son fichier");
+        QTRY_VERIFY(m_lastEngine.isNull());
+        QVERIFY2(filesIn(m_folder).isEmpty(), qPrintable(filesIn(m_folder).join(u' ')));
+        QVERIFY(filesIn(m_elsewhere).isEmpty());
+    }
+
     // Discrimine le même patron côté abandon : effacer dans cancel() précède la fermeture par le moteur, qui
     // écrit le fichier après coup. Une permission répondue après l'abandon ne lance rien.
     void cancelLeavesNothing_data() { addEngines(); }
@@ -494,8 +510,8 @@ private slots:
         recorder->toggle();
         QTRY_VERIFY(recorder->isRecording());
         QTest::qWait(300);
-        recorder.reset(); // document fermé : le moteur écrit son fichier partiel en se détruisant
-        QVERIFY(m_lastEngine.isNull());
+        recorder.reset(); // document fermé : le moteur ferme son fichier, l'efface, puis se libère (abandon)
+        QTRY_VERIFY(m_lastEngine.isNull()); // L8-C10 : plus détruit sur-le-champ, il finit sa fermeture
         QTest::qWait(200);
         QCOMPARE(handed, 0);
         QVERIFY2(filesIn(m_folder).isEmpty(), qPrintable(filesIn(m_folder).join(u' ')));

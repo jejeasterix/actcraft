@@ -944,6 +944,17 @@ private slots:
         }
     }
 
+    // L8-C10, essai 2 (revue, majeur 1) : la fenêtre de l'indicateur d'écran n'a pas la fenêtre principale
+    // pour parent : réduire ActCraft ne la réduit pas, l'enregistrement continuant.
+    void recordingIndicatorWindowIsNotTransient()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* indicator = s.window->findChild<QWindow*>(QStringLiteral("recordingIndicatorWindow"));
+        QVERIFY(indicator);
+        QVERIFY(indicator->transientParent() == nullptr);
+    }
+
     // L8-T19 : les contrôleurs du lot 8 sont de vrais types C++ (plus aucun QtObject talon), câblés entre eux
     // ; le navigateur d'actions reçoit son modèle du panneau, jamais par une recherche à la racine.
     void lot8ControllersWired()

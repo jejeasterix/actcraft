@@ -1,13 +1,17 @@
+#include <actcraft/media/displayrecorder.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/recorders.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QDir>
 #include <QFileInfo>
+#include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QSettings>
+#include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -59,6 +63,15 @@ struct Rig
                                          Q_ARG(QVariant, QVariant(id)), Q_ARG(QVariant, QVariant())) &&
                result.toBool();
     }
+};
+
+// Écran simulé : l'enregistreur d'écran est disponible, rien n'est capturé.
+class FakeScreen final : public media::DisplayEngine
+{
+public:
+    void start(const QString&) override {}
+    void encode(const QVideoFrame&) override {}
+    void stop() override {}
 };
 
 } // namespace
@@ -137,6 +150,57 @@ private slots:
         QVERIFY(!r.view->inputBlocked());
         QTest::keyClick(r.window, Qt::Key_Escape);
         QCOMPARE(r.tools->currentTool(), QStringLiteral("select"));
+    }
+    // L8-C10, essai 2 (revue, majeurs 2 et 3) : le calque de tracé de zone prend Échap (l'outil ne change
+    // pas) et l'entrée du stylet (le trait ne s'écrit pas sur la page derrière).
+    void areaSelectorKeepsEscapeAndCoversTheStylus()
+    {
+        struct Reset
+        {
+            ~Reset() { ui::Recorders::resetDefaultEngines(); }
+        } reset;
+        ui::Recorders::setDefaultEngines(
+            {{}, {}, [] { return std::unique_ptr<media::DisplayEngine>(new FakeScreen); }});
+        Rig r;
+        QVERIFY(r.start(m_dir.filePath(QStringLiteral("reglages.ini"))));
+        auto* recorders = r.window->findChild<ui::Recorders*>();
+        QVERIFY(recorders);
+        QVERIFY(recorders->screenAvailable());
+        r.tools->activate(QStringLiteral("pen"));
+        QObject* selector = r.named("areaSelector");
+        QVERIFY(selector);
+        QMetaObject::invokeMethod(recorders, "toggleScreen", Q_ARG(bool, true));
+        QTRY_VERIFY(recorders->isSelectingArea());
+        QTRY_VERIFY(selector->property("activeFocus").toBool());
+
+        QPointingDevice stylus(QStringLiteral("tst-ui-escape-stylus"), 5171, QInputDevice::DeviceType::Stylus,
+                               QPointingDevice::PointerType::Pen,
+                               QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
+        const QString before = r.document->fingerprintText();
+        const QPointF from(r.window->width() / 2.0, r.window->height() / 2.0);
+        const auto tablet = [&](QEvent::Type type, QPointF at, Qt::MouseButtons buttons) {
+            QTabletEvent event(type, &stylus, at, r.window->mapToGlobal(at), buttons ? 0.5 : 0.0, 0, 0, 0, 0,
+                               0, Qt::NoModifier, type == QEvent::TabletMove ? Qt::NoButton : Qt::LeftButton,
+                               buttons);
+            QCoreApplication::sendEvent(r.window, &event);
+        };
+        tablet(QEvent::TabletPress, from, Qt::LeftButton);
+        for (int i = 1; i <= 4; ++i)
+            tablet(QEvent::TabletMove, from + QPointF(20 * i, 10 * i), Qt::LeftButton);
+        tablet(QEvent::TabletRelease, from + QPointF(80, 40), Qt::NoButton);
+        QTest::qWait(50);
+        QCOMPARE(r.document->fingerprintText(), before);
+
+        QTest::keyClick(r.window, Qt::Key_Escape);
+        QTRY_VERIFY(!recorders->isSelectingArea());
+        QCOMPARE(r.tools->currentTool(), QStringLiteral("pen"));
+
+        // Témoin : le même trait, calque fermé, s'écrit sur la page.
+        tablet(QEvent::TabletPress, from, Qt::LeftButton);
+        for (int i = 1; i <= 4; ++i)
+            tablet(QEvent::TabletMove, from + QPointF(20 * i, 10 * i), Qt::LeftButton);
+        tablet(QEvent::TabletRelease, from + QPointF(80, 40), Qt::NoButton);
+        QTRY_VERIFY(r.document->fingerprintText() != before);
     }
 };
 
