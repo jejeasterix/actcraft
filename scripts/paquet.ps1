@@ -31,8 +31,10 @@ try {
     New-Item -ItemType Directory -Force $stage | Out-Null
     Copy-Item build/release/actcraft.exe $stage
 
+    # --no-opengl-sw : ActCraft rend par D3D11 ou par le rendu logiciel de Qt Quick, jamais par l'OpenGL logiciel
+    # (Mesa) : opengl32sw.dll n'est pas livré (L11-T25, relecture M5).
     $windeployqt = Join-Path $env:ACTCRAFT_QT_DIR 'bin/windeployqt.exe'
-    & $windeployqt --release --no-compiler-runtime --no-translations --qmldir ui/qml (Join-Path $stage 'actcraft.exe')
+    & $windeployqt --release --no-compiler-runtime --no-opengl-sw --no-translations --qmldir ui/qml (Join-Path $stage 'actcraft.exe')
     if ($LASTEXITCODE -ne 0) { throw 'windeployqt en échec' }
     Get-ChildItem -Recurse -Filter *.pdb $stage | Remove-Item -Force # N2-7 : pas de PDB dans l'installateur
 
