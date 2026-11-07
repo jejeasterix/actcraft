@@ -15,6 +15,11 @@ namespace actcraft::ui {
 namespace {
 
 constexpr const char* kReleasesPage = "https://github.com/jejeasterix/actcraft/releases/latest";
+// Seule une page de release du dépôt s'ouvre dans le navigateur.
+constexpr const char* kReleasePagePrefix = "https://github.com/jejeasterix/actcraft/releases/";
+constexpr qint64 kMaxReplyBytes = 1024 * 1024; // une release fait quelques Kio
+constexpr std::chrono::seconds kIdleTimeout(20);
+constexpr std::chrono::seconds kTotalTimeout(30);
 
 using Version = std::array<quint32, 3>;
 
@@ -47,14 +52,37 @@ std::optional<Version> parseVersion(QStringView text)
     return version;
 }
 
+QString text(const Version& version)
+{
+    return QStringLiteral("%1.%2.%3").arg(version[0]).arg(version[1]).arg(version[2]);
+}
+
 bool isLoopback(const QUrl& url)
 {
     return url.host() == QLatin1String("127.0.0.1") || url.host() == QLatin1String("localhost");
 }
 
+QUrl releasePageOf(const QString& raw)
+{
+    const QUrl page = QUrl(raw, QUrl::StrictMode).adjusted(QUrl::NormalizePathSegments);
+    if (page.isValid() && page.toString().startsWith(QLatin1String(kReleasePagePrefix)))
+        return page;
+    return QUrl(QString::fromLatin1(kReleasesPage));
+}
+
 } // namespace
 
-UpdateChecker::UpdateChecker(QObject* parent) : QObject(parent) {}
+UpdateChecker::UpdateChecker(QObject* parent)
+    : QObject(parent), m_currentVersion(QString::fromLatin1(ACTCRAFT_VERSION))
+{
+    // Borne de durée totale : un serveur ou un mandataire qui distille sa réponse ne garde pas Checking.
+    m_deadline.setSingleShot(true);
+    m_deadline.setInterval(kTotalTimeout);
+    connect(&m_deadline, &QTimer::timeout, this, [this] {
+        if (m_reply)
+            m_reply->abort();
+    });
+}
 
 UpdateChecker::~UpdateChecker()
 {
@@ -78,12 +106,12 @@ QUrl UpdateChecker::endpoint()
     const QString value = qEnvironmentVariable(kEndpointVariable).trimmed();
     if (value.isEmpty())
         return fallback;
-    // Essais seulement : un fichier, ou un serveur de la boucle locale sur un port donné ; aucune autre
-    // adresse.
+    // Essais seulement : un fichier de la machine (sans hôte : aucun partage réseau), ou un serveur de la
+    // boucle locale sur un port donné ; aucune autre adresse.
     const QUrl url(value);
     if (!url.isValid() || url.isRelative())
         return fallback;
-    if (url.isLocalFile())
+    if (url.isLocalFile() && url.host().isEmpty())
         return url;
     if (url.scheme() == QLatin1String("http") && isLoopback(url) && url.port() > 0 &&
         url.userInfo().isEmpty())
@@ -94,6 +122,11 @@ QUrl UpdateChecker::endpoint()
 void UpdateChecker::setNetworkAccessManager(QNetworkAccessManager* manager)
 {
     m_manager = manager;
+}
+
+void UpdateChecker::setCurrentVersion(const QString& version)
+{
+    m_currentVersion = version;
 }
 
 QNetworkAccessManager* UpdateChecker::manager()
@@ -115,13 +148,20 @@ void UpdateChecker::check()
     ++m_requestCount;
     settle(State::Checking);
 
-    // Une lecture GET, sans jeton, sans cookie ni identifiant du poste.
+    // Une lecture GET, sans jeton ni identifiant du poste ; aucun cookie lu ni gardé.
     QNetworkRequest request(endpoint());
     request.setRawHeader("Accept", "application/vnd.github+json");
-    request.setTransferTimeout(std::chrono::seconds(20));
+    request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
+    request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
+    request.setTransferTimeout(kIdleTimeout);
     QNetworkReply* reply = manager()->get(request);
     m_reply = reply;
+    connect(reply, &QNetworkReply::downloadProgress, this, [reply](qint64 received, qint64 total) {
+        if (received > kMaxReplyBytes || total > kMaxReplyBytes)
+            reply->abort();
+    });
     connect(reply, &QNetworkReply::finished, this, [this, reply] { finish(reply); });
+    m_deadline.start();
 }
 
 void UpdateChecker::start()
@@ -137,14 +177,22 @@ void UpdateChecker::finish(QNetworkReply* reply)
     if (reply != m_reply)
         return;
     m_reply = nullptr;
+    m_deadline.stop();
 
-    // Hors ligne, refusée (404 d'un dépôt privé sans jeton) ou illisible : impossible de vérifier, sans plus.
-    if (reply->error() != QNetworkReply::NoError) {
+    // Hors ligne, refusée (404 d'un dépôt privé sans jeton), trop longue ou illisible : impossible de
+    // vérifier.
+    // Une réponse coupée (taille, durée) peut finir sans code d'erreur mais fermée : ne pas la lire.
+    if (reply->error() != QNetworkReply::NoError || !reply->isReadable()) {
+        settle(State::Failed);
+        return;
+    }
+    const QByteArray body = reply->read(kMaxReplyBytes + 1);
+    if (body.size() > kMaxReplyBytes) {
         settle(State::Failed);
         return;
     }
     QJsonParseError parseError{};
-    const QJsonDocument document = QJsonDocument::fromJson(reply->readAll(), &parseError);
+    const QJsonDocument document = QJsonDocument::fromJson(body, &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
         settle(State::Failed);
         return;
@@ -155,21 +203,18 @@ void UpdateChecker::finish(QNetworkReply* reply)
         settle(State::UpToDate); // brouillons et préversions ignorés
         return;
     }
-    const QString tag = release.value(QLatin1String("tag_name")).toString();
-    if (!parseVersion(tag)) {
+    const std::optional<Version> latest = parseVersion(release.value(QLatin1String("tag_name")).toString());
+    const std::optional<Version> current = parseVersion(m_currentVersion);
+    if (!latest || !current) {
         settle(State::Failed);
         return;
     }
-    const QString version = withoutPrefix(tag).toString();
-    if (!isNewer(tag, QString::fromLatin1(ACTCRAFT_VERSION))) {
-        settle(State::UpToDate, version);
+    if (*latest <= *current) {
+        settle(State::UpToDate, text(*latest));
         return;
     }
-    // Seule une page https s'ouvre dans le navigateur ; sinon la page des releases du dépôt.
-    QUrl page(release.value(QLatin1String("html_url")).toString());
-    if (!page.isValid() || page.scheme() != QLatin1String("https"))
-        page = QUrl(QString::fromLatin1(kReleasesPage));
-    settle(State::Available, version, page);
+    settle(State::Available, text(*latest),
+           releasePageOf(release.value(QLatin1String("html_url")).toString()));
 }
 
 void UpdateChecker::settle(State state, const QString& version, const QUrl& page)

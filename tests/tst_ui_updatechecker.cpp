@@ -1,9 +1,12 @@
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/updatechecker.h>
 
+#include <QFile>
 #include <QNetworkAccessManager>
+#include <QNetworkProxy>
 #include <QNetworkReply>
 #include <QRegularExpression>
+#include <QScopeGuard>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -11,6 +14,8 @@
 #include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QtTest>
+
+#include <utility>
 
 using actcraft::ui::Preferences;
 using actcraft::ui::UpdateChecker;
@@ -26,20 +31,20 @@ bool isLocal(const QUrl& url)
             (url.host() == QLatin1String("127.0.0.1") || url.host() == QLatin1String("localhost")));
 }
 
-// Gestionnaire espion : compte les requêtes et ne sort jamais de la machine. Une adresse qui n'est ni file:
-// ni la boucle locale est détournée vers un fichier absent : même sous une mutation, aucun accès réseau réel.
+// Gestionnaire espion : garde les requêtes et ne sort jamais de la machine. Une adresse qui n'est ni file: ni
+// la boucle locale est détournée vers un fichier absent : même sous une mutation, aucun accès réseau réel.
 class SpyManager : public QNetworkAccessManager
 {
 public:
     using QNetworkAccessManager::QNetworkAccessManager;
     int created = 0;
-    QList<QUrl> urls;
+    QList<QNetworkRequest> requests;
 
 protected:
     QNetworkReply* createRequest(Operation op, const QNetworkRequest& request, QIODevice* data) override
     {
         ++created;
-        urls.append(request.url());
+        requests.append(request);
         if (isLocal(request.url()))
             return QNetworkAccessManager::createRequest(op, request, data);
         QNetworkRequest guarded = request;
@@ -48,30 +53,42 @@ protected:
     }
 };
 
-// Serveur de la boucle locale qui répond 404, comme l'API publique d'un dépôt privé sans jeton.
-class NotFoundServer : public QTcpServer
+// Serveur de la boucle locale : garde la première ligne reçue et rend une réponse écrite d'avance (404 de
+// l'API publique d'un dépôt privé sans jeton, ou refus d'un faux mandataire).
+class ScriptedServer : public QTcpServer
 {
 public:
-    NotFoundServer()
+    explicit ScriptedServer(QByteArray response) : m_response(std::move(response))
     {
         connect(this, &QTcpServer::newConnection, this, [this] {
             while (QTcpSocket* socket = nextPendingConnection()) {
-                connect(socket, &QTcpSocket::readyRead, socket, [socket] {
-                    socket->readAll();
-                    socket->write("HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\n"
-                                  "Content-Length: 24\r\nConnection: close\r\n\r\n"
-                                  "{\"message\": \"Not Found\"}");
+                connect(socket, &QTcpSocket::readyRead, socket, [this, socket] {
+                    const QByteArray received = socket->readAll();
+                    if (firstLine.isEmpty())
+                        firstLine = received.left(received.indexOf('\r'));
+                    socket->write(m_response);
                     socket->disconnectFromHost();
                 });
                 connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
             }
         });
     }
+
+    QByteArray firstLine;
+
+private:
+    QByteArray m_response;
 };
 
 QByteArray fileUrl(const QString& path)
 {
     return QUrl::fromLocalFile(path).toString().toUtf8();
+}
+
+QByteArray release(const QByteArray& htmlUrl, const QByteArray& extra = {})
+{
+    return QByteArray(R"({"tag_name": "v9.9.9", "html_url": ")") + htmlUrl +
+           QByteArray(R"(", "draft": false, "prerelease": false)") + extra + QByteArray("}");
 }
 
 } // namespace
@@ -93,6 +110,7 @@ private slots:
 
 private:
     QString data(const char* name) const;
+    QString writeFile(const QString& name, const QByteArray& content) const;
 
     QTemporaryDir m_settings;
 };
@@ -100,6 +118,15 @@ private:
 QString TstUiUpdatechecker::data(const char* name) const
 {
     return QFINDTESTDATA(QStringLiteral("data/updates/") + QString::fromLatin1(name));
+}
+
+QString TstUiUpdatechecker::writeFile(const QString& name, const QByteArray& content) const
+{
+    const QString path = m_settings.filePath(name);
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) || file.write(content) != content.size())
+        return {};
+    return path;
 }
 
 void TstUiUpdatechecker::initTestCase()
@@ -196,25 +223,71 @@ void TstUiUpdatechecker::requestAtStartWhenEnabled()
 
     checker.start();
     QCOMPARE(spy.created, 1);
-    QCOMPARE(spy.urls.value(0), UpdateChecker::endpoint());
     QCOMPARE(checker.requestCount(), 1);
     QTRY_COMPARE(checker.state(), UpdateChecker::State::Available);
+
+    // Une lecture sans cookie ni identifiant.
+    const QNetworkRequest sent = spy.requests.value(0);
+    QCOMPARE(sent.url(), UpdateChecker::endpoint());
+    QCOMPARE(sent.attribute(QNetworkRequest::CookieLoadControlAttribute).toInt(),
+             int(QNetworkRequest::Manual));
+    QCOMPARE(sent.attribute(QNetworkRequest::CookieSaveControlAttribute).toInt(),
+             int(QNetworkRequest::Manual));
+    QVERIFY(!sent.hasRawHeader("Authorization"));
+    QVERIFY(!sent.hasRawHeader("Cookie"));
+
+    // Gestionnaire interne : la requête suit le mandataire de l'application (posé par NetworkSettings). Un
+    // faux mandataire de la boucle locale reçoit le tunnel vers l'API et le refuse ; rien ne sort de la
+    // machine.
+    ScriptedServer proxy(
+        QByteArray("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"));
+    QVERIFY(proxy.listen(QHostAddress::LocalHost));
+    QNetworkProxy::setApplicationProxy(
+        QNetworkProxy(QNetworkProxy::HttpProxy, QStringLiteral("127.0.0.1"), proxy.serverPort()));
+    const auto restore = qScopeGuard([] { QNetworkProxy::setApplicationProxy(QNetworkProxy()); });
+    qunsetenv(kVariable);
+    UpdateChecker internal;
+    internal.setPreferences(&reread);
+    internal.start();
+    QTRY_COMPARE(internal.state(), UpdateChecker::State::Failed);
+    QVERIFY2(proxy.firstLine.startsWith("CONNECT api.github.com:443 "), proxy.firstLine.constData());
 }
 
 void TstUiUpdatechecker::availableFromReply()
 {
     qputenv(kVariable, fileUrl(data("newer.json")));
-    UpdateChecker checker; // gestionnaire interne
+    SpyManager spy;
+    UpdateChecker checker;
+    checker.setNetworkAccessManager(&spy);
     QSignalSpy changed(&checker, &UpdateChecker::stateChanged);
 
     checker.check();
     QCOMPARE(checker.state(), UpdateChecker::State::Checking);
     QCOMPARE(checker.requestCount(), 1);
+    checker.check(); // une recherche à la fois
+    QCOMPARE(checker.requestCount(), 1);
+    QCOMPARE(spy.created, 1);
     QTRY_COMPARE(checker.state(), UpdateChecker::State::Available);
     QCOMPARE(checker.latestVersion(), QStringLiteral("9.9.9"));
     QCOMPARE(checker.releasePage(),
              QUrl(QStringLiteral("https://github.com/jejeasterix/actcraft/releases/tag/v9.9.9")));
     QVERIFY(changed.count() >= 2);
+
+    // Une page hors des releases du dépôt ne s'ouvre pas : la page des releases la remplace.
+    const QUrl releases(QStringLiteral("https://github.com/jejeasterix/actcraft/releases/latest"));
+    for (const char* foreign :
+         {"https://exemple.invalid/piege", "http://github.com/jejeasterix/actcraft/releases/tag/v9.9.9",
+          "https://github.com/jejeasterix/actcraft/releases/../../autre/releases/tag/v9.9.9",
+          "https://github.com.exemple.invalid/jejeasterix/actcraft/releases/tag/v9.9.9",
+          "javascript:alert(1)"}) {
+        const QString path = writeFile(QStringLiteral("etrangere.json"), release(foreign));
+        QVERIFY(!path.isEmpty());
+        qputenv(kVariable, fileUrl(path));
+        checker.check();
+        QTRY_COMPARE(checker.state(), UpdateChecker::State::Available);
+        QCOMPARE(checker.releasePage(), releases);
+    }
+    QCOMPARE(spy.created, 6);
 }
 
 void TstUiUpdatechecker::draftAndPrereleaseIgnored()
@@ -232,8 +305,9 @@ void TstUiUpdatechecker::draftAndPrereleaseIgnored()
     }
 }
 
-// Fichier absent, 404 de la boucle locale (dépôt privé sans jeton), réponse illisible : « impossible de
-// vérifier », sans avertissement au journal, et une nouvelle vérification reste possible.
+// Fichier absent, 404 de la boucle locale (dépôt privé sans jeton), réponse illisible ou trop longue, version
+// courante illisible : « impossible de vérifier », sans avertissement au journal, et une nouvelle
+// vérification reste possible.
 void TstUiUpdatechecker::failureReported()
 {
     QTest::failOnWarning(QRegularExpression(QStringLiteral(".*")));
@@ -247,7 +321,9 @@ void TstUiUpdatechecker::failureReported()
     QCOMPARE(checker.latestVersion(), QString());
     QCOMPARE(checker.releasePage(), QUrl());
 
-    NotFoundServer server;
+    ScriptedServer server(QByteArray("HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\n"
+                                     "Content-Length: 24\r\nConnection: close\r\n\r\n"
+                                     "{\"message\": \"Not Found\"}"));
     QVERIFY(server.listen(QHostAddress::LocalHost));
     qputenv(kVariable, QByteArray("http://127.0.0.1:") + QByteArray::number(server.serverPort()) +
                            QByteArray("/repos/jejeasterix/actcraft/releases/latest"));
@@ -255,17 +331,35 @@ void TstUiUpdatechecker::failureReported()
     QCOMPARE(checker.state(), UpdateChecker::State::Checking);
     QTRY_COMPARE(checker.state(), UpdateChecker::State::Failed);
     QCOMPARE(checker.latestVersion(), QString());
+    QVERIFY(server.firstLine.startsWith("GET /repos/jejeasterix/actcraft/releases/latest "));
 
-    QFile unreadable(m_settings.filePath(QStringLiteral("illisible.json")));
-    QVERIFY(unreadable.open(QIODevice::WriteOnly));
-    unreadable.write("<html>pas du JSON</html>");
-    unreadable.close();
-    qputenv(kVariable, fileUrl(unreadable.fileName()));
+    const QString unreadable = writeFile(QStringLiteral("illisible.json"), "<html>pas du JSON</html>");
+    QVERIFY(!unreadable.isEmpty());
+    qputenv(kVariable, fileUrl(unreadable));
     checker.check();
     QTRY_COMPARE(checker.state(), UpdateChecker::State::Failed);
 
-    QCOMPARE(checker.requestCount(), 3);
-    QCOMPARE(spy.created, 3);
+    // JSON valide, mais au-delà de 1 Mio.
+    const QByteArray padding = QByteArray(R"(, "body": ")") + QByteArray(1100 * 1024, 'x') + QByteArray("\"");
+    const QString large =
+        writeFile(QStringLiteral("trop-long.json"),
+                  release("https://github.com/jejeasterix/actcraft/releases/tag/v9.9.9", padding));
+    QVERIFY(!large.isEmpty());
+    qputenv(kVariable, fileUrl(large));
+    checker.check();
+    QTRY_COMPARE(checker.state(), UpdateChecker::State::Failed);
+
+    // Version courante illisible : rien à comparer, pas de « à jour » de complaisance.
+    qputenv(kVariable, fileUrl(data("newer.json")));
+    checker.setCurrentVersion(QStringLiteral("1.0"));
+    checker.check();
+    QTRY_COMPARE(checker.state(), UpdateChecker::State::Failed);
+    checker.setCurrentVersion(QStringLiteral("0.6.0"));
+    checker.check();
+    QTRY_COMPARE(checker.state(), UpdateChecker::State::Available);
+
+    QCOMPARE(checker.requestCount(), 6);
+    QCOMPARE(spy.created, 6);
 }
 
 void TstUiUpdatechecker::remoteOverrideRefused()
@@ -275,7 +369,7 @@ void TstUiUpdatechecker::remoteOverrideRefused()
 
     for (const char* refused : {"https://exemple.invalid/x", "http://exemple.invalid:8080/x",
                                 "http://127.0.0.1.exemple.invalid:80/x", "https://127.0.0.1:8443/x",
-                                "ftp://localhost:21/x", "pas une adresse"}) {
+                                "ftp://localhost:21/x", "file://hote/partage/x.json", "pas une adresse"}) {
         qputenv(kVariable, refused);
         QCOMPARE(UpdateChecker::endpoint(), fallback);
     }

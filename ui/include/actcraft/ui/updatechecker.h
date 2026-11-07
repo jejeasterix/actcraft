@@ -7,6 +7,7 @@
 #include <QPointer>
 #include <QString>
 #include <QStringView>
+#include <QTimer>
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
@@ -58,6 +59,7 @@ public:
     // releases du dépôt.
     static QUrl endpoint();
     void setNetworkAccessManager(QNetworkAccessManager* manager); // tests ; sinon un gestionnaire interne
+    void setCurrentVersion(const QString& version);               // tests ; sinon la version construite
     Q_INVOKABLE void check();
     Q_INVOKABLE void start(); // appelé une fois au démarrage : check() seulement si checkAtStart
 
@@ -84,6 +86,8 @@ private:
     QPointer<QNetworkAccessManager> m_manager;
     std::unique_ptr<QNetworkAccessManager> m_ownManager;
     QPointer<QNetworkReply> m_reply;
+    QTimer m_deadline; // durée totale d'une vérification
+    QString m_currentVersion;
     State m_state = State::Idle;
     QString m_latestVersion;
     QUrl m_releasePage;
