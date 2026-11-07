@@ -103,7 +103,8 @@ private slots:
             router.setPolicy(makeTouchPolicy(mode));
             router.route(press(DeviceKind::Stylus, 0));
             QCOMPARE(router.route(press(DeviceKind::Touch, 7)).route, Route::Ignore);
-            // Une paume pose souvent plusieurs points dans le même événement : aucun geste pour autant (D11-3).
+            // Une paume pose souvent plusieurs points dans le même événement : aucun geste pour autant
+            // (D11-3).
             const Sample palm[] = {press(DeviceKind::Touch, 8), press(DeviceKind::Touch, 9)};
             for (const Decision& d : router.routePresses(palm)) {
                 QCOMPARE(d.route, Route::Ignore);

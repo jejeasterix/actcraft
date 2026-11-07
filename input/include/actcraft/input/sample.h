@@ -32,6 +32,8 @@ struct Sample
     // Socle des lots 3 et 7 (DA-A1, L0-S7), à la fin : valeurs existantes inchangées.
     std::uint64_t pointer = 0; // stylet et souris : 0 ; doigt : identifiant du point + 1
     std::uint8_t user = 0;     // utilisateur du contact (DA-A1), rempli par le routeur
+    // QPointingDevice::uniqueId, rempli par la vue (L11-T5).
+    std::uint64_t deviceId = 0;
 };
 
 class SampleSink

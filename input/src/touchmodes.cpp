@@ -1,41 +1,97 @@
-// Talon L11 : rempli par L11-T4.
 #include <actcraft/input/touchmodes.h>
+
+#include <array>
+#include <cstddef>
 
 namespace actcraft::input {
 
-// Talon L11 : rempli par L11-T4.
-std::string_view touchModeId(TouchMode) noexcept
+namespace {
+
+// Identifiants du réglage du poste `workstation/touch-mode` (D11-3), dans l'ordre de TouchMode.
+constexpr std::array<std::string_view, 4> kTouchModeIds{"ignore", "pen", "select", "full"};
+constexpr std::array<TouchMode, 4> kTouchModes{TouchMode::Ignore, TouchMode::Pen, TouchMode::Select,
+                                               TouchMode::Full};
+
+// Stylet, souris, autre : l'outil courant, dans tous les modes (D11-4). Comme en mode full (M4 b), un doigt
+// qui écrit cède la main : le routeur le passe à Ignore et la vue termine son trait.
+Decision pointerDecision(const RouterState& state)
 {
-    return {};
+    Decision decision;
+    decision.route = Route::Tool;
+    decision.user = kFirstUser;
+    decision.endToolContacts = state.toolTouches > 0;
+    return decision;
 }
 
-// Talon L11 : rempli par L11-T4.
-bool touchModeFromId(std::string_view, TouchMode&) noexcept
+// Modes pen et select : un seul doigt à la fois, avec l'outil imposé, jamais de geste (D11-3).
+Decision imposedToolDecision(const Sample& press, const RouterState& state, FingerTool tool)
 {
+    if (press.device != DeviceKind::Touch) {
+        return pointerDecision(state);
+    }
+    Decision decision;
+    decision.user = kFirstUser;
+    if (state.stylusDown || state.toolTouches > 0 || state.gestureTouches > 0) {
+        decision.route = Route::Ignore; // paume, ou doigt suivant : aucun geste hors du mode full
+        return decision;
+    }
+    decision.route = Route::Tool;
+    decision.fingerTool = tool;
+    return decision;
+}
+
+} // namespace
+
+std::string_view touchModeId(TouchMode mode) noexcept
+{
+    const auto index = static_cast<std::size_t>(mode);
+    return index < kTouchModeIds.size() ? kTouchModeIds[index] : std::string_view{};
+}
+
+bool touchModeFromId(std::string_view id, TouchMode& out) noexcept
+{
+    for (std::size_t i = 0; i < kTouchModeIds.size(); ++i) {
+        if (kTouchModeIds[i] == id) {
+            out = kTouchModes[i];
+            return true;
+        }
+    }
     return false;
 }
 
-// Talon L11 : rempli par L11-T4.
-Decision IgnoreTouchPolicy::decide(const Sample&, const RouterState&) const
+Decision IgnoreTouchPolicy::decide(const Sample& press, const RouterState& state) const
 {
-    return {};
+    if (press.device != DeviceKind::Touch) {
+        return pointerDecision(state);
+    }
+    Decision decision;
+    decision.route = Route::Ignore;
+    decision.user = kFirstUser;
+    return decision;
 }
 
-// Talon L11 : rempli par L11-T4.
-Decision PenTouchPolicy::decide(const Sample&, const RouterState&) const
+Decision PenTouchPolicy::decide(const Sample& press, const RouterState& state) const
 {
-    return {};
+    return imposedToolDecision(press, state, FingerTool::Pen);
 }
 
-// Talon L11 : rempli par L11-T4.
-Decision SelectTouchPolicy::decide(const Sample&, const RouterState&) const
+Decision SelectTouchPolicy::decide(const Sample& press, const RouterState& state) const
 {
-    return {};
+    return imposedToolDecision(press, state, FingerTool::Select);
 }
 
-// Talon L11 : rempli par L11-T4.
-std::unique_ptr<RoutingPolicy> makeTouchPolicy(TouchMode)
+std::unique_ptr<RoutingPolicy> makeTouchPolicy(TouchMode mode)
 {
+    switch (mode) {
+    case TouchMode::Ignore:
+        return std::make_unique<IgnoreTouchPolicy>();
+    case TouchMode::Pen:
+        return std::make_unique<PenTouchPolicy>();
+    case TouchMode::Select:
+        return std::make_unique<SelectTouchPolicy>();
+    case TouchMode::Full:
+        break;
+    }
     return std::make_unique<FullTouchPolicy>();
 }
 

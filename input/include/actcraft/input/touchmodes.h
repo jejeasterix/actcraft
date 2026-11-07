@@ -1,4 +1,3 @@
-// Talon L11 : rempli par L11-T4.
 #pragma once
 
 #include <actcraft/input/routing.h>

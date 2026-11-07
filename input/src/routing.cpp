@@ -1,5 +1,6 @@
 #include <actcraft/input/routing.h>
 
+#include <algorithm>
 #include <utility>
 
 namespace actcraft::input {
@@ -45,7 +46,9 @@ Decision FullTouchPolicy::decide(const Sample& press, const RouterState& state) 
     if (state.stylusDown) {
         decision.route = Route::Ignore; // paume pendant un contact du stylet ou de la souris
     } else if (state.toolTouches + state.gestureTouches == 0) {
-        decision.route = Route::Tool; // premier doigt
+        // Premier doigt : l'outil ; posé avec un autre dans le même événement, le geste, sans point versé à
+        // l'outil (H3-16).
+        decision.route = state.pressesInEvent >= 2 ? Route::Gesture : Route::Tool;
     } else if (state.toolTouches == 1 && state.gestureTouches == 0) {
         // Deuxième doigt : le geste commence, le premier doigt y passe ; son trait est abandonné (H3-17).
         decision.route = Route::Gesture;
@@ -65,36 +68,43 @@ void PointerRouter::setPolicy(std::unique_ptr<RoutingPolicy> policy)
     m_policy = std::move(policy);
 }
 
+Decision PointerRouter::decidePress(const Sample& sample, bool covered, int pressesInEvent)
+{
+    // Un appui redécide : la décision retenue du même pointeur (relâché jamais vu) est remplacée.
+    m_contacts.erase(sample.pointer);
+    m_state = stateOf(m_contacts);
+    if (covered) {
+        // Route de la politique (D-S1) : retenue pour tout le contact, sans effet sur RouterState.
+        Decision cover;
+        cover.route = Route::Cover;
+        cover.user = kFirstUser;
+        m_contacts[sample.pointer] = cover;
+        return cover;
+    }
+    RouterState state = m_state;
+    state.pressesInEvent = pressesInEvent;
+    Decision decision = m_policy ? m_policy->decide(sample, state) : Decision{};
+    if (decision.endToolContacts) {
+        // M4 (b) : la décision vit dans la politique, pas dans la vue (modes du toucher du lot 11). Un
+        // deuxième doigt fait passer le premier au geste ; un stylet ou une souris qui prend la main le
+        // fait passer à Ignore : il n'écrit plus et ne reste pas compté comme un doigt du geste (un doigt
+        // suivant ferait sinon un pincement avec lui).
+        const Route moved = sample.device == DeviceKind::Touch ? Route::Gesture : Route::Ignore;
+        for (auto& [pointer, held] : m_contacts) {
+            if (pointer != kStylusOrMouse && held.route == Route::Tool) {
+                held.route = moved;
+            }
+        }
+    }
+    m_contacts[sample.pointer] = decision;
+    m_state = stateOf(m_contacts);
+    return decision;
+}
+
 Decision PointerRouter::route(const Sample& sample)
 {
     if (sample.phase == Phase::Press) {
-        // Un appui redécide : la décision retenue du même pointeur (relâché jamais vu) est remplacée.
-        m_contacts.erase(sample.pointer);
-        m_state = stateOf(m_contacts);
-        if (m_coverTest && m_coverTest(sample)) {
-            // Route de la politique (D-S1) : retenue pour tout le contact, sans effet sur RouterState.
-            Decision cover;
-            cover.route = Route::Cover;
-            cover.user = kFirstUser;
-            m_contacts[sample.pointer] = cover;
-            return cover;
-        }
-        Decision decision = m_policy ? m_policy->decide(sample, m_state) : Decision{};
-        if (decision.endToolContacts) {
-            // M4 (b) : la décision vit dans la politique, pas dans la vue (modes du toucher du lot 11). Un
-            // deuxième doigt fait passer le premier au geste ; un stylet ou une souris qui prend la main le
-            // fait passer à Ignore : il n'écrit plus et ne reste pas compté comme un doigt du geste (un doigt
-            // suivant ferait sinon un pincement avec lui).
-            const Route moved = sample.device == DeviceKind::Touch ? Route::Gesture : Route::Ignore;
-            for (auto& [pointer, held] : m_contacts) {
-                if (pointer != kStylusOrMouse && held.route == Route::Tool) {
-                    held.route = moved;
-                }
-            }
-        }
-        m_contacts[sample.pointer] = decision;
-        m_state = stateOf(m_contacts);
-        return decision;
+        return decidePress(sample, m_coverTest && m_coverTest(sample), 1);
     }
     const auto found = m_contacts.find(sample.pointer);
     if (found == m_contacts.end()) {
@@ -108,13 +118,30 @@ Decision PointerRouter::route(const Sample& sample)
     return decision;
 }
 
-// Rouge provisoire (L11-T4) : chaque appui décidé seul, comme par route().
 std::vector<Decision> PointerRouter::routePresses(std::span<const Sample> presses)
 {
-    std::vector<Decision> decisions;
-    decisions.reserve(presses.size());
-    for (const Sample& sample : presses) {
-        decisions.push_back(route(sample));
+    // Premier passage : le test de couverture, une fois par appui ; un doigt couvert ne compte pas parmi les
+    // appuis de l'événement (il n'atteint pas la page). Second passage : chaque appui décidé dans l'ordre,
+    // la politique voyant le nombre de doigts de l'événement.
+    std::vector<Decision> decisions(presses.size());
+    int fingers = 0;
+    for (std::size_t i = 0; i < presses.size(); ++i) {
+        const Sample& sample = presses[i];
+        if (sample.phase != Phase::Press) {
+            continue;
+        }
+        if (m_coverTest && m_coverTest(sample)) {
+            decisions[i].route = Route::Cover;
+        } else if (sample.device == DeviceKind::Touch) {
+            ++fingers;
+        }
+    }
+    const int pressesInEvent = std::max(fingers, 1);
+    for (std::size_t i = 0; i < presses.size(); ++i) {
+        const Sample& sample = presses[i];
+        decisions[i] = sample.phase == Phase::Press
+                           ? decidePress(sample, decisions[i].route == Route::Cover, pressesInEvent)
+                           : route(sample);
     }
     return decisions;
 }

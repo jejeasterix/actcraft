@@ -90,6 +90,10 @@ public:
     void release(std::uint64_t pointer);
 
 private:
+    // Appui : la décision retenue du même pointeur remplacée, Cover si `covered`, sinon la politique, qui
+    // voit `pressesInEvent`.
+    Decision decidePress(const Sample& sample, bool covered, int pressesInEvent);
+
     std::unique_ptr<RoutingPolicy> m_policy;
     std::unordered_map<std::uint64_t, Decision> m_contacts;
     RouterState m_state;
