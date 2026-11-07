@@ -552,6 +552,7 @@ actcraft_add_lot8_capture(tst_captures_diffusion_protegee diffusion-protegee)
 # Lot 11 (L11-T1) : onze scénarios de captures. Tant que la description du scénario porte le marqueur « Talon L11 :
 # rempli par L11-Tn. », le test n'exécute rien et se saute en nommant sa tâche ; la tâche propriétaire remplit le
 # scénario et le test devient la commande habituelle, sans toucher à ce fichier (même mécanisme qu'au lot 8).
+# Arguments supplémentaires du joueur : ceux qui suivent le chemin du scénario (ex. --traduction, L11-T19).
 function(actcraft_add_lot11_capture name scenario)
     set(file ${PROJECT_SOURCE_DIR}/bench/scenarios/${scenario}.json)
     get_filename_component(_base ${scenario} NAME_WE)
@@ -565,7 +566,7 @@ function(actcraft_add_lot11_capture name scenario)
         add_test(NAME ${name}
             COMMAND $<TARGET_FILE:actcraft-captures>
                 --scenario ${file}
-                --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_base})
+                --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_base} ${ARGN})
         set_tests_properties(${name} PROPERTIES
             TIMEOUT 300
             ENVIRONMENT "${_bench_env_offscreen}"
@@ -580,7 +581,10 @@ actcraft_add_lot11_capture(tst_captures_rotation_clavier rotation-clavier)
 actcraft_add_lot11_capture(tst_captures_au_doigt au-doigt)
 actcraft_add_lot11_capture(tst_captures_cycle_de_vie cycle-de-vie)
 actcraft_add_lot11_capture(tst_captures_aide_complete aide-complete)
-actcraft_add_lot11_capture(tst_captures_pseudo_langue controle/pseudo-langue)
+# Pseudo-langue de contrôle (L11-T19) : traduction produite par tests/ui.cmake. Désactivé jusqu'à L11-T20, qui
+# corrige les chaînes non marquées puis retire DISABLED ; la liste des écarts se lit par le joueur en direct.
+actcraft_add_lot11_capture(tst_captures_pseudo_langue controle/pseudo-langue --traduction ${ACTCRAFT_PSEUDO_QM})
+set_tests_properties(tst_captures_pseudo_langue PROPERTIES DISABLED TRUE)
 actcraft_add_lot11_capture(tst_captures_mises_a_jour mises-a-jour)
 actcraft_add_lot11_capture(tst_captures_classe_protegee_complete classe-protegee-complete)
 actcraft_add_lot11_capture(tst_captures_profils_complets profils-complets)

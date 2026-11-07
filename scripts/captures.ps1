@@ -1,7 +1,9 @@
 # Preuve visuelle (DA8, décision 36) : joue des scénarios d'interface et écrit captures PNG et index.md.
 # Usage : pwsh -NoProfile -File ./scripts/captures.ps1 -Scenario <nom>|tous [-Rendu d3d11|logiciel] [-HorsEcran]
 #         -Sortie <dossier> [-Lire "<objet>.<propriété>=<attendu>[;…]"] [-Taille LxH|plein-ecran]
-#         [-Preset debug|release] [-SansConstruire] [-Ouvrir <fichier>]
+#         [-Preset debug|release] [-SansConstruire] [-Ouvrir <fichier>] [-Traduction <fichier.qm>]
+# -Traduction <fichier.qm> : traduction installée avant l'interface (--traduction d'actcraft-captures) ; sert à la
+# pseudo-langue de contrôle (build/<preset>/i18n/actcraft_xx.qm, produite par la construction des tests).
 # Scénarios : bench/scenarios/<nom>.json ; « tous » ne prend pas ceux de bench/scenarios/local/ (paperboards du
 # poste : -Scenario local/<nom>). Sorties sous .tmp/ ou build/, jamais commitées.
 # -Ouvrir <fichier> : la fenêtre s'ouvre sur ce fichier (--ouvrir d'actcraft-captures, lu au lancement comme par
@@ -17,7 +19,8 @@ param(
     [string]$Taille = '1280x800',
     [ValidateSet('debug', 'release')][string]$Preset = 'debug',
     [switch]$SansConstruire,
-    [string]$Ouvrir = ''
+    [string]$Ouvrir = '',
+    [string]$Traduction = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
@@ -70,6 +73,7 @@ try {
         $arguments = @('--scenario', $f.FullName, '--rendu', $Rendu, '--taille', $Taille, '--sortie', $dossier)
         foreach ($l in $lectures) { $arguments += @('--lire', $l) }
         if ($Ouvrir) { $arguments += @('--ouvrir', $Ouvrir) }
+        if ($Traduction) { $arguments += @('--traduction', $Traduction) }
         & $exe @arguments
         if ($LASTEXITCODE -ne 0) { $echecs++ }
     }

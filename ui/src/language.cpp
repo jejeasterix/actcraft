@@ -53,6 +53,16 @@ bool Language::install(QCoreApplication& app, Preferences& preferences)
     return true;
 }
 
+bool Language::installFile(QCoreApplication& app, const QString& qmPath)
+{
+    auto* translator = new QTranslator(&app);
+    if (!translator->load(qmPath) || !QCoreApplication::installTranslator(translator)) {
+        delete translator;
+        return false;
+    }
+    return true;
+}
+
 Preferences* Language::preferences() const
 {
     return m_preferences;

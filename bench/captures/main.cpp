@@ -4,6 +4,7 @@
 #include <actcraft/bench/simulatedrecorders.h>
 #include <actcraft/bench/testroots.h>
 #include <actcraft/bench/uiscenario.h>
+#include <actcraft/ui/language.h>
 #include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
 
 #include <QDir>
@@ -59,7 +60,7 @@ QString valueAfter(const QStringList& args, const QString& name)
 // Captures et scénarios d'interface (DA8). Dernière ligne et code : SCENARIO OK (0), SCENARIO EN ECHEC (1),
 // SCENARIO INVALIDE (2 : arguments, fichier, interface).
 //   actcraft-captures --scenario <fichier.json> [--rendu auto|d3d11|logiciel] [--sortie <dossier>]
-//                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]…
+//                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]… [--traduction <fichier.qm>]
 int main(int argc, char* argv[])
 {
     // DA8 : dialogues Qt Quick non natifs forcés (un dialogue natif ne reçoit pas d'événements postés).
@@ -141,6 +142,12 @@ int main(int argc, char* argv[])
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
     StartupOptions startup = parseStartupOptions(args); // --sans-cache compris
     startup.profileRoot = profilesDir;
+
+    // Pseudo-langue de contrôle (L11-T19) : traduction installée AVANT le chargement de l'interface.
+    const QString translation = valueAfter(args, QStringLiteral("--traduction"));
+    if (!translation.isEmpty() && !actcraft::ui::Language::installFile(app, translation)) {
+        return invalid(QStringLiteral("--traduction : fichier illisible : %1").arg(translation));
+    }
 
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde le stylet synthétique.
     std::unique_ptr<UiScenarioPlayer> player;

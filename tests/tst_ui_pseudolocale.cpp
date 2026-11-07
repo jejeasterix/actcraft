@@ -8,8 +8,9 @@
 
 using namespace actcraft::ui;
 
-// Pseudo-langue de contrôle (L11-T19, D11-14) : chaque traduction est « ⟦ » + source + « ⟧ », générée au build
-// des tests à partir de `ui/i18n/actcraft_fr.ts`, jamais livrée. Les chemins viennent de tests/ui.cmake.
+// Pseudo-langue de contrôle (L11-T19, D11-14) : chaque traduction est « ⟦ » + source + « ⟧ », générée au
+// build des tests à partir de `ui/i18n/actcraft_fr.ts`, jamais livrée. Les chemins viennent de
+// tests/ui.cmake.
 class TstUiPseudolocale : public QObject
 {
     Q_OBJECT
@@ -43,7 +44,8 @@ class TstUiPseudolocale : public QObject
             else if (name == QLatin1String("source"))
                 current.source = xml.readElementText();
             else if (name == QLatin1String("translation")) {
-                current.unfinished = xml.attributes().value(QLatin1String("type")) == QLatin1String("unfinished");
+                current.unfinished =
+                    xml.attributes().value(QLatin1String("type")) == QLatin1String("unfinished");
                 const QString whole = xml.readElementText(QXmlStreamReader::IncludeChildElements);
                 current.translations << whole;
             } else if (name == QLatin1String("numerusform")) {
@@ -80,7 +82,10 @@ class TstUiPseudolocale : public QObject
         return out;
     }
 
-    static QString marked(const QString& source) { return QString::fromUtf8("⟦") + source + QString::fromUtf8("⟧"); }
+    static QString marked(const QString& source)
+    {
+        return QString::fromUtf8("⟦") + source + QString::fromUtf8("⟧");
+    }
 
 private slots:
     void everySourceMarked()
@@ -113,7 +118,12 @@ private slots:
         int withArg = 0;
         int withN = 0;
         for (const Message& m : pseudo) {
-            const QString text = m.translations.value(0);
+            const bool plural = m.source.contains(QLatin1String("%n"));
+            // Une forme plurielle à la fois (readTs concatène les formes d'une même traduction).
+            const QStringList fs =
+                plural ? forms(QStringLiteral(ACTCRAFT_PSEUDO_TS), m.source) : QStringList();
+            QVERIFY2(!plural || !fs.isEmpty(), qPrintable(m.source));
+            const QString text = plural ? fs.value(0) : m.translations.value(0);
             for (int n = 1; n <= 9; ++n) {
                 const QString token = QStringLiteral("%%1").arg(n);
                 QCOMPARE(text.count(token), m.source.count(token));
@@ -131,15 +141,15 @@ private slots:
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(ACTCRAFT_PSEUDO_QM)));
         QVERIFY(QCoreApplication::installTranslator(&translator));
-        const QString shown =
-            QCoreApplication::translate("AboutDialog", "Fermer");
+        const QString shown = QCoreApplication::translate("AboutDialog", "Fermer");
         QCoreApplication::removeTranslator(&translator);
         QCOMPARE(shown, marked(QStringLiteral("Fermer")));
     }
 
     void installFileInstallsTheTranslator()
     {
-        QVERIFY(!Language::installFile(*QCoreApplication::instance(), QStringLiteral("/inexistant/actcraft_xx.qm")));
+        QVERIFY(!Language::installFile(*QCoreApplication::instance(),
+                                       QStringLiteral("/inexistant/actcraft_xx.qm")));
         QCOMPARE(QCoreApplication::translate("AboutDialog", "Fermer"), QStringLiteral("Fermer"));
         QVERIFY(Language::installFile(*QCoreApplication::instance(), QStringLiteral(ACTCRAFT_PSEUDO_QM)));
         QCOMPARE(QCoreApplication::translate("AboutDialog", "Fermer"), marked(QStringLiteral("Fermer")));
