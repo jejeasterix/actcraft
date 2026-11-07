@@ -821,7 +821,7 @@ void PageView::finishStroke()
     // abandonné sans étape, comme au changement de page (Main.qml) ; le relâché synthétisé plus bas le
     // terminerait par un déplacement. Le stylo de ToolHost y verse son trait (Tool::cancel).
     if (m_tools) {
-        m_tools->cancelGesture();
+        m_tools->cancelAllGestures(); // L11-C6 : celui du second utilisateur aussi
     }
     // L11-T5 : l'outil du contact qui écrivait (utilisateur et outil imposé de sa décision), lu avant qu'un
     // doigt ne soit rendu ; sans contact suivi, l'outil courant.
@@ -1440,6 +1440,9 @@ input::PointerRouter& PageView::router() noexcept
 
 void PageView::setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy)
 {
+    if (const auto* outgoing = dynamic_cast<const input::TwoUserPolicy*>(m_router.policy())) {
+        m_lastFirstStylus = outgoing->firstStylusDevice(); // L11-C6 : relu par DualMode
+    }
     m_router.setPolicy(policy ? std::move(policy) : std::make_unique<input::FullTouchPolicy>());
     updateSecondUserArea();
 }

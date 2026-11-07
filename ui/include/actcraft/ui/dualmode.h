@@ -55,7 +55,9 @@ signals:
 
 private:
     void applyPending();
-    void poseTwoUserPolicy();
+    // Allumé, ou mode du toucher changé (`keepFirstStylus` : le premier stylet de la politique remplacée
+    // reste l'utilisateur 0, L11-C6).
+    void poseTwoUserPolicy(bool keepFirstStylus = false);
     void restoreTouchPolicy();
     void updateArea();
     QRectF secondArea() const;
