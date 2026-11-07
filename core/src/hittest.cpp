@@ -43,10 +43,10 @@ bool strokeHit(const PageObject& object, const Stroke& stroke, PointF point, dou
 
 } // namespace
 
-bool strokeTouched([[maybe_unused]] const PageObject& object, [[maybe_unused]] PointF point,
-                   [[maybe_unused]] double tolerance) noexcept
+bool strokeTouched(const PageObject& object, PointF point, double tolerance) noexcept
 {
-    return false; // TODO
+    const auto* stroke = std::get_if<Stroke>(&body(object));
+    return stroke != nullptr && strokeHit(object, *stroke, point, tolerance);
 }
 
 bool isAnnotation(const PageObject& object) noexcept

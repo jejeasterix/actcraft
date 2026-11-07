@@ -135,12 +135,13 @@ void Document::setUnknownKeys(std::string keys)
     m_unknownKeys = std::move(keys);
 }
 
-std::string Document::addResource(QByteArray data, std::string extension, [[maybe_unused]] std::string key)
+std::string Document::addResource(QByteArray data, std::string extension)
 {
-    return addResource(std::move(data), std::move(extension)); // TODO
+    std::string key = sha256Hex(data);
+    return addResource(std::move(data), std::move(extension), std::move(key));
 }
 
-std::string Document::addResource(QByteArray data, std::string extension)
+std::string Document::addResource(QByteArray data, std::string extension, std::string key)
 {
     // Minuscules ASCII à la main : std::tolower suit la locale du processus (Qt appelle setlocale(LC_ALL, "")
     // sous Unix ; en locale turque mono-octet, « I » ne devient pas « i »).
@@ -154,7 +155,6 @@ std::string Document::addResource(QByteArray data, std::string extension)
     if (!safe) {
         extension = "bin";
     }
-    std::string key = sha256Hex(data);
     Resource resource;
     resource.data = std::move(data);
     resource.extension = std::move(extension);
