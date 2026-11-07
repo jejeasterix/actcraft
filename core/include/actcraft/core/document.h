@@ -64,6 +64,9 @@ public:
     // Clé = SHA-256 des octets en hexadécimal minuscule (64 caractères) ; même contenu, même clé, une seule
     // copie.
     std::string addResource(QByteArray data, std::string extension);
+    // Idem avec la clé déjà calculée (SHA-256 des mêmes octets, par exemple sur un fil de fond) : prise telle
+    // quelle, sans nouveau hachage sur le fil de l'interface. L'appelant répond de l'exactitude de la clé.
+    std::string addResource(QByteArray data, std::string extension, std::string key);
     // nullptr si la clé est inconnue.
     const Resource* resource(const std::string& key) const noexcept;
     const std::map<std::string, Resource>& resources() const noexcept;

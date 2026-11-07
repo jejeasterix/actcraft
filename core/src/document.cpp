@@ -135,6 +135,11 @@ void Document::setUnknownKeys(std::string keys)
     m_unknownKeys = std::move(keys);
 }
 
+std::string Document::addResource(QByteArray data, std::string extension, [[maybe_unused]] std::string key)
+{
+    return addResource(std::move(data), std::move(extension)); // TODO
+}
+
 std::string Document::addResource(QByteArray data, std::string extension)
 {
     // Minuscules ASCII à la main : std::tolower suit la locale du processus (Qt appelle setlocale(LC_ALL, "")

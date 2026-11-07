@@ -23,6 +23,10 @@ bool isSelectable(const Page& page, const PageObject& object) noexcept;
 // trait à moins de sa demi-épaisseur + `tolerance` de sa ligne centrale (transformation appliquée) ; un autre
 // objet, point dans son emprise (boundsOnPage) agrandie de `tolerance`.
 std::optional<ObjectId> objectAt(const Page& page, PointF point, double tolerance);
+// Vrai si `object` est un trait que `point` touche : à moins de sa demi-épaisseur + `tolerance` de sa ligne
+// centrale (transformation appliquée). Même règle que objectAt pour un trait, lue sur l'objet seul (sans
+// page, sans copie) et sans regard sur sa visibilité. Faux pour tout autre objet.
+bool strokeTouched(const PageObject& object, PointF point, double tolerance) noexcept;
 // Objets sélectionnables dont l'emprise touche `rect` (bords compris), dans l'ordre de la page (D6, H3-4).
 std::vector<ObjectId> objectsTouching(const Page& page, const RectF& rect);
 RectF normalizedRect(PointF a, PointF b) noexcept;
