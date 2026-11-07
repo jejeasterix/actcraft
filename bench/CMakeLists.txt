@@ -72,6 +72,20 @@ actcraft_set_warnings(actcraft-bench)
 # build/<preset>/actcraft-bench.
 set_target_properties(actcraft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# APK de banc séparé (L11-T15, D11-12) : identifiant propre (« .banc »), manifeste à nous sans aucune permission,
+# jamais dans build/paquet/ ni dans la release. Construit par scripts/paquet-banc-android.ps1.
+if(ANDROID)
+    math(EXPR ACTCRAFT_BANC_VERSION_CODE
+        "${PROJECT_VERSION_MAJOR} * 10000 + ${PROJECT_VERSION_MINOR} * 100 + ${PROJECT_VERSION_PATCH}")
+    set_target_properties(actcraft-bench PROPERTIES
+        QT_ANDROID_PACKAGE_NAME io.github.jejeasterix.actcraft.banc
+        QT_ANDROID_APP_NAME "ActCraft Banc"
+        QT_ANDROID_VERSION_NAME ${PROJECT_VERSION}
+        QT_ANDROID_VERSION_CODE ${ACTCRAFT_BANC_VERSION_CODE}
+        QT_ANDROID_TARGET_SDK_VERSION 36
+        QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/app/android)
+endif()
+
 # Joueur de scénarios d'interface (DA8) : bibliothèque à part, pour que le banc livré (actcraft_bench,
 # actcraft-bench) ne lie ni QtTest ni les en-têtes QPA, sous aucun système.
 actcraft_add_module(benchui
