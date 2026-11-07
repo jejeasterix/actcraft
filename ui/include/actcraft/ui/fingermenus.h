@@ -11,10 +11,10 @@
 
 namespace actcraft::ui {
 
-// Menus au doigt (D11-7) : écoute PageView::touchHeld (un doigt tenu immobile). Avec l'outil de sélection, demande
-// le menu de l'objet sous le doigt (le doigt est dans le cadre de la sélection), sinon le menu de la page ; avec
-// tout autre outil (encre, gomme, forme…) : rien. Les menus eux-mêmes sont ouverts par FingerMenu.qml, sur les
-// signaux ci-dessous (point en repère fenêtre).
+// Menus au doigt (D11-7) : écoute PageView::touchHeld (un doigt tenu immobile). Avec l'outil de sélection,
+// demande le menu de l'objet sous le doigt (le doigt est dans le cadre de la sélection), sinon le menu de la
+// page ; avec tout autre outil (encre, gomme, forme…) : rien. Les menus eux-mêmes sont ouverts par
+// FingerMenu.qml, sur les signaux ci-dessous (point en repère fenêtre).
 class FingerMenus : public QObject
 {
     Q_OBJECT
