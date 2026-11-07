@@ -176,10 +176,11 @@ Item {
         if (!commands)
             return
         // Lot 8 (L8-T18, F-255) : encre révélatrice.
-        commands.setHandler("tool.reveal-ink", function () {
+        // L11-C6 : l'outil de l'utilisateur qui la déclenche (activateFor ; 0 : activate).
+        commands.setHandler("tool.reveal-ink", function (argument, user) {
             const host = overlays.toolHost()
             if (host)
-                host.activate("reveal-ink")
+                host.activateFor("reveal-ink", user || 0)
         })
         // page.history-back et page.history-forward : gestionnaires natifs de l'exécuteur d'actions (L8-T9).
     }

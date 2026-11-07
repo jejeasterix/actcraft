@@ -137,7 +137,11 @@ public:
     Q_INVOKABLE void enlargeSelection();
     Q_INVOKABLE void reduceSelection();
     Q_INVOKABLE void setSelectionTranslucency(int value);
+    // Geste du premier utilisateur (Échap, changement de son outil ou de sa sélection).
     Q_INVOKABLE void cancelGesture();
+    // L11-C6 : gestes des deux utilisateurs (modification annoncée du document, changement de page, zoom,
+    // rebranchement) : un glisser du second s'arrête sans étape au lieu d'en verser une.
+    Q_INVOKABLE void cancelAllGestures();
     Q_INVOKABLE void setConnectorStyle(int style);         // L5-T17
     Q_INVOKABLE void setConnectorCaps(int capA, int capB); // L5-C18 : rangs 0 aucune, 1 rayon, 2 flèche
     // H5-33 (L5-C3) : le choix d'un style au panneau (connector.style) règle aussi les extrémités selon ses

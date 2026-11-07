@@ -28,6 +28,9 @@ public:
     Decision decide(const Sample& press, const RouterState& state) const override;
     // Premier appareil de stylet vu (l'utilisateur 0) ; 0 : aucun ; réinitialisé à la construction.
     std::uint64_t firstStylusDevice() const noexcept;
+    // L11-C6 : premier stylet repris d'une politique remplacée (changement du mode du toucher pendant le mode
+    // à deux, ui::DualMode) ; 0 : aucun.
+    void setFirstStylusDevice(std::uint64_t device) noexcept { m_firstStylus = device; }
 
 private:
     UserId stylusUser(std::uint64_t deviceId) const noexcept; // retient le premier appareil vu
