@@ -1073,8 +1073,12 @@ void TstUiActionrunner::secondFingerReplaysTheHeldPress()
     second.x = 950;
     second.y = 700; // hors de tout objet d'action : l'exécuteur ne le prend pas
     gate->onSample(second);
-    QCOMPARE(tools.selectionCount(), 1); // l'appui du premier doigt est arrivé à l'outil
+    // L'outil de sélection ne suit que le pointeur de son appui et ignore un appui tant qu'il est occupé :
+    // avec l'appui du premier doigt rejoué, son relâché achève un clic (objet sélectionné) ; sans lui,
+    // l'outil suit le second doigt et ce relâché est ignoré.
     QTest::mouseRelease(mount.window, Qt::LeftButton, Qt::NoModifier, at);
+    QCOMPARE(tools.selectionCount(), 1);
+    QVERIFY(!tools.activeTool()->isBusy());
     m_runner->setContactActive(false);
     QCoreApplication::processEvents();
     tools.setActionRunner(nullptr);

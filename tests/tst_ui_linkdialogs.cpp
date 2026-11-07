@@ -212,7 +212,10 @@ void TstUiLinkdialogs::storedFileBecomesAResource()
     const QString path = makeFile(QStringLiteral("cours.pdf"), bytes);
     QVERIFY(!path.isEmpty());
     QVERIFY(m_controller->document().resources().empty());
+    QSignalSpy storedCreated(m_dialogs.get(), &ui::LinkDialogs::created);
     QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
+    // Le fichier rangé est lu hors du fil de l'interface : le lien arrive au retour (L8-C8).
+    QTRY_COMPARE_WITH_TIMEOUT(storedCreated.size(), 1, 10000);
     QCOMPARE(m_controller->document().resources().size(), size_t(1));
     const core::PageObject& made = page().objects.back();
     const core::Action& action = onlyAction(made);
@@ -299,7 +302,9 @@ void TstUiLinkdialogs::oneStep()
     const QString path = makeFile(QStringLiteral("cours.pdf"), "%PDF-1.4");
     QVERIFY(!path.isEmpty());
     QVERIFY(!m_controller->canUndo());
+    QSignalSpy storedCreated(m_dialogs.get(), &ui::LinkDialogs::created);
     QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
+    QTRY_COMPARE_WITH_TIMEOUT(storedCreated.size(), 1, 10000); // lecture hors du fil (L8-C8)
     QVERIFY(m_controller->canUndo());
     m_controller->undo(); // une seule annulation défait objet et lien
     QCOMPARE(page().objects.size(), size_t(1));
