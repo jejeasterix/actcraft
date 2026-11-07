@@ -1297,8 +1297,8 @@ private slots:
         QCOMPARE(line->pen.color, core::Outline{}.color);
     }
 
-    // L8-C15 : un identifiant en double (fichier édité à la main, ancien logiciel) est renuméroté à la lecture :
-    // le premier objet le garde, le second en reçoit un neuf ; l'avertissement reste.
+    // L8-C15 : un identifiant en double (fichier édité à la main, ancien logiciel) est renuméroté à la
+    // lecture : le premier objet le garde, le second en reçoit un neuf ; l'avertissement reste.
     void duplicateObjectIdsAreRenumberedOnRead()
     {
         core::Document rich = richdoc::richDocument();

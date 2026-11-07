@@ -159,7 +159,7 @@ private slots:
         const std::uint64_t second = f.document.documentKey();
         QVERIFY(second != 0 && second != first);
         f.tabs.activate(0);
-        QCOMPARE(f.document.documentKey(), first); // retour d'onglet : le même dossier
+        QCOMPARE(f.document.documentKey(), first);      // retour d'onglet : le même dossier
         QVERIFY(f.document.generation() != generation); // alors que generation() a changé
         f.tabs.activate(1);
         QCOMPARE(f.document.documentKey(), second);

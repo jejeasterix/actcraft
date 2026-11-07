@@ -178,8 +178,9 @@ void ReplacePageCommand::redo(Document& document, Changes& changes)
                 taken.insert(object.common.id);
             }
         }
-        const bool collides = std::any_of(m_other.objects.begin(), m_other.objects.end(),
-                                          [&taken](const PageObject& o) { return taken.count(o.common.id) != 0; });
+        const bool collides =
+            std::any_of(m_other.objects.begin(), m_other.objects.end(),
+                        [&taken](const PageObject& o) { return taken.count(o.common.id) != 0; });
         if (collides) {
             m_other = withFreshIdsWhere(document, std::move(m_other), taken);
         }

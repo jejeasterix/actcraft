@@ -46,7 +46,8 @@ private slots:
     void strokeTouchedAgreesWithObjectAt()
     {
         PageObject hidden = strokeObject(7, {{0, 0, 0.5f}, {400, 400, 0.5f}}, 10);
-        hidden.common.visible = false; // un porteur d'action masqué reste cliquable : la visibilité n'y entre pas
+        hidden.common.visible =
+            false; // un porteur d'action masqué reste cliquable : la visibilité n'y entre pas
         Page page;
         PageObject shown = hidden;
         shown.common.visible = true;
