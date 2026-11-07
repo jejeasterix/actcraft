@@ -12,6 +12,7 @@
 #include <actcraft/input/twouserpolicy.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/render/liftlayeritem.h>
+#include <actcraft/tools/revealinktool.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/commands.h>
@@ -210,6 +211,9 @@ private slots:
     // L11-C7 : restes du mode à deux.
     void twoStrokesAtOnce();
     void twoDragsStayApart();
+    // L11-C9 : derniers restes du mode à deux.
+    void secondUsersToolKeepsItsSettings();
+    void undoAbandonsTheSecondUsersStroke();
 
 private:
     QTemporaryDir m_settings;
@@ -761,6 +765,66 @@ void TstUiSecondpalette::twoDragsStayApart()
     controller->undo(); // le dernier déplacement, celui du premier
     QVERIFY(std::abs(core::boundsOnPage(*objectOf(*controller, boxA)).x - leftA) < 0.01);
     QCOMPARE(core::boundsOnPage(*objectOf(*controller, boxB)).x, movedB);
+}
+
+void TstUiSecondpalette::secondUsersToolKeepsItsSettings()
+{
+    // L11-C9 (H) : configureTool règle un outil du second avec les réglages du second. Lus chez le premier,
+    // l'épaisseur que le second vient de choisir pour l'encre à révéler est aussitôt remplacée par celle du
+    // premier (50 par défaut).
+    App app;
+    QVERIFY(start(app));
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.reveal-ink"), QVariant(), 1));
+    QVERIFY(app.commands->trigger(QStringLiteral("pen.width"), 20, 1));
+    QCOMPARE(app.tools->user(1).settings(QStringLiteral("reveal-ink")).width, 20.0);
+    QVERIFY(app.tools->user(0).settings(QStringLiteral("reveal-ink")).width != 20.0);
+    auto* reveal = dynamic_cast<tools::RevealInkTool*>(app.tools->activeTool(1));
+    QVERIFY(reveal);
+    QCOMPARE(reveal->baseWidth(), 20.0);
+
+    // Repris après un autre outil (configureTool à l'activation) : toujours le sien.
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.reveal-ink"), QVariant(), 1));
+    reveal = dynamic_cast<tools::RevealInkTool*>(app.tools->activeTool(1));
+    QVERIFY(reveal);
+    QCOMPARE(reveal->baseWidth(), 20.0);
+}
+
+void TstUiSecondpalette::undoAbandonsTheSecondUsersStroke()
+{
+    // L11-C9 (I) : Annuler du premier pendant le trait du second abandonne ce trait (PenTool::abandon). Avec
+    // cancel(), le trait est versé (une étape) juste avant l'annulation : il reste sur la page, ou c'est lui
+    // qu'Annuler retire à la place du trait du premier.
+    App app;
+    QVERIFY(start(app));
+    ui::DocumentController* controller = app.tools->documentController();
+    QVERIFY(controller);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
+    const int before = controller->shownObjectCount();
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    stylusDrag(app, stylus11.get(), QPointF(600, 200), QPointF(700, 240));
+    QCOMPARE(controller->shownObjectCount(), before + 1);
+
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
+    for (int i = 1; i <= 5; ++i) {
+        tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(100 + 40 * i, 400 + 10 * i));
+    }
+    QCOMPARE(app.view->lastContactUser(), 1);
+    tools::Tool* other = app.tools->activeTool(1);
+    QVERIFY(other && other->isBusy());
+
+    controller->undo();
+    QVERIFY(!other->isBusy());
+    QCOMPARE(controller->shownObjectCount(), before); // trait du premier retiré, celui du second jamais versé
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(340, 470));
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(340, 470));
+    QCOMPARE(controller->shownObjectCount(), before);
+    controller->redo(); // le trait du premier revient, seul
+    QCOMPARE(controller->shownObjectCount(), before + 1);
 }
 
 QTEST_MAIN(TstUiSecondpalette)
