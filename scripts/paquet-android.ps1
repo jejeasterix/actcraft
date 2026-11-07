@@ -65,6 +65,9 @@ try {
         $preset = if ($a -eq 'arm64-v8a') { 'android-arm64' } else { 'android-x86_64' }
         cmake --preset $preset
         if ($LASTEXITCODE -ne 0) { throw "configuration $preset en échec" }
+        # A24 (amendement 1, M13) : androiddeployqt lance Gradle ; sans démon, rien ne reste après « APK OK » et le
+        # script rend la main (rejeu figé 2 h 30 sinon).
+        $env:GRADLE_OPTS = '-Dorg.gradle.daemon=false'
         cmake --build --preset $preset --target apk
         if ($LASTEXITCODE -ne 0) { throw "construction $preset en échec" }
         $brut = Get-ChildItem -Recurse -Filter '*.apk' "build/$preset" |
