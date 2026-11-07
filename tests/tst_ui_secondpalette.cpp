@@ -3,6 +3,11 @@
 #include "startup.h"
 
 #include <actcraft/actions/commandregistry.h>
+#include <actcraft/core/document.h>
+#include <actcraft/core/edits.h>
+#include <actcraft/core/lift.h>
+#include <actcraft/core/model.h>
+#include <actcraft/core/shapegeometry.h>
 #include <actcraft/input/touchmodes.h>
 #include <actcraft/input/twouserpolicy.h>
 #include <actcraft/tools/tool.h>
@@ -24,6 +29,10 @@
 #include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QtTest>
+
+#include <cmath>
+#include <cstdint>
+#include <memory>
 
 using namespace actcraft;
 
@@ -147,6 +156,33 @@ QColor penColor(ui::ToolHost& tools, input::UserId user)
     return QColor::fromRgba(tools.user(user).settings(QStringLiteral("pen")).color);
 }
 
+// Glisser d'un stylet, de `from` à `to` en six mouvements, relâché à l'arrivée (coordonnées de page).
+void stylusDrag(App& app, const QPointingDevice* device, QPointF from, QPointF to)
+{
+    tablet(app, device, QEvent::TabletPress, from);
+    for (int i = 1; i <= 6; ++i) {
+        tablet(app, device, QEvent::TabletMove, from + (to - from) * i / 6);
+    }
+    tablet(app, device, QEvent::TabletRelease, to);
+}
+
+// Rectangle ajouté à la page affichée par la pile (une étape) ; `locked` : drapeau du verrou.
+core::ObjectId addBox(ui::DocumentController& controller, core::RectF bounds, bool locked = false)
+{
+    core::PageObject object = core::makeShapeObject("rectangle", bounds, core::ShapeStyle{});
+    object.common.locked = locked;
+    const auto page = static_cast<std::size_t>(controller.currentIndex());
+    controller.execute(std::make_unique<core::AddObjectCommand>(page, std::move(object)));
+    return controller.document().page(page).objects.back().common.id;
+}
+
+const core::PageObject* objectOf(const ui::DocumentController& controller, core::ObjectId id)
+{
+    const core::Page& page = controller.document().page(static_cast<std::size_t>(controller.currentIndex()));
+    const std::size_t index = core::indexOf(page, id);
+    return index == page.objects.size() ? nullptr : &page.objects[index];
+}
+
 } // namespace
 
 class TstUiSecondpalette : public QObject
@@ -162,6 +198,13 @@ private slots:
     void offRestoresTheTouchMode();
     void pinchZoomsOnlyWhenOff();
     void secondUserReceivesInDualMode();
+    // L11-C6 (revue de L11-T9).
+    void undoCancelsTheSecondUsersGesture();
+    void touchModeChangeKeepsTheUsers();
+    void designFlagsReachTheSecondUser();
+    void revealInkKeepsTheUser();
+    void nestedTriggerKeepsTheUser();
+    void toggleWaitsForTheContactToEnd();
 
 private:
     QTemporaryDir m_settings;
@@ -197,43 +240,26 @@ void TstUiSecondpalette::everyDialogCommandMarked()
 {
     // Liste relevée dans les gestionnaires QML (corps des setHandler et fonctions qu'ils appellent) : Dialog,
     // Popup modale, sélecteur de fichier (argument d'URL facultatif : boîte sans argument). Non retenus :
-    // menus et surcouches sans boîte (object.menu, object.translucency, color.more, color.pick,
-    // view.dashboard, help.contents). Exacte dans les deux sens : une commande marquée hors de la liste
-    // rougit aussi.
+    // menus et surcouches sans boîte (resources.add, L11-C6 : ajout direct à la bibliothèque ; object.menu,
+    // object.translucency, color.more, color.pick, view.dashboard, help.contents). Exacte dans les deux sens
+    // : une commande marquée hors de la liste rougit aussi.
     const QStringList dialogs = {
-        QStringLiteral("classroom.lock"),
-        QStringLiteral("classroom.password"),
-        QStringLiteral("color.dialog"),
-        QStringLiteral("file.new-custom"),
-        QStringLiteral("file.open"),
-        QStringLiteral("file.save-as"),
-        QStringLiteral("file.quit"),
-        QStringLiteral("file.print"),
-        QStringLiteral("file.publish"),
-        QStringLiteral("help.about"),
-        QStringLiteral("page.background"),
-        QStringLiteral("grid.designer"),
-        QStringLiteral("profile.choose"),
-        QStringLiteral("profile.edit"),
-        QStringLiteral("profile.save-as"),
-        QStringLiteral("profile.import"),
-        QStringLiteral("profile.export"),
-        QStringLiteral("resources.other"),
-        QStringLiteral("resources.delete"),
-        QStringLiteral("resources.new-folder"),
-        QStringLiteral("resources.rename"),
-        QStringLiteral("resources.add"),
-        QStringLiteral("spell.check"),
-        QStringLiteral("insert.web-frame"),
-        QStringLiteral("webframe.unblock"),
-        QStringLiteral("link.file"),
-        QStringLiteral("link.website"),
-        QStringLiteral("insert.image"),
-        QStringLiteral("insert.media"),
-        QStringLiteral("export.page-image"),
-        QStringLiteral("export.pdf"),
-        QStringLiteral("file.import-pdf"),
-        QStringLiteral("file.import-powerpoint-images"),
+        QStringLiteral("classroom.lock"),     QStringLiteral("classroom.password"),
+        QStringLiteral("color.dialog"),       QStringLiteral("file.new-custom"),
+        QStringLiteral("file.open"),          QStringLiteral("file.save-as"),
+        QStringLiteral("file.quit"),          QStringLiteral("file.print"),
+        QStringLiteral("file.publish"),       QStringLiteral("help.about"),
+        QStringLiteral("page.background"),    QStringLiteral("grid.designer"),
+        QStringLiteral("profile.choose"),     QStringLiteral("profile.edit"),
+        QStringLiteral("profile.save-as"),    QStringLiteral("profile.import"),
+        QStringLiteral("profile.export"),     QStringLiteral("resources.other"),
+        QStringLiteral("resources.delete"),   QStringLiteral("resources.new-folder"),
+        QStringLiteral("resources.rename"),   QStringLiteral("spell.check"),
+        QStringLiteral("insert.web-frame"),   QStringLiteral("webframe.unblock"),
+        QStringLiteral("link.file"),          QStringLiteral("link.website"),
+        QStringLiteral("insert.image"),       QStringLiteral("insert.media"),
+        QStringLiteral("export.page-image"),  QStringLiteral("export.pdf"),
+        QStringLiteral("file.import-pdf"),    QStringLiteral("file.import-powerpoint-images"),
         QStringLiteral("help.check-updates"), // boîte en L11-T22
     };
     ui::Commands commands;
@@ -438,6 +464,175 @@ void TstUiSecondpalette::secondUserReceivesInDualMode()
     QVERIFY(!other->isBusy());
     tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 210));
     QVERIFY(!own->isBusy());
+}
+
+void TstUiSecondpalette::undoCancelsTheSecondUsersGesture()
+{
+    // Revue de L11-T9, majeur 1 : Annuler (editAboutToApply → finishStroke) abandonne aussi le glisser du
+    // second utilisateur, sans étape. Sans cela, le relâché synthétisé termine son glisser par un déplacement
+    // (une étape), et Annuler retire ce déplacement au lieu du trait du premier.
+    App app;
+    QVERIFY(start(app));
+    ui::DocumentController* controller = app.tools->documentController();
+    QVERIFY(controller);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.select"), QVariant(), 1));
+    const int before = controller->shownObjectCount();
+    const core::ObjectId box = addBox(*controller, {100, 100, 200, 200});
+    QTRY_VERIFY(app.view->cacheReady());
+    const double left = core::boundsOnPage(*objectOf(*controller, box)).x;
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(680, 220));
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(680, 220));
+    QCOMPARE(controller->shownObjectCount(), before + 2); // la boîte, puis le trait du premier : une étape
+
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(200, 200));
+    for (int i = 1; i <= 6; ++i) {
+        tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(200 + 10 * i, 200 + 8 * i));
+    }
+    QCOMPARE(app.view->lastContactUser(), 1);
+    tools::Tool* other = app.tools->activeTool(1);
+    QVERIFY(other && other->isBusy());
+    QVERIFY(controller->isLifting()); // la boîte glisse
+
+    controller->undo();
+    QVERIFY(!other->isBusy());
+    QVERIFY(!controller->isLifting());
+    QCOMPARE(controller->shownObjectCount(), before + 1); // trait du premier retiré, la boîte reste
+    QVERIFY(std::abs(core::boundsOnPage(*objectOf(*controller, box)).x - left) < 0.01); // jamais déplacée
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(280, 260));
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(280, 260));
+    QVERIFY(std::abs(core::boundsOnPage(*objectOf(*controller, box)).x - left) < 0.01);
+    QCOMPARE(controller->shownObjectCount(), before + 1);
+}
+
+void TstUiSecondpalette::touchModeChangeKeepsTheUsers()
+{
+    // Revue de L11-T9, majeur 3 : changer le mode du toucher en mode à deux repose une TwoUserPolicy ; elle
+    // garde le stylet du premier utilisateur. Sans cela, le stylet qui se pose le premier après le changement
+    // devient l'utilisateur 0 : utilisateurs permutés.
+    App app;
+    QVERIFY(start(app));
+    auto* touch = app.window->findChild<ui::TouchModeController*>(QStringLiteral("appTouchMode"));
+    QVERIFY(touch);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
+    QCOMPARE(app.view->lastContactUser(), 0);
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 210));
+    const auto* policy = dynamic_cast<const input::TwoUserPolicy*>(app.view->router().policy());
+    QVERIFY(policy);
+    const std::uint64_t first = policy->firstStylusDevice();
+    QVERIFY(first != 0);
+
+    const QString next =
+        touch->mode() == QStringLiteral("select") ? QStringLiteral("pen") : QStringLiteral("select");
+    QVERIFY(touch->setMode(next));
+    policy = dynamic_cast<const input::TwoUserPolicy*>(app.view->router().policy());
+    QVERIFY(policy);
+    QCOMPARE(policy->firstStylusDevice(), first);
+
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(140, 410));
+    QCOMPARE(app.view->lastContactUser(), 1); // le premier posé après le changement reste le second
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(140, 410));
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 300));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 310));
+    QCOMPARE(app.view->lastContactUser(), 0);
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 310));
+}
+
+void TstUiSecondpalette::designFlagsReachTheSecondUser()
+{
+    // Revue de L11-T9, majeur 2 : le mode conception (verrou ignoré, accrochage coupé) atteint aussi le
+    // contexte des outils du second utilisateur, créés avant le changement.
+    App app;
+    QVERIFY(start(app));
+    ui::DocumentController* controller = app.tools->documentController();
+    QVERIFY(controller);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.select")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.select"), QVariant(), 1));
+    const core::ObjectId box = addBox(*controller, {100, 100, 200, 200}, true);
+    QTRY_VERIFY(app.view->cacheReady());
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    stylusDrag(app, stylus11.get(), QPointF(900, 600), QPointF(900, 600)); // l'appareil 11 : utilisateur 0
+    const double left = core::boundsOnPage(*objectOf(*controller, box)).x;
+    stylusDrag(app, stylus22.get(), QPointF(200, 200), QPointF(260, 248));
+    QCOMPARE(app.view->lastContactUser(), 1);
+    QCOMPARE(core::boundsOnPage(*objectOf(*controller, box)).x, left); // verrouillé : immobile
+
+    app.tools->setLockIgnored(true); // outils du second déjà créés
+    stylusDrag(app, stylus22.get(), QPointF(200, 200), QPointF(260, 248));
+    const double moved = core::boundsOnPage(*objectOf(*controller, box)).x;
+    QVERIFY2(moved - left > 30, qPrintable(QString::number(moved - left)));
+    QVERIFY(objectOf(*controller, box)->common.locked);
+
+    app.tools->setLockIgnored(false);
+    stylusDrag(app, stylus22.get(), QPointF(260, 250), QPointF(320, 298));
+    QCOMPARE(core::boundsOnPage(*objectOf(*controller, box)).x, moved);
+}
+
+void TstUiSecondpalette::revealInkKeepsTheUser()
+{
+    // Revue de L11-T9, mineur : tool.reveal-ink (ActionOverlays.qml) change l'outil de l'utilisateur qui le
+    // déclenche, jamais celui du premier pour le second.
+    App app;
+    QVERIFY(start(app));
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.reveal-ink"), QVariant(), 1));
+    QCOMPARE(app.tools->user(1).currentTool(), QStringLiteral("reveal-ink"));
+    QCOMPARE(app.tools->user(0).currentTool(), QStringLiteral("pen"));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.reveal-ink")));
+    QCOMPARE(app.tools->user(0).currentTool(), QStringLiteral("reveal-ink"));
+}
+
+void TstUiSecondpalette::nestedTriggerKeepsTheUser()
+{
+    // Revue de L11-T9, mineur : un déclenchement imbriqué par l'ancienne signature garde l'utilisateur du
+    // déclenchement en cours ; une commande à boîte relancée pour le second reste refusée.
+    ui::Commands commands;
+    commands.setProfileDir(m_profile.path());
+    HandlerProbe probe(commands);
+    commands.setHandler(QStringLiteral("file.open"), probe.handler(QStringLiteral("open")));
+    bool nested = true;
+    commands.setNativeHandler(QStringLiteral("pen.color"), [&commands, &nested](const QVariant&) {
+        nested = commands.trigger(QStringLiteral("file.open"));
+    });
+    QSignalSpy refused(&commands, &ui::Commands::refusedForSecondUser);
+    QVERIFY(commands.trigger(QStringLiteral("pen.color"), QStringLiteral("#1E88E5"), 1));
+    QVERIFY(!nested);
+    QCOMPARE(probe.calls(QStringLiteral("open")), 0);
+    QCOMPARE(refused.count(), 1);
+    QVERIFY(commands.trigger(QStringLiteral("pen.color"), QStringLiteral("#1E88E5"), 0));
+    QVERIFY(nested);
+    QCOMPARE(probe.calls(QStringLiteral("open")), 1);
+    QVERIFY(commands.trigger(QStringLiteral("file.open"))); // hors déclenchement : le premier
+    QCOMPARE(probe.calls(QStringLiteral("open")), 2);
+}
+
+void TstUiSecondpalette::toggleWaitsForTheContactToEnd()
+{
+    // Revue de L11-T9, mineur : la bascule demandée pendant un contact attend sa fin (applyPending).
+    App app;
+    QVERIFY(start(app));
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
+    QVERIFY(app.view->contactActive());
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(!app.dual->active());
+    QVERIFY(!app.tools->dualUsers());
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 210));
+    QVERIFY(app.dual->active());
+    QVERIFY(app.tools->dualUsers());
+    QVERIFY(dynamic_cast<input::TwoUserPolicy*>(app.view->router().policy()));
 }
 
 QTEST_MAIN(TstUiSecondpalette)

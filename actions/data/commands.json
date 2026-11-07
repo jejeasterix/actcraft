@@ -219,7 +219,7 @@
   { "id": "resources.shared", "label": "Ressources partagées", "icon": "ressources-partagees", "lockable": true, "restrictable": false },
   { "id": "resources.other", "label": "Autre dossier…", "icon": "ressources-autre", "argument": "url", "optional": true, "opensDialog": true, "lockable": true, "restrictable": false },
   { "id": "resources.insert", "label": "Insérer dans le paperboard", "argument": "url", "lockable": true, "restrictable": false },
-  { "id": "resources.add", "label": "Ajouter la sélection à la bibliothèque", "argument": "url", "optional": true, "opensDialog": true, "lockable": true, "restrictable": false },
+  { "id": "resources.add", "label": "Ajouter la sélection à la bibliothèque", "argument": "url", "optional": true, "lockable": true, "restrictable": false },
   { "id": "resources.stamp", "label": "Tampon", "icon": "tampon", "checkable": true, "lockable": true, "restrictable": false },
   { "id": "resources.new-folder", "label": "Nouveau dossier", "argument": "text", "optional": true, "opensDialog": true, "lockable": true, "restrictable": false },
   { "id": "resources.rename", "label": "Renommer…", "argument": "text", "optional": true, "opensDialog": true, "lockable": true, "restrictable": false },
