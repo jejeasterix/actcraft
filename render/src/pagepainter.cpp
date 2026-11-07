@@ -875,18 +875,6 @@ void paintPlaced(QPainter& p, const core::PageObject& object, const ImageLookup&
     p.restore();
 }
 
-bool isRevealer(const core::PageObject& object)
-{
-    const auto* s = std::get_if<core::Stroke>(&object);
-    return s && s->kind == core::StrokeKind::Revealer;
-}
-
-// Encre révélatrice qui découpe : visible et sur la couche du dessus (D8-8).
-bool cutsTopLayer(const core::PageObject& object)
-{
-    return isRevealer(object) && object.common.visible && object.common.layer == core::Layer::Top;
-}
-
 // Un objet tel que paintPage le dessine (masqué : rien, ou translucide en mode conception) ; une encre
 // révélatrice ne se dessine jamais (F-255 : seule sa découpe se voit).
 void paintListed(QPainter& p, const core::PageObject& object, const ImageLookup& images,
@@ -1029,13 +1017,7 @@ void paintPage(QPainter& p, const core::Page& page, const ImageLookup& images, c
     }
     // F-255 : dernière encre révélatrice visible de la couche du dessus. Aucune : la boucle d'origine, sans
     // calque ni coût ajouté (une encre révélatrice ne se dessine jamais elle-même).
-    std::size_t last = page.objects.size();
-    for (std::size_t i = page.objects.size(); i-- > 0;) {
-        if (cutsTopLayer(page.objects[i])) {
-            last = i;
-            break;
-        }
-    }
+    const std::size_t last = lastCuttingRevealer(page, page.objects.size());
     std::size_t i = 0;
     if (last < page.objects.size()) {
         // Ordre du vecteur : couche, puis profondeur. Les couches inférieure et intermédiaire, puis la couche

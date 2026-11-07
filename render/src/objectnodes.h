@@ -11,6 +11,9 @@ class QSGNode;
 
 namespace actcraft::render {
 
+class DecodedImages;
+class ImageStore;
+
 // Nœud d'un objet de page, tel que la page fixe le pose (et les couches d'attente et soulevée) : moteur du
 // prototype s'il sait faire, sinon moteur peint ; image illisible : repère du peintre, comme la miniature ;
 // transformation et translucidité par nœuds parents. root == nullptr : objet invisible, groupe, ou rien à
@@ -45,5 +48,9 @@ void clearChildren(QSGNode* root);
 
 NodeContexts nodeContexts(QQuickWindow* window, bool software, const ImageStore* images, double rasterScale,
                           bool forceRasterized, bool showHidden = false);
+
+// Image (ou repère de média) de l'objet, copiée du magasin dans `images` : le nœud ne lit plus le magasin
+// ensuite. Commun aux nœuds de la couche découpée (page fixe) et de la fenêtre de l'encre (couche soulevée).
+void addObjectImages(DecodedImages& images, const core::PageObject& object, const ImageStore& store);
 
 } // namespace actcraft::render

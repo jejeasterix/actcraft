@@ -1,11 +1,14 @@
 #include "objectnodes.h"
 
+#include <actcraft/render/imagestore.h>
 #include <actcraft/render/pagepainter.h>
 
 #include <QMatrix4x4>
 #include <QSGOpacityNode>
 #include <QSGTransformNode>
 #include <QTransform>
+
+#include <variant>
 
 namespace actcraft::render {
 
@@ -87,6 +90,15 @@ ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
     out.viaPainter = viaPainter;
     out.root = wrapped(node, object.common);
     return out;
+}
+
+void addObjectImages(DecodedImages& images, const core::PageObject& object, const ImageStore& store)
+{
+    if (const auto* im = std::get_if<core::ImageObject>(&object); im && !im->resource.empty()) {
+        images.insert(im->resource, store.resourceImage(im->resource));
+    } else if (const auto* m = std::get_if<core::Media>(&object); m && !m->placeholder.empty()) {
+        images.insert(m->placeholder, store.resourceImage(m->placeholder));
+    }
 }
 
 } // namespace actcraft::render

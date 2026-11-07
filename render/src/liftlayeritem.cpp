@@ -36,14 +36,6 @@ bool imagesByKey(const core::PageObject& object)
     return image == nullptr || !image->resource.empty();
 }
 
-// F-255 : encre révélatrice soulevée qui découpe (visible, couche du dessus).
-bool cutsTopLayer(const core::PageObject& object)
-{
-    const auto* stroke = std::get_if<core::Stroke>(&object);
-    return stroke && stroke->kind == core::StrokeKind::Revealer && object.common.visible &&
-           object.common.layer == core::Layer::Top;
-}
-
 // Ce qui est sous la couche du dessus : fond, grille du dessous, couches inférieure et intermédiaire.
 core::Page beneathTopLayer(const core::Page& page)
 {
@@ -104,11 +96,7 @@ public:
         DecodedImages images;
         if (store) {
             for (const core::PageObject& object : beneath.objects) {
-                if (const auto* im = std::get_if<core::ImageObject>(&object); im && !im->resource.empty()) {
-                    images.insert(im->resource, store->resourceImage(im->resource));
-                } else if (const auto* m = std::get_if<core::Media>(&object); m && !m->placeholder.empty()) {
-                    images.insert(m->placeholder, store->resourceImage(m->placeholder));
-                }
+                addObjectImages(images, object, *store);
             }
             if (!beneath.background.image.empty()) {
                 images.insert(beneath.background.image, store->resourceImage(beneath.background.image));
