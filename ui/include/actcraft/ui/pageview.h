@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <vector>
 
 class QInputDevice;
 
@@ -43,6 +45,9 @@ class ToolDispatch;
 inline constexpr qreal kDefaultInkWidth = 4.0;
 inline constexpr qreal kMinInkWidth = 1.0;
 inline constexpr qreal kMaxInkWidth = 100.0;
+// Appui long d'un doigt (D11-7) : durée et tolérance de mouvement, en dp (pixels logiques de la vue).
+inline constexpr int kTouchHoldMs = 500;
+inline constexpr qreal kTouchHoldToleranceDp = 10.0;
 
 // Vue de la page (décision 14) : zoom, défilement, politique du cache. Transforme l'élément `content`.
 class PageView : public QQuickItem
@@ -237,18 +242,46 @@ private:
     void onContentSizeChanged(QSizeF oldPage);
     void setCacheReady(bool ready);
     void rebuildPen();
+    // L11-T5 : contact routé vers l'outil, de l'appui au relâché (ou jusqu'à ce que la vue le rende) :
+    // décision retenue (utilisateur, outil imposé) et dernier point brut. Quelques contacts : recherche
+    // linéaire, capacité réservée, aucune allocation par point.
+    struct ToolContact
+    {
+        std::uint64_t pointer = 0;
+        input::DeviceKind device = input::DeviceKind::Other;
+        input::UserId user = input::kFirstUser;
+        input::FingerTool fingerTool = input::FingerTool::Current;
+        QPointF lastPagePoint; // dernier point brut, coordonnées de page
+        QPointF lastViewPoint; // même point, coordonnées de vue (un doigt qui passe au geste y est)
+    };
     bool handlePointer(const QEvent& event, QPointF viewPos);
+    // Échantillon d'un événement (deviceId compris), ou rien (pas de Pipeline, appareil exclu).
+    std::optional<input::Sample> sampleFor(const QEvent& event, QPointF viewPos);
+    // Applique la décision du routeur ; pressesInEvent : appuis de doigt non couverts de l'événement.
+    bool applyDecision(input::Sample& sample, const input::Decision& decision, QPointF viewPos,
+                       int pressesInEvent);
+    ToolContact* toolContact(std::uint64_t pointer);
+    // Outil d'un contact : imposé (FingerTool), sinon l'outil courant de l'utilisateur, sinon le stylo
+    // interne.
+    tools::Tool* toolOf(input::UserId user, input::FingerTool fingerTool) const;
+    bool anyToolBusy() const;
+    void configureImposedPen(input::UserId user); // réglages « pen » de l'utilisateur, relus à l'appui
+    // Relâché synthétisé au dernier point brut du contact, filtré comme les autres, puis cancel() si l'outil
+    // reste occupé (trait gardé).
+    void endWithRelease(const ToolContact& contact);
+    void abandonContact(const ToolContact& contact); // Tool::abandon : rien n'est versé
     // Un trait peut commencer ici : vue visible, aucune fenêtre surgissante, point sur la vue.
     bool canStartStroke(QPointF viewPos) const;
     // Un élément posé sur la vue (empilé au-dessus d'elle chez son parent : barres de défilement) prendrait
     // la souris ou le doigt à ce point. Qt Quick le leur livre avant la vue ; le stylet, capté par le filtre
     // de la fenêtre, doit leur être laissé de même. Consulté à l'appui seulement, jamais par point.
     bool coveredAt(QPointF viewPos) const;
-    // Termine le trait d'un doigt (deuxième doigt, annulation) par un relâché au dernier point brut du doigt,
-    // filtré comme les autres, et rend son contact au routeur.
+    // Termine le trait de chaque doigt routé vers l'outil (annulation, saisie volée) par un relâché à son
+    // dernier point brut, et rend son contact au routeur.
     void finishTouchStroke();
-    // Voie Tool : filtre d'échantillons s'il est posé, puis Pipeline (numérotation, sonde, doublons).
-    void pushToTool(const input::Sample& sample);
+    // Voie Tool : filtre d'échantillons s'il est posé, puis Pipeline (numérotation, sonde, doublons), puis
+    // `tool` (Pipeline::push est synchrone).
+    void pushToTool(const input::Sample& sample, tools::Tool* tool);
     // Une couverture détruite est oubliée.
     void forgetDeadCovers();
     // Lot 10 : différé posé sur la page fixe quand le cache est actif et une couche d'attente branchée.
@@ -264,12 +297,10 @@ private:
         std::uint64_t pointer = 0;
         QPointF viewPos;
     };
-    // endToolContacts du routeur : le doigt qui écrit passe au geste (trait abandonné, H3-17) ou cède la main
-    // au stylet ou à la souris (trait terminé là où il était, M4 b).
-    void endToolContacts(const input::Decision& decision);
-    // Relâché au dernier point brut du doigt, puis cancel() si l'outil reste occupé.
-    void terminateTouchStroke();
-    void abandonTouchStroke(); // Tool::abandon : rien n'est versé
+    // endToolContacts du routeur : le doigt qui écrit passe au geste (appui d'un doigt seul dans son
+    // événement : trait abandonné, H3-17) ou à rien (stylet, souris, doigts posés ensemble : trait terminé là
+    // où il était, M4 b, H11-O4).
+    void endToolContacts(const input::Decision& decision, int pressesInEvent);
     bool onGestureSample(const input::Sample& sample, QPointF viewPos);
     bool addGestureContact(std::uint64_t pointer, QPointF viewPos); // faux : le geste a ses deux contacts
     void applyGesture();
@@ -321,14 +352,13 @@ private:
     QColor m_inkColor = Qt::black;
     qreal m_inkWidth = kDefaultInkWidth;
     bool m_inputBlocked = false;
-    bool m_stylusDrawing = false;     // un trait du stylet, commencé sur la vue, est en cours
-    bool m_touchDrawing = false;      // un trait d'un doigt est en cours
-    std::uint64_t m_touchPointer = 0; // contact du doigt qui trace (Sample::pointer)
-    QPointF m_pointerPosition;        // voir pointerPosition
-    QPointF m_lastTouchPagePoint;     // dernier point brut du doigt qui trace, en coordonnées de page
+    bool m_stylusDrawing = false; // un contact du stylet, commencé sur la vue, est en cours
+    QPointF m_pointerPosition;    // voir pointerPosition
     QPointF
         m_lastRawPagePoint; // dernier point brut routé vers l'outil (avant le filtre), coordonnées de page
-    QPointF m_lastTouchViewPoint; // même point, en coordonnées de vue (le doigt qui passe au geste y est)
+    std::uint64_t m_lastToolPointer = 0; // contact de ce point (finishStroke : son outil)
+    std::vector<ToolContact>
+        m_toolContacts; // L11-T5 : contacts routés vers l'outil (doigts : trait en cours)
     std::array<GestureContact, 2> m_gestureContacts;
     input::TwoFingerGesture m_gesture;
     qreal m_gestureZoom = 1.0;   // zoom au début du geste
@@ -358,6 +388,45 @@ private:
     void forgetContact(std::uint64_t pointer);  // décision rendue par le routeur (relâché)
     void releaseContact(std::uint64_t pointer); // m_router.release, puis forgetContact
     QList<std::uint64_t> m_heldContacts;
+
+    // Lot 11 (L11-T5) : ajout en fin.
+public:
+    // Outil imposé à un contact (D11-4 : FingerTool::Pen ou Select) pour un utilisateur, rendu par l'hôte
+    // d'outils ; nullptr : repli de la vue (setImposedToolProvider).
+    using ImposedToolProvider = std::function<tools::Tool*(input::UserId user, input::FingerTool tool)>;
+
+    // Remplace la politique du routeur (nullptr : gestion complète) ; les contacts en cours gardent leur
+    // décision. Posée par le contrôleur du mode du toucher (L11-T6) : la vue ne lit aucun réglage.
+    void setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy);
+    // Utilisateur de la dernière décision d'appui routée vers l'outil ou le geste (tests).
+    int lastContactUser() const noexcept;
+    // Chaque contact en cours se termine comme un relâché à sa dernière position (trait gardé) ; le geste
+    // est rendu, le routeur remis à zéro, contactActive devient faux. La suite d'un contact terminé n'écrit
+    // plus (le reste d'un contact de stylet reste pris par la vue jusqu'à son relâché). Appelé par la vue au
+    // redimensionnement (D11-10) ; à la mise en arrière-plan par la reprise (D11-8).
+    Q_INVOKABLE void finishContacts();
+    // Échantillons d'un contact à outil imposé : à l'outil du fournisseur. Sans fournisseur, ou s'il rend
+    // nullptr : Pen → stylo propre à la vue, aux réglages « pen » de l'utilisateur (UserState::settings) ;
+    // Select → l'outil courant de l'utilisateur s'il est le sélecteur, sinon rien (le sélecteur n'existe
+    // que dans ToolHost). L'outil courant ne change jamais.
+    void setImposedToolProvider(ImposedToolProvider provider);
+    bool
+    touchHoldTimerActive() const noexcept; // crochet de test : armé seulement pendant un contact de doigt
+
+signals:
+    // D11-7 : un doigt routé vers l'outil est resté immobile (≤ kTouchHoldToleranceDp de son appui)
+    // kTouchHoldMs ; pagePoint et windowPoint (scène) sont ceux de l'appui. Une fois par contact.
+    void touchHeld(QPointF pagePoint, QPointF windowPoint, int user);
+
+private:
+    std::unique_ptr<actcraft::tools::PenTool> m_imposedPen; // FingerTool::Pen sans fournisseur
+    ImposedToolProvider m_imposedTools;
+    int m_lastContactUser = input::kFirstUser;
+    QTimer m_holdTimer; // un seul, armé à l'appui d'un doigt routé vers l'outil, jamais par échantillon
+    std::uint64_t m_holdPointer = 0;
+    QPointF m_holdViewPoint;
+    QPointF m_holdPagePoint;
+    input::UserId m_holdUser = input::kFirstUser;
 };
 
 } // namespace actcraft::ui
