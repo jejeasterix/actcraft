@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QProcess>
 #include <QRegularExpression>
 #include <QSet>
 
@@ -107,6 +108,20 @@ bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& erro
         }
     }
     return true;
+}
+
+QString resultsDirFor(Platform platform, const QString& base)
+{
+    return base + (platform == Platform::Android ? QStringLiteral("/bench-results")
+                                                 : QStringLiteral("/resultats-banc"));
+}
+
+QStringList expandSingleStringArguments(const QStringList& args)
+{
+    if (args.size() != 2 || !args.at(1).contains(QLatin1Char(' '))) {
+        return args;
+    }
+    return QStringList{args.at(0)} + QProcess::splitCommand(args.at(1));
 }
 
 QString resolveOutputPath(const BenchOptions& options, const QString& defaultDir, const QString& fileName)

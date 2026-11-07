@@ -22,6 +22,9 @@
 #endif
 
 #include <cstdio>
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#endif
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -31,6 +34,23 @@ void printLine(const QString& line)
     std::printf("%s\n", line.toUtf8().constData());
     std::fflush(stdout);
 }
+
+#ifdef Q_OS_ANDROID
+// Dossier propre externe de l'application (getExternalFilesDir) : lisible par `adb pull` sans `run-as`, qu'un
+// APK release refuse (A21). Repli sur le chemin canonique si le système ne répond pas.
+QString androidExternalFilesDir()
+{
+    const QJniObject context = QNativeInterface::QAndroidApplication::context();
+    if (context.isValid()) {
+        const QJniObject dir = context.callObjectMethod(
+            "getExternalFilesDir", "(Ljava/lang/String;)Ljava/io/File;", static_cast<jstring>(nullptr));
+        if (dir.isValid()) {
+            return dir.callObjectMethod<jstring>("getAbsolutePath").toString();
+        }
+    }
+    return QStringLiteral("/sdcard/Android/data/io.github.jejeasterix.actcraft.banc/files");
+}
+#endif
 } // namespace
 
 // Banc de fluidité (DA1) : charge la vraie interface, rejoue tracé, zoom et défilement, écrit le JSON.
@@ -41,10 +61,14 @@ int main(int argc, char* argv[])
     QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
 #endif
     QGuiApplication app(argc, argv);
+#ifdef Q_OS_ANDROID
+    actcraft::bench::useSimulatedRecorders(); // aucune permission : ni micro ni fenêtre de permission
+#else
     if (QGuiApplication::platformName() == QLatin1String("offscreen"))
         actcraft::bench::useSimulatedRecorders(); // hors écran : ni micro ni fenêtre de permission
+#endif
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Banc"));
-    const QStringList args = QGuiApplication::arguments();
+    const QStringList args = actcraft::bench::expandSingleStringArguments(QGuiApplication::arguments());
 
     RenderBackend backend = RenderBackend::Auto;
     QString error;
@@ -59,7 +83,13 @@ int main(int argc, char* argv[])
 
     // Dossier des résultats par défaut, calculé avant l'interface (amendement 3, n5) : il porte aussi les
     // réglages et les profils d'essai du banc, vidés à chaque lancement et posés avant tout objet (N1).
-    const QString defaultDir = QCoreApplication::applicationDirPath() + QStringLiteral("/resultats-banc");
+#ifdef Q_OS_ANDROID
+    const QString defaultDir =
+        actcraft::bench::resultsDirFor(actcraft::bench::Platform::Android, androidExternalFilesDir());
+#else
+    const QString defaultDir = actcraft::bench::resultsDirFor(actcraft::bench::Platform::Desktop,
+                                                              QCoreApplication::applicationDirPath());
+#endif
     const QString settingsDir = QDir(defaultDir).filePath(QStringLiteral("reglages"));
     const QString profilesDir = QDir(defaultDir).filePath(QStringLiteral("profils"));
     QDir(settingsDir).removeRecursively();
