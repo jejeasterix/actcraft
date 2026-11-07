@@ -1,8 +1,108 @@
 {
   "format": "actcraft-scenario/1",
   "name": "pseudo-langue",
-  "description": "Talon L11 : rempli par L11-T19.",
+  "description": "Pseudo-langue de contrôle (L11-T19, D11-14) : l'interface est chargée avec la traduction « ⟦source⟧ » (--traduction) ; chaque étape visibleTexts liste les textes visibles qui ne sont pas passés par la traduction. Fenêtre principale, menu Fichier, À propos, taille de page, réglages. Hors de « tous » (sous-dossier controle/).",
   "steps": [
-    {"waitReady": true}
+    {
+      "waitReady": true
+    },
+    {
+      "visibleTexts": "pseudo",
+      "ignore": [
+        "pageIndicator",
+        "zoomLabel"
+      ]
+    },
+    {
+      "capture": "principale"
+    },
+    {
+      "pointer": [
+        [
+          36,
+          22
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "wait": 300
+    },
+    {
+      "visibleTexts": "pseudo",
+      "ignore": [
+        "pageIndicator",
+        "zoomLabel"
+      ]
+    },
+    {
+      "capture": "menu-fichier"
+    },
+    {
+      "key": "Esc"
+    },
+    {
+      "wait": 200
+    },
+    {
+      "command": "help.about"
+    },
+    {
+      "wait": 300
+    },
+    {
+      "visibleTexts": "pseudo",
+      "ignore": [
+        "pageIndicator",
+        "zoomLabel"
+      ]
+    },
+    {
+      "capture": "a-propos"
+    },
+    {
+      "key": "Esc"
+    },
+    {
+      "wait": 200
+    },
+    {
+      "command": "file.new-custom"
+    },
+    {
+      "wait": 300
+    },
+    {
+      "visibleTexts": "pseudo",
+      "ignore": [
+        "pageIndicator",
+        "zoomLabel"
+      ]
+    },
+    {
+      "capture": "taille-page"
+    },
+    {
+      "key": "Esc"
+    },
+    {
+      "wait": 200
+    },
+    {
+      "command": "profile.edit"
+    },
+    {
+      "wait": 300
+    },
+    {
+      "visibleTexts": "pseudo",
+      "ignore": [
+        "pageIndicator",
+        "zoomLabel"
+      ]
+    },
+    {
+      "capture": "reglages"
+    }
   ]
 }

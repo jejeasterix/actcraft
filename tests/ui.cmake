@@ -222,6 +222,22 @@ actcraft_add_test(tst_ui_language
     SOURCES tst_ui_language.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 
+# Pseudo-langue de contrôle (L11-T19, D11-14) : `build/<preset>/i18n/actcraft_xx.qm`, produite au build des tests
+# seulement (scripts/pseudo-langue.py puis lrelease) ; jamais dans les ressources ni dans les paquets.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(ACTCRAFT_PSEUDO_TS ${CMAKE_BINARY_DIR}/i18n/actcraft_xx.ts)
+set(ACTCRAFT_PSEUDO_QM ${CMAKE_BINARY_DIR}/i18n/actcraft_xx.qm)
+set(ACTCRAFT_FR_TS ${PROJECT_SOURCE_DIR}/ui/i18n/actcraft_fr.ts)
+add_custom_command(
+    OUTPUT ${ACTCRAFT_PSEUDO_QM}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/i18n
+    COMMAND ${Python3_EXECUTABLE} -I ${PROJECT_SOURCE_DIR}/scripts/pseudo-langue.py
+            ${ACTCRAFT_FR_TS} ${ACTCRAFT_PSEUDO_TS}
+    COMMAND $<TARGET_FILE:Qt6::lrelease> ${ACTCRAFT_PSEUDO_TS} -qm ${ACTCRAFT_PSEUDO_QM}
+    DEPENDS ${ACTCRAFT_FR_TS} ${PROJECT_SOURCE_DIR}/scripts/pseudo-langue.py
+    VERBATIM)
+add_custom_target(actcraft_pseudolocale DEPENDS ${ACTCRAFT_PSEUDO_QM})
+
 # Programme d'essai des raccourcis vers des programmes (L6-T29).
 add_executable(launcher_probe launcher_probe.cpp)
 actcraft_set_warnings(launcher_probe)
@@ -342,6 +358,11 @@ actcraft_add_test(tst_ui_documentportal
 actcraft_add_test(tst_ui_pseudolocale
     SOURCES tst_ui_pseudolocale.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+add_dependencies(tst_ui_pseudolocale actcraft_pseudolocale)
+target_compile_definitions(tst_ui_pseudolocale PRIVATE
+    ACTCRAFT_PSEUDO_TS="${ACTCRAFT_PSEUDO_TS}"
+    ACTCRAFT_PSEUDO_QM="${ACTCRAFT_PSEUDO_QM}"
+    ACTCRAFT_FR_TS="${ACTCRAFT_FR_TS}")
 
 actcraft_add_test(tst_ui_helppages
     SOURCES tst_ui_helppages.cpp
