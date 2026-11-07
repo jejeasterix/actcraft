@@ -333,11 +333,7 @@ bool refusedByRestrictionOnly(const actions::CommandRegistry& registry, const QS
 
 } // namespace
 
-ActionRunner::ActionRunner(QObject* parent) : QObject(parent)
-{
-    QString error;
-    m_catalog.load(actions::defaultObjectActionsJson(), error);
-}
+ActionRunner::ActionRunner(QObject* parent) : QObject(parent) {}
 
 ActionRunner::~ActionRunner()
 {
@@ -507,7 +503,8 @@ void ActionRunner::runOne(const core::Action& action, const Pending& pending)
         return;
     }
     const QString id = QString::fromStdString(action.catalogId);
-    const actions::ObjectActionInfo* info = id.isEmpty() ? nullptr : m_catalog.find(id);
+    const actions::ObjectActionInfo* info =
+        id.isEmpty() ? nullptr : actions::builtInObjectActionCatalog().find(id);
     if (info == nullptr) {
         refuse(QStringLiteral("Action non prise en charge"));
         return;

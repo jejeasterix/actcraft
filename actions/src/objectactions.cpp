@@ -1,6 +1,7 @@
 #include <actcraft/actions/commandregistry.h>
 #include <actcraft/actions/objectactions.h>
 
+#include <QDebug>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -118,6 +119,19 @@ QByteArray defaultObjectActionsJson()
 {
     QFile file(dataResourceDir() + QStringLiteral("/object-actions.json"));
     return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
+
+const ObjectActionCatalog& builtInObjectActionCatalog()
+{
+    static const ObjectActionCatalog loaded = [] {
+        ObjectActionCatalog c;
+        QString error;
+        if (!c.load(defaultObjectActionsJson(), error)) {
+            qWarning() << "Catalogue des actions illisible :" << error;
+        }
+        return c;
+    }();
+    return loaded;
 }
 
 } // namespace actcraft::actions
