@@ -4,6 +4,9 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/hittest.h>
+#include <actcraft/features/recognitionsession.h>
+#include <actcraft/features/shapefinder.h>
+#include <actcraft/features/transitions.h>
 #include <actcraft/render/paintedrenderer.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pagethumbnails.h>
@@ -19,7 +22,9 @@
 #include <iterator>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <set>
+#include <vector>
 
 using namespace actcraft;
 using bench::InputKind;
@@ -132,10 +137,12 @@ private slots:
         // compte passe de 5 à 7 : les cinq premiers gardent leur nom et leur ordre). L4-T14 : « forme-page-
         // annotee » et « grille-dessus » après eux (le compte passe de 7 à 9 : les sept premiers inchangés).
         // L4-T29 : « miniatures » et « miniatures-ferme » après eux (le compte passe de 9 à 11), puis «
-        // miniatures-pauses » (12). L4-T28 : « zones-zoom » en dernier (13 : les douze premiers inchangés).
-        // L5-T31 : « onglets » et « export-fond » après eux (16 : les quatorze premiers inchangés).
-        // L5-C12 : « export-fond-reference » juste avant « export-fond » (17).
-        QCOMPARE(plans.size(), std::size_t{17});
+        // miniatures-pauses » (12). L4-T28 : « zones-zoom » (13). L5-T19 : « edition » (14). L5-T31 :
+        // « onglets » et « export-fond » après eux (16). L5-C12 : « export-fond-reference » juste avant
+        // « export-fond » (17). L7-T34 : « reconnaissance » en dernier (18 : les dix-sept premiers gardent
+        // leur nom et leur rang). L7-T38 (M1) : « effets-page » (S22) et « message-defilant » (S23) en
+        // dernier (20 : les dix-huit premiers gardent leur nom et leur rang).
+        QCOMPARE(plans.size(), std::size_t{20});
         QCOMPARE(plans[0].name, QStringLiteral("stroke"));
         QCOMPARE(plans[1].name, QStringLiteral("zoom"));
         QCOMPARE(plans[2].name, QStringLiteral("scroll"));
@@ -153,9 +160,138 @@ private slots:
         QCOMPARE(plans[14].name, QStringLiteral("onglets"));
         QCOMPARE(plans[15].name, QStringLiteral("export-fond-reference"));
         QCOMPARE(plans[16].name, QStringLiteral("export-fond"));
+        QCOMPARE(plans[17].name, QStringLiteral("reconnaissance"));   // L7-T34 : dix-sept avant
+        QCOMPARE(plans[18].name, QStringLiteral("effets-page"));      // L7-T38 : S22
+        QCOMPARE(plans[19].name, QStringLiteral("message-defilant")); // L7-T38 : S23
         for (std::size_t i = 0; i < 5; ++i) {
             QVERIFY(plans[i].toolCommand.isEmpty()); // les scénarios existants gardent le stylo
             QVERIFY(plans[i].seedStrokes.empty());
+        }
+    }
+
+    // L7-T38 (M1, S22) : « effets-page » joue chaque effet de transitionCatalogue() (hors « none » et «
+    // random », qui ne montrent aucun mouvement propre) par page.next / page.previous en alternance, dans
+    // l'ordre du catalogue : view.page-effect <id>, puis le changement de page 50 ms après, un effet par
+    // période (durée de l'effet + marge). La dernière entrée remet « none » après la dernière période, pour
+    // que le dernier effet finisse dans la mesure. Durée de l'effet : 0,5 s en court, 1,5 s en complet.
+    void effectsScenarioPlaysEveryCatalogueEffect()
+    {
+        std::vector<QString> expected;
+        const auto& catalogue = features::transitionCatalogue();
+        for (const auto& e : catalogue) {
+            if (e.id != QLatin1String("none") && e.id != QLatin1String("random")) {
+                expected.push_back(e.id);
+            }
+        }
+        QCOMPARE(expected.size(), std::size_t{16});
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bool court = set == bench::ScenarioSet::Court;
+            const bench::ScenarioPlan plan = bench::effectsScenario(set);
+            QCOMPARE(plan.name, QStringLiteral("effets-page"));
+            QCOMPARE(plan.generatedPages, 2);
+            QVERIFY(!plan.tickerRuns);
+            const int tenths = court ? 5 : 15;
+            QCOMPARE(plan.setupCommands.size(), std::size_t{1});
+            QCOMPARE(plan.setupCommands.front().first, QStringLiteral("view.page-effect-duration"));
+            QCOMPARE(plan.setupCommands.front().second.toInt(), tenths);
+            // L7-T38 : la durée d'avant le scénario, le runner la rétablit ; l'effet, teardownCommands
+            // (mesure interrompue avant la dernière entrée). Les images des effets sont jugées (pageEffects).
+            QVERIFY(plan.pageEffects);
+            QCOMPARE(bench::expectedPageEffects(plan), 16);
+            QCOMPARE(plan.teardownCommands.size(), std::size_t{1});
+            QCOMPARE(plan.teardownCommands.front().first, QStringLiteral("view.page-effect"));
+            QCOMPARE(plan.teardownCommands.front().second.toString(), QStringLiteral("none"));
+            for (const auto& other : bench::allScenarios(set)) {
+                QCOMPARE(other.pageEffects, other.name == QStringLiteral("effets-page"));
+            }
+            QCOMPARE(plan.inputs.size(), expected.size() * 2 + 1);
+            const std::int64_t period = std::int64_t{tenths} * 100'000'000 + 400'000'000;
+            for (std::size_t k = 0; k < expected.size(); ++k) {
+                const bench::PlannedInput& effect = plan.inputs[2 * k];
+                const bench::PlannedInput& page = plan.inputs[2 * k + 1];
+                QVERIFY(effect.kind == InputKind::Command && page.kind == InputKind::Command);
+                QCOMPARE(effect.command, QStringLiteral("view.page-effect"));
+                QCOMPARE(effect.argument.toString(), expected[k]);
+                QCOMPARE(effect.offsetNs, static_cast<std::int64_t>(k) * period);
+                QCOMPARE(page.command,
+                         k % 2 == 0 ? QStringLiteral("page.next") : QStringLiteral("page.previous"));
+                QCOMPARE(page.offsetNs, effect.offsetNs + 50'000'000);
+            }
+            const bench::PlannedInput& last = plan.inputs.back();
+            QCOMPARE(last.command, QStringLiteral("view.page-effect"));
+            QCOMPARE(last.argument.toString(), QStringLiteral("none"));
+            QCOMPARE(last.offsetNs, static_cast<std::int64_t>(expected.size()) * period);
+        }
+    }
+
+    // L7-T38 (M1, S23) : « message-defilant » = les traits de « stroke » (mêmes entrées, même latence
+    // mesurée) pendant que le message défile en boucle (tickerRuns : le banc règle boucle et vitesse 10,
+    // démarre le message avant la mesure et l'arrête après). Aucun autre scénario ne porte le drapeau.
+    void tickerScenarioWritesWhileTheMessageScrolls()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const bench::ScenarioPlan stroke = bench::strokeScenario(set);
+            const bench::ScenarioPlan ticker = bench::tickerScenario(set);
+            QCOMPARE(ticker.name, QStringLiteral("message-defilant"));
+            QVERIFY(ticker.tickerRuns);
+            QCOMPARE(ticker.inputs.size(), stroke.inputs.size());
+            for (std::size_t i = 0; i < stroke.inputs.size(); ++i) {
+                QVERIFY(ticker.inputs[i].kind == stroke.inputs[i].kind);
+                QCOMPARE(ticker.inputs[i].offsetNs, stroke.inputs[i].offsetNs);
+                QCOMPARE(ticker.inputs[i].pagePos, stroke.inputs[i].pagePos);
+                QCOMPARE(ticker.inputs[i].measured, stroke.inputs[i].measured);
+            }
+            for (const auto& plan : bench::allScenarios(set)) {
+                QCOMPARE(plan.tickerRuns, plan.name == QStringLiteral("message-defilant"));
+            }
+        }
+    }
+
+    // L7-T34 (lot 10, écart 5) : « reconnaissance », en dernier. La reconnaissance de forme est ouverte par
+    // sa commande avant la mesure (setupCommands, pas toolCommand : ce n'est pas un outil, le stylo reste) ;
+    // un cercle d'un seul appui, reconnu comme cercle ; la dernière entrée referme le mode, le délai de la
+    // session + 300 ms après le relâché : la conversion tombe dans la mesure.
+    void recognitionScenarioListed()
+    {
+        for (const auto set : {bench::ScenarioSet::Complet, bench::ScenarioSet::Court}) {
+            const auto plans = bench::allScenarios(set);
+            QVERIFY(plans.size() > 17);
+            const bench::ScenarioPlan& plan = plans[17]; // L7-T38 : deux scénarios la suivent désormais
+            QCOMPARE(plan.name, QStringLiteral("reconnaissance"));
+            QVERIFY(plan.toolCommand.isEmpty());
+            QCOMPARE(plan.setupCommands.size(), std::size_t{1});
+            QCOMPARE(plan.setupCommands.front().first, QStringLiteral("tool.shape-recognition"));
+            QVERIFY(!plan.freezeExempt);
+            QVERIFY(plan.inputs.size() > 2);
+            QCOMPARE(plan.inputs.front().kind, InputKind::TabletPress);
+
+            std::vector<QPointF> drawn;
+            int presses = 0;
+            int releases = 0;
+            std::int64_t releaseAt = -1;
+            for (const bench::PlannedInput& in : plan.inputs) {
+                presses += in.kind == InputKind::TabletPress ? 1 : 0;
+                if (in.kind == InputKind::TabletRelease) {
+                    ++releases;
+                    releaseAt = in.offsetNs;
+                }
+                if (in.kind == InputKind::TabletPress || in.kind == InputKind::TabletMove) {
+                    QVERIFY(releaseAt < 0); // rien n'est tracé après le relâché
+                    drawn.push_back(in.pagePos);
+                }
+            }
+            QCOMPARE(presses, 1);
+            QCOMPARE(releases, 1);
+            const std::optional<features::RecognizedShape> found = features::recognizeShape(drawn);
+            QVERIFY(found.has_value());
+            QVERIFY(found->kind == features::RecognizedShape::Kind::Circle);
+
+            const bench::PlannedInput& last = plan.inputs.back();
+            QCOMPARE(last.kind, InputKind::Command);
+            QCOMPARE(last.command, QStringLiteral("tool.shape-recognition"));
+            QCOMPARE(last.offsetNs - releaseAt,
+                     std::int64_t{features::RecognitionSession::kDefaultDelayMs + 300} * 1'000'000);
+            QCOMPARE(bench::planDurationNs(plan), last.offsetNs);
         }
     }
 
@@ -996,6 +1132,80 @@ private slots:
         const std::vector<Window> windows =
             bench::pageChangeWindows({20, 600, 1300, -1, 1400}, {true, true, false, true, true}, {70, 650});
         QCOMPARE(windows, (std::vector<Window>{{20, 70}, {600, 650}, {1300, 1300}, {1400, kNever}}));
+    }
+
+    // L7-T38 (relecture, bloquant) : une commande qui a lancé un effet garde sa fenêtre jusqu'au retour au
+    // repos de son rang (un repos relevé avant elle, 10 : rang 1 ; trois : rang 3), même sans prêt attendu
+    // (page encore prête juste après page.next) ; sans retour relevé, jusqu'à la fin. Les autres commandes
+    // (rang -1) gardent la leur.
+    void pageChangeWindowsKeepEffectsOpenUntilIdle()
+    {
+        constexpr std::int64_t kNever = std::numeric_limits<std::int64_t>::max();
+        using Window = std::pair<std::int64_t, std::int64_t>;
+        const std::vector<Window> windows = bench::pageChangeWindows(
+            {20, 600, 900, 1300}, {false, false, true, false}, {950}, {1, -1, -1, 3}, {10, 540, 1200});
+        QCOMPARE(windows, (std::vector<Window>{{20, 540}, {600, 600}, {900, 950}, {1300, kNever}}));
+    }
+
+    // L7-T38 (relecture tour 2, majeur) : un effet qui déborde sa période tourne encore quand la commande
+    // suivante part (900). navigate() le clôt d'abord (settle() : repos relevé à 905, APRÈS l'heure de la
+    // commande), puis lance le nouvel effet, fini à 1400. La fenêtre de la commande 900 se ferme sur le repos
+    // de son rang (1 : idleNs.size() relevé après elle), la fin de son propre effet ; le premier repos
+    // postérieur à 900 (lower_bound) la fermerait à 905 et laisserait l'animation du second effet au repos.
+    // Le troisième effet (rang 2) ne revient jamais au repos : fenêtre ouverte jusqu'à la fin.
+    void pageChangeWindowsCloseOverrunEffectsOnTheirOwnIdle()
+    {
+        constexpr std::int64_t kNever = std::numeric_limits<std::int64_t>::max();
+        using Window = std::pair<std::int64_t, std::int64_t>;
+        const std::vector<Window> windows =
+            bench::pageChangeWindows({20, 900, 1500}, {false, false, false}, {}, {0, 1, 2}, {905, 1400});
+        QCOMPARE(windows, (std::vector<Window>{{20, 905}, {900, 1400}, {1500, kNever}}));
+    }
+
+    // L7-T38 (relecture, majeur) : un effet tombé au repli de capture (page changée sans effet) ou jamais
+    // parti rend la mesure d'« effets-page » invalide ; un plan sans effet n'est pas contrôlé.
+    void pageEffectsCheckWantsEveryEffectPlayed()
+    {
+        const bench::ScenarioPlan effects = bench::effectsScenario(bench::ScenarioSet::Court);
+        QCOMPARE(bench::expectedPageEffects(effects), 16);
+        QVERIFY(bench::pageEffectsCheck(effects, 16).isEmpty());
+        QCOMPARE(bench::pageEffectsCheck(effects, 15),
+                 QStringLiteral("error: page effects played 15 of 16 in effets-page"));
+        QVERIFY(!bench::pageEffectsCheck(effects, 0).isEmpty());
+        const bench::ScenarioPlan page = bench::pageScenario(bench::ScenarioSet::Court);
+        QCOMPARE(bench::expectedPageEffects(page), 0);
+        QVERIFY(bench::pageEffectsCheck(page, 0).isEmpty());
+    }
+
+    // L7-T38 (relecture tour 2) : le dernier effet encore en cours après l'attente de fin de mesure (jamais
+    // revenu au repos) rend la mesure invalide : sa fenêtre resterait ouverte jusqu'à la fin et la
+    // transition, encore en surcouche, passerait au scénario suivant. Un plan sans effet n'est pas contrôlé.
+    void pageEffectEndCheckWantsTheLastEffectFinished()
+    {
+        const bench::ScenarioPlan effects = bench::effectsScenario(bench::ScenarioSet::Court);
+        QCOMPARE(bench::pageEffectEndCheck(effects, true),
+                 QStringLiteral("error: page effect not finished in effets-page"));
+        QVERIFY(bench::pageEffectEndCheck(effects, false).isEmpty());
+        QVERIFY(bench::pageEffectEndCheck(bench::pageScenario(bench::ScenarioSet::Court), true).isEmpty());
+    }
+
+    // L7-T38 (relecture) : les choix d'effet d'« effets-page » (view.page-effect) sont des commandes de
+    // réglage : ni entrée ni fenêtre de changement de page, leurs images restent au repos. Aucune autre
+    // commande, d'« effets-page » ou d'un autre scénario, ne l'est : leurs verdicts ne changent pas.
+    void effectChoicesAreSettings()
+    {
+        for (const bench::ScenarioSet set : {bench::ScenarioSet::Court, bench::ScenarioSet::Complet}) {
+            for (const bench::ScenarioPlan& plan : bench::allScenarios(set)) {
+                int settings = 0;
+                for (const bench::PlannedInput& in : plan.inputs) {
+                    if (in.setting) {
+                        ++settings;
+                        QCOMPARE(in.command, QStringLiteral("view.page-effect"));
+                    }
+                }
+                QCOMPARE(settings, plan.name == QLatin1String("effets-page") ? 17 : 0);
+            }
+        }
     }
 
     // L2-T23 : document du scénario « page » : deux pages générées, la seconde peinte (20 textes, 20 formes à

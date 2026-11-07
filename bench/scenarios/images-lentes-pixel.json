@@ -1,0 +1,11 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "images-lentes-pixel",
+  "description": "L7-T43 : contrôle de pixel, avant toute capture, sur la séparation verticale en pointillé (image « data: » chargée hors du fil). Moyenne 3 × 3 sur la colonne du pointillé : un point sur trois de #B9C0C8, huit pixels blancs, soit #F7F8F8 ; sans le pointillé, blanc pur, en écart. Avec --retard-images, le contrôle doit attendre la fin des chargements.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "page.zones", "argument": "2x0"},
+    {"waitReady": true},
+    {"checkPixel": "pointille-vertical", "at": [512, 300], "color": "#F7F8F8", "tolerance": 4}
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "regle",
+  "description": "Règle (F-280, S10) : ouverte au centre de la page (bord haut à y = 344), stylo d'épaisseur 12, un trait au stylet posé à 4 pixels au-dessus du bord (bande extérieure) puis tiré vers le milieu de la règle reste collé au bord ; encre lue au-dessus du bord, hors de la règle (le corps translucide recouvre la moitié basse du trait) ; la règle n'est pas au document.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "math.ruler"},
+    {"expect": "mathTools.count", "value": 1},
+    {"command": "pen.width", "argument": 12},
+    {"stroke": [[300, 340], [400, 384], [700, 384]]},
+    {"waitReady": true},
+    {"checkPixel": "trait-sur-le-bord", "at": [500, 340], "color": "#000000"},
+    {"checkPixel": "milieu-de-la-regle-sans-encre", "at": [420, 384], "color": "#ffffff"},
+    {"capture": "regle-trait"}
+  ]
+}

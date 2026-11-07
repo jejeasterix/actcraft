@@ -93,6 +93,7 @@ public:
     bool overTrash(core::PointF pagePoint) const override;
     void setTrashHover(bool hover) override;
     QStringList objectBarCommands() const override;
+    std::optional<core::PointF> rotationPivot() const override; // posé sur la vue par le lot 7
 
 private:
     PageView& m_view;

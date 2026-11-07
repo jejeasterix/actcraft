@@ -1,0 +1,18 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "rideau",
+  "description": "F-265 : Ctrl+R (present.curtain) ferme le rideau noir sur la page ; tiré du haut au milieu de la page, il la découvre à moitié (curtain.coverage = 0,5) ; la moitié haute garde la couleur de la page, la moitié basse reste noire.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "present.curtain"},
+    {"expect": "curtain.active", "value": true},
+    {"expect": "curtain.coverage", "value": 1, "tolerance": 0.02},
+    {"checkPixel": "rideau-ferme-centre", "at": [512, 384], "color": "#000000", "tolerance": 8},
+    {"capture": "rideau-ferme"},
+    {"pointer": [[512, 2], [512, 192], [512, 384]], "button": "left"},
+    {"expect": "curtain.coverage", "value": 0.5, "tolerance": 0.02},
+    {"checkPixel": "rideau-moitie-decouverte", "at": [512, 200], "color": "#FFFFFF", "tolerance": 8},
+    {"checkPixel": "rideau-moitie-couverte", "at": [512, 600], "color": "#000000", "tolerance": 8},
+    {"capture": "rideau-a-moitie"}
+  ]
+}
