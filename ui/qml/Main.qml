@@ -125,7 +125,7 @@ Window {
         target: Theme; property: "largeurPalette"
         value: appLayout.touchUi ? 2 * appLayout.targetSize + appLayout.spacing + 3 * Theme.espace2 : 112
     }
-    LifecycleKeeper { id: appLifecycle; objectName: "appLifecycle"; document: appDocument; view: pageArea.view; recoveryDir: root.recoveryDir }
+    LifecycleKeeper { id: appLifecycle; objectName: "appLifecycle"; document: appDocument; view: pageArea.view; tabs: appTabs; recoveryDir: root.recoveryDir }
     DocumentPortal { id: appPortal; objectName: "appPortal" }
     UpdateChecker { id: appUpdates; objectName: "appUpdates"; preferences: appPreferences }
 
@@ -752,6 +752,7 @@ Window {
 
     FileActions {
         id: fileActions
+        objectName: "fileActions"
         document: appDocument
         tabs: appTabs
         textEditing: appText
@@ -775,7 +776,11 @@ Window {
         if (!fileActions.quitting && fileActions.hasUnsavedTabs()) {
             close.accepted = false
             fileActions.quit()
+            return
         }
+        // Fermeture acceptée (tout est enregistré, ou « Ne pas enregistrer » choisi) : la copie de reprise n'a
+        // plus d'objet et n'est pas rouverte au lancement suivant (L11-T13).
+        appLifecycle.discard()
     }
 
     // Avertissements de lecture et erreurs : en haut de la page, sans bloquer, refermables.

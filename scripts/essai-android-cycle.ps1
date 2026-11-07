@@ -11,7 +11,6 @@
 # a lancé (émulateur et ses descendants, client et serveur adb) est arrêté par les processus qu'il tient, jamais par
 # nom ni par un PID relu, y compris sur Ctrl+C (bloc finally) ; un serveur adb que l'essai n'a pas lancé n'est jamais
 # arrêté. Écrit sur le Mac (aucun SDK) : à jouer au PC.
-# n'est jamais arrêté.
 param([Parameter(Mandatory)][string]$Apk, [string]$Avd = '')
 $ErrorActionPreference = 'Stop'
 # Chemins absolus, calculés depuis l'emplacement du script : adb et python écrivent un chemin relatif dans le dossier
