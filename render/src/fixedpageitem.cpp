@@ -65,14 +65,6 @@ RevealRange revealRange(const core::Page& page, std::size_t limit)
     return r;
 }
 
-// Échelle réelle de l'élément : densité de l'écran × zoom de la scène (revue de L8-T18).
-double screenScale(const QQuickItem& item)
-{
-    const QRectF unit = item.mapRectToScene(QRectF(0, 0, 1, 1));
-    const double dpr = item.window() ? item.window()->effectiveDevicePixelRatio() : 1.0;
-    return std::max(0.01, std::max(unit.width(), unit.height()) * dpr);
-}
-
 // Logiciel : la part découpée peinte au QPainter par le peintre partagé, à chaque rendu.
 class RevealedLayerNode final : public PainterNode
 {
@@ -180,23 +172,6 @@ FixedPageItem::FixedPageItem(QQuickItem* parent)
 {
     setFlag(ItemHasContents);
     connect(&m_images, &ImageStore::ready, this, &FixedPageItem::onImagesReady);
-    // F-255 (revue de L8-T18) : la part découpée rastérisée suit l'échelle réelle ; un changement de densité
-    // ou de zoom la fait refaire, elle seule (updatePaintNode), jamais à échelle égale.
-    connect(this, &QQuickItem::windowChanged, this, [this](QQuickWindow* window) {
-        if (!window) {
-            return;
-        }
-        connect(window, &QQuickWindow::afterAnimating, this, [this, last = 0.0]() mutable {
-            const bool reveals =
-                std::any_of(m_rasterSlots.begin(), m_rasterSlots.end(),
-                            [](const RasterSlot& slot) { return slot.object == kRevealSlot; });
-            const double now = screenScale(*this);
-            if (reveals && !qFuzzyCompare(now, last)) {
-                update();
-            }
-            last = now;
-        });
-    });
 }
 
 void FixedPageItem::loadGeneratedPage()
@@ -544,9 +519,6 @@ void FixedPageItem::addRasterSlot(QSGNode* node, std::size_t object)
 
 void FixedPageItem::rescaleRasterNodes(const core::Page& page, const RenderContext& painted)
 {
-    const auto revealScale = [this](const RenderContext& context) {
-        return std::max(context.rasterScale, screenScale(*this));
-    };
     for (RasterSlot& slot : m_rasterSlots) {
         QSGNode* fresh = nullptr;
         if (slot.object == kBackgroundSlot) {
@@ -554,8 +526,9 @@ void FixedPageItem::rescaleRasterNodes(const core::Page& page, const RenderConte
         } else if (slot.object == kGridSlot) {
             fresh = createGridNode(page, painted);
         } else if (slot.object == kRevealSlot) {
+            // Comme le fond et la grille : l'échelle posée par la vue (L8-C6), jamais celle de l'élément.
             fresh = createRevealedNode(page, revealRange(page, cachedObjectCount()), m_images, painted,
-                                       m_showHiddenTranslucent, revealScale(painted));
+                                       m_showHiddenTranslucent, painted.rasterScale);
         } else {
             fresh = m_painted.createNode(page.objects[slot.object], painted);
         }
@@ -601,9 +574,6 @@ void FixedPageItem::geometryChange(const QRectF& newGeometry, const QRectF& oldG
 
 QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
 {
-    const auto revealScale = [this](const RenderContext& context) {
-        return std::max(context.rasterScale, screenScale(*this));
-    };
     const bool software = window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
     // Logiciel : racine de transformation (identité). Sous une racine QSGNode nue déjà rendue, le moteur
     // logiciel de Qt 6.12 peint les nœuds ajoutés sans la transformation de l'élément (voir InkItem).
@@ -670,32 +640,9 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
         }
         m_rebuild = !m_ready;
     } else if (m_rescale) {
+        // Seul setRasterScale (le zoom posé par la vue) refait les nœuds rastérisés, part découpée comprise :
+        // aucun redessin d'un zoom continu ne rastérise la page (ui/src/pageview.cpp:1349-1353).
         rescaleRasterNodes(shown, painted);
-    } else {
-        // Part découpée rastérisée à une autre échelle que l'échelle réelle (zoom, densité) : refaite seule.
-        for (RasterSlot& slot : m_rasterSlots) {
-            auto* image = slot.object == kRevealSlot ? static_cast<QSGImageNode*>(slot.node) : nullptr;
-            if (!image || !image->texture() || image->rect().width() <= 0) {
-                continue;
-            }
-            const double wanted =
-                boundedRasterScale(image->rect().width(), image->rect().height(), revealScale(painted));
-            const double used = image->texture()->textureSize().width() / image->rect().width();
-            if (std::abs(used - wanted) * image->rect().width() < 1.0) {
-                continue;
-            }
-            QSGNode* fresh = createRevealedNode(shown, revealRange(shown, cachedObjectCount()), m_images,
-                                                painted, m_showHiddenTranslucent, revealScale(painted));
-            if (!fresh) {
-                continue;
-            }
-            QSGNode* parent = slot.node->parent();
-            parent->insertChildNodeBefore(fresh, slot.node);
-            parent->removeChildNode(slot.node);
-            delete slot.node;
-            slot.node = fresh;
-            ++m_rasterizationCount;
-        }
     }
     m_rescale = false;
     if (m_ready) {
@@ -708,7 +655,7 @@ QSGNode* FixedPageItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             if (reveal.any && i >= reveal.first && i <= reveal.last) {
                 if (i == reveal.first) { // F-255 : la part découpée, en un nœud du peintre partagé
                     if (QSGNode* node = createRevealedNode(shown, reveal, m_images, painted,
-                                                           m_showHiddenTranslucent, revealScale(painted))) {
+                                                           m_showHiddenTranslucent, painted.rasterScale)) {
                         if (rasterized) {
                             addRasterSlot(node, kRevealSlot);
                         }
