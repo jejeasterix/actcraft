@@ -109,7 +109,8 @@ private:
 };
 
 // L11-C10 (J3) : une commande lancée par un outil part au nom de son utilisateur (Commands::trigger avec
-// l'utilisateur) ; celles qu'un gestionnaire relance le restent, et une commande à boîte du second est refusée.
+// l'utilisateur) ; celles qu'un gestionnaire relance le restent, et une commande à boîte du second est
+// refusée.
 class CommandSinkAdapter final : public tools::CommandSink
 {
 public:

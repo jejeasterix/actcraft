@@ -53,7 +53,8 @@ class ToolHost : public QObject
     Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
     Q_PROPERTY(bool handlesVisible READ handlesVisible NOTIFY selectionChanged)
     Q_PROPERTY(QVariantMap selectionFrame READ selectionFrame NOTIFY selectionChanged)
-    // L11-C10 (F) : cadre du second utilisateur (mode à deux), même forme que selectionFrame ; masqué hors mode.
+    // L11-C10 (F) : cadre du second utilisateur (mode à deux), même forme que selectionFrame ; masqué hors
+    // mode.
     Q_PROPERTY(QVariantMap secondSelectionFrame READ secondSelectionFrame NOTIFY secondSelectionChanged)
     Q_PROPERTY(QRectF trashArea READ trashArea WRITE setTrashArea NOTIFY trashAreaChanged) // scène
     Q_PROPERTY(bool trashHover READ trashHover NOTIFY trashHoverChanged)
