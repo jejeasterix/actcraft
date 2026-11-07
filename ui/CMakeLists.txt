@@ -458,7 +458,10 @@ qt_add_resources(actcraft_ui "ui_lot6_data"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}
     FILES help/index.html
           help/pen.html help/select.html help/highlighter.html help/eraser.html help/shape.html
-          help/text.html help/text-vertical.html help/fill.html help/connector.html)
+          help/text.html help/text-vertical.html help/fill.html help/connector.html
+          help/reveal-ink.html
+          help/raccourcis.html help/deux-utilisateurs.html help/modes-toucher.html help/reprise.html
+          help/mises-a-jour.html help/profils.html help/mot-de-passe-oublie.html)
 
 # Traductions (D6-11, L6-T36) : le .ts (produit par lupdate, cible update_translations) devient un .qm dans les
 # ressources, sous /actcraft/i18n. Français livré : traduction identité.

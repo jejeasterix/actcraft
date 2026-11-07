@@ -584,6 +584,9 @@ actcraft_add_lot11_capture(tst_captures_aide_complete aide-complete)
 # Pseudo-langue de contrôle (L11-T19, activée par L11-T20) : traduction « ⟦source⟧ » produite par tests/ui.cmake.
 actcraft_add_lot11_capture(tst_captures_pseudo_langue controle/pseudo-langue --traduction ${ACTCRAFT_PSEUDO_QM})
 actcraft_add_lot11_capture(tst_captures_mises_a_jour mises-a-jour)
+# Réponse simulée : un fichier local, jamais le réseau (D11-13) ; la liste _bench_env_offscreen est gardée.
+set_tests_properties(tst_captures_mises_a_jour PROPERTIES
+    ENVIRONMENT "${_bench_env_offscreen};ACTCRAFT_UPDATES_URL=file:///${PROJECT_SOURCE_DIR}/tests/data/updates/newer.json")
 actcraft_add_lot11_capture(tst_captures_classe_protegee_complete classe-protegee-complete)
 actcraft_add_lot11_capture(tst_captures_profils_complets profils-complets)
 

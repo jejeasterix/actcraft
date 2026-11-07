@@ -24,8 +24,26 @@ QVariantList pointList(const std::vector<core::PointF>& points)
 
 } // namespace
 
-DocumentEditorAdapter::DocumentEditorAdapter(DocumentController& controller)
-    : m_controller(controller), m_alive(&controller)
+void stackAbove(QQuickItem& leader, QQuickItem& follower)
+{
+    follower.setParentItem(leader.parentItem());
+    follower.setParent(&leader);
+    follower.stackAfter(&leader);
+    QQuickItem* const from = &leader;
+    QQuickItem* const to = &follower;
+    const auto follow = [from, to] {
+        to->setPosition(from->position());
+        to->setSize(from->size());
+    };
+    follow();
+    QObject::connect(from, &QQuickItem::xChanged, to, follow);
+    QObject::connect(from, &QQuickItem::yChanged, to, follow);
+    QObject::connect(from, &QQuickItem::widthChanged, to, follow);
+    QObject::connect(from, &QQuickItem::heightChanged, to, follow);
+}
+
+DocumentEditorAdapter::DocumentEditorAdapter(DocumentController& controller, int owner)
+    : m_controller(controller), m_alive(&controller), m_owner(owner)
 {
     m_observer = controller.addChangeObserver(
         [this](const core::Changes&, DocumentController::ChangeOrigin) { ++m_revision; });
@@ -66,19 +84,19 @@ void DocumentEditorAdapter::execute(std::unique_ptr<core::UndoCommand> command)
 
 std::vector<core::PageObject> DocumentEditorAdapter::lift(const std::vector<core::ObjectId>& ids)
 {
-    return m_controller.liftObjects(ids);
+    return m_controller.liftObjects(ids, m_owner);
 }
 
 // L5-T17 : le connecteur lié suit l'objet déposé, en une étape. Le suivi se décide dans le contrôleur
 // (DocumentController::run, M2 de L5-C18), sur la page où les objets soulevés sont revenus.
 void DocumentEditorAdapter::drop(std::unique_ptr<core::UndoCommand> command)
 {
-    m_controller.dropLifted(std::move(command));
+    m_controller.dropLifted(std::move(command), m_owner);
 }
 
 bool DocumentEditorAdapter::isLifting() const
 {
-    return m_controller.isLifting();
+    return m_controller.isLifting(m_owner);
 }
 
 LiftSurfaceAdapter::LiftSurfaceAdapter(render::LiftLayerItem& layer) : m_layer(layer) {}
@@ -180,7 +198,7 @@ ToolAdapters::ToolAdapters(DocumentController& controller, PageView& pageView, r
                            SelectionSurfaceAdapter::Show showSelection, ViewInfoAdapter::TrashArea trashArea,
                            ViewInfoAdapter::TrashHover trashHover)
     : controllerRef(&controller), viewRef(&pageView), inkRef(&inkItem), layerRef(&layer),
-      commandsRef(commandList), document(controller), ink(inkItem), strokes(controller, pageView),
+      commandsRef(commandList), document(controller, user.id()), ink(inkItem), strokes(controller, pageView),
       lift(layer), selection(commandList, std::move(showSelection)),
       view(pageView, commandList, std::move(trashArea), std::move(trashHover)), commands(commandList),
       context{document, ink, strokes, lift, selection, view, commands, user, false, false}

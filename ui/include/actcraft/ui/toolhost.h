@@ -140,7 +140,8 @@ public:
     // Geste du premier utilisateur (Échap, changement de son outil ou de sa sélection).
     Q_INVOKABLE void cancelGesture();
     // L11-C6 : gestes des deux utilisateurs (modification annoncée du document, changement de page, zoom,
-    // rebranchement) : un glisser du second s'arrête sans étape au lieu d'en verser une.
+    // rebranchement). L11-C9 : ceux du second sont abandonnés (Tool::abandon) : ni déplacement ni trait
+    // versé.
     Q_INVOKABLE void cancelAllGestures();
     Q_INVOKABLE void setConnectorStyle(int style);         // L5-T17
     Q_INVOKABLE void setConnectorCaps(int capA, int capB); // L5-C18 : rangs 0 aucune, 1 rayon, 2 flèche
@@ -216,10 +217,15 @@ private:
     // UserState, surface d'encre et de sélection à lui) ; nullptr tant que le branchement manque.
     bool isSecond(input::UserId user) const noexcept;
     ToolAdapters* secondAdapters() const;
+    // L11-C7 (E) : couche soulevée du second, juste au-dessus de liftLayer, créée à la première demande.
+    render::LiftLayerItem* secondLiftLayer() const;
     tools::Tool* secondToolFor(const QString& id) const;
     tools::Tool* secondExistingTool(const QString& id) const;
     void adopt(tools::Tool* tool) const; // registre des objets tenus posé sur un sélecteur neuf (L11-T8)
-    tools::InkSettings settingsOf(const QString& id) const; // réglages de l'utilisateur, ou ceux par défaut
+    // Réglages de l'utilisateur (le premier, ou le second s'il existe et que user n'est pas kFirstUser), ou
+    // ceux par défaut ; lastInkOf : son dernier outil d'encre (L11-C9).
+    tools::InkSettings settingsOf(const QString& id, input::UserId user = input::kFirstUser) const;
+    const QString& lastInkOf(input::UserId user) const noexcept;
     // Réglages rangés chez l'utilisateur, écrits dans le fichier et rendus à la vue.
     void storeSettings(const QString& id, const tools::InkSettings& settings);
     void ensureSettings(); // QSettings → UserState (F-136), une fois par fichier
@@ -231,8 +237,8 @@ private:
     void refreshSelection();
     void relayModifiers(int key, int modifiers);
     // L5-T17 : réglages gardés par outil (couleur du pot, style du connecteur, tracé choisi) rendus à
-    // l'outil.
-    void configureTool(tools::Tool* tool) const;
+    // l'outil ; L11-C9 : ceux de l'utilisateur à qui l'outil appartient.
+    void configureTool(tools::Tool* tool, input::UserId user = input::kFirstUser) const;
     void writeValue(const QString& key, const QVariant& value) const;
     QString shownInkTool() const;
     QString shownWidthTool() const;
@@ -248,6 +254,7 @@ private:
     QPointer<DocumentController> m_controller;
     QPointer<PageView> m_view;
     QPointer<render::LiftLayerItem> m_liftLayer;
+    mutable QPointer<render::LiftLayerItem> m_secondLiftLayer; // enfant QObject de m_liftLayer
     QRectF m_trashArea;
     bool m_trashHover = false;
     QString m_settingsFile;

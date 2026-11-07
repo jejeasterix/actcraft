@@ -102,6 +102,10 @@ public:
     void setFixedPage(render::FixedPageItem* page);
     render::InkItem* ink() const noexcept;
     void setInk(render::InkItem* ink);
+    // L11-C7 (D) : encre vive du second utilisateur, juste au-dessus de ink(), aux mêmes coordonnées ; créée
+    // à la première demande, remplacée avec ink() ; nulle sans ink(). Un trait vif par encre : deux traits
+    // simultanés en demandent deux.
+    render::InkItem* secondInk();
     // Lot 10 (DA11) : couche d'attente branchée, qui regarde la page fixe de la vue, et cache actif, un objet
     // ajouté en fin de page attend au-dessus du cache ; il y est versé après kCacheFoldIdleMs sans entrée qui
     // agit (un survol ne compte pas), dès kCacheFoldMaxPending objets en attente, et à tout redessin du cache
@@ -315,6 +319,7 @@ private:
 
     render::FixedPageItem* m_fixedPage = nullptr;
     render::InkItem* m_ink = nullptr;
+    QPointer<render::InkItem> m_secondInk; // enfant QObject de m_ink
     core::InkProbe* m_probe = nullptr;
     std::unique_ptr<InkSurfaceAdapter> m_inkSurface;
     std::unique_ptr<FixedPageSink> m_documentSink;
