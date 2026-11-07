@@ -14,6 +14,10 @@ actcraft_add_test(tst_bench_stats
     SOURCES tst_bench_stats.cpp
     LIBS ActCraft::bench)
 
+actcraft_add_test(tst_bench_isolation
+    SOURCES tst_bench_isolation.cpp
+    LIBS ActCraft::bench ActCraft::ui)
+
 actcraft_add_test(tst_bench_json
     SOURCES tst_bench_json.cpp
     LIBS ActCraft::bench)

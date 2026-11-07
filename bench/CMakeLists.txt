@@ -25,6 +25,8 @@ actcraft_add_module(bench
         src/verdict.cpp
         src/contentcheck.cpp
         src/recorder.cpp
+        src/testroots.cpp
+        include/actcraft/bench/testroots.h
         include/actcraft/bench/runner.h
         src/runner.cpp
         ${_bench_gpu_source}
