@@ -808,6 +808,26 @@ bool parseReadSpec(const QString& text, UiStep& out)
     return true;
 }
 
+// Chemin lu par expect, expectChanged, waitFor et remember : la propriété de l'objet, puis, après chaque
+// point, la clé d'une table (L11-T9 : « appTools.selectionFrame.visible »). Un nom sans point lit la
+// propriété seule, comme avant ; une clé absente ou une valeur qui n'est pas une table rend une valeur
+// invalide.
+QVariant readPath(const QObject* object, const QString& path)
+{
+    if (!object) {
+        return {};
+    }
+    const QStringList parts = path.split(QLatin1Char('.'));
+    QVariant value = object->property(parts.first().toUtf8().constData());
+    for (qsizetype i = 1; i < parts.size(); ++i) {
+        if (value.metaType() != QMetaType::fromType<QVariantMap>()) {
+            return {};
+        }
+        value = value.toMap().value(parts.at(i));
+    }
+    return value;
+}
+
 QString propertyText(const QVariant& value)
 {
     if (!value.isValid()) {
@@ -1012,8 +1032,8 @@ bool UiScenarioPlayer::read(const UiStep& step, QStringList& report)
     }
     QObject* object = find(step.target);
     // Propriété absente : « <absente> » (propertyText), jamais « "" » qui égalerait une valeur attendue vide.
-    const QString actual = object ? propertyText(object->property(step.property.toUtf8().constData()))
-                                  : QStringLiteral("<introuvable>");
+    const QString actual =
+        object ? propertyText(readPath(object, step.property)) : QStringLiteral("<introuvable>");
     bool ok = false;
     QString expectation = expected;
     if (step.above) {
@@ -1421,7 +1441,7 @@ bool UiScenarioPlayer::expectChanged(const UiStep& step, QStringList& report)
         return false;
     }
     QObject* object = find(step.target);
-    const QVariant value = object ? object->property(step.property.toUtf8().constData()) : QVariant();
+    const QVariant value = readPath(object, step.property);
     const QString actual = propertyText(value);
     const bool ok = object && value.isValid() && actual != from;
     report << (ok ? head + QStringLiteral(" OK")
@@ -1763,7 +1783,7 @@ bool UiScenarioPlayer::waitFor(const UiStep& step, QStringList& report)
             if (!target) {
                 return true;
             }
-            actual = propertyText(target->property(property.constData()));
+            actual = propertyText(readPath(target, QString::fromUtf8(property)));
             return matches(actual);
         },
         step.ms);
@@ -1842,7 +1862,7 @@ bool UiScenarioPlayer::remember(const UiStep& step, QStringList& report)
     }
     // Propriété absente ou sans texte : rien à mémoriser (« <absente> » relu plus tard égalerait une autre
     // propriété absente).
-    const QVariant value = target->property(step.property.toUtf8().constData());
+    const QVariant value = readPath(target, step.property);
     if (!value.isValid() || !value.canConvert<QString>()) {
         report << QStringLiteral("MEMO %1 ECHEC (%2.%3 : %4)")
                       .arg(step.name, step.target, step.property, propertyText(value));
