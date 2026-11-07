@@ -1,6 +1,7 @@
 #pragma once
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documentportal.h>
 
 #include <QImage>
 #include <QObject>
@@ -30,6 +31,7 @@ class MediaInsert : public QObject
     QML_ELEMENT
     Q_PROPERTY(Commands* commands READ commands WRITE setCommands NOTIFY commandsChanged)
     Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
+    Q_PROPERTY(actcraft::ui::DocumentPortal* portal READ portal WRITE setPortal)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
 public:
     // Première image d'une vidéo, appelée sur un fil du pool avec le chemin du fichier local ; image nulle :
@@ -42,6 +44,8 @@ public:
     void setCommands(Commands* commands);
     DocumentController* document() const;
     void setDocument(DocumentController* document);
+    DocumentPortal* portal() const { return m_portal; }
+    void setPortal(DocumentPortal* portal) { m_portal = portal; } // noms d'URL content://
     bool isBusy() const;
     void setFrameProbe(FrameProbe probe);
 
@@ -64,6 +68,7 @@ private:
     void startFile(const QUrl& url, std::optional<QPointF> center);
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_document;
+    QPointer<DocumentPortal> m_portal;
     FrameProbe m_probe;
     int m_pending = 0;
 };

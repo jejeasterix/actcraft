@@ -18,10 +18,10 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
-#include <QSet>
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSet>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QList>
 #include <QObject>
 #include <QString>
 #include <QUrl>
@@ -44,6 +45,9 @@ public:
     // Nom affiché : celui du fournisseur (OpenableColumns.DISPLAY_NAME sous Android), sinon `fallbackName` ;
     // jamais l'URL.
     QString displayName(const QUrl& url) const;
+    // `displayName` si le portail existe, sinon `fallbackName` : pour les modules qui tirent un nom ou un
+    // suffixe d'une URL (jamais `url.path()`, qui rend « 13 » pour un content://).
+    static QString nameOf(const DocumentPortal* portal, const QUrl& url);
     // content:// : permission encore valide ; ailleurs : vrai.
     bool permitted(const QUrl& url) const;
     // content:// : le fournisseur répond ; fichier local : il existe ; autre URL : faux.
@@ -56,8 +60,12 @@ public:
     // content:// : permission rendue ; ailleurs : sans effet.
     Q_INVOKABLE void forget(const QUrl& url);
     // Garde d'une URL lue une fois (image insérée, PDF importé) : vrai si elle s'ouvre ; sinon `refused`
-    // avec le nom affiché, et faux. Aucune permission gardée.
+    // avec le nom affiché, et faux. Aucune permission gardée par le portail ; celle que le sélecteur du
+    // système a prise pour cette lecture est prêtée jusqu'à `returnLent` (refus : rendue tout de suite).
     Q_INVOKABLE bool admit(const QUrl& url);
+    // Rend les permissions prêtées (fin de la lecture : Android garde 512 permissions au plus et évince
+    // les plus anciennes, celles des récents).
+    Q_INVOKABLE void returnLent();
 
 signals:
     void refused(const QString& name);
@@ -66,6 +74,7 @@ private:
     PermissionBackend& backend() const;
 
     PermissionBackend* m_backend = nullptr;
+    QList<QUrl> m_lent;
 };
 
 } // namespace actcraft::ui

@@ -35,6 +35,7 @@ enum class Mode
 struct InsertionJob
 {
     QUrl url;
+    QString name; // nom affiché (fournisseur d'un content://), pris sur le fil principal
     Mode mode = Mode::Image;
     QImage pasted;
     bool hasCenter = false;
@@ -104,7 +105,7 @@ Result work(const std::vector<InsertionJob>& jobs, QThread* mainThread)
             result.error = read.error.isEmpty() ? QStringLiteral("Lecture impossible") : read.error;
             continue;
         }
-        const QFileInfo info(job.url.isLocalFile() ? job.url.toLocalFile() : job.url.path());
+        const QFileInfo info(job.name);
         item.name = info.completeBaseName().toStdString();
         item.fileName = info.fileName().toStdString();
         item.extension = info.suffix().toLower().toStdString();
@@ -247,6 +248,10 @@ void Insertion::start(std::vector<InsertionJob> jobs)
 {
     if (m_document == nullptr)
         return;
+    for (InsertionJob& job : jobs) {
+        if (job.mode != Mode::Pasted)
+            job.name = DocumentPortal::nameOf(m_portal, job.url);
+    }
     if (m_pending++ == 0)
         emit busyChanged();
     auto* watcher = new QFutureWatcher<Result>(this);
@@ -337,11 +342,19 @@ void Insertion::setMediaInsert(MediaInsert* insert)
     emit mediaInsertChanged();
 }
 
+void Insertion::setPortal(DocumentPortal* portal)
+{
+    m_portal = portal;
+    if (m_mediaInsert && m_mediaInsert->parent() == this)
+        m_mediaInsert->setPortal(portal);
+}
+
 void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center)
 {
     if (!m_mediaInsert) {
         auto* own = new MediaInsert(this);
         own->setDocument(m_document);
+        own->setPortal(m_portal);
         connect(this, &Insertion::documentChanged, own, [this, own] { own->setDocument(m_document); });
         setMediaInsert(own);
     }
@@ -375,7 +388,7 @@ bool Insertion::acceptDrop(const QVariantList& urls, const QString& text, QPoint
         const QUrl url = value.canConvert<QUrl>() ? value.toUrl() : QUrl::fromUserInput(value.toString());
         if (!url.isValid() || url.isEmpty())
             continue;
-        if (isMediaExtension(QFileInfo(url.isLocalFile() ? url.toLocalFile() : url.path()).suffix())) {
+        if (isMediaExtension(QFileInfo(DocumentPortal::nameOf(m_portal, url)).suffix())) {
             routeMedia(url, pagePoint); // son ou vidéo : MediaInsert (action, espace réservé, verrou)
             routed = true;
             continue;

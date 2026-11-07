@@ -2,6 +2,8 @@
 
 #include <QFileInfo>
 
+#include <utility>
+
 #ifdef Q_OS_ANDROID
 #include <QJniEnvironment>
 #include <QJniObject>
@@ -188,6 +190,11 @@ QString DocumentPortal::displayName(const QUrl& url) const
     return fallbackName(url);
 }
 
+QString DocumentPortal::nameOf(const DocumentPortal* portal, const QUrl& url)
+{
+    return portal ? portal->displayName(url) : fallbackName(url);
+}
+
 bool DocumentPortal::permitted(const QUrl& url) const
 {
     return isContent(url) ? backend().holds(url) : true;
@@ -218,13 +225,29 @@ void DocumentPortal::forget(const QUrl& url)
     }
 }
 
-bool DocumentPortal::admit(const QUrl& url)
+bool DocumentPortal::admit(const QUrl& requested)
 {
+    // Un chemin nu (argument de commande, lettre de lecteur) est un fichier local, comme pour MediaInsert.
+    const bool bare =
+        requested.scheme().isEmpty() || (requested.scheme().size() == 1 && !requested.isLocalFile());
+    const QUrl url = bare ? QUrl::fromLocalFile(requested.toString()) : requested;
     if (canOpen(url)) {
+        if (isContent(url)) {
+            m_lent.append(url);
+        }
         return true;
     }
     emit refused(displayName(url));
+    forget(url); // rien ne sera lu : la permission prise par le sélecteur ne sert plus
     return false;
+}
+
+void DocumentPortal::returnLent()
+{
+    const QList<QUrl> lent = std::exchange(m_lent, {});
+    for (const QUrl& url : lent) {
+        forget(url);
+    }
 }
 
 } // namespace actcraft::ui

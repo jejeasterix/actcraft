@@ -11,6 +11,8 @@ Item {
 
     required property FileExchange exchange
     required property Insertion insertion
+    signal imagePicked(url url) // D11-9 : Main.qml les fait passer par le portail
+    signal pdfPicked(url url)
     signal popupOpened()
     signal popupClosed()
 
@@ -53,7 +55,7 @@ Item {
         title: qsTr("Insérer une image")
         fileMode: FileDialog.OpenFile
         nameFilters: [qsTr("Images (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff *.svg)"), qsTr("Tous les fichiers (*)")]
-        onAccepted: root.insertion.insertImage(selectedFile)
+        onAccepted: root.imagePicked(selectedFile)
         onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
     }
     FileDialog {
@@ -92,7 +94,7 @@ Item {
         title: qsTr("Importer un PDF")
         fileMode: FileDialog.OpenFile
         nameFilters: [qsTr("Documents PDF (*.pdf)")]
-        onAccepted: root.exchange.importPdf(selectedFile)
+        onAccepted: root.pdfPicked(selectedFile)
         onVisibleChanged: visible ? root.popupOpened() : root.popupClosed()
     }
     FileDialog {

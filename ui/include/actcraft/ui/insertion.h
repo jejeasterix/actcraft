@@ -1,5 +1,6 @@
 #pragma once
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documentportal.h>
 #include <actcraft/ui/mediainsert.h>
 
 #include <QImage>
@@ -25,12 +26,15 @@ class Insertion : public QObject
     QML_ELEMENT
     Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(MediaInsert* mediaInsert READ mediaInsert WRITE setMediaInsert NOTIFY mediaInsertChanged)
+    Q_PROPERTY(actcraft::ui::DocumentPortal* portal READ portal WRITE setPortal)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
     Q_PROPERTY(bool lastDecodeOffMainThread READ lastDecodeOffMainThread NOTIFY inserted)
 public:
     explicit Insertion(QObject* parent = nullptr);
     DocumentController* document() const;
     void setDocument(DocumentController* document);
+    DocumentPortal* portal() const { return m_portal; }
+    void setPortal(DocumentPortal* portal); // noms d'URL content://
     bool isBusy() const;
     bool lastDecodeOffMainThread() const;
 
@@ -56,6 +60,7 @@ private:
     int m_pending = 0;
     void routeMedia(const QUrl& url, std::optional<QPointF> center);
     QPointer<MediaInsert> m_mediaInsert;
+    QPointer<DocumentPortal> m_portal;
     int m_forwarded = 0; // médias confiés à MediaInsert dont le signal final n'est pas encore revenu
     bool m_lastOff = false;
 };

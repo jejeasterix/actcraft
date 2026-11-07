@@ -44,11 +44,6 @@ QUrl localized(const QUrl& url)
         QDir::cleanPath(QDir::current().absoluteFilePath(QDir::fromNativeSeparators(path))));
 }
 
-QString fileName(const QUrl& url)
-{
-    return QFileInfo(url.isLocalFile() ? url.toLocalFile() : url.path()).fileName();
-}
-
 // Suit un travail du module export : `done` est appelé sur le fil principal avec son résultat, puis
 // l'observateur disparaît.
 template <typename Result, typename Done> void watch(QObject* owner, QFuture<Result> future, Done done)
@@ -171,7 +166,7 @@ void FileExchange::finishExport(const exporting::ExportResult& result, const QUr
 {
     setBusy(false);
     if (result.ok) {
-        emit finished(okFormat.arg(fileName(target)));
+        emit finished(okFormat.arg(DocumentPortal::nameOf(m_portal, target)));
     } else {
         fail(failFormat.arg(result.error));
     }
@@ -185,13 +180,12 @@ void FileExchange::finishImport(exporting::ImportResult result, const QUrl& sour
         fail(failFormat.arg(result.error));
         return;
     }
-    const QString title =
-        QFileInfo(source.isLocalFile() ? source.toLocalFile() : source.path()).completeBaseName();
+    const QString title = QFileInfo(DocumentPortal::nameOf(m_portal, source)).completeBaseName();
     if (!installInNewTab(m_tabs, m_document, std::move(result.document), title)) {
         fail(busyMessage);
         return;
     }
-    emit finished(doneFormat.arg(fileName(source)));
+    emit finished(doneFormat.arg(DocumentPortal::nameOf(m_portal, source)));
 }
 
 // La copie du document est prise ici, sur le fil principal ; le rendu et l'écriture tournent sur un fil
