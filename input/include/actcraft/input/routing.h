@@ -42,7 +42,8 @@ struct Decision
 {
     Route route = Route::Ignore;
     UserId user = kFirstUser;
-    // Appui d'un doigt : ces doigts passent à Gesture ; appui d'un stylet ou de la souris : à Ignore (M4 b).
+    // Appui d'un doigt seul dans son événement : ces doigts passent à Gesture ; appui d'un stylet, de la
+    // souris ou de doigts posés ensemble (pressesInEvent ≥ 2) : à Ignore (M4 b).
     bool endToolContacts =
         false; // les doigts en cours vers l'outil passent à Gesture ou à Ignore : la vue termine leur trait
     FingerTool fingerTool = FingerTool::Current; // outil imposé au contact (modes pen et select, D11-4)
@@ -57,8 +58,11 @@ public:
 };
 
 // Gestion complète du toucher (décision 25, N2-A5) : stylet et souris → outil ; doigt pendant un contact de
-// stylet ou de souris → rien (paume) ; premier doigt → outil ; deuxième doigt → geste, et le premier y passe
-// (endToolContacts) ; au-delà de deux doigts → rien. Un seul utilisateur (kFirstUser) jusqu'au lot 11.
+// stylet ou de souris → rien (paume, testée avant toute autre règle) ; premier doigt → outil ; deux doigts
+// posés dans le même événement (pressesInEvent ≥ 2, H3-16) → tous deux au geste, sans point versé à l'outil ;
+// deuxième doigt → geste, et le doigt qui écrit y passe (endToolContacts), ou passe à rien si les doigts du
+// geste sont posés ensemble ; au-delà de deux doigts → rien. Un seul utilisateur (kFirstUser) jusqu'au
+// lot 11.
 class FullTouchPolicy final : public RoutingPolicy
 {
 public:
@@ -73,13 +77,14 @@ public:
     // À l'appui, une décision retenue pour le même pointeur est remplacée ; la politique décide et la
     // décision est retenue pour `sample.pointer` (stylet et souris : 0) ; ensuite, la décision retenue ; au
     // relâché, elle est rendue puis oubliée. Mouvement d'un contact inconnu : Ignore. endToolContacts : les
-    // décisions retenues des doigts routés vers l'outil passent à Gesture si l'appui vient d'un doigt, à
-    // Ignore s'il vient d'un stylet ou de la souris (M4 b).
+    // décisions retenues des doigts routés vers l'outil passent à Gesture si l'appui vient d'un doigt
+    // seul dans son événement, à Ignore sinon (stylet, souris, doigts posés ensemble ; M4 b).
     Decision route(const Sample& sample);
     // Appuis d'un même événement (H3-16) : décidés ensemble, dans l'ordre, chacun comme par route(), la
     // politique voyant `pressesInEvent` = nombre d'appuis de doigt de l'événement que la surcouche ne couvre
-    // pas. Deux doigts posés ensemble en mode full vont tous deux au geste. Un échantillon qui n'est pas un
-    // appui suit route().
+    // pas. En mode full, deux doigts posés ensemble vont tous deux au geste ; un doigt qui écrivait déjà
+    // passe alors à Ignore (endToolContacts : son trait se termine) et ne rejoint pas le geste. Un
+    // échantillon qui n'est pas un appui suit route().
     std::vector<Decision> routePresses(std::span<const Sample> presses);
     int gestureTouches() const noexcept;
     void reset(); // tout contact oublié (perte de saisie)

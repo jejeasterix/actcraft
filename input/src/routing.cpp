@@ -50,7 +50,8 @@ Decision FullTouchPolicy::decide(const Sample& press, const RouterState& state) 
         // l'outil (H3-16).
         decision.route = state.pressesInEvent >= 2 ? Route::Gesture : Route::Tool;
     } else if (state.toolTouches == 1 && state.gestureTouches == 0) {
-        // Deuxième doigt : le geste commence, le premier doigt y passe ; son trait est abandonné (H3-17).
+        // Deuxième doigt : le geste commence, le premier doigt y passe (ou passe à
+        // Ignore si ce doigt arrive avec un autre, H3-16) ; son trait est abandonné (H3-17).
         decision.route = Route::Gesture;
         decision.endToolContacts = true;
     } else if (state.gestureTouches == 1) {
@@ -89,7 +90,10 @@ Decision PointerRouter::decidePress(const Sample& sample, bool covered, int pres
         // deuxième doigt fait passer le premier au geste ; un stylet ou une souris qui prend la main le
         // fait passer à Ignore : il n'écrit plus et ne reste pas compté comme un doigt du geste (un doigt
         // suivant ferait sinon un pincement avec lui).
-        const Route moved = sample.device == DeviceKind::Touch ? Route::Gesture : Route::Ignore;
+        // Doigts posés ensemble (H3-16) : ils font le geste à eux seuls, le doigt qui écrivait passe à
+        // Ignore.
+        const bool loneFinger = sample.device == DeviceKind::Touch && pressesInEvent < 2;
+        const Route moved = loneFinger ? Route::Gesture : Route::Ignore;
         for (auto& [pointer, held] : m_contacts) {
             if (pointer != kStylusOrMouse && held.route == Route::Tool) {
                 held.route = moved;

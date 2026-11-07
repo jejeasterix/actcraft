@@ -142,6 +142,19 @@ private slots:
         QCOMPARE(coveredDecisions[0].route, Route::Tool);
         QCOMPARE(coveredDecisions[1].route, Route::Cover);
         QCOMPARE(covered.gestureTouches(), 0);
+
+        // Un doigt écrit, deux autres se posent ensemble : ces deux-là font le geste, celui qui écrivait
+        // termine son trait et ne fait plus rien (arbitrage de l'orchestrateur, revue de L11-T4).
+        PointerRouter writing;
+        QCOMPARE(writing.route(press(DeviceKind::Touch, 7)).route, Route::Tool);
+        const Sample pair[] = {press(DeviceKind::Touch, 8), press(DeviceKind::Touch, 9)};
+        const auto pairDecisions = writing.routePresses(pair);
+        QCOMPARE(pairDecisions.size(), std::size_t(2));
+        QCOMPARE(pairDecisions[0].route, Route::Gesture);
+        QVERIFY(pairDecisions[0].endToolContacts);
+        QCOMPARE(pairDecisions[1].route, Route::Gesture);
+        QCOMPARE(writing.gestureTouches(), 2);
+        QCOMPARE(writing.route(moveOf(press(DeviceKind::Touch, 7))).route, Route::Ignore);
     }
     void idsRoundTrip()
     {

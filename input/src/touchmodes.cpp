@@ -1,16 +1,19 @@
 #include <actcraft/input/touchmodes.h>
 
 #include <array>
-#include <cstddef>
+#include <utility>
 
 namespace actcraft::input {
 
 namespace {
 
-// Identifiants du réglage du poste `workstation/touch-mode` (D11-3), dans l'ordre de TouchMode.
-constexpr std::array<std::string_view, 4> kTouchModeIds{"ignore", "pen", "select", "full"};
-constexpr std::array<TouchMode, 4> kTouchModes{TouchMode::Ignore, TouchMode::Pen, TouchMode::Select,
-                                               TouchMode::Full};
+// Identifiants du réglage du poste `workstation/touch-mode` (D11-3).
+constexpr std::array<std::pair<TouchMode, std::string_view>, 4> kTouchModeIds{{
+    {TouchMode::Ignore, "ignore"},
+    {TouchMode::Pen, "pen"},
+    {TouchMode::Select, "select"},
+    {TouchMode::Full, "full"},
+}};
 
 // Stylet, souris, autre : l'outil courant, dans tous les modes (D11-4). Comme en mode full (M4 b), un doigt
 // qui écrit cède la main : le routeur le passe à Ignore et la vue termine son trait.
@@ -44,15 +47,19 @@ Decision imposedToolDecision(const Sample& press, const RouterState& state, Fing
 
 std::string_view touchModeId(TouchMode mode) noexcept
 {
-    const auto index = static_cast<std::size_t>(mode);
-    return index < kTouchModeIds.size() ? kTouchModeIds[index] : std::string_view{};
+    for (const auto& [entry, id] : kTouchModeIds) {
+        if (entry == mode) {
+            return id;
+        }
+    }
+    return {};
 }
 
 bool touchModeFromId(std::string_view id, TouchMode& out) noexcept
 {
-    for (std::size_t i = 0; i < kTouchModeIds.size(); ++i) {
-        if (kTouchModeIds[i] == id) {
-            out = kTouchModes[i];
+    for (const auto& [mode, entry] : kTouchModeIds) {
+        if (entry == id) {
+            out = mode;
             return true;
         }
     }
