@@ -12,6 +12,10 @@ Rectangle {
     required property DocumentController documentController
     required property PageView view
     property bool notesVisible: false
+    // Fenêtre compacte (< 600 dp) : les menus s'effacent derrière un bouton « … » qui ouvre le menu principal.
+    property bool compact: false
+    property bool mainMenuOpened: false
+    signal overflowRequested(Item anchorItem)
     signal popupOpened()
     signal popupClosed()
 
@@ -32,6 +36,30 @@ Rectangle {
         anchors.rightMargin: Theme.espace2
         spacing: Theme.espace1
 
+        ToolButton {
+            id: topOverflow
+            objectName: "topOverflow"
+            visible: bar.compact
+            Layout.fillHeight: true
+            Layout.preferredWidth: Theme.tailleBouton
+            focusPolicy: Qt.NoFocus
+            text: "…"
+            font.pixelSize: Theme.taillePoliceTitre
+            Accessible.name: qsTr("Menus")
+            contentItem: Label {
+                text: topOverflow.text
+                font: topOverflow.font
+                color: Theme.texte
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+            background: Rectangle {
+                radius: Theme.rayon
+                color: bar.mainMenuOpened ? Theme.surfaceActive : topOverflow.hovered ? Theme.surfaceSurvol : "transparent"
+            }
+            onClicked: bar.overflowRequested(topOverflow)
+        }
+
         Repeater {
             model: bar.commands.menus
             delegate: ToolButton {
@@ -39,6 +67,7 @@ Rectangle {
                 required property var modelData
                 readonly property bool onAccent: menuButton.down || menu.opened
                 objectName: "menu-" + modelData.id
+                visible: !bar.compact
                 text: modelData.label
                 font.pixelSize: Theme.taillePolice
                 Layout.fillHeight: true

@@ -321,6 +321,9 @@ Window {
         documentController: appDocument
         view: pageArea.view
         notesVisible: browserPanel.hasNotes
+        compact: appLayout.compact // L11-C2 : menus réunis derrière le bouton « … » de la barre
+        mainMenuOpened: mainMenu.opened
+        onOverflowRequested: anchorItem => mainMenu.popup(anchorItem, 0, anchorItem.height)
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -478,51 +481,6 @@ Window {
         y: (appTabs.position === "bottom" ? topBar.y + topBar.height : documentTabBar.y + documentTabBar.height) + Theme.espace2
         z: 6
     }
-    // Menu de débordement (fenêtre compacte, < 600 dp) : les menus de la ligne supérieure y sont réunis.
-    ToolButton {
-        id: topOverflow
-        objectName: "topOverflow"
-        visible: appLayout.compact
-        x: Theme.espace2
-        y: topBar.y
-        width: Theme.tailleBouton
-        height: topBar.height
-        z: 7
-        focusPolicy: Qt.NoFocus
-        text: "…"
-        font.pixelSize: Theme.taillePoliceTitre
-        Accessible.name: qsTr("Menus")
-        contentItem: Label {
-            text: topOverflow.text
-            font: topOverflow.font
-            color: Theme.texte
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-        background: Rectangle {
-            radius: Theme.rayon
-            color: mainMenu.opened ? Theme.surfaceActive : topOverflow.hovered ? Theme.surfaceSurvol : "transparent"
-        }
-        onClicked: mainMenu.popup(topOverflow, 0, topOverflow.height)
-    }
-    // Les boutons de menu de la ligne supérieure (objectName « menu-<id> ») s'effacent en fenêtre compacte.
-    function syncTopMenus() {
-        const shown = !appLayout.compact
-        const stack = [topBar]
-        while (stack.length > 0) {
-            const parentItem = stack.pop()
-            for (const child of parentItem.children) {
-                if (String(child.objectName).startsWith("menu-"))
-                    child.visible = shown
-                else
-                    stack.push(child)
-            }
-        }
-    }
-    Connections {
-        target: appLayout
-        function onMetricsChanged() { root.syncTopMenus() }
-    }
     // Le fond du tiroir n'est couverture d'entrée de la page que tiroir ouvert (fermé, le stylet doit passer).
     Connections {
         target: browserPanel
@@ -672,7 +630,6 @@ Window {
         // La couche des médias est posée par PageArea (pageOverlays, z 4) : elle reçoit ici son modèle et sa vue.
         Component.onCompleted: {
         pageArea.view.addInputCover(browsersButton)
-        root.syncTopMenus()
             for (const layer of pageArea.pageOverlays.children) {
                 if (layer.objectName === "mediaLayer") {
                     layer.view = pageArea.view
