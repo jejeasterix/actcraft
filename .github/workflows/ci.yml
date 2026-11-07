@@ -242,7 +242,7 @@ jobs:
     runs-on: windows-latest
     # Lot 5 : compilation release coupée à 693/808 à 15 min (run 41715403316, PR #9). Lot 8 : coupée à 25 min avec
     # Qt Multimedia et Qt WebView (run 42337666352, PR #16).
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
