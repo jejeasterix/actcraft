@@ -989,6 +989,26 @@ private slots:
                  panel->property("actionModel").value<QObject*>());
     }
 
+    // L8-T34 (amendement 1) : les contrôleurs de 8b sont posés et branchés.
+    void lot8bControllersWired()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        const QList<QPair<const char*, const char*>> expected = {
+            {"appLinkDialogs", "actcraft::ui::LinkDialogs"},
+            {"appMediaInsert", "actcraft::ui::MediaInsert"},
+            {"appMediaItems", "actcraft::ui::MediaItems"},
+            {"appBroadcast", "actcraft::ui::BroadcastGate"},
+            {"appRecorders", "actcraft::ui::Recorders"},
+            {"appWebFrames", "actcraft::ui::WebFrameItems"},
+        };
+        for (const auto& [name, cls] : expected) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o, name);
+            QCOMPARE(QByteArray(o->metaObject()->className()), QByteArray(cls));
+        }
+    }
+
     // L8-T2 : un gestionnaire par commande du lot (talon jusqu'à la tâche propriétaire).
     void everyLot8CommandHasAHandler()
     {
