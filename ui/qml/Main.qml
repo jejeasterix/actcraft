@@ -508,7 +508,13 @@ Window {
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
-    UpdateDialog { id: updateDialog; commands: appCommands }
+    UpdateDialog {
+        id: updateDialog
+        commands: appCommands
+        updates: appUpdates
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
+    }
 
     // Lot 4 : barres de texte sous la ligne supérieure, boîtes de la grille et du fond (talons).
     TextFormatBar {
