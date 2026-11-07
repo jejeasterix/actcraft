@@ -2,8 +2,10 @@
 
 #include <actcraft/input/sample.h>
 
+#include <compare>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <span>
 #include <unordered_map>
@@ -13,6 +15,7 @@ namespace actcraft::input {
 
 using UserId = std::uint8_t;
 inline constexpr UserId kFirstUser = 0;
+inline constexpr UserId kSecondUser = 1; // mode à deux utilisateurs (D11-2, L11-T7)
 
 enum class Route : std::uint8_t
 {
@@ -36,6 +39,10 @@ struct RouterState
     int toolTouches = 0;     // doigts en cours routés vers l'outil
     int gestureTouches = 0;  // doigts en cours routés vers le geste
     int pressesInEvent = 1;  // appuis de doigt non couverts du même événement (H3-16), posé par routePresses
+    // Deux utilisateurs (L11-T7, TwoUserPolicy), rangés par Decision::user : contact de stylet ou de souris
+    // en cours, doigts en cours routés vers l'outil. Les autres politiques lisent stylusDown et toolTouches.
+    bool stylusDownByUser[2] = {false, false};
+    int toolTouchesByUser[2] = {0, 0};
 };
 
 struct Decision
@@ -69,6 +76,16 @@ public:
     Decision decide(const Sample& press, const RouterState& state) const override;
 };
 
+// Clé d'un contact retenu par le routeur : un stylet de Sample::deviceId non nul a la sienne (stylusDevice,
+// deviceId) ; tout autre contact : (faux, Sample::pointer). Deux genres disjoints : aucun identifiant de
+// l'un ne rejoint l'autre (L11-T7).
+struct ContactKey
+{
+    bool stylusDevice = false;
+    std::uint64_t id = 0;
+    auto operator<=>(const ContactKey&) const = default;
+};
+
 class PointerRouter
 {
 public:
@@ -76,7 +93,9 @@ public:
     void setPolicy(std::unique_ptr<RoutingPolicy> policy); // les contacts en cours gardent leur décision
     // À l'appui, une décision retenue pour le même pointeur est remplacée ; la politique décide et la
     // décision est retenue pour `sample.pointer` (stylet et souris : 0) ; ensuite, la décision retenue ; au
-    // relâché, elle est rendue puis oubliée. Mouvement d'un contact inconnu : Ignore. endToolContacts : les
+    // relâché, elle est rendue puis oubliée. Clé du contact : `sample.pointer`, sauf un stylet de `deviceId`
+    // non nul, qui a la sienne (L11-T7 : deux stylets posés ensemble ; deviceId à chaque échantillon du
+    // contact). Mouvement d'un contact inconnu : Ignore. endToolContacts : les
     // décisions retenues des doigts routés vers l'outil passent à Gesture si l'appui vient d'un doigt
     // seul dans son événement, à Ignore sinon (stylet, souris, doigts posés ensemble ; M4 b).
     Decision route(const Sample& sample);
@@ -91,7 +110,7 @@ public:
     // Consulté à l'appui, avant la politique : vrai → Route::Cover rendue, sans effet sur RouterState.
     void setCoverTest(std::function<bool(const Sample&)> test);
     // Contact terminé ou non pris par la vue (deuxième doigt, annulation, appui couvert) : sa décision est
-    // oubliée.
+    // oubliée. 0 (stylet et souris) oublie la souris et tous les stylets.
     void release(std::uint64_t pointer);
 
 private:
@@ -100,7 +119,7 @@ private:
     Decision decidePress(const Sample& sample, bool covered, int pressesInEvent);
 
     std::unique_ptr<RoutingPolicy> m_policy;
-    std::unordered_map<std::uint64_t, Decision> m_contacts;
+    std::map<ContactKey, Decision> m_contacts;
     RouterState m_state;
     std::function<bool(const Sample&)> m_coverTest;
 };

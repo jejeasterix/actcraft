@@ -1,24 +1,42 @@
-// Talon L11 : rempli par L11-T7.
 #include <actcraft/input/twouserpolicy.h>
+
+#include <QPointF>
 
 namespace actcraft::input {
 
-// Talon L11 : rempli par L11-T7.
 TwoUserPolicy::TwoUserPolicy(QRectF secondUserArea) : m_area(secondUserArea) {}
 
-// Talon L11 : rempli par L11-T7.
 void TwoUserPolicy::setSecondUserArea(QRectF area)
 {
     m_area = area;
 }
 
-// Talon L11 : rempli par L11-T7.
-Decision TwoUserPolicy::decide(const Sample&, const RouterState&) const
+UserId TwoUserPolicy::stylusUser(std::uint64_t deviceId) const noexcept
 {
-    return {};
+    if (deviceId == 0) {
+        return kFirstUser; // appareil sans identifiant : l'utilisateur 0, sans être retenu
+    }
+    if (m_firstStylus == 0) {
+        m_firstStylus = deviceId;
+    }
+    return deviceId == m_firstStylus ? kFirstUser : kSecondUser;
 }
 
-// Talon L11 : rempli par L11-T7.
+Decision TwoUserPolicy::decide(const Sample& press, const RouterState& state) const
+{
+    Decision decision; // endToolContacts reste faux, fingerTool reste Current
+    if (press.device != DeviceKind::Touch) {
+        decision.route = Route::Tool;
+        decision.user = press.device == DeviceKind::Stylus ? stylusUser(press.deviceId) : kFirstUser;
+        return decision;
+    }
+    decision.user = m_area.contains(QPointF(press.x, press.y)) ? kSecondUser : kFirstUser;
+    const bool palm = state.stylusDownByUser[decision.user];
+    const bool extraFinger = state.toolTouchesByUser[decision.user] > 0;
+    decision.route = palm || extraFinger ? Route::Ignore : Route::Tool;
+    return decision;
+}
+
 std::uint64_t TwoUserPolicy::firstStylusDevice() const noexcept
 {
     return m_firstStylus;

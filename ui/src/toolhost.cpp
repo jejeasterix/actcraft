@@ -920,12 +920,32 @@ ActionRunner* ToolHost::actionRunner() const noexcept
     return m_actionRunner.data();
 }
 
-tools::UserState& ToolHost::user(input::UserId)
+tools::UserState& ToolHost::user(input::UserId id)
 {
+    if (m_dualUsers && id != input::kFirstUser) {
+        return *m_secondUser;
+    }
     if (!m_user) {
         m_user = std::make_unique<tools::UserState>(input::kFirstUser);
     }
     return *m_user;
+}
+
+bool ToolHost::dualUsers() const noexcept
+{
+    return m_dualUsers;
+}
+
+void ToolHost::setDualUsers(bool on)
+{
+    if (on == m_dualUsers) {
+        return;
+    }
+    if (on && !m_secondUser) {
+        m_secondUser = std::make_unique<tools::UserState>(input::kSecondUser);
+    }
+    m_dualUsers = on;
+    emit dualUsersChanged();
 }
 
 bool ToolHost::lockIgnored() const noexcept
