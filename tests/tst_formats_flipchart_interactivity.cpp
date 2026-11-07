@@ -191,7 +191,7 @@ private slots:
     // révélatrice est sur la couche du dessus (render/src/pagepainter.cpp:885-888) ; le plan 2 du fichier
     // donne Layer::Top (formats/src/flipchart.cpp:999). Le lecteur lit le plan du fichier, il ne force rien :
     // le test précédent (plan 1) garde le cas de la couche intermédiaire.
-    void revealInkOnTopLayerRead()
+    void revealInkUpperLayerRead()
     {
         using fctest::synth::io;
         using fctest::synth::ir;

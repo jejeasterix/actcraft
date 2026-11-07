@@ -218,7 +218,7 @@ private slots:
         QCOMPARE(media::recordedArea(area, QSize(100, 100)), QRect(QPoint(20, 40), QSize(80, 60)));
     }
 
-    void screenRecorderAbsentOnThisPlatform()
+    void displayRecordingAbsentOnThisPlatform()
     {
 #ifdef Q_OS_WIN
         QSKIP("Windows : l'enregistreur d'écran est présent, sa preuve réelle est opt-in (PC).");
