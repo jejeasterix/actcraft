@@ -88,6 +88,14 @@ bool ownsColor(const QString& id)
     return isInkTool(id) || id == QStringLiteral("shape") || id == QStringLiteral("fill");
 }
 
+// Outils sans épaisseur à régler : la palette principale passe alors au dernier outil d'encre (Sélectionner,
+// le pot de peinture, le connecteur ; la gomme garde la sienne). Commun aux deux utilisateurs (L11-C9).
+bool hasNoWidth(const QString& id)
+{
+    return id == QStringLiteral("select") || id == QStringLiteral("fill") ||
+           id == QStringLiteral("connector");
+}
+
 QString settingsKey(const QString& toolId, const QString& leaf)
 {
     return QStringLiteral("outils/%1/%2").arg(toolId, leaf);
@@ -653,10 +661,8 @@ void ToolHost::setWidth(qreal width)
         return;
     }
     ensureSettings();
-    if (const QString shown = currentTool(); shown == QStringLiteral("select") ||
-                                             shown == QStringLiteral("fill") ||
-                                             shown == QStringLiteral("connector")) {
-        activate(m_lastInk); // Sélectionner n'a pas d'épaisseur ; la gomme garde la sienne
+    if (hasNoWidth(currentTool())) {
+        activate(m_lastInk);
     }
     const QString id = currentTool() == QStringLiteral("pen-shape") ? m_lastInk : currentTool();
     tools::InkSettings settings = user().settings(id);
@@ -822,10 +828,10 @@ void ToolHost::writeValue(const QString& key, const QVariant& value) const
 
 // Ce que l'outil tient de l'hôte : il ne voit que son contexte (règle de modularité 2), ui/ lui donne le
 // reste.
-void ToolHost::configureTool(tools::Tool* tool) const
+void ToolHost::configureTool(tools::Tool* tool, input::UserId user) const
 {
     if (auto* fill = dynamic_cast<tools::FillTool*>(tool)) {
-        fill->setColor(settingsOf(QStringLiteral("fill")).color);
+        fill->setColor(settingsOf(QStringLiteral("fill"), user).color);
         fill->setImageFiller([](const QImage& image, QPoint seed, core::Argb color, int tolerance) {
             return render::floodFill(image, seed, color, tolerance);
         });
@@ -836,14 +842,15 @@ void ToolHost::configureTool(tools::Tool* tool) const
     } else if (auto* penShape = dynamic_cast<tools::PenShapeTool*>(tool)) {
         // Le trait suit l'encre dont la modification vient ; seule l'alpha de la couleur rend le marqueur
         // translucide (stroke.color).
-        const tools::InkSettings ink = settingsOf(m_lastInk);
+        const QString& lastInk = lastInkOf(user);
+        const tools::InkSettings ink = settingsOf(lastInk, user);
         core::Outline pen;
         pen.color = (ink.color & 0x00FFFFFFu) | (static_cast<core::Argb>(255 - ink.translucency) << 24);
         pen.width = ink.width;
         penShape->setShape(core::penShapeFromId(m_penShape.toStdString()).value_or(core::PenShape::Free));
-        penShape->setPen(pen, m_lastInk == QStringLiteral("highlighter"));
+        penShape->setPen(pen, lastInk == QStringLiteral("highlighter"));
     } else if (auto* reveal = dynamic_cast<tools::RevealInkTool*>(tool)) {
-        reveal->setBaseWidth(settingsOf(QStringLiteral("reveal-ink")).width);
+        reveal->setBaseWidth(settingsOf(QStringLiteral("reveal-ink"), user).width);
     } else if (auto* select = dynamic_cast<tools::SelectTool*>(tool)) {
         select->setInteractionPolicy(m_policy.get()); // L8-T16 : vit aussi longtemps que l'hôte
         auto* self = const_cast<ToolHost*>(this);
@@ -862,6 +869,17 @@ void cancelBusyTools(const ToolAdapters& adapters)
     for (const auto& entry : adapters.tools) {
         if (tools::Tool* tool = entry.second.get(); tool && tool->isBusy()) {
             tool->cancel();
+        }
+    }
+}
+
+// L11-C9 (I) : les outils occupés abandonnent leur geste sans rien verser (PenTool::abandon : le trait en
+// cours n'est pas versé ; cancel() le verserait, une étape juste avant l'édition annoncée qui l'emporterait).
+void abandonBusyTools(const ToolAdapters& adapters)
+{
+    for (const auto& entry : adapters.tools) {
+        if (tools::Tool* tool = entry.second.get(); tool && tool->isBusy()) {
+            tool->abandon();
         }
     }
 }
@@ -895,8 +913,8 @@ void ToolHost::cancelGesture()
 void ToolHost::cancelAllGestures()
 {
     cancelGesture();
-    if (m_secondAdapters) { // L11-C6 : le glisser du second s'arrête aussi, sans étape
-        cancelBusyTools(*m_secondAdapters);
+    if (m_secondAdapters) { // L11-C6, L11-C9 : le geste du second est abandonné, sans étape
+        abandonBusyTools(*m_secondAdapters);
     }
 }
 
@@ -1110,9 +1128,17 @@ tools::SelectTool* ToolHost::selectTool() const
     return dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")));
 }
 
-tools::InkSettings ToolHost::settingsOf(const QString& id) const
+tools::InkSettings ToolHost::settingsOf(const QString& id, input::UserId user) const
 {
+    if (user != input::kFirstUser && m_secondUser) {
+        return m_secondUser->settings(id); // L11-C9 : un outil du second se règle sur ses réglages à lui
+    }
     return m_user ? m_user->settings(id) : tools::defaultSettings(id);
+}
+
+const QString& ToolHost::lastInkOf(input::UserId user) const noexcept
+{
+    return user != input::kFirstUser && m_secondUser ? m_secondLastInk : m_lastInk;
 }
 
 void ToolHost::storeSettings(const QString& id, const tools::InkSettings& settings)
@@ -1211,7 +1237,7 @@ tools::Tool* ToolHost::secondToolFor(const QString& id) const
     }
     tools::Tool* added = wired->tools.emplace(id, std::move(created)).first->second.get();
     adopt(added);
-    configureTool(added);
+    configureTool(added, input::kSecondUser);
     return added;
 }
 
@@ -1255,7 +1281,7 @@ void ToolHost::activateFor(const QString& toolId, int user)
         m_secondLastInk = toolId;
     }
     if (tools::Tool* next = activeTool(id)) {
-        configureTool(next);
+        configureTool(next, id);
         next->activate();
     }
 }
@@ -1281,7 +1307,7 @@ void ToolHost::setColor(const QColor& color, int user)
         pen->setColor(settings.color);
     }
     state.setSettings(tool, settings); // en mémoire seulement : le fichier garde ceux du premier (F-136)
-    configureTool(secondExistingTool(tool));
+    configureTool(secondExistingTool(tool), id);
     emit settingsChanged();
 }
 
@@ -1296,9 +1322,7 @@ void ToolHost::setWidth(qreal width, int user)
         return;
     }
     tools::UserState& state = *m_secondUser;
-    if (const QString shown = state.currentTool(); shown == QStringLiteral("select") ||
-                                                   shown == QStringLiteral("fill") ||
-                                                   shown == QStringLiteral("connector")) {
+    if (hasNoWidth(state.currentTool())) {
         activateFor(m_secondLastInk, user);
     }
     const QString tool = state.currentTool();
@@ -1311,7 +1335,7 @@ void ToolHost::setWidth(qreal width, int user)
         reveal->setBaseWidth(settings.width);
     }
     state.setSettings(tool, settings);
-    configureTool(secondExistingTool(tool));
+    configureTool(secondExistingTool(tool), id);
     emit settingsChanged();
 }
 
