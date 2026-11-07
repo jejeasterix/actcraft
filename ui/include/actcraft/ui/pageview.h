@@ -398,8 +398,8 @@ public:
     // Remplace la politique du routeur (nullptr : gestion complète) ; les contacts en cours gardent leur
     // décision. Posée par le contrôleur du mode du toucher (L11-T6) : la vue ne lit aucun réglage.
     void setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy);
-    // L11-C6 : premier stylet de la dernière input::TwoUserPolicy remplacée par setRoutingPolicy (0 : aucun) ;
-    // DualMode le rend à celle qu'il repose après un changement du mode du toucher.
+    // L11-C6 : premier stylet de la dernière input::TwoUserPolicy remplacée par setRoutingPolicy (0 : aucun)
+    // ; DualMode le rend à celle qu'il repose après un changement du mode du toucher.
     std::uint64_t lastFirstStylusDevice() const noexcept { return m_lastFirstStylus; }
     // Utilisateur de la dernière décision d'appui routée vers l'outil ou le geste (tests).
     int lastContactUser() const noexcept;
