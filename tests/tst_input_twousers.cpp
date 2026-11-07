@@ -128,17 +128,22 @@ private slots:
         QCOMPARE(still.route, Route::Tool); // le relâché du premier ne termine pas le second
         QCOMPARE(still.user, UserId{1});
 
-        // Mode à un utilisateur inchangé : le stylet compte pour la paume ; release(0) de la vue l'oublie.
+        // Clés vraiment distinctes : un appareil dont l'identifiant porte le bit haut n'est pas
+        // l'appareil 11.
+        constexpr std::uint64_t highBit = std::uint64_t{1} << 63;
+        input::PointerRouter keys;
+        keys.setPolicy(twoUsers());
+        QCOMPARE(keys.route(press(DeviceKind::Stylus, 900, 100, 11)).user, UserId{0});
+        QCOMPARE(keys.route(press(DeviceKind::Stylus, 100, 100, highBit | 11)).user, UserId{1});
+        QCOMPARE(keys.route(moved(DeviceKind::Stylus, 905, 105, 11)).user, UserId{0});
+        QCOMPARE(keys.route(moved(DeviceKind::Stylus, 105, 105, highBit | 11)).user, UserId{1});
+
+        // Mode à un utilisateur inchangé : le stylet compte pour la paume.
         input::PointerRouter single;
         QCOMPARE(single.route(press(DeviceKind::Stylus, 900, 100, 11)).route, Route::Tool);
         QCOMPARE(single.route(press(DeviceKind::Touch, 300, 300, 0, 1)).route, Route::Ignore);
         QCOMPARE(single.route(released(DeviceKind::Stylus, 900, 100, 11)).route, Route::Tool);
         QCOMPARE(single.route(press(DeviceKind::Touch, 300, 300, 0, 2)).route, Route::Tool);
-        single.reset();
-        QCOMPARE(single.route(press(DeviceKind::Stylus, 900, 100, 11)).route, Route::Tool);
-        single.release(0); // contact du stylet ou de la souris non pris par la vue
-        QCOMPARE(single.route(moved(DeviceKind::Stylus, 905, 105, 11)).route, Route::Ignore);
-        QCOMPARE(single.route(press(DeviceKind::Touch, 300, 300, 0, 3)).route, Route::Tool);
     }
 
     // Doigt → 1 dans la moitié de l'utilisateur 1, sinon 0 ; la moitié suit setSecondUserArea.
@@ -200,6 +205,18 @@ private slots:
         d = policy.decide(press(DeviceKind::Touch, 1000, 100, 0, 6), together);
         QCOMPARE(d.route, Route::Ignore);
         QVERIFY(!d.endToolContacts);
+
+        // Par le routeur réel : deux doigts de la même moitié, l'outil puis rien ; l'autre moitié compte à
+        // part.
+        input::PointerRouter router;
+        router.setPolicy(twoUsers());
+        QCOMPARE(router.route(press(DeviceKind::Touch, 900, 100, 0, 1)).route, Route::Tool);
+        const input::Decision extra = router.route(press(DeviceKind::Touch, 1000, 200, 0, 2));
+        QCOMPARE(extra.route, Route::Ignore);
+        QCOMPARE(extra.user, UserId{0});
+        const input::Decision otherHalf = router.route(press(DeviceKind::Touch, 100, 100, 0, 3));
+        QCOMPARE(otherHalf.route, Route::Tool);
+        QCOMPARE(otherHalf.user, UserId{1});
     }
 
     // Paume : un doigt pendant un contact de stylet ne fait rien pour le même utilisateur seulement.

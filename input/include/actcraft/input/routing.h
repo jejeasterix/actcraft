@@ -2,8 +2,10 @@
 
 #include <actcraft/input/sample.h>
 
+#include <compare>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <span>
 #include <unordered_map>
@@ -74,6 +76,16 @@ public:
     Decision decide(const Sample& press, const RouterState& state) const override;
 };
 
+// Clé d'un contact retenu par le routeur : un stylet de Sample::deviceId non nul a la sienne (stylusDevice,
+// deviceId) ; tout autre contact : (faux, Sample::pointer). Deux genres disjoints : aucun identifiant de
+// l'un ne rejoint l'autre (L11-T7).
+struct ContactKey
+{
+    bool stylusDevice = false;
+    std::uint64_t id = 0;
+    auto operator<=>(const ContactKey&) const = default;
+};
+
 class PointerRouter
 {
 public:
@@ -107,7 +119,7 @@ private:
     Decision decidePress(const Sample& sample, bool covered, int pressesInEvent);
 
     std::unique_ptr<RoutingPolicy> m_policy;
-    std::unordered_map<std::uint64_t, Decision> m_contacts;
+    std::map<ContactKey, Decision> m_contacts;
     RouterState m_state;
     std::function<bool(const Sample&)> m_coverTest;
 };

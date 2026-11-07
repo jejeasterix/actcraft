@@ -9,21 +9,17 @@ namespace {
 
 // Stylet et souris partagent ce contact ; un doigt a l'identifiant de son point + 1 (qtevents.cpp).
 constexpr std::uint64_t kStylusOrMouse = 0;
-// Stylet d'un appareil connu (Sample::deviceId, L11-T7) : sa propre clé, marquée du bit haut, distincte de
-// la souris (0) et des doigts (petits entiers) ; deux stylets posés ensemble ne se remplacent pas.
-constexpr std::uint64_t kStylusKey = std::uint64_t{1} << 63;
-
-std::uint64_t contactKey(const Sample& sample) noexcept
+ContactKey contactKey(const Sample& sample) noexcept
 {
     if (sample.device == DeviceKind::Stylus && sample.deviceId != 0) {
-        return kStylusKey | sample.deviceId;
+        return {true, sample.deviceId}; // L11-T7 : deux stylets posés ensemble ne se remplacent pas
     }
-    return sample.pointer;
+    return {false, sample.pointer};
 }
 
-bool isStylusOrMouse(std::uint64_t key) noexcept
+bool isStylusOrMouse(const ContactKey& key) noexcept
 {
-    return key == kStylusOrMouse || (key & kStylusKey) != 0;
+    return key.stylusDevice || key.id == kStylusOrMouse;
 }
 
 int userIndex(UserId user) noexcept
@@ -33,7 +29,7 @@ int userIndex(UserId user) noexcept
 
 // État recalculé des décisions retenues (appui, relâché, oubli : jamais à chaque mouvement). Une décision
 // Cover n'y compte jamais (D-S1) ; stylusDown n'est tenu que par une décision Tool.
-RouterState stateOf(const std::unordered_map<std::uint64_t, Decision>& contacts)
+RouterState stateOf(const std::map<ContactKey, Decision>& contacts)
 {
     RouterState state;
     for (const auto& [key, decision] : contacts) {
@@ -97,7 +93,7 @@ void PointerRouter::setPolicy(std::unique_ptr<RoutingPolicy> policy)
 Decision PointerRouter::decidePress(const Sample& sample, bool covered, int pressesInEvent)
 {
     // Un appui redécide : la décision retenue du même pointeur (relâché jamais vu) est remplacée.
-    const std::uint64_t key = contactKey(sample);
+    const ContactKey key = contactKey(sample);
     m_contacts.erase(key);
     m_state = stateOf(m_contacts);
     if (covered) {
@@ -198,7 +194,7 @@ void PointerRouter::release(std::uint64_t pointer)
     const auto erased =
         pointer == kStylusOrMouse
             ? std::erase_if(m_contacts, [](const auto& entry) { return isStylusOrMouse(entry.first); })
-            : m_contacts.erase(pointer);
+            : m_contacts.erase(ContactKey{false, pointer});
     if (erased > 0) {
         m_state = stateOf(m_contacts);
     }
