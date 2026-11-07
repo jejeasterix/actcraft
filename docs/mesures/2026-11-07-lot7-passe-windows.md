@@ -82,3 +82,6 @@ Mutation de `tests/tst_ui_camera.cpp:725-727` (« tout masquage arrête la séle
 Preuves de `keyinjector_win.cpp` (champ d'une autre application, trois frappes au stylet injecté : à jouer avec
 Jérôme) ; seuil de 125 ms de la garde M4 (aucune constante de 125 ms trouvée : 250 ms au bureau, 200 ms à la
 caméra) ; `NOMS OK` ; `graphify update .`. Durées et `P = 4` : relevés à l'exécution, non gardés dans un journal.
+## Preuve à l'écran de `keyinjector_win.cpp` (2026-11-07, 7 h 44, avec Jérôme)
+
+`actcraft.exe` release du lot 7 ; Bloc-notes au premier plan, onglet vide ; `Ctrl+K` ouvre le clavier à l'écran ; trois touches cliquées à la souris sur le clavier d'ActCraft. Le Bloc-notes, autre application, a reçu trois caractères et gardé le focus (curseur actif). Fichier enregistré par Jérôme : `.tmp/o42-clavier.txt`, contenu `adc` (deuxième touche mal visée : « d » pour « b ») ; l'injection vers une autre application est prouvée, le stylet ne l'a pas été (souris).
