@@ -17,6 +17,13 @@ Menu {
     // Documents récents (L6-T24) : liste de FileActions (`fileActions.recents`), liée par le menu Fichier de Main.qml.
     property var recents: null
     title: spec.label
+    // Au doigt (L11-T12, D11-7) : rangées de la taille d'une cible (appLayout.targetSize, relayée par Theme.tailleBouton,
+    // comme CommandEntry) et sous-menus ouverts par un appui seulement (pas de survol sans pointeur).
+    readonly property real rowHeight: Theme.tailleBouton
+    delegate: MenuItem {
+        implicitHeight: menu.rowHeight
+        hoverEnabled: !Theme.touchUi
+    }
     // Largeur : la plus large des entrées (libellé + raccourci). Le style de base se règle sur un fond de 200 px et
     // ne suit pas la largeur des contenus : libellés tronqués, raccourcis sur les libellés.
     implicitWidth: {
