@@ -108,6 +108,17 @@ Decision PointerRouter::route(const Sample& sample)
     return decision;
 }
 
+// Rouge provisoire (L11-T4) : chaque appui décidé seul, comme par route().
+std::vector<Decision> PointerRouter::routePresses(std::span<const Sample> presses)
+{
+    std::vector<Decision> decisions;
+    decisions.reserve(presses.size());
+    for (const Sample& sample : presses) {
+        decisions.push_back(route(sample));
+    }
+    return decisions;
+}
+
 int PointerRouter::gestureTouches() const noexcept
 {
     return m_state.gestureTouches;
