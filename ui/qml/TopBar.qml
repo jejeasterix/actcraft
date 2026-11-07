@@ -70,7 +70,7 @@ Rectangle {
                 readonly property bool onAccent: menuButton.down || menu.opened
                 objectName: "menu-" + modelData.id
                 visible: !bar.compact
-                text: modelData.label
+                text: bar.commands.translated(modelData.label)
                 font.pixelSize: Theme.taillePolice
                 Layout.fillHeight: true
                 contentItem: Label {

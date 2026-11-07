@@ -31,6 +31,7 @@ Dialog {
         // Texte stylé, pas riche : seul le premier suit `linkColor` (la palette de la fenêtre, Theme.surfaceActive) ;
         // en texte riche le lien prenait le bleu par défaut de Qt, illisible sur le dialogue sombre (L1-C5).
         Label {
+            objectName: "projectLink"
             textFormat: Text.StyledText
             text: "<a href=\"%1\">%1</a>".arg(AppInfo.projectUrl)
             onLinkActivated: link => Qt.openUrlExternally(link)

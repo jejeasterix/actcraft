@@ -43,9 +43,12 @@ Item {
             Label { text: qsTr("Ancrage") }
             ComboBox {
                 objectName: "paletteDockCombo"
-                model: ["left", "right", "top", "bottom"]
-                currentIndex: root.profile ? Math.max(0, model.indexOf(root.profile.paletteDock)) : 0
-                onActivated: root.profile.paletteDock = model[currentIndex]
+                textRole: "text"
+                valueRole: "value"
+                model: [{ value: "left", text: qsTr("Gauche") }, { value: "right", text: qsTr("Droite") },
+                        { value: "top", text: qsTr("Haut") }, { value: "bottom", text: qsTr("Bas") }]
+                currentIndex: root.profile ? Math.max(0, indexOfValue(root.profile.paletteDock)) : 0
+                onActivated: root.profile.paletteDock = currentValue
             }
             Label { text: qsTr("Couleurs") }
             ComboBox {
@@ -76,9 +79,11 @@ Item {
             Label { text: qsTr("Côté") }
             ComboBox {
                 objectName: "browsersSideCombo"
-                model: ["left", "right"]
-                currentIndex: root.profile ? Math.max(0, model.indexOf(root.profile.browsersSide)) : 0
-                onActivated: root.profile.browsersSide = model[currentIndex]
+                textRole: "text"
+                valueRole: "value"
+                model: [{ value: "left", text: qsTr("Gauche") }, { value: "right", text: qsTr("Droite") }]
+                currentIndex: root.profile ? Math.max(0, indexOfValue(root.profile.browsersSide)) : 0
+                onActivated: root.profile.browsersSide = currentValue
             }
         }
         CheckBox {

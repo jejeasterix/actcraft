@@ -367,6 +367,7 @@ qt_add_qml_module(actcraft_ui
         include/actcraft/ui/documentio.h
         src/documentio.cpp
         src/commands.cpp
+        src/commandlabels.cpp
         include/actcraft/ui/appinfo.h
         src/appinfo.cpp
         include/actcraft/ui/toolhost.h
