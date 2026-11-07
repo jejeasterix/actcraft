@@ -64,18 +64,6 @@ void Recorders::resetDefaultEngines()
 Recorders::Recorders(QObject* parent)
     : QObject(parent), m_sound(makeSoundRecorder(this)), m_display(makeDisplayRecorder(this))
 {
-    // Dossier par défaut propre à la session (L8-T26) : le fichier, copié dans le document par l'insertion, y
-    // est effacé ensuite ; un fichier que l'insertion a refusé y reste, et le message le dit.
-    QTemporaryDir session(QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
-                          QStringLiteral("/actcraft-recordings-XXXXXX"));
-    if (session.isValid()) {
-        session.setAutoRemove(false);
-        m_sessionFolder = session.path();
-        if (m_sound)
-            m_sound->setFolder(m_sessionFolder);
-        if (m_display)
-            m_display->setFolder(m_sessionFolder);
-    }
     wire();
 }
 
@@ -367,14 +355,27 @@ QPointF Recorders::indicatorSpot(const QRectF& screen, const QSizeF& size) const
     return corners[0];
 }
 
-void Recorders::applyFolders()
+void Recorders::applyFolders(bool forRecording)
 {
     // Réglage vidé : chaque enregistreur retrouve son dossier par défaut, pas le dernier dossier choisi.
     const QString chosen = folder();
+    // Dossier par défaut propre à la session (L8-T26), créé au premier enregistrement seulement : le fichier,
+    // copié dans le document par l'insertion, y est effacé ensuite ; un fichier que l'insertion a refusé y
+    // reste, et le message le dit. Enregistreurs venus de l'extérieur : leur dossier, inchangé.
+    if (forRecording && chosen.isEmpty() && m_ownRecorders && m_sessionFolder.isEmpty()) {
+        QTemporaryDir session(QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
+                              QStringLiteral("/actcraft-recordings-XXXXXX"));
+        if (session.isValid()) {
+            session.setAutoRemove(false);
+            m_sessionFolder = session.path();
+        }
+    }
+    const QString soundDefault = m_sessionFolder.isEmpty() ? m_defaultSoundFolder : m_sessionFolder;
+    const QString displayDefault = m_sessionFolder.isEmpty() ? m_defaultDisplayFolder : m_sessionFolder;
     if (m_sound)
-        m_sound->setFolder(chosen.isEmpty() ? m_defaultSoundFolder : chosen);
+        m_sound->setFolder(chosen.isEmpty() ? soundDefault : chosen);
     if (m_display)
-        m_display->setFolder(chosen.isEmpty() ? m_defaultDisplayFolder : chosen);
+        m_display->setFolder(chosen.isEmpty() ? displayDefault : chosen);
 }
 
 void Recorders::showNoticeOnce()
@@ -401,7 +402,7 @@ void Recorders::dismissNotice()
 void Recorders::begin()
 {
     const bool wasIdle = !isRecording();
-    applyFolders();
+    applyFolders(true);
     setMessage({});
     if (wasIdle) {
         showNoticeOnce();

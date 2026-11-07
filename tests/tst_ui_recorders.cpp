@@ -397,13 +397,13 @@ private slots:
         insert.setDocument(&controller);
         ui::Recorders recorders;
         recorders.setMediaInsert(&insert);
+        QSignalSpy inserted(&insert, &ui::MediaInsert::inserted);
+        recorders.toggleSound();
         const QString session = recorders.sessionFolder();
         QVERIFY(!session.isEmpty());
         QVERIFY(session.contains(QStringLiteral("actcraft-recordings")));
         QVERIFY(session != QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
                                QStringLiteral("/actcraft-recordings"));
-        QSignalSpy inserted(&insert, &ui::MediaInsert::inserted);
-        recorders.toggleSound();
         recorders.stop();
         QTRY_COMPARE(inserted.count(), 1);
         QTRY_VERIFY(QDir(session).isEmpty());

@@ -162,7 +162,7 @@ private:
     void setMessage(const QString& message);
     void onRecordingChanged();
     void onPausedChanged();
-    void applyFolders();
+    void applyFolders(bool forRecording = false);
     void showNoticeOnce();
     void onInserted();
     void onInsertFailed(const QString& message);
