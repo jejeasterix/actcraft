@@ -14,8 +14,8 @@ const QStringList kLots1To5Tools = {
     QStringLiteral("tool.eraser"),        QStringLiteral("tool.shape"),  QStringLiteral("tool.text"),
     QStringLiteral("tool.text-vertical"), QStringLiteral("tool.fill"),   QStringLiteral("tool.connector")};
 
-// Liste H2 : outils des lots 6 à 11 qui ont un gestionnaire (les autres commandes tool.* des lots 6 à 11 n'en ont
-// pas encore : lot 7 absent de cette branche, caméra, reconnaissance, clavier).
+// Liste H2 : outils des lots 6 à 11 qui ont un gestionnaire (les autres commandes tool.* des lots 6 à 11 n'en
+// ont pas encore : lot 7 absent de cette branche, caméra, reconnaissance, clavier).
 const QStringList kLots6To11Tools = {QStringLiteral("tool.reveal-ink")};
 const QStringList kAllTools = kLots1To5Tools + kLots6To11Tools;
 
@@ -30,10 +30,10 @@ const QStringList kToolsWithoutHandler = {
     QStringLiteral("tool.camera-window"),  QStringLiteral("tool.camera-screen"),
     QStringLiteral("tool.keyboard")};
 
-const QStringList kProcedures = {
-    QStringLiteral("raccourcis"), QStringLiteral("deux-utilisateurs"), QStringLiteral("modes-toucher"),
-    QStringLiteral("reprise"),    QStringLiteral("mises-a-jour"),      QStringLiteral("profils"),
-    QStringLiteral("mot-de-passe-oublie")};
+const QStringList kProcedures = {QStringLiteral("raccourcis"),         QStringLiteral("deux-utilisateurs"),
+                                 QStringLiteral("modes-toucher"),      QStringLiteral("reprise"),
+                                 QStringLiteral("mises-a-jour"),       QStringLiteral("profils"),
+                                 QStringLiteral("mot-de-passe-oublie")};
 
 QString pageName(const QString& id)
 {
@@ -108,7 +108,8 @@ private slots:
     {
         actcraft::actions::CommandRegistry registry;
         QString error;
-        QVERIFY2(registry.loadDeclarations(actcraft::actions::defaultCommandsJson(), error), qPrintable(error));
+        QVERIFY2(registry.loadDeclarations(actcraft::actions::defaultCommandsJson(), error),
+                 qPrintable(error));
         int seen = 0;
         for (const QString& id : registry.ids()) {
             if (!id.startsWith(QLatin1String("tool.")) ||
@@ -128,7 +129,8 @@ private slots:
         // Chaque raccourci de la page des raccourcis est celui d'une commande déclarée.
         actcraft::actions::CommandRegistry registry;
         QString error;
-        QVERIFY2(registry.loadDeclarations(actcraft::actions::defaultCommandsJson(), error), qPrintable(error));
+        QVERIFY2(registry.loadDeclarations(actcraft::actions::defaultCommandsJson(), error),
+                 qPrintable(error));
         QStringList declared;
         for (const QString& id : registry.ids())
             declared << registry.find(id)->shortcut;
@@ -149,7 +151,8 @@ private slots:
     {
         const QString index = page(QStringLiteral("index"));
         QVERIFY(!index.isEmpty());
-        const QStringList files = QDir(QStringLiteral(":/actcraft/help")).entryList(QStringList{QStringLiteral("*.html")});
+        const QStringList files =
+            QDir(QStringLiteral(":/actcraft/help")).entryList(QStringList{QStringLiteral("*.html")});
         QVERIFY(files.size() >= 2 + kAllTools.size());
         for (const QString& file : files)
             if (file != QLatin1String("index.html"))
