@@ -56,9 +56,23 @@ bool start(Shell& s)
            (QTest::qWait(150), true);
 }
 
+// Parcours des éléments visuels : les délégués d'un Repeater n'ont pas la palette pour parent d'objet.
+QQuickItem* findVisual(QQuickItem* from, const QString& name)
+{
+    if (from->objectName() == name) {
+        return from;
+    }
+    for (QQuickItem* child : from->childItems()) {
+        if (QQuickItem* found = findVisual(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
 QQuickItem* item(Shell& s, const char* name)
 {
-    return s.window->findChild<QQuickItem*>(QString::fromLatin1(name));
+    return findVisual(s.window->contentItem(), QString::fromLatin1(name));
 }
 
 QObject* object(Shell& s, const char* name)
