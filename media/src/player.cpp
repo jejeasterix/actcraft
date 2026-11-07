@@ -1,24 +1,13 @@
 #include "actcraft/media/player.h"
 
+#include <actcraft/core/networkpath.h>
+
 #include <QAudioOutput>
 #include <QFileInfo>
 #include <QMediaPlayer>
 #include <QUrl>
 
 namespace actcraft::media {
-
-namespace {
-
-// Copie minimale de la règle de ui/src/linklauncher.cpp (isNetworkPath), media/ ne dépendant pas de ui/ :
-// sous Windows, tester l'existence d'un chemin réseau envoie l'authentification du compte à l'hôte et peut
-// figer l'interface. Refusé avant tout accès au disque.
-bool isNetworkPath(QString path)
-{
-    path.replace(u'\\', u'/');
-    return path.startsWith(QStringLiteral("//"));
-}
-
-} // namespace
 
 Player::Player(QObject* parent) : QObject(parent)
 {
@@ -81,7 +70,7 @@ void Player::play(const QString& path, Track track, bool loop)
     channel.player->stop();
     channel.player->setSource(
         QUrl()); // setSource sort tôt sur une adresse identique : le même fichier se recharge
-    if (isNetworkPath(path)) {
+    if (core::isNetworkPath(path)) {
         failLater(track, tr("Un chemin réseau ne se lit pas depuis un paperboard : %1").arg(path));
         return;
     }

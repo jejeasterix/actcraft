@@ -2,6 +2,8 @@
 
 #include "actcraft/ui/linklauncher.h"
 
+#include <actcraft/core/networkpath.h>
+
 #include <QDir>
 #include <QFileInfo>
 #include <QStringList>
@@ -25,22 +27,6 @@ QFileInfo diskInfo(const QString& path)
 {
     ++g_diskQueries;
     return QFileInfo(path);
-}
-
-// Même règle que l'ouvreur des liens (linklauncher.cpp, isNetworkPath, dans son espace de noms anonyme) :
-// « \\hôte\… », « //hôte/… », « file://hôte/… », « file:////hôte/… ». Aucun accès au disque : sous Windows,
-// toucher un chemin réseau envoie l'authentification du compte à l'hôte.
-bool isNetworkPath(const QUrl& url)
-{
-    QString path = url.toLocalFile();
-    path.replace(u'\\', u'/');
-    return !url.host().isEmpty() || path.startsWith(QStringLiteral("//"));
-}
-
-bool isNetworkFolder(QString folder)
-{
-    folder.replace(u'\\', u'/');
-    return folder.startsWith(QStringLiteral("//"));
 }
 
 // Chemin réel d'un chemin absolu nettoyé : liens résolus (canonicalFilePath) jusqu'au plus profond parent
@@ -109,7 +95,7 @@ bool isImageData(const QUrl& url)
 // résolus) doit y être aussi.
 bool isAllowedFile(const QUrl& url, const QString& resourceFolder)
 {
-    if (isNetworkPath(url) || resourceFolder.isEmpty() || isNetworkFolder(resourceFolder))
+    if (core::isNetworkPath(url) || resourceFolder.isEmpty() || core::isNetworkPath(resourceFolder))
         return false;
     const QString path = QDir::cleanPath(QDir::fromNativeSeparators(url.toLocalFile()));
     const QString folder = QDir::cleanPath(QDir::fromNativeSeparators(resourceFolder));

@@ -71,6 +71,7 @@ actcraft_add_module(core
         include/actcraft/core/restrictors.h
         src/restrictors.cpp
         include/actcraft/core/broadcast.h
+        include/actcraft/core/networkpath.h
         src/broadcast.cpp
     DEPENDS
         Qt6::Core)
