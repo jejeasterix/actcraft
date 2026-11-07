@@ -217,7 +217,9 @@ private slots:
         QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(300, 500)));
         QTest::touchEvent(app.window, m_touch).move(0, scenePoint(app, QPointF(340, 500)));
         QTest::touchEvent(app.window, m_touch).move(0, scenePoint(app, QPointF(380, 500)));
-        QTRY_VERIFY_WITH_TIMEOUT(toolSamples >= 3, 3000);
+        // Qt Quick peut fusionner deux mouvements consécutifs : on attend un trait d'au moins deux points.
+        QTRY_VERIFY_WITH_TIMEOUT(app.ink->pointCount() >= 2, 3000);
+        QVERIFY(toolSamples >= 2);
         QTest::touchEvent(app.window, m_touch)
             .stationary(0)
             .press(1, scenePoint(app, QPointF(300, 200)))

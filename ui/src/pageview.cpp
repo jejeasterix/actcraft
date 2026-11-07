@@ -11,7 +11,9 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QLineF>
 #include <QMouseEvent>
+#include <QPointingDevice>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QTabletEvent>
@@ -19,7 +21,9 @@
 #include <QWheelEvent>
 
 #include <algorithm>
+#include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace actcraft::ui {
@@ -152,25 +156,30 @@ bool isActingInput(const QEvent& event)
 
 } // namespace
 
-// Fin du Pipeline (D-S1, D-S9) : l'outil qui reçoit la voie Tool maintenant (outil de ToolHost, sinon stylo
-// interne). Lu à chaque échantillon : un changement d'outil ne reconstruit rien.
+// Fin du Pipeline (D-S1, D-S9) : l'outil du contact de l'échantillon (L11-T5 : utilisateur et outil imposé de
+// la décision), posé par PageView::pushToTool juste avant Pipeline::push, qui est synchrone. Un changement
+// d'outil ne reconstruit rien.
 class ToolDispatch final : public input::SampleSink
 {
 public:
-    explicit ToolDispatch(const PageView& view) : m_view(view) {}
     void onSample(const input::Sample& sample) override
     {
-        if (tools::Tool* tool = m_view.currentTool()) {
-            tool->onSample(sample);
+        if (target) {
+            target->onSample(sample);
         }
     }
 
-private:
-    const PageView& m_view;
+    tools::Tool* target = nullptr;
 };
 
-PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::make_unique<ToolDispatch>(*this))
+PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::make_unique<ToolDispatch>())
 {
+    m_toolContacts.reserve(8); // L11-T5 : aucune allocation au fil des contacts
+    // D11-7 : appui long d'un doigt ; un seul minuteur, armé à l'appui, jamais par échantillon.
+    m_holdTimer.setSingleShot(true);
+    m_holdTimer.setInterval(kTouchHoldMs);
+    connect(&m_holdTimer, &QTimer::timeout, this,
+            [this] { emit touchHeld(m_holdPagePoint, mapToScene(m_holdViewPoint), int(m_holdUser)); });
     // Bouton droit : menu contextuel par signal (contextMenuRequested), jamais à l'outil.
     setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
     setAcceptTouchEvents(true);
@@ -184,8 +193,8 @@ PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::mak
     m_foldTimer.setTimerType(Qt::PreciseTimer); // la reprise de « pauses » vise la fin du délai à 8 ms près
     m_foldTimer.setInterval(kCacheFoldIdleMs);
     connect(&m_foldTimer, &QTimer::timeout, this, [this] {
-        // D-S9 : jamais pendant un geste de l'outil qui reçoit la voie Tool (trait, sélection, gomme).
-        if (const auto* busy = currentTool(); busy && busy->isBusy()) {
+        // D-S9 : jamais pendant un geste d'un outil qui reçoit la voie Tool (trait, sélection, gomme).
+        if (anyToolBusy()) {
             m_foldTimer.start();
             return;
         }
@@ -566,6 +575,7 @@ void PageView::rebuildPen()
 {
     m_pipeline.reset();
     m_pen.reset();
+    m_imposedPen.reset();
     m_documentSink.reset();
     m_controllerSink.reset();
     m_inkSurface.reset();
@@ -584,12 +594,22 @@ void PageView::rebuildPen()
     m_pen = std::make_unique<actcraft::tools::PenTool>(*m_inkSurface, *sink);
     m_pen->setColor(m_inkColor.rgba());
     m_pen->setBaseWidth(m_inkWidth);
-    m_pipeline = std::make_unique<input::Pipeline>(*m_dispatch); // vers currentTool()
+    m_imposedPen = std::make_unique<actcraft::tools::PenTool>(*m_inkSurface, *sink);
+    m_pipeline = std::make_unique<input::Pipeline>(*m_dispatch); // vers l'outil du contact
     m_pipeline->setProbe(m_probe);
     m_ink->setProbe(m_probe);
 }
 
 bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
+{
+    std::optional<input::Sample> sample = sampleFor(event, viewPos);
+    if (!sample) {
+        return false;
+    }
+    return applyDecision(*sample, m_router.route(*sample), viewPos, 1);
+}
+
+std::optional<input::Sample> PageView::sampleFor(const QEvent& event, QPointF viewPos)
 {
     if (isActingInput(event)) {
         postponeFold();
@@ -599,34 +619,44 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
         emit pointerPositionChanged();
     }
     if (!m_pipeline) {
-        return false;
+        return std::nullopt;
     }
-    const auto& pointer = static_cast<const QPointerEvent&>(event);
-    if (!acceptsDevice(pointer.pointingDevice())) {
-        return false;
+    const QPointingDevice* device = static_cast<const QPointerEvent&>(event).pointingDevice();
+    if (!acceptsDevice(device)) {
+        return std::nullopt;
     }
-    const QPointF pagePos = viewTransform().viewToPage(viewPos);
-    auto sample = input::sampleFromEvent(event, pagePos, core::monotonicNowNs());
-    if (!sample) {
-        return false;
+    std::optional<input::Sample> sample =
+        input::sampleFromEvent(event, viewTransform().viewToPage(viewPos), core::monotonicNowNs());
+    if (sample && device) {
+        // L11-T5 : l'outil physique (numéro du stylet), à défaut l'appareil du système (D11-2).
+        const QPointingDeviceUniqueId unique = device->uniqueId();
+        sample->deviceId =
+            static_cast<std::uint64_t>(unique.isValid() ? unique.numericId() : device->systemId());
     }
-    const input::Decision decision = m_router.route(*sample);
+    return sample;
+}
+
+bool PageView::applyDecision(input::Sample& sample, const input::Decision& decision, QPointF viewPos,
+                             int pressesInEvent)
+{
     // Amendement 1 du lot 4 (V5) : contactActive suit les décisions que le routeur retient.
-    const bool released = sample->phase == input::Phase::Release;
-    if (sample->phase == input::Phase::Press &&
-        (decision.route == input::Route::Tool || decision.route == input::Route::Gesture)) {
-        holdContact(sample->pointer);
+    const bool pressed = sample.phase == input::Phase::Press;
+    const bool released = sample.phase == input::Phase::Release;
+    if (pressed && (decision.route == input::Route::Tool || decision.route == input::Route::Gesture)) {
+        holdContact(sample.pointer);
+        m_lastContactUser = decision.user;
     }
     if (decision.endToolContacts) {
-        endToolContacts(decision); // décidé par la politique du routeur : la vue ne compte pas les doigts
+        // Décidé par la politique du routeur : la vue ne compte pas les doigts.
+        endToolContacts(decision, pressesInEvent);
     }
     switch (decision.route) {
     case input::Route::Tool:
         break;
     case input::Route::Gesture: {
-        const bool taken = onGestureSample(*sample, viewPos);
+        const bool taken = onGestureSample(sample, viewPos);
         if (released) {
-            forgetContact(sample->pointer); // décision rendue par le routeur au relâché
+            forgetContact(sample.pointer); // décision rendue par le routeur au relâché
         }
         return taken;
     }
@@ -634,48 +664,139 @@ bool PageView::handlePointer(const QEvent& event, QPointF viewPos)
     case input::Route::Cover:
         // La vue ne prend rien et rend aussitôt le contact au routeur ; l'événement continue vers la
         // surcouche, qui le reçoit par ses gestionnaires.
-        releaseContact(sample->pointer);
+        releaseContact(sample.pointer);
         return false;
     }
-    sample->user = decision.user;
+    sample.user = decision.user;
+    const QPointF pagePos(sample.x, sample.y);
     m_lastRawPagePoint = pagePos;
-    if (sample->device == input::DeviceKind::Touch) {
-        m_lastTouchPagePoint = pagePos;
-        m_lastTouchViewPoint = viewPos;
-        m_touchPointer = sample->pointer;
-        m_touchDrawing = sample->phase != input::Phase::Release;
+    m_lastToolPointer = sample.pointer;
+    ToolContact* contact = toolContact(sample.pointer);
+    if (!contact) {
+        m_toolContacts.push_back(ToolContact{}); // capacité réservée : à l'appui, jamais par point
+        contact = &m_toolContacts.back();
     }
-    pushToTool(*sample);
+    *contact =
+        ToolContact{sample.pointer, sample.device, decision.user, decision.fingerTool, pagePos, viewPos};
+    if (pressed && decision.fingerTool == input::FingerTool::Pen) {
+        configureImposedPen(decision.user);
+    }
+    if (sample.device == input::DeviceKind::Touch) {
+        if (pressed) {
+            // D11-7 : un seul appui long suivi, le dernier doigt posé.
+            m_holdPointer = sample.pointer;
+            m_holdViewPoint = viewPos;
+            m_holdPagePoint = pagePos;
+            m_holdUser = decision.user;
+            m_holdTimer.start();
+        } else if (sample.pointer == m_holdPointer && m_holdTimer.isActive() &&
+                   QLineF(viewPos, m_holdViewPoint).length() > kTouchHoldToleranceDp) {
+            m_holdTimer.stop();
+        }
+    }
+    pushToTool(sample, toolOf(decision.user, decision.fingerTool));
     if (released) {
-        forgetContact(sample->pointer); // après le relâché versé à l'outil (trait déjà au document)
+        forgetContact(sample.pointer); // après le relâché versé à l'outil (trait déjà au document)
     }
     return true;
 }
 
-void PageView::endToolContacts(const input::Decision& decision)
+PageView::ToolContact* PageView::toolContact(std::uint64_t pointer)
 {
-    if (!m_touchDrawing) {
+    const auto found =
+        std::find_if(m_toolContacts.begin(), m_toolContacts.end(),
+                     [pointer](const ToolContact& contact) { return contact.pointer == pointer; });
+    return found == m_toolContacts.end() ? nullptr : &*found;
+}
+
+tools::Tool* PageView::toolOf(input::UserId user, input::FingerTool fingerTool) const
+{
+    if (fingerTool != input::FingerTool::Current) {
+        if (m_imposedTools) {
+            if (tools::Tool* imposed = m_imposedTools(user, fingerTool)) {
+                return imposed;
+            }
+        }
+        if (fingerTool == input::FingerTool::Pen) {
+            return m_imposedPen.get();
+        }
+        // Select sans fournisseur : le sélecteur n'existe que dans ToolHost.
+        if (m_tools && m_tools->user(user).currentTool() == QLatin1String("select")) {
+            return m_tools->activeTool(user);
+        }
+        return nullptr;
+    }
+    if (m_tools) {
+        if (auto* active = m_tools->activeTool(user)) {
+            return active;
+        }
+    }
+    return m_pen.get();
+}
+
+bool PageView::anyToolBusy() const
+{
+    if (const auto* tool = currentTool(); tool && tool->isBusy()) {
+        return true;
+    }
+    return std::any_of(m_toolContacts.cbegin(), m_toolContacts.cend(), [this](const ToolContact& contact) {
+        const auto* tool = toolOf(contact.user, contact.fingerTool);
+        return tool && tool->isBusy();
+    });
+}
+
+void PageView::configureImposedPen(input::UserId user)
+{
+    if (!m_imposedPen) {
         return;
     }
-    if (decision.route == input::Route::Gesture) {
-        // H3-17 : le deuxième doigt pose un geste, le doigt qui écrivait y passe (routeur) ; son trait est
-        // abandonné, rien n'est versé ni annulable.
-        abandonTouchStroke();
-        addGestureContact(m_touchPointer, m_lastTouchViewPoint);
+    if (m_tools) {
+        const tools::InkSettings pen = m_tools->user(user).settings(QStringLiteral("pen"));
+        m_imposedPen->setColor(pen.color);
+        m_imposedPen->setBaseWidth(pen.width);
     } else {
-        // M4 (b) : un stylet ou la souris prend la main. Le trait du doigt se termine là où il était ; le
-        // routeur garde le doigt (Ignore) : la suite de son contact n'écrit plus, la vue n'a rien à oublier.
-        terminateTouchStroke();
+        m_imposedPen->setColor(m_inkColor.rgba());
+        m_imposedPen->setBaseWidth(m_inkWidth);
     }
 }
 
-void PageView::pushToTool(const input::Sample& sample)
+void PageView::endToolContacts(const input::Decision& decision, int pressesInEvent)
 {
+    // Le routeur a fait passer chaque doigt routé vers l'outil au geste ou à rien ; la vue termine leur trait
+    // et cesse de les suivre vers l'outil.
+    const bool toGesture = decision.route == input::Route::Gesture && pressesInEvent < 2;
+    for (std::size_t i = m_toolContacts.size(); i-- > 0;) {
+        const ToolContact contact = m_toolContacts[i];
+        if (contact.device != input::DeviceKind::Touch) {
+            continue;
+        }
+        m_toolContacts.erase(m_toolContacts.begin() + static_cast<std::ptrdiff_t>(i));
+        if (contact.pointer == m_holdPointer) {
+            m_holdTimer.stop();
+        }
+        if (toGesture) {
+            // H3-17 : le deuxième doigt pose un geste, le doigt qui écrivait y passe (routeur) ; son trait
+            // est abandonné, rien n'est versé ni annulable.
+            abandonContact(contact);
+            addGestureContact(contact.pointer, contact.lastViewPoint);
+        } else {
+            // M4 (b), H11-O4 : un stylet, la souris ou deux doigts posés ensemble prennent la main. Le trait
+            // du doigt se termine là où il était ; le routeur garde le doigt (Ignore) : la suite de son
+            // contact n'écrit plus, la vue le rend à son prochain échantillon.
+            endWithRelease(contact);
+        }
+    }
+}
+
+void PageView::pushToTool(const input::Sample& sample, tools::Tool* tool)
+{
+    tools::Tool* const previous = std::exchange(m_dispatch->target, tool);
     if (m_filter) {
         m_pipeline->push(m_filter(sample));
     } else {
         m_pipeline->push(sample);
     }
+    m_dispatch->target = previous;
 }
 
 void PageView::finishStroke()
@@ -686,13 +807,23 @@ void PageView::finishStroke()
     if (m_tools) {
         m_tools->cancelGesture();
     }
-    if (m_touchDrawing) {
-        m_touchDrawing = false;         // la suite du contact du doigt ne dessine plus
-        releaseContact(m_touchPointer); // ni ne reste retenue au routeur : la vue n'en verra pas le relâché
+    // L11-T5 : l'outil du contact qui écrivait (utilisateur et outil imposé de sa décision), lu avant qu'un
+    // doigt ne soit rendu ; sans contact suivi, l'outil courant.
+    input::UserId user = input::kFirstUser;
+    tools::Tool* tool = currentTool();
+    if (const ToolContact* drawing = toolContact(m_lastToolPointer)) {
+        user = drawing->user;
+        tool = toolOf(drawing->user, drawing->fingerTool);
+    }
+    // Doigts : la suite du contact ne dessine plus, ni ne reste retenue au routeur (la vue n'en verra pas le
+    // relâché).
+    for (std::size_t i = m_toolContacts.size(); i-- > 0;) {
+        if (m_toolContacts[i].device == input::DeviceKind::Touch) {
+            releaseContact(m_toolContacts[i].pointer);
+        }
     }
     // Stylet : m_stylusDrawing reste vrai, le contact reste pris jusqu'au relâché (rien n'en passe à
     // l'interface) ; ses points n'ajoutent rien, l'outil n'est plus occupé. Souris : idem par la saisie.
-    auto* tool = currentTool();
     if (!m_pipeline || !tool || !tool->isBusy()) {
         return;
     }
@@ -701,7 +832,8 @@ void PageView::finishStroke()
     release.y = m_lastRawPagePoint.y();
     release.timestampNs = core::monotonicNowNs();
     release.phase = input::Phase::Release;
-    pushToTool(release);
+    release.user = user;
+    pushToTool(release, tool);
     if (tool->isBusy()) {
         tool->cancel(); // un outil que le relâché ne termine pas (L3-T14) finit son geste proprement
     }
@@ -805,7 +937,10 @@ bool PageView::eventFilter(QObject* watched, QEvent* event)
             }
             m_stylusDrawing = taken;
         } else if (m_stylusDrawing) {
-            taken = handlePointer(*tablet, viewPos);
+            // Commencé sur la vue, le contact lui reste jusqu'au relâché, même terminé avant par
+            // finishContacts (le routeur ne le connaît plus : Ignore).
+            handlePointer(*tablet, viewPos);
+            taken = true;
             if (type == QEvent::TabletRelease) {
                 m_stylusDrawing = false;
             }
@@ -856,21 +991,54 @@ void PageView::touchEvent(QTouchEvent* event)
     }
     // L'événement remis à la vue ne porte que ses points (saisis par elle ou appuyés sur elle). Chaque point
     // est un contact du routeur, converti comme un événement d'un seul point : la politique dit où il va
-    // (outil, geste, rien : paume, troisième doigt) ; la vue ne compte pas les doigts.
+    // (outil, geste, rien : paume, troisième doigt) ; la vue ne compte pas les doigts. L11-T5 (H3-16) : les
+    // appuis de l'événement sont décidés ensemble (routePresses), puis appliqués dans l'ordre des points ;
+    // des vecteurs par événement d'appui, aucun par point.
     bool taken = false;
-    for (const QEventPoint& point : event->points()) {
+    const QList<QEventPoint>& points = event->points();
+    std::vector<input::Sample> presses;
+    std::vector<qsizetype> pressPoints;
+    std::vector<input::Decision> decisions;
+    int pressesInEvent = 0;
+    if (event->touchPointStates().testFlag(QEventPoint::State::Pressed)) {
+        for (qsizetype i = 0; i < points.size(); ++i) {
+            const QEventPoint& point = points.at(i);
+            if (point.state() != QEventPoint::State::Pressed || !canStartStroke(point.position())) {
+                continue;
+            }
+            const QTouchEvent single(QEvent::TouchBegin, event->pointingDevice(), event->modifiers(),
+                                     {point});
+            if (std::optional<input::Sample> sample = sampleFor(single, point.position())) {
+                presses.push_back(*sample);
+                pressPoints.push_back(i);
+            }
+        }
+        if (!presses.empty()) {
+            decisions = m_router.routePresses(presses);
+        }
+        for (std::size_t k = 0; k < presses.size() && k < decisions.size(); ++k) {
+            if (presses[k].device == input::DeviceKind::Touch && decisions[k].route != input::Route::Cover) {
+                ++pressesInEvent; // comme le routeur : appuis de doigt que la surcouche ne couvre pas
+            }
+        }
+    }
+    std::size_t next = 0;
+    for (qsizetype i = 0; i < points.size(); ++i) {
+        const QEventPoint& point = points.at(i);
         QEvent::Type type = QEvent::None;
         if (point.state() == QEventPoint::State::Pressed) {
-            type = QEvent::TouchBegin;
+            if (next < pressPoints.size() && pressPoints[next] == i && next < decisions.size()) {
+                taken =
+                    applyDecision(presses[next], decisions[next], point.position(), pressesInEvent) || taken;
+                ++next;
+            }
+            continue;
         } else if (point.state() == QEventPoint::State::Updated) {
             type = QEvent::TouchUpdate;
         } else if (point.state() == QEventPoint::State::Released) {
             type = QEvent::TouchEnd;
         } else {
             continue; // immobile : rien de neuf pour le routeur
-        }
-        if (type == QEvent::TouchBegin && !canStartStroke(point.position())) {
-            continue;
         }
         const QTouchEvent single(type, event->pointingDevice(), event->modifiers(), {point});
         taken = handlePointer(single, point.position()) || taken;
@@ -992,38 +1160,42 @@ void PageView::stopGesture()
     }
 }
 
-void PageView::abandonTouchStroke()
+void PageView::abandonContact(const ToolContact& contact)
 {
-    m_touchDrawing = false;
-    if (auto* tool = currentTool(); tool && tool->isBusy()) {
+    if (auto* tool = toolOf(contact.user, contact.fingerTool); tool && tool->isBusy()) {
         tool->abandon();
     }
 }
 
 void PageView::finishTouchStroke()
 {
-    if (!m_touchDrawing) {
-        return;
+    for (std::size_t i = m_toolContacts.size(); i-- > 0;) {
+        const ToolContact contact = m_toolContacts[i];
+        if (contact.device != input::DeviceKind::Touch) {
+            continue;
+        }
+        endWithRelease(contact);
+        releaseContact(contact.pointer); // la vue n'en verra pas le relâché
     }
-    terminateTouchStroke();
-    releaseContact(m_touchPointer); // la vue n'en verra pas le relâché
 }
 
-void PageView::terminateTouchStroke()
+void PageView::endWithRelease(const ToolContact& contact)
 {
-    m_touchDrawing = false;
-    if (auto* tool = currentTool(); m_pipeline && tool && tool->isBusy()) {
-        input::Sample release;
-        release.x = m_lastTouchPagePoint.x(); // dernier point brut du doigt, filtré comme lui
-        release.y = m_lastTouchPagePoint.y();
-        release.timestampNs = core::monotonicNowNs();
-        release.device = input::DeviceKind::Touch;
-        release.phase = input::Phase::Release;
-        release.pointer = m_touchPointer;
-        pushToTool(release);
-        if (tool->isBusy()) {
-            tool->cancel();
-        }
+    auto* tool = toolOf(contact.user, contact.fingerTool);
+    if (!m_pipeline || !tool || !tool->isBusy()) {
+        return;
+    }
+    input::Sample release;
+    release.x = contact.lastPagePoint.x(); // dernier point brut du contact, filtré comme lui
+    release.y = contact.lastPagePoint.y();
+    release.timestampNs = core::monotonicNowNs();
+    release.device = contact.device;
+    release.phase = input::Phase::Release;
+    release.pointer = contact.pointer;
+    release.user = contact.user;
+    pushToTool(release, tool);
+    if (tool->isBusy()) {
+        tool->cancel();
     }
 }
 
@@ -1143,12 +1315,7 @@ void PageView::setTools(ToolHost* tools)
 
 tools::Tool* PageView::currentTool() const
 {
-    if (m_tools) {
-        if (auto* active = m_tools->activeTool()) {
-            return active;
-        }
-    }
-    return m_pen.get();
+    return toolOf(input::kFirstUser, input::FingerTool::Current);
 }
 
 int PageView::cacheRefreshCount() const noexcept
@@ -1181,6 +1348,11 @@ void PageView::forgetContact(std::uint64_t pointer)
 {
     const bool was = contactActive();
     m_heldContacts.removeAll(pointer);
+    std::erase_if(m_toolContacts,
+                  [pointer](const ToolContact& contact) { return contact.pointer == pointer; });
+    if (pointer == m_holdPointer) {
+        m_holdTimer.stop();
+    }
     if (was && !contactActive()) {
         emit contactActiveChanged();
     }
@@ -1199,15 +1371,42 @@ input::PointerRouter& PageView::router() noexcept
 
 void PageView::setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy)
 {
-    (void)policy;
+    m_router.setPolicy(policy ? std::move(policy) : std::make_unique<input::FullTouchPolicy>());
 }
 
 int PageView::lastContactUser() const noexcept
 {
-    return 0;
+    return m_lastContactUser;
 }
 
-void PageView::finishContacts() {}
+void PageView::finishContacts()
+{
+    m_holdTimer.stop();
+    // Comme un relâché à la dernière position de chaque contact routé vers l'outil : trait gardé (D11-8,
+    // D11-10). Pas de cancelGesture : un glisser de la sélection se termine là où il est.
+    while (!m_toolContacts.empty()) {
+        const ToolContact contact = m_toolContacts.back();
+        m_toolContacts.pop_back();
+        endWithRelease(contact);
+    }
+    endGesture(); // contacts du geste rendus au routeur
+    m_router.reset();
+    const bool was = contactActive();
+    m_heldContacts.clear();
+    if (was) {
+        emit contactActiveChanged();
+    }
+}
+
+void PageView::setImposedToolProvider(ImposedToolProvider provider)
+{
+    m_imposedTools = std::move(provider);
+}
+
+bool PageView::touchHoldTimerActive() const noexcept
+{
+    return m_holdTimer.isActive();
+}
 
 void PageView::addInputCover(QQuickItem* cover)
 {
@@ -1288,8 +1487,19 @@ void PageView::wheelEvent(QWheelEvent* event)
 void PageView::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry)
 {
     QQuickItem::geometryChange(newGeometry, oldGeometry);
+    const bool resized = newGeometry.size() != oldGeometry.size();
+    if (resized) {
+        finishContacts(); // D11-10 : un contact en cours est terminé et gardé (rotation)
+    }
     if (m_fitMode) {
         fitPage();
+    } else if (resized && !oldGeometry.size().isEmpty()) {
+        // D11-10 : le point de page au centre de la vue y reste.
+        const QPointF centrePage =
+            m_transform.viewToPage(QPointF(oldGeometry.width() / 2, oldGeometry.height() / 2));
+        ViewTransform t = m_transform;
+        t.pan = QPointF(width() / 2, height() / 2) - centrePage * t.zoom;
+        apply(clampPan(t, size(), pageSize()));
     } else {
         apply(clampPan(m_transform, size(), pageSize()));
     }
