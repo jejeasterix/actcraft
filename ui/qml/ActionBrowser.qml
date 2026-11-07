@@ -171,6 +171,8 @@ Item {
                                 return targetEditor
                             if (t === "text" || t === "url" || t === "file")
                                 return textEditor
+                            if (prop.modelData.decimals > 0)
+                                return realEditor
                             return numberEditor // nombre, angle, page, translucidité
                         }
                         property var row: prop.modelData
@@ -211,6 +213,31 @@ Item {
             editable: true
             focusPolicy: Qt.StrongFocus
             onValueModified: root.setParameter(row.name, value)
+        }
+    }
+    // Réel (facteur) : saisie libre validée ; une valeur hors borne est transmise telle quelle, le modèle la refuse.
+    Component {
+        id: realEditor
+        TextField {
+            objectName: "realEditor"
+            // Relu hors saisie seulement : le texte tapé ("1.") n'est pas reformaté sous les doigts.
+            function show() { if (!activeFocus) text = current === undefined ? "" : Number(current).toFixed(row.decimals) }
+            Component.onCompleted: show()
+            readonly property var cur: current
+            onCurChanged: show()
+            onActiveFocusChanged: show()
+            inputMethodHints: Qt.ImhFormattedNumbersOnly
+            selectByMouse: true
+            validator: DoubleValidator {
+                notation: DoubleValidator.StandardNotation
+                decimals: row.decimals
+                locale: "C"
+            }
+            onTextEdited: {
+                const v = Number(text.replace(",", "."))
+                if (!isNaN(v))
+                    root.setParameter(row.name, v)
+            }
         }
     }
     Component {

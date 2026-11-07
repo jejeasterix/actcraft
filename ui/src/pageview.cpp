@@ -777,6 +777,8 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
         // Rapport de pixels connu à l'attache : sans ceci, une taille calculée avant garde l'ancienne
         // jusqu'au prochain zoom (H10-9).
         updateCacheTextureSize();
+    } else if (change == ItemDevicePixelRatioHasChanged) {
+        updateCacheTextureSize(); // écran à autre rapport de pixels : la taille du cache suit
     }
 }
 
