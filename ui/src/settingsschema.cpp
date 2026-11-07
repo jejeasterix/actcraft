@@ -212,8 +212,7 @@ const QList<Entry>& entryTable()
         boolean("spelling", "flag-repeated", QT_TRANSLATE_NOOP("SettingsSchema", "Signaler les mots répétés"),
                 true),
         // Enregistrements (F-292, F-293, L8-T28) : lus par ui::Recorders. Dossier vide : le dossier
-        // temporaire du
-        // document ; formats : ceux que les moteurs écrivent aujourd'hui.
+        // temporaire du document ; formats : ceux que les moteurs écrivent aujourd'hui.
         text("recordings", "recordings/folder",
              QT_TRANSLATE_NOOP("SettingsSchema", "Dossier des enregistrements"), kWorkstation),
         choice("recordings", "recordings/sound-format", QT_TRANSLATE_NOOP("SettingsSchema", "Format du son"),
