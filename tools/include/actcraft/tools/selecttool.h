@@ -2,6 +2,7 @@
 
 #include <actcraft/core/containers.h>
 #include <actcraft/core/lift.h>
+#include <actcraft/tools/grabs.h>
 #include <actcraft/tools/interactionpolicy.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/toolcontext.h>
@@ -19,6 +20,7 @@ class SelectTool final : public Tool
 {
 public:
     explicit SelectTool(ToolContext& context);
+    ~SelectTool() override;      // relâche ce que l'utilisateur tient (setGrabs)
     QString id() const override; // « select »
     void activate() override;
     void deactivate() override; // garde la sélection, masque le cadre
@@ -44,6 +46,14 @@ public:
     // Lot 8 (L8-T16, D8-9) : réglages du mode conception, posés par ui::ToolHost ; nul : tout actif. Non
     // possédée, lue à chaque geste.
     void setInteractionPolicy(const InteractionPolicy* policy) noexcept;
+    // Lot 11 (L11-T8, F-303, H11-13) : registre des objets tenus, commun aux sélecteurs des deux
+    // utilisateurs, posé par ui::ToolHost en mode à deux utilisateurs. Un geste tient les objets qu'il vise,
+    // de l'appui au relâché ou à l'abandon ; la désignation (appui, rectangle, tout sélectionner) et les
+    // commandes de la sélection sautent les objets tenus par un autre utilisateur. Nul : un seul utilisateur,
+    // rien n'est tenu. Non possédé : le registre et l'état de l'utilisateur (ToolContext::user) vivent plus
+    // longtemps que l'outil. Changer de registre relâche ce que l'utilisateur tenait dans l'ancien ; la
+    // destruction de l'outil aussi.
+    void setGrabs(Grabs* grabs) noexcept;
     // Dépôt accepté par un conteneur (F-577) : le conteneur gagnant et son son de confirmation (joué par
     // L8-T25). Appelé une fois, après le dépôt.
     using ContainerAccepted = std::function<void(core::ObjectId container, bool chime)>;
@@ -117,7 +127,15 @@ private:
     void showBand(core::PointF point);
     void showFrame();
     void publish(const SelectionView& view);
-    void reset() noexcept;
+    void reset() noexcept; // relâche aussi ce que l'utilisateur tient (setGrabs)
+    // Objets tenus (L11-T8) : sans registre, aucun objet n'est tenu par un autre.
+    bool heldByOther(core::ObjectId id) const;
+    std::vector<core::ObjectId> withoutHeldByOthers(std::vector<core::ObjectId> ids) const;
+    void dropHeldByOthers(); // la sélection de l'utilisateur perd les objets tenus par un autre
+    // Objet le plus haut sous `point` (core::objectAt), en sautant ceux que tient un autre utilisateur.
+    std::optional<core::ObjectId> designate(const core::Page& page, core::PointF point,
+                                            double tolerance) const;
+    void holdTargets(); // après l'appui : le geste tient les objets qu'il vise (rien pour un rectangle)
 
     ToolContext& m_context;
     State m_state = State::Idle;
@@ -147,6 +165,7 @@ private:
         m_copySources; // leur fermeture (closureForCopy), prise avant le soulèvement
     int m_modifiers = 0;
     const InteractionPolicy* m_policy = nullptr;
+    Grabs* m_grabs = nullptr; // setGrabs
     ContainerAccepted m_containerAccepted;
     // Règles du glisser (L8-T16), prises avant le soulèvement ; rien n'y est recalculé pendant les
     // mouvements.
