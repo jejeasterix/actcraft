@@ -153,6 +153,9 @@ public:
     // Change à chaque remplacement du document affiché (ouverture, « Nouveau », garage ou reprise d'un
     // onglet) : une tâche de fond y reconnaît le document devant lequel elle a été lancée (L5-C21).
     std::uint64_t generation() const noexcept { return m_generation; }
+    // Identité du document affiché : change à chaque remplacement (ouverture, « Nouveau »), mais le suit dans
+    // son onglet (garé puis repris, la même) ; jamais 0. Clé du dossier d'extraction des fichiers rangés.
+    std::uint64_t documentKey() const noexcept { return m_documentKey; }
 
     // Document garé par un onglet (L5-T20) : document, pile d'annulation, URL, état modifié, avertissements,
     // page affichée.
@@ -297,6 +300,7 @@ private:
     // Change à chaque replaceDocument : un enregistrement fini après « Nouveau » ne rattache pas le fichier
     // au document neuf, même d'empreinte égale.
     std::uint64_t m_generation = 0;
+    std::uint64_t m_documentKey = 1; // voir documentKey() ; 0 : « aucune » (session garée sans clé)
     // Change à chaque modification du document (commande de la pile, annuler, rétablir, page du banc,
     // replaceDocument) : « a-t-il changé pendant la lecture ou l'écriture ? » sans parcourir le document sur
     // le fil principal (L2-C9). Un changement puis son annulation la font bouger deux fois : jamais «

@@ -64,14 +64,23 @@ bool allIdentified(const Page& page) noexcept
 
 } // namespace
 
-Page withFreshIds(Document& document, Page page)
+namespace {
+
+// Renumérote les objets pour lesquels `renumber` est vrai (tous, pour withFreshIds) ; les autres gardent leur
+// identifiant. Les références internes à un objet renuméroté suivent.
+template <typename Pick> Page renumbered(Document& document, Page page, Pick renumber)
 {
-    // Première passe : un identifiant neuf par objet, et la table ancien → neuf de toute la page. 0
+    // Première passe : un identifiant neuf par objet choisi, et la table ancien → neuf de toute la page. 0
     // (« aucun ») n'y entre pas ; un identifiant en double garde sa première entrée. Identifiants épuisés :
     // plus rien n'est tiré, les objets restants gardent 0.
     std::vector<ObjectId> fresh(page.objects.size(), 0);
+    std::vector<bool> picked(page.objects.size(), false);
     IdTable table;
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
+        if (!renumber(page.objects[i])) {
+            continue;
+        }
+        picked[i] = true;
         fresh[i] = document.allocateId();
         if (fresh[i] == 0) {
             break;
@@ -84,7 +93,9 @@ Page withFreshIds(Document& document, Page page)
     // telle quelle.
     for (std::size_t i = 0; i < page.objects.size(); ++i) {
         PageObject& object = page.objects[i];
-        object.common.id = fresh[i];
+        if (picked[i]) {
+            object.common.id = fresh[i];
+        }
         for (Action& action : object.common.actions) {
             follow(action.target, table);
         }
@@ -98,6 +109,19 @@ Page withFreshIds(Document& document, Page page)
         }
     }
     return page;
+}
+
+} // namespace
+
+Page withFreshIds(Document& document, Page page)
+{
+    return renumbered(document, std::move(page), [](const PageObject&) { return true; });
+}
+
+Page withFreshIdsWhere(Document& document, Page page, const std::set<ObjectId>& taken)
+{
+    return renumbered(document, std::move(page),
+                      [&taken](const PageObject& object) { return taken.count(object.common.id) != 0; });
 }
 
 std::vector<std::size_t> positionsAfterMove(std::size_t pageCount, const std::vector<std::size_t>& pages,

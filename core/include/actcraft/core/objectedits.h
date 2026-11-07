@@ -80,6 +80,7 @@ public:
 private:
     std::size_t m_page;
     Page m_other;
+    bool m_prepared = false; // identifiants en collision déjà renouvelés (premier redo)
 };
 
 // Translucidité (F-524) : 0 opaque … 255 invisible. Fusionne avec la précédente de même famille portant sur

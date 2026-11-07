@@ -208,6 +208,7 @@ private slots:
     void gateDragMovesWithoutRunning();
     void groupWithoutActionDoesNotHide();
     void diagonalStrokeBlocksOnlyItsLine();
+    void hoverFollowsTheStrokeLine();
     void lockedTargetActionKeepsSelection();
     void clickSlopInScreenPixels();
     // Correctifs de la revue L8-C3.
@@ -768,6 +769,28 @@ void TstUiActionrunner::diagonalStrokeBlocksOnlyItsLine()
     QVERIFY(hidden(kLabel));
     click(QPointF(175, 175)); // sur la ligne : le trait est au-dessus, rien ne tourne
     QVERIFY(hidden(kLabel));
+}
+
+// L8-C15 : le curseur d'action suit la même règle que le clic, sans copier le trait à chaque mouvement :
+// sur le rond, la flèche ; sur la ligne du trait posé dessus, plus de flèche ; hors des deux, rien.
+void TstUiActionrunner::hoverFollowsTheStrokeLine()
+{
+    core::Document document = documentWith({action("object.toggle-hidden", kLabel)});
+    core::Stroke stroke;
+    stroke.points = {{100, 250, 0.5f}, {250, 100, 0.5f}};
+    core::PageObject object{stroke};
+    object.common.id = 3;
+    object.common.layer = core::Layer::Top;
+    document.page(0).objects.push_back(object);
+    load(std::move(document));
+    m_runner->hover(kOnRound);
+    QVERIFY(m_runner->hovering());
+    m_runner->hover(QPointF(175, 175));
+    QVERIFY(!m_runner->hovering());
+    m_runner->hover(kOnRound);
+    QVERIFY(m_runner->hovering());
+    m_runner->hover(QPointF(900, 700));
+    QVERIFY(!m_runner->hovering());
 }
 
 // Revue, point 3 : sous le verrou, une action sur cible (copier) est refusée sans changer la sélection.

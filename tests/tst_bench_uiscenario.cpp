@@ -659,6 +659,13 @@ private slots:
             << QByteArray("{\"remember\":\"a.b\",\"as\":\"SAMPLES\"}") << QStringLiteral("mémoire invalide");
         QTest::newRow("remember nom invalide")
             << QByteArray("{\"remember\":\"a.b\",\"as\":\"a}b\"}") << QStringLiteral("mémoire invalide");
+        // L8-C15 : saut d'une étape selon la plateforme.
+        QTest::newRow("skipOn motif blanc")
+            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"skipOn\":[\"macos\"],\"skipReason\":\"  \"}")
+            << QStringLiteral("skipOn");
+        QTest::newRow("skipOn pas un tableau")
+            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"skipOn\":\"macos\",\"skipReason\":\"x\"}")
+            << QStringLiteral("skipOn");
         // L5-T32 : contrôle d'un fichier écrit.
         QTest::newRow("file sans contrôle")
             << QByteArray("{\"file\":\"x\"}") << QStringLiteral("fichier invalide");

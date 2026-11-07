@@ -630,10 +630,15 @@ bool parseUiScenario(const QByteArray& json, UiScenario& out, QString& error)
             return false;
         }
         const QJsonObject object = steps.at(i).toObject();
-        for (const QJsonValue& platform : object.value(QStringLiteral("skipOn")).toArray()) {
+        const QJsonValue skipOn = object.value(QStringLiteral("skipOn"));
+        if (!skipOn.isUndefined() && !skipOn.isArray()) {
+            error = QStringLiteral("étape %1 : skipOn doit être un tableau de plateformes").arg(i + 1);
+            return false;
+        }
+        for (const QJsonValue& platform : skipOn.toArray()) {
             step.skipOn << platform.toString();
         }
-        step.skipReason = object.value(QStringLiteral("skipReason")).toString();
+        step.skipReason = object.value(QStringLiteral("skipReason")).toString().trimmed();
         if (!step.skipOn.isEmpty() && step.skipReason.isEmpty()) {
             error = QStringLiteral("étape %1 : skipOn exige skipReason (le motif du saut)").arg(i + 1);
             return false;

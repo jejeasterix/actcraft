@@ -119,15 +119,19 @@ Item {
             DragHandler {
                 id: dragger
                 target: ghost
-                onActiveChanged: {
-                    if (active)
+                // Déposer sur un vrai relâché seulement : une annulation du grab (autre poignée, perte du
+                // pointeur) remet l'icône en place sans rien déposer (même patron que DragDropActions).
+                onGrabChanged: (transition, point) => {
+                    if (transition !== PointerDevice.UngrabExclusive
+                            && transition !== PointerDevice.CancelGrabExclusive)
                         return
                     const scene = ghost.mapToItem(null, ghost.width / 2, ghost.height / 2)
                     ghost.x = 0
                     ghost.y = 0
                     const trash = overlays.host ? overlays.host.trashArea : Qt.rect(0, 0, 0, 0)
                     // QRectF n'a pas de méthode contains() en QML : comparaison des bornes.
-                    if (trash.width > 0 && scene.x >= trash.x && scene.x <= trash.x + trash.width
+                    if (transition === PointerDevice.UngrabExclusive && trash.width > 0
+                            && scene.x >= trash.x && scene.x <= trash.x + trash.width
                             && scene.y >= trash.y && scene.y <= trash.y + trash.height)
                         overlays.dragDrop.dropOnTrash(badge.modelData.objectId)
                 }

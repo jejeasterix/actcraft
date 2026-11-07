@@ -338,9 +338,13 @@ void LinkLauncher::requestStored(const QByteArray& bytes, const QString& origina
     // DocumentController::saveToUrl) ; le QFutureWatcher, fils de ce lanceur, ne livre plus rien une fois
     // celui-ci détruit.
     auto* watcher = new QFutureWatcher<Extracted>(this);
-    connect(watcher, &QFutureWatcher<Extracted>::finished, this, [this, watcher, path, name] {
+    const QString written = QUrl::fromLocalFile(path).toLocalFile();
+    m_writing.insert(written, m_writing.value(written, 0) + 1);
+    connect(watcher, &QFutureWatcher<Extracted>::finished, this, [this, watcher, path, name, written] {
         const Extracted result = watcher->result();
         watcher->deleteLater();
+        if (--m_writing[written] <= 0)
+            m_writing.remove(written);
         switch (result) {
         case Extracted::WriteFailed:
             emit refused(tr("Impossible d'extraire le fichier %1 du paperboard.").arg(name));
@@ -366,6 +370,13 @@ void LinkLauncher::answer(int token, bool accepted)
     const Pending pending = m_pending.take(token);
     if (!accepted)
         return;
+    // Le fichier est en train d'être remplacé (même chemin, demande suivante) : il n'a pas encore sa marque
+    // « venu d'ailleurs ». La nouvelle demande arrive à la confirmation une fois le fichier marqué.
+    if (pending.kind == StoredFile && m_writing.contains(pending.url.toLocalFile())) {
+        emit refused(tr("Le fichier %1 est en cours d'extraction : confirmez à nouveau dans un instant.")
+                         .arg(QDir::toNativeSeparators(pending.url.toLocalFile())));
+        return;
+    }
     // Revalidée : le fichier a pu changer depuis la demande.
     if (const QString reason = refusalFor(pending.url, pending.kind); !reason.isEmpty()) {
         emit refused(reason);

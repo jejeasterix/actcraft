@@ -668,7 +668,9 @@ private slots:
         } sources[] = {{"appActionRunner", "actionRefused", "refus de l'exécuteur"},
                        {"appActionBrowser", "refused", "refus du navigateur"},
                        {"appDragDrop", "refused", "refus du glisser-déposer"},
-                       {"appMediaInsert", "failed", "échec d'insertion"}};
+                       {"appMediaInsert", "failed", "échec d'insertion"},
+                       // L8-C15 : refus asynchrone d'un fichier rangé, la boîte de lien déjà fermée.
+                       {"appLinkDialogs", "refused", "fichier illisible"}};
         for (const auto& source : sources) {
             QObject* emitter = s.window->findChild<QObject*>(QString::fromLatin1(source.object));
             QVERIFY2(emitter, source.object);
