@@ -74,14 +74,17 @@ QStringList spdxIds(QString expression)
 QStringList listItems(const QString& markdown)
 {
     QStringList items;
+    bool open = false; // l'élément courant accepte encore des lignes de suite
     const QStringList lines = markdown.split(u'\n');
     for (const QString& line : lines) {
-        if (line.startsWith(QStringLiteral("- ")))
+        if (line.startsWith(QStringLiteral("- "))) {
             items << line;
-        else if (!items.isEmpty() && line.startsWith(QStringLiteral("  ")) && !line.trimmed().isEmpty())
+            open = true;
+        } else if (open && line.startsWith(QStringLiteral("  ")) && !line.trimmed().isEmpty()) {
             items.last() += u' ' + line.trimmed();
-        else if (!items.isEmpty() && !items.last().endsWith(u'\n'))
-            items.last() += u'\n'; // fin de l'élément : plus aucune suite jointe
+        } else {
+            open = false;
+        }
     }
     for (QString& item : items)
         item = item.trimmed();
