@@ -12,16 +12,18 @@ Rectangle {
     required property DocumentController documentController
     required property PageView view
     property bool notesVisible: false
+    property string touchMode: "full"
     signal popupOpened()
     signal popupClosed()
 
     implicitHeight: Theme.hauteurBarre
     color: Theme.barre
 
-    // Lot 11 : sous-menu « Mode du toucher » du menu Affichage (talon, L11-T6).
+    // Lot 11 : sous-menu « Mode du toucher » du menu Affichage (L11-T6).
     TouchModeMenu {
         id: touchModeMenu
         commands: bar.commands
+        mode: bar.touchMode
     }
 
     // Tout ce que la barre contient fait la hauteur de la barre, celle d'une cible tactile (Theme.hauteurBarre =

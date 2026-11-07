@@ -320,6 +320,7 @@ Window {
         commands: appCommands
         documentController: appDocument
         view: pageArea.view
+        touchMode: appTouchMode.mode
         notesVisible: browserPanel.hasNotes
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
