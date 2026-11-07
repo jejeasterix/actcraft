@@ -1189,8 +1189,8 @@ void WebFrameItems::rebuild()
         prepareRow(row);
         fresh.append(std::move(row));
     }
-    // Réponses en attente d'une ligne recréée ou disparue : abandonnées (le numéro de navigation, unique pour
-    // toute la vie du modèle, les écarterait déjà ; on libère aussi la requête).
+    // Réponses en attente d'une ligne recréée ou disparue : laissées finir sans effet (le numéro de
+    // navigation, unique pour toute la vie du modèle, les écarterait déjà ; on les retire de la table).
     for (auto it = m_replies.begin(); it != m_replies.end();) {
         bool kept = false;
         for (const Row& row : fresh)
@@ -1201,9 +1201,8 @@ void WebFrameItems::rebuild()
         }
         QNetworkReply* reply = it.key();
         it = m_replies.erase(it);
-        reply->disconnect(this);
-        reply->abort();
-        reply->deleteLater();
+        reply->disconnect(this); // elle finit seule (le serveur la voit), sans plus rien changer au modèle
+        connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
     }
     beginResetModel();
     m_rows = std::move(fresh);
