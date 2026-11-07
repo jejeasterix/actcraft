@@ -18,6 +18,12 @@ Rectangle {
     implicitHeight: Theme.hauteurBarre
     color: Theme.barre
 
+    // Lot 11 : sous-menu « Mode du toucher » du menu Affichage (talon, L11-T6).
+    TouchModeMenu {
+        id: touchModeMenu
+        commands: bar.commands
+    }
+
     // Tout ce que la barre contient fait la hauteur de la barre, celle d'une cible tactile (Theme.hauteurBarre =
     // Theme.tailleBouton) : le bouton plein écran et le zoom n'en débordent plus (L1-C5).
     RowLayout {

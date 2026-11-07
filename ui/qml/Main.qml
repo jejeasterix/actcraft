@@ -109,6 +109,14 @@ Window {
         onPageAboutToChange: pageArea.view.finishStroke()
     }
 
+    // Lot 11 (L11-T3) : contrôleurs du lot, posés une fois ; chaque tâche suivante y ajoute son comportement.
+    TouchModeController { id: appTouchMode; objectName: "appTouchMode"; commands: appCommands; preferences: appPreferences; view: pageArea.view }
+    DualMode { id: appDualMode; objectName: "appDualMode"; commands: appCommands; view: pageArea.view }
+    LayoutMetrics { id: appLayout; objectName: "appLayout"; windowWidth: root.width; windowHeight: root.height; preferences: appPreferences }
+    LifecycleKeeper { id: appLifecycle; objectName: "appLifecycle"; document: appDocument; view: pageArea.view }
+    DocumentPortal { id: appPortal; objectName: "appPortal" }
+    UpdateChecker { id: appUpdates; objectName: "appUpdates"; preferences: appPreferences }
+
     // Lot 4 : réglages de la page, miniatures, pages et édition de texte (types C++ de L4-T1).
     PageSettings {
         id: appPageSettings
@@ -325,6 +333,15 @@ Window {
         anchors.bottom: appTabs.position === "bottom" ? documentTabBar.top : parent.bottom
         spacing: 0
 
+        // Lot 11 : deuxième palette du mode à deux utilisateurs, au bord gauche (L11-T9).
+        SecondPalette {
+            id: secondPalette
+            Layout.fillHeight: true
+            Layout.preferredWidth: secondPalette.implicitWidth
+            visible: appDualMode.active
+            commands: appCommands
+        }
+
         // Lot 4 : panneau des navigateurs (ancre réglée par L4-T19), à gauche de la zone de page.
         BrowserPanel {
             id: browserPanel
@@ -409,6 +426,11 @@ Window {
             }
         }
     }
+
+    // Lot 11 : emplacements du bandeau de reprise, du menu au doigt et de la boîte des mises à jour (talons).
+    RecoveryBanner { id: recoveryBanner; commands: appCommands }
+    FingerMenu { id: fingerMenu }
+    UpdateDialog { id: updateDialog; commands: appCommands }
 
     // Lot 4 : barres de texte sous la ligne supérieure, boîtes de la grille et du fond (talons).
     TextFormatBar {

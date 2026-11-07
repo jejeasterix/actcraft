@@ -3,10 +3,6 @@
 
 namespace actcraft::ui {
 
-// Talon L11 : rempli par L11-T14.
-bool documentPortalReserved() noexcept
-{
-    return false;
-}
+DocumentPortal::DocumentPortal(QObject* parent) : QObject(parent) {}
 
 } // namespace actcraft::ui
