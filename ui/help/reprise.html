@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>Reprise après une interruption</title></head>
+<body>
+<h1>Reprise après une interruption</h1>
+<p>Si l'application est interrompue (mise en arrière-plan sur une tablette, par exemple), ActCraft garde une copie de secours du document modifié pour ne rien perdre.</p>
+<ol>
+<li>Quand l'application passe en arrière-plan avec un document modifié, une copie de secours est écrite dans le dossier privé de l'application. Rien n'est écrit si rien n'a changé.</li>
+<li>Au démarrage suivant, si cette copie est plus récente que le dernier enregistrement du document, elle est rouverte et un bandeau l'annonce : « Travail repris après une interruption ».</li>
+<li>Le document garde son emplacement d'origine et son état « modifié » : enregistrez-le pour conserver la reprise.</li>
+</ol>
+<p>Un enregistrement réussi supprime la copie de secours. La commande d'abandon de la reprise (<b>recovery.discard</b>) la supprime aussi, sans enregistrer.</p>
+<p><a href="index.html">Retour au sommaire</a></p>
+</body>
+</html>
