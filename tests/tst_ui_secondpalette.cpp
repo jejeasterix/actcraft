@@ -10,6 +10,8 @@
 #include <actcraft/core/shapegeometry.h>
 #include <actcraft/input/touchmodes.h>
 #include <actcraft/input/twouserpolicy.h>
+#include <actcraft/render/inkitem.h>
+#include <actcraft/render/liftlayeritem.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/commands.h>
@@ -205,6 +207,9 @@ private slots:
     void revealInkKeepsTheUser();
     void nestedTriggerKeepsTheUser();
     void toggleWaitsForTheContactToEnd();
+    // L11-C7 : restes du mode à deux.
+    void twoStrokesAtOnce();
+    void twoDragsStayApart();
 
 private:
     QTemporaryDir m_settings;
@@ -633,6 +638,129 @@ void TstUiSecondpalette::toggleWaitsForTheContactToEnd()
     QVERIFY(app.dual->active());
     QVERIFY(app.tools->dualUsers());
     QVERIFY(dynamic_cast<input::TwoUserPolicy*>(app.view->router().policy()));
+}
+
+void TstUiSecondpalette::twoStrokesAtOnce()
+{
+    // L11-C7 (D) : deux traits simultanés, chacun dans son encre vive. Une encre partagée n'en tient qu'un :
+    // l'appui du second vide le trait vif du premier (beginStroke), son relâché l'efface (clear).
+    App app;
+    QVERIFY(start(app));
+    ui::DocumentController* controller = app.tools->documentController();
+    QVERIFY(controller);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen")));
+    QVERIFY(app.commands->trigger(QStringLiteral("pen.color"), QStringLiteral("#E53935")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
+    QVERIFY(app.commands->trigger(QStringLiteral("pen.color"), QStringLiteral("#1E88E5"), 1));
+    const int before = controller->shownObjectCount();
+    render::InkItem* first = app.view->ink();
+    QVERIFY(first);
+
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(680, 220));
+    const std::size_t n0 = first->pointCount();
+    QVERIFY(n0 >= 2);
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
+    for (int i = 1; i <= 5; ++i) { // plus long que celui du premier : une encre partagée changerait de compte
+        tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(100 + 40 * i, 400 + 10 * i));
+    }
+    QCOMPARE(app.view->lastContactUser(), 1);
+    QCOMPARE(first->pointCount(), n0); // le trait vif du premier n'a pas bougé
+    QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
+
+    render::InkItem* second = nullptr;
+    for (render::InkItem* item : app.window->findChildren<render::InkItem*>()) {
+        if (item != first) {
+            QVERIFY(second == nullptr); // une seule encre de plus
+            second = item;
+        }
+    }
+    QVERIFY(second);
+    QVERIFY(second->pointCount() > n0);
+    QCOMPARE(QColor::fromRgba(second->drawnColor()), QColor(QStringLiteral("#1E88E5")));
+    QCOMPARE(second->mapToScene(QPointF(0, 0)), first->mapToScene(QPointF(0, 0))); // mêmes coordonnées
+    QCOMPARE(second->size(), first->size());
+
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(720, 230));
+    QVERIFY(first->pointCount() > n0);
+    const std::size_t m = second->pointCount();
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(300, 450));
+    QCOMPARE(second->pointCount(), std::size_t(0));
+    QVERIFY(first->pointCount() > n0); // le versement du second n'interrompt pas le premier
+    QVERIFY(m >= 2);
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(760, 240));
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(760, 240));
+    QCOMPARE(first->pointCount(), std::size_t(0));
+    QCOMPARE(controller->shownObjectCount(), before + 2);
+}
+
+void TstUiSecondpalette::twoDragsStayApart()
+{
+    // L11-C7 (E) : deux glissers simultanés restent indépendants. Un soulèvement unique réunit les objets des
+    // deux, et le dépôt de l'un remet aussi ceux de l'autre ; une couche soulevée unique ne montre que les
+    // derniers soulevés.
+    App app;
+    QVERIFY(start(app));
+    ui::DocumentController* controller = app.tools->documentController();
+    QVERIFY(controller);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.select")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.select"), QVariant(), 1));
+    const core::ObjectId boxA = addBox(*controller, {600, 100, 100, 100});
+    const core::ObjectId boxB = addBox(*controller, {100, 300, 100, 100});
+    QTRY_VERIFY(app.view->cacheReady());
+    const double leftA = core::boundsOnPage(*objectOf(*controller, boxA)).x;
+    const double leftB = core::boundsOnPage(*objectOf(*controller, boxB)).x;
+    const auto shownLifted = [&app] {
+        int count = 0;
+        for (const render::LiftLayerItem* layer : app.window->findChildren<render::LiftLayerItem*>()) {
+            count += layer->objectCount();
+        }
+        return count;
+    };
+
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(650, 150));
+    for (int i = 1; i <= 6; ++i) {
+        tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(650 + 10 * i, 150 + 8 * i));
+    }
+    QCOMPARE(app.view->lastContactUser(), 0);
+    QVERIFY(controller->isLifting());
+    QVERIFY(objectOf(*controller, boxA) == nullptr);
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(150, 350));
+    for (int i = 1; i <= 6; ++i) {
+        tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(150 + 10 * i, 350 + 8 * i));
+    }
+    QCOMPARE(app.view->lastContactUser(), 1);
+    QVERIFY(objectOf(*controller, boxB) == nullptr);
+    QCOMPARE(shownLifted(), 2); // chacun voit l'objet qu'il glisse
+
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(210, 398));
+    const core::PageObject* droppedB = objectOf(*controller, boxB);
+    QVERIFY(droppedB);
+    const double movedB = core::boundsOnPage(*droppedB).x;
+    QVERIFY2(movedB - leftB > 30, qPrintable(QString::number(movedB - leftB)));
+    QVERIFY(controller->isLifting());                // le premier glisse encore
+    QVERIFY(objectOf(*controller, boxA) == nullptr); // pas remis par le dépôt du second
+    QCOMPARE(shownLifted(), 1);
+
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(720, 206));
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(720, 206));
+    QVERIFY(!controller->isLifting());
+    QCOMPARE(shownLifted(), 0);
+    const core::PageObject* droppedA = objectOf(*controller, boxA);
+    QVERIFY(droppedA);
+    QVERIFY2(core::boundsOnPage(*droppedA).x - leftA > 50,
+             qPrintable(QString::number(core::boundsOnPage(*droppedA).x - leftA)));
+    QCOMPARE(core::boundsOnPage(*objectOf(*controller, boxB)).x, movedB);
+    controller->undo(); // le dernier déplacement, celui du premier
+    QVERIFY(std::abs(core::boundsOnPage(*objectOf(*controller, boxA)).x - leftA) < 0.01);
+    QCOMPARE(core::boundsOnPage(*objectOf(*controller, boxB)).x, movedB);
 }
 
 QTEST_MAIN(TstUiSecondpalette)

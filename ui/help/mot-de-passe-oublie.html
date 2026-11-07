@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>Mot de passe de la classe oublié</title></head>
+<body>
+<h1>Mot de passe de la classe oublié</h1>
+<p>Le verrouillage de la classe grise les commandes réservées à l'enseignant. Il se règle dans le menu Outils : Verrouiller pour la classe, et Mot de passe de la classe…. Au premier verrouillage, ActCraft demande de créer un mot de passe (deux saisies) ; il n'existe aucun mot de passe par défaut.</p>
+<p>Le mot de passe n'est pas récupérable : seule une empreinte salée en est gardée. Pour retrouver l'accès :</p>
+<ol>
+<li>Fermez ActCraft.</li>
+<li>Dans la configuration de l'application (le fichier de réglages de l'utilisateur), supprimez toutes les clés dont le nom commence par <b>classroom/</b> : <b>classroom/hash</b>, <b>classroom/salt</b>, <b>classroom/iterations</b> et <b>classroom/locked</b>.</li>
+<li>Relancez ActCraft : la classe est déverrouillée et le prochain verrouillage demande un nouveau mot de passe.</li>
+</ol>
+<p><a href="index.html">Retour au sommaire</a></p>
+</body>
+</html>

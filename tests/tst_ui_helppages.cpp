@@ -1,5 +1,7 @@
+#include <actcraft/actions/commandregistry.h>
 #include <actcraft/ui/helpviewer.h>
 
+#include <QDir>
 #include <QFile>
 #include <QRegularExpression>
 #include <QtTest>
@@ -7,10 +9,31 @@
 namespace {
 // Liste H1 : outils des lots 1 à 5 qui ont un gestionnaire à la tête. Le fichier d'aide porte l'identifiant
 // sans le préfixe « tool. » (c'est ce que cherche HelpViewer::openFor).
-const QStringList kLots1To5 = {
+const QStringList kLots1To5Tools = {
     QStringLiteral("tool.pen"),           QStringLiteral("tool.select"), QStringLiteral("tool.highlighter"),
     QStringLiteral("tool.eraser"),        QStringLiteral("tool.shape"),  QStringLiteral("tool.text"),
     QStringLiteral("tool.text-vertical"), QStringLiteral("tool.fill"),   QStringLiteral("tool.connector")};
+
+// Liste H2 : outils des lots 6 à 11 qui ont un gestionnaire (les autres commandes tool.* des lots 6 à 11 n'en
+// ont pas encore : lot 7 absent de cette branche, caméra, reconnaissance, clavier).
+const QStringList kLots6To11Tools = {QStringLiteral("tool.reveal-ink")};
+const QStringList kAllTools = kLots1To5Tools + kLots6To11Tools;
+
+// Commandes tool.* déclarées mais sans gestionnaire à la tête : pas de page tant qu'elles n'agissent pas.
+// Une commande tool.* nouvelle, absente de cette liste et de kAllTools, fait échouer everyToolHasAPage.
+const QStringList kToolsWithoutHandler = {
+    QStringLiteral("tool.dice"),           QStringLiteral("tool.calculator"),
+    QStringLiteral("tool.clock"),          QStringLiteral("tool.ticker"),
+    QStringLiteral("tool.web-browser"),    QStringLiteral("tool.shape-recognition"),
+    QStringLiteral("tool.handwriting"),    QStringLiteral("tool.camera-area"),
+    QStringLiteral("tool.camera-polygon"), QStringLiteral("tool.camera-freehand"),
+    QStringLiteral("tool.camera-window"),  QStringLiteral("tool.camera-screen"),
+    QStringLiteral("tool.keyboard")};
+
+const QStringList kProcedures = {QStringLiteral("raccourcis"),         QStringLiteral("deux-utilisateurs"),
+                                 QStringLiteral("modes-toucher"),      QStringLiteral("reprise"),
+                                 QStringLiteral("mises-a-jour"),       QStringLiteral("profils"),
+                                 QStringLiteral("mot-de-passe-oublie")};
 
 QString pageName(const QString& id)
 {
@@ -27,14 +50,14 @@ class TstUiHelpPages : public QObject
 {
     Q_OBJECT
 private slots:
-    void pagesOfLots1To5Exist()
+    void pagesOfAllToolsExist()
     {
-        for (const QString& id : kLots1To5)
+        for (const QString& id : kAllTools)
             QVERIFY2(!page(id).isEmpty(), qPrintable(id));
     }
     void everyPageHasATitleAndABackLink()
     {
-        for (const QString& id : kLots1To5) {
+        for (const QString& id : kAllTools) {
             const QString html = page(id);
             QVERIFY2(QRegularExpression(QStringLiteral("<title>[^<]{3,}</title>")).match(html).hasMatch(),
                      qPrintable(id));
@@ -44,7 +67,7 @@ private slots:
     void internalLinksResolve()
     {
         const QRegularExpression link(QStringLiteral("href=\"([^\"#:]+\\.html)"));
-        for (const QString& id : kLots1To5) {
+        for (const QString& id : kAllTools) {
             auto it = link.globalMatch(page(id));
             while (it.hasNext()) {
                 const QString target = it.next().captured(1);
@@ -55,7 +78,7 @@ private slots:
     }
     void noScriptImageOrRemoteResource()
     {
-        for (const QString& id : kLots1To5) {
+        for (const QString& id : kAllTools) {
             const QString html = page(id);
             QVERIFY2(!html.contains(QStringLiteral("<script"), Qt::CaseInsensitive), qPrintable(id));
             QVERIFY2(!html.contains(QStringLiteral("<img"), Qt::CaseInsensitive), qPrintable(id));
@@ -74,12 +97,66 @@ private slots:
                 if (!line.trimmed().isEmpty())
                     forbidden << QString::fromUtf8(line.trimmed());
         }
-        for (const QString& id : kLots1To5) {
+        for (const QString& id : kAllTools) {
             const QString html = page(id);
             QVERIFY2(!html.isEmpty(), qPrintable(id));
             for (const QString& word : forbidden)
                 QVERIFY2(!html.contains(word, Qt::CaseInsensitive), qPrintable(id + " : " + word));
         }
+    }
+    void everyToolHasAPage()
+    {
+        actcraft::actions::CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(actcraft::actions::defaultCommandsJson(), error),
+                 qPrintable(error));
+        int seen = 0;
+        for (const QString& id : registry.ids()) {
+            if (!id.startsWith(QLatin1String("tool.")) ||
+                !registry.isAvailable(id, actcraft::actions::currentPlatform()) ||
+                kToolsWithoutHandler.contains(id))
+                continue;
+            ++seen;
+            QVERIFY2(kAllTools.contains(id), qPrintable(id + " : commande sans page d'aide"));
+            QVERIFY2(!page(id).isEmpty(), qPrintable(id));
+        }
+        QVERIFY(seen >= kAllTools.size());
+    }
+    void procedurePagesExist()
+    {
+        for (const QString& name : kProcedures)
+            QVERIFY2(!page(name).isEmpty(), qPrintable(name));
+        // Chaque raccourci de la page des raccourcis est celui d'une commande déclarée.
+        actcraft::actions::CommandRegistry registry;
+        QString error;
+        QVERIFY2(registry.loadDeclarations(actcraft::actions::defaultCommandsJson(), error),
+                 qPrintable(error));
+        QStringList declared;
+        for (const QString& id : registry.ids())
+            declared << registry.find(id)->shortcut;
+        const QRegularExpression kbd(QStringLiteral("<kbd>([^<]+)</kbd>"));
+        auto it = kbd.globalMatch(page(QStringLiteral("raccourcis")));
+        int count = 0;
+        while (it.hasNext()) {
+            QString key = it.next().captured(1);
+            key.replace(QStringLiteral("Maj"), QStringLiteral("Shift"))
+                .replace(QStringLiteral("Suppr"), QStringLiteral("Del"))
+                .replace(QStringLiteral("Échap"), QStringLiteral("Esc"));
+            QVERIFY2(declared.contains(key), qPrintable(key));
+            ++count;
+        }
+        QVERIFY(count >= 20);
+    }
+    void indexLinksEveryPage()
+    {
+        const QString index = page(QStringLiteral("index"));
+        QVERIFY(!index.isEmpty());
+        const QStringList files =
+            QDir(QStringLiteral(":/actcraft/help")).entryList(QStringList{QStringLiteral("*.html")});
+        QVERIFY(files.size() >= 2 + kAllTools.size());
+        for (const QString& file : files)
+            if (file != QLatin1String("index.html"))
+                QVERIFY2(index.contains(QStringLiteral("href=\"%1\"").arg(file)), qPrintable(file));
     }
     void f1OpensTheToolPage()
     {
