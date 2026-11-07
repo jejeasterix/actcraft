@@ -95,6 +95,7 @@ class PointerRouter
 public:
     PointerRouter();                                       // FullTouchPolicy
     void setPolicy(std::unique_ptr<RoutingPolicy> policy); // les contacts en cours gardent leur décision
+    RoutingPolicy* policy() const noexcept;                // la politique posée (à lui)
     // À l'appui, une décision retenue pour le même pointeur est remplacée ; la politique décide et la
     // décision est retenue pour `sample.pointer` (stylet et souris : 0) ; ensuite, la décision retenue ; au
     // relâché, elle est rendue puis oubliée. Clé du contact : `sample.pointer`, sauf un stylet de `deviceId`

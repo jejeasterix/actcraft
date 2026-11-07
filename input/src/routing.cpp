@@ -91,6 +91,11 @@ void PointerRouter::setPolicy(std::unique_ptr<RoutingPolicy> policy)
     m_policy = std::move(policy);
 }
 
+RoutingPolicy* PointerRouter::policy() const noexcept
+{
+    return m_policy.get();
+}
+
 Decision PointerRouter::decidePress(const Sample& sample, bool covered, int pressesInEvent)
 {
     // Un appui redécide : la décision retenue du même pointeur (relâché jamais vu) est remplacée.

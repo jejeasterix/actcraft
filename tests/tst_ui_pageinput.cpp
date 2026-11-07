@@ -267,6 +267,46 @@ private slots:
         QVERIFY(app.view->zoom() > before * 1.5);
         QCOMPARE(tap(QPointF(w * 0.25, h / 2)), 1);
         QCOMPARE(tap(QPointF(w * 0.75, h / 2)), 0);
+        // Revue de C1, m2 : politique remplacée, l'aire de vue posée prévaut sur celle de sa construction.
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(-1e6, -1e6, 2e6, 2e6)));
+        QCOMPARE(tap(QPointF(w * 0.75, h / 2)), 0);
+        QCOMPARE(tap(QPointF(w * 0.25, h / 2)), 1);
+        // Revue de C1, m3 : politique remplacée par le routeur ; la vue la retrouve par lui (aucun pointeur
+        // gardé qui pendrait) et lui donne l'aire au zoom suivant.
+        app.view->router().setPolicy(std::make_unique<input::TwoUserPolicy>(QRectF()));
+        app.view->zoomAround(QPointF(0, h / 2), app.view->zoom() / 2);
+        QCOMPARE(tap(QPointF(w * 0.75, h / 2)), 0);
+        QCOMPARE(tap(QPointF(w * 0.25, h / 2)), 1);
+    }
+
+    // Revue de C1, m1 : à la seconde livraison d'un événement à appui [A bouge, B appuyé], le mouvement de A
+    // ne repasse pas : l'outil reçoit chaque point une fois.
+    void secondDeliveryHasNoEffect()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(0, 0, 500, 5000)));
+        int presses = 0;
+        int movesOfA = 0;
+        app.view->setSampleFilter([&](const input::Sample& sample) {
+            if (sample.device == input::DeviceKind::Touch) {
+                presses += sample.phase == input::Phase::Press ? 1 : 0;
+                movesOfA += sample.phase == input::Phase::Move && sample.user == input::kSecondUser ? 1 : 0;
+            }
+            return sample;
+        });
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(300, 300)));
+        QTest::touchEvent(app.window, m_touch)
+            .move(0, scenePoint(app, QPointF(330, 300)))
+            .press(1, scenePoint(app, QPointF(700, 300)));
+        QCOMPARE(presses, 2);
+        QCOMPARE(movesOfA, 1);
+        QTest::touchEvent(app.window, m_touch)
+            .release(0, scenePoint(app, QPointF(330, 300)))
+            .release(1, scenePoint(app, QPointF(700, 300)));
+        app.view->setSampleFilter({});
+        QTRY_VERIFY_WITH_TIMEOUT(!app.view->contactActive(), 3000);
     }
 
     // L11-C1 (revue T5, M2, D11-4) : mode select, outil courant le stylo ; un appui au doigt sur un objet le

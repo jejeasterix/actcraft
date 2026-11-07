@@ -395,10 +395,6 @@ private:
 
     // Lot 11 (L11-T5) : ajout en fin.
 public:
-    // Outil imposé à un contact (D11-4 : FingerTool::Pen ou Select) pour un utilisateur, rendu par l'hôte
-    // d'outils ; nullptr : repli de la vue (setImposedToolProvider).
-    using ImposedToolProvider = std::function<tools::Tool*(input::UserId user, input::FingerTool tool)>;
-
     // Remplace la politique du routeur (nullptr : gestion complète) ; les contacts en cours gardent leur
     // décision. Posée par le contrôleur du mode du toucher (L11-T6) : la vue ne lit aucun réglage.
     void setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy);
@@ -409,11 +405,6 @@ public:
     // plus (le reste d'un contact de stylet reste pris par la vue jusqu'à son relâché). Appelé par la vue au
     // redimensionnement (D11-10) ; à la mise en arrière-plan par la reprise (D11-8).
     Q_INVOKABLE void finishContacts();
-    // Échantillons d'un contact à outil imposé : à l'outil du fournisseur. Sans fournisseur, ou s'il rend
-    // nullptr : Pen → stylo propre à la vue, aux réglages « pen » de l'utilisateur (UserState::settings) ;
-    // Select → l'outil courant de l'utilisateur s'il est le sélecteur, sinon rien (le sélecteur n'existe
-    // que dans ToolHost). L'outil courant ne change jamais.
-    void setImposedToolProvider(ImposedToolProvider provider);
     bool
     touchHoldTimerActive() const noexcept; // crochet de test : armé seulement pendant un contact de doigt
 
@@ -424,7 +415,6 @@ signals:
 
 private:
     std::unique_ptr<actcraft::tools::PenTool> m_imposedPen; // FingerTool::Pen sans fournisseur
-    ImposedToolProvider m_imposedTools;
     int m_lastContactUser = input::kFirstUser;
     QTimer m_holdTimer; // un seul, armé à l'appui d'un doigt routé vers l'outil, jamais par échantillon
     std::uint64_t m_holdPointer = 0;
@@ -437,6 +427,9 @@ public:
     // Aire de l'utilisateur 1 en coordonnées de VUE (moitié de la deuxième palette), pour une politique
     // input::TwoUserPolicy posée par setRoutingPolicy : convertie en coordonnées de page (celles des
     // échantillons) à la pose de l'aire, de la politique, et à chaque changement de zoom ou de défilement.
+    // Posée, elle prévaut sur l'aire donnée à la construction de la politique : toute politique à deux
+    // utilisateurs posée ensuite la reçoit (par setRoutingPolicy, ou au zoom suivant si elle est posée par
+    // router()). La politique est relue au routeur à chaque usage : aucun pointeur gardé.
     void setSecondUserViewArea(QRectF viewArea);
 
 private:
@@ -446,11 +439,13 @@ private:
     bool stylusDrawing(std::uint64_t device) const;
     void setStylusDrawing(std::uint64_t device, bool drawing);
     QVarLengthArray<std::uint64_t, 4> m_stylusesDrawing;
-    input::TwoUserPolicy* m_twoUserPolicy = nullptr; // la politique posée, si c'est elle (à elle : m_router)
     std::optional<QRectF> m_secondUserViewArea;
     // Horodatage du dernier événement de toucher à appuis : Qt Quick livre deux fois [A relâché, B appuyé]
     // à la vue ; la seconde livraison n'a aucun effet (L11-C1).
     quint64 m_lastPressEventTime = 0;
+    QVarLengthArray<int, 4> m_lastPressedIds; // points appuyés de cet événement
+    bool m_lastPressTaken = false;            // ce que la première livraison a pris
+    bool isSecondDelivery(const QTouchEvent& event) const;
 };
 
 } // namespace actcraft::ui

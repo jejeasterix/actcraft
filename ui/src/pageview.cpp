@@ -729,19 +729,14 @@ PageView::ToolContact* PageView::toolContact(const input::ContactKey& key)
 tools::Tool* PageView::toolOf(input::UserId user, input::FingerTool fingerTool) const
 {
     if (fingerTool != input::FingerTool::Current) {
-        if (m_imposedTools) {
-            if (tools::Tool* imposed = m_imposedTools(user, fingerTool)) {
+        // D11-4 : l'outil imposé vient de l'hôte d'outils, sans changer l'outil courant (le sélecteur, porte
+        // de l'exécuteur comprise) ; Pen : le stylo imposé de la vue ; Select sans hôte : rien.
+        if (m_tools) {
+            if (tools::Tool* imposed = m_tools->imposedTool(user, fingerTool)) {
                 return imposed;
             }
         }
-        if (fingerTool == input::FingerTool::Pen) {
-            return m_imposedPen.get();
-        }
-        // Select sans fournisseur : le sélecteur n'existe que dans ToolHost.
-        if (m_tools && m_tools->user(user).currentTool() == QLatin1String("select")) {
-            return m_tools->activeTool(user);
-        }
-        return nullptr;
+        return fingerTool == input::FingerTool::Pen ? m_imposedPen.get() : nullptr;
     }
     if (m_tools) {
         if (auto* active = m_tools->activeTool(user)) {
@@ -1025,6 +1020,13 @@ void PageView::touchEvent(QTouchEvent* event)
     std::vector<input::Decision> decisions;
     int pressesInEvent = 0;
     const bool hasPresses = event->touchPointStates().testFlag(QEventPoint::State::Pressed);
+    if (hasPresses && isSecondDelivery(*event)) {
+        // L11-C1 : Qt Quick livre deux fois à la vue un événement à appui ([A relâché ou bougé, B appuyé] :
+        // aux saisies, puis à l'élément sous l'appui), dans deux objets de même horodatage. La seconde
+        // livraison n'a aucun effet : ni appui redécidé, ni point repassé à l'outil.
+        event->setAccepted(m_lastPressTaken);
+        return;
+    }
     if (hasPresses) {
         // Revue M1 : les relâchés de l'événement passent au routeur (et leur trait à l'outil) avant les
         // appuis : un doigt qui se relève quand un autre se pose ne fait pas du nouveau un deuxième doigt.
@@ -1043,19 +1045,10 @@ void PageView::touchEvent(QTouchEvent* event)
             const QTouchEvent single(QEvent::TouchBegin, event->pointingDevice(), event->modifiers(),
                                      {point});
             if (std::optional<input::Sample> sample = sampleFor(single, point.position())) {
-                // L11-C1 : Qt Quick livre deux fois à la vue l'événement [A relâché, B appuyé] ; à la
-                // seconde livraison (même horodatage), l'appui de B, déjà retenu, est un point connu : ni
-                // redécidé ni versé, mais gardé pris.
-                if (event->timestamp() == m_lastPressEventTime &&
-                    m_heldContacts.contains(input::contactKeyOf(*sample))) {
-                    taken = true;
-                    continue;
-                }
                 presses.push_back(*sample);
                 pressPoints.push_back(i);
             }
         }
-        m_lastPressEventTime = event->timestamp();
         if (!presses.empty()) {
             decisions = m_router.routePresses(presses);
         }
@@ -1095,7 +1088,37 @@ void PageView::touchEvent(QTouchEvent* event)
         applyGesture();
     }
     m_gestureMoved = false;
+    if (hasPresses) {
+        m_lastPressEventTime = event->timestamp();
+        m_lastPressedIds.clear();
+        for (const QEventPoint& point : points) {
+            if (point.state() == QEventPoint::State::Pressed) {
+                m_lastPressedIds.append(point.id());
+            }
+        }
+        m_lastPressTaken = taken;
+    }
     event->setAccepted(taken);
+}
+
+bool PageView::isSecondDelivery(const QTouchEvent& event) const
+{
+    // Même horodatage et mêmes points appuyés que le dernier événement à appui.
+    if (event.timestamp() != m_lastPressEventTime) {
+        return false;
+    }
+    qsizetype pressed = 0;
+    for (const QEventPoint& point : event.points()) {
+        if (point.state() != QEventPoint::State::Pressed) {
+            continue;
+        }
+        if (std::find(m_lastPressedIds.cbegin(), m_lastPressedIds.cend(), point.id()) ==
+            m_lastPressedIds.cend()) {
+            return false;
+        }
+        ++pressed;
+    }
+    return pressed == m_lastPressedIds.size();
 }
 
 void PageView::touchUngrabEvent()
@@ -1357,14 +1380,6 @@ void PageView::setTools(ToolHost* tools)
         return;
     }
     m_tools = tools; // lu à chaque échantillon (currentTool) : rien à reconstruire
-    // L11-C1 (D11-4) : l'outil imposé au doigt (sélecteur) vient de l'hôte d'outils, sans changer l'outil
-    // courant ; sans hôte, le repli de la vue.
-    m_imposedTools = {};
-    if (tools) {
-        m_imposedTools = [this](input::UserId user, input::FingerTool tool) {
-            return m_tools ? m_tools->imposedTool(user, tool) : nullptr;
-        };
-    }
     emit toolsChanged();
 }
 
@@ -1425,7 +1440,6 @@ input::PointerRouter& PageView::router() noexcept
 
 void PageView::setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy)
 {
-    m_twoUserPolicy = dynamic_cast<input::TwoUserPolicy*>(policy.get());
     m_router.setPolicy(policy ? std::move(policy) : std::make_unique<input::FullTouchPolicy>());
     updateSecondUserArea();
 }
@@ -1454,11 +1468,6 @@ void PageView::finishContacts()
     }
 }
 
-void PageView::setImposedToolProvider(ImposedToolProvider provider)
-{
-    m_imposedTools = std::move(provider);
-}
-
 void PageView::setSecondUserViewArea(QRectF viewArea)
 {
     m_secondUserViewArea = viewArea;
@@ -1469,11 +1478,12 @@ void PageView::updateSecondUserArea()
 {
     // TwoUserPolicy compare l'aire au point des échantillons, en coordonnées de page : l'aire de vue y est
     // convertie avec la transformation courante.
-    if (!m_twoUserPolicy || !m_secondUserViewArea) {
+    auto* twoUsers = dynamic_cast<input::TwoUserPolicy*>(m_router.policy());
+    if (!twoUsers || !m_secondUserViewArea) {
         return;
     }
     const QRectF& area = *m_secondUserViewArea;
-    m_twoUserPolicy->setSecondUserArea(
+    twoUsers->setSecondUserArea(
         QRectF(m_transform.viewToPage(area.topLeft()), m_transform.viewToPage(area.bottomRight()))
             .normalized());
 }

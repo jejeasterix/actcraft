@@ -21,7 +21,8 @@ class TwoUserPolicy final : public RoutingPolicy
 public:
     // Aire de l'utilisateur 1 (moitié de la deuxième palette) en COORDONNÉES DE PAGE : elle est comparée
     // au point des échantillons routés, que la vue donne en coordonnées de page. Une aire de vue se pose
-    // par PageView::setSecondUserViewArea, qui la reconvertit à chaque zoom et défilement (L11-C1).
+    // par PageView::setSecondUserViewArea, qui la reconvertit à chaque zoom et défilement (L11-C1) ;
+    // posée, elle prévaut sur celle donnée ici, pour toute politique posée ensuite.
     explicit TwoUserPolicy(QRectF secondUserArea);
     void setSecondUserArea(QRectF area);
     Decision decide(const Sample& press, const RouterState& state) const override;
