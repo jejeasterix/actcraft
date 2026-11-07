@@ -184,6 +184,31 @@ private slots:
         QTest::touchEvent(app.window, m_touch).release(0, at + QPoint(40, 0));
         QTRY_VERIFY_WITH_TIMEOUT(!app.view->contactActive(), 3000);
     }
+
+    // L11-T6 (reste) : l'entrée « Mode du toucher » du menu Affichage ouvre le sous-menu, le mode courant coché ;
+    // choisir « pen » pose le mode.
+    void menuOpensAndChooses()
+    {
+        App app;
+        QVERIFY(start(app));
+        QObject* menu = app.window->findChild<QObject*>(QStringLiteral("touchModeMenu"));
+        QVERIFY(menu);
+        QCOMPARE(menu->property("opened").toBool(), false);
+        QVERIFY(app.controller->commands()->trigger(QStringLiteral("touch.mode")));
+        QTRY_VERIFY_WITH_TIMEOUT(menu->property("opened").toBool(), 3000);
+        QString checked;
+        QVERIFY(QMetaObject::invokeMethod(menu, "checkedMode", Q_RETURN_ARG(QString, checked)));
+        QCOMPARE(checked, QStringLiteral("full"));
+        QVERIFY(QMetaObject::invokeMethod(menu, "choose", Q_ARG(QString, QStringLiteral("pen"))));
+        QCOMPARE(app.controller->property("mode").toString(), QStringLiteral("pen"));
+        QTRY_COMPARE_WITH_TIMEOUT(
+            [&] {
+                QString now;
+                QMetaObject::invokeMethod(menu, "checkedMode", Q_RETURN_ARG(QString, now));
+                return now;
+            }(),
+            QStringLiteral("pen"), 3000);
+    }
 };
 
 QTEST_MAIN(TstUiTouchmode)
