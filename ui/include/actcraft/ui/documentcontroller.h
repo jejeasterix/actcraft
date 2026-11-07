@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <utility>
 #include <vector>
 
 namespace actcraft::ui {
@@ -144,12 +146,17 @@ public:
     // Soulever (DA11, lot 3) : retire les objets de la page affichée hors pile et rend leurs copies ; le
     // cache reçoit core::liftChanges. N'émet PAS editAboutToApply (B1 : l'outil qui soulève ne doit pas
     // s'annuler lui-même). Pendant un soulèvement, Enregistrer, Ouvrir et les changements de page sont
-    // refusés ou attendent le dépôt.
-    std::vector<core::PageObject> liftObjects(const std::vector<core::ObjectId>& ids);
+    // refusés ou attendent le dépôt. L11-C7 (E) : chaque `owner` (l'utilisateur, 0 par défaut) a son
+    // soulèvement ; deux glissers simultanés restent indépendants.
+    std::vector<core::PageObject> liftObjects(const std::vector<core::ObjectId>& ids, int owner = 0);
     // Remet les objets soulevés, exécute `command` par la pile (nullptr : aucune étape), et le cache reçoit
-    // core::changesAfterLift.
+    // core::changesAfterLift. Sans `owner` : tous les soulèvements (Enregistrer, pages, édition annoncée).
     void dropLifted(std::unique_ptr<core::UndoCommand> command);
-    bool isLifting() const noexcept;
+    // Ceux de `owner` seulement : ceux des autres restent soulevés (la commande s'exécute sur la page
+    // entière, puis ils sont repris à leurs rangs nouveaux).
+    void dropLifted(std::unique_ptr<core::UndoCommand> command, int owner);
+    bool isLifting() const noexcept;          // un soulèvement, quel qu'en soit le propriétaire
+    bool isLifting(int owner) const noexcept; // celui de `owner`
     // Change à chaque remplacement du document affiché (ouverture, « Nouveau », garage ou reprise d'un
     // onglet) : une tâche de fond y reconnaît le document devant lequel elle a été lancée (L5-C21).
     std::uint64_t generation() const noexcept { return m_generation; }
@@ -320,6 +327,9 @@ private:
     // Lot 3 (L3-T12) : soulèvement et page de référence de Rétablir la page.
     // Dépôt forcé (M2) : ce qui reste soulevé après l'annonce d'une édition revient sans étape.
     void dropRemaining();
+    // Dépôt des objets de `owner` (nullopt : de tous) ; L11-C7 (E).
+    void dropLiftedOf(std::unique_ptr<core::UndoCommand> command, std::optional<int> owner);
+    int liftOwnerOf(core::ObjectId id) const noexcept;
     // Annonce d'une édition (editAboutToApply), puis dépôt forcé.
     void announceEdit();
     // Annonce d'un changement de page (pageAboutToChange), puis dépôt forcé.
@@ -328,8 +338,9 @@ private:
     void forgetStaleLift();
     // Page de la référence pour la page affichée ; nullptr : jamais enregistrée ni ouverte (page vierge, D9).
     const core::Page* savedPage() const;
-    std::vector<core::LiftedObject> m_lifted; // page affichée, ordre de la page
-    std::uint64_t m_liftGeneration = 0;       // m_generation au soulèvement
+    std::vector<core::LiftedObject> m_lifted; // page affichée, ordre de la page, tous propriétaires
+    std::vector<std::pair<core::ObjectId, int>> m_liftOwners; // propriétaire de chaque objet soulevé
+    std::uint64_t m_liftGeneration = 0;                       // m_generation au soulèvement
     // Document tel qu'ouvert ou enregistré en dernier (D9), valable pour la génération m_referenceGeneration.
     // Partagé avec la copie que le fil d'écriture a enregistrée : aucune copie de plus sur le fil principal.
     std::shared_ptr<const core::Document> m_reference;

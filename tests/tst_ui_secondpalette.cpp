@@ -665,8 +665,9 @@ void TstUiSecondpalette::twoStrokesAtOnce()
     const std::size_t n0 = first->pointCount();
     QVERIFY(n0 >= 2);
     tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
-    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(140, 410));
-    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(180, 420));
+    for (int i = 1; i <= 5; ++i) { // plus long que celui du premier : une encre partagée changerait de compte
+        tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(100 + 40 * i, 400 + 10 * i));
+    }
     QCOMPARE(app.view->lastContactUser(), 1);
     QCOMPARE(first->pointCount(), n0); // le trait vif du premier n'a pas bougé
     QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
@@ -679,7 +680,7 @@ void TstUiSecondpalette::twoStrokesAtOnce()
         }
     }
     QVERIFY(second);
-    QVERIFY(second->pointCount() >= 2);
+    QVERIFY(second->pointCount() > n0);
     QCOMPARE(QColor::fromRgba(second->drawnColor()), QColor(QStringLiteral("#1E88E5")));
     QCOMPARE(second->mapToScene(QPointF(0, 0)), first->mapToScene(QPointF(0, 0))); // mêmes coordonnées
     QCOMPARE(second->size(), first->size());
@@ -687,7 +688,7 @@ void TstUiSecondpalette::twoStrokesAtOnce()
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(720, 230));
     QVERIFY(first->pointCount() > n0);
     const std::size_t m = second->pointCount();
-    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(180, 420));
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(300, 450));
     QCOMPARE(second->pointCount(), std::size_t(0));
     QVERIFY(first->pointCount() > n0); // le versement du second n'interrompt pas le premier
     QVERIFY(m >= 2);
@@ -744,7 +745,7 @@ void TstUiSecondpalette::twoDragsStayApart()
     QVERIFY(droppedB);
     const double movedB = core::boundsOnPage(*droppedB).x;
     QVERIFY2(movedB - leftB > 30, qPrintable(QString::number(movedB - leftB)));
-    QVERIFY(controller->isLifting());                 // le premier glisse encore
+    QVERIFY(controller->isLifting());                // le premier glisse encore
     QVERIFY(objectOf(*controller, boxA) == nullptr); // pas remis par le dépôt du second
     QCOMPARE(shownLifted(), 1);
 

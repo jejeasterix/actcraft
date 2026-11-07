@@ -1,4 +1,5 @@
 #include "penadapters.h"
+#include "tooladapters.h"
 
 #include <actcraft/core/clock.h>
 #include <actcraft/core/hittest.h>
@@ -523,9 +524,24 @@ void PageView::setInk(render::InkItem* ink)
     if (ink == m_ink) {
         return;
     }
+    delete m_secondInk.data(); // celle de l'encre remplacée ; ses adaptateurs ne la retrouvent plus
     m_ink = ink;
     rebuildPen();
     emit inkChanged();
+}
+
+render::InkItem* PageView::secondInk()
+{
+    if (!m_ink || !m_ink->parentItem()) {
+        return nullptr;
+    }
+    if (!m_secondInk) {
+        auto* second = new render::InkItem;
+        second->setObjectName(QStringLiteral("secondInk"));
+        stackAbove(*m_ink, *second);
+        m_secondInk = second;
+    }
+    return m_secondInk.data();
 }
 
 void PageView::setInkProbe(core::InkProbe* probe)
