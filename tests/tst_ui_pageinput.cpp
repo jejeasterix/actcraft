@@ -208,7 +208,8 @@ private slots:
         int ownMoves = 0;
         int otherMoves = 0;
         app.view->setSampleFilter([&](const input::Sample& sample) {
-            if (stylusDown && sample.device == input::DeviceKind::Touch && sample.phase == input::Phase::Move) {
+            if (stylusDown && sample.device == input::DeviceKind::Touch &&
+                sample.phase == input::Phase::Move) {
                 ++(sample.user == input::kFirstUser ? ownMoves : otherMoves);
             }
             return sample;
@@ -228,14 +229,44 @@ private slots:
                 .move(0, scenePoint(app, QPointF(320 + 20 * i, 300)))
                 .move(1, scenePoint(app, QPointF(720 + 20 * i, 300)));
         }
+        // Qt Quick regroupe les mouvements de toucher jusqu'à l'image suivante : chaque événement livré
+        // porte les deux doigts.
+        QTRY_VERIFY_WITH_TIMEOUT(otherMoves >= 1, 3000);
+        QTest::qWait(50);
         app.view->setSampleFilter({});
         QCOMPARE(ownMoves, 0);
-        QCOMPARE(otherMoves, 2);
         QTest::touchEvent(app.window, m_touch)
             .release(0, scenePoint(app, QPointF(360, 300)))
             .release(1, scenePoint(app, QPointF(760, 300)));
         tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(700, 500));
         QTRY_VERIFY_WITH_TIMEOUT(!app.view->contactActive(), 3000);
+    }
+
+    // L11-C1 (revue T7, M3) : l'aire du second utilisateur est posée en coordonnées de vue et suit le zoom :
+    // à zoom 2 autour du bord gauche, un doigt dans la moitié droite de la vue reste à l'utilisateur 0 (une
+    // aire laissée en coordonnées de page le donnerait à l'utilisateur 1).
+    void secondUserViewAreaFollowsZoom()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF()));
+        const qreal w = app.view->width();
+        const qreal h = app.view->height();
+        app.view->setSecondUserViewArea(QRectF(0, 0, w / 2, h));
+        const auto tap = [&](QPointF viewPoint) {
+            const QPoint scene = app.view->mapToScene(viewPoint).toPoint();
+            QTest::touchEvent(app.window, m_touch).press(0, scene);
+            QTest::touchEvent(app.window, m_touch).release(0, scene);
+            return app.view->lastContactUser();
+        };
+        QCOMPARE(tap(QPointF(w * 0.25, h / 2)), 1);
+        QCOMPARE(tap(QPointF(w * 0.75, h / 2)), 0);
+        const qreal before = app.view->zoom();
+        app.view->zoomAround(QPointF(0, h / 2), 2 * before);
+        QVERIFY(app.view->zoom() > before * 1.5);
+        QCOMPARE(tap(QPointF(w * 0.25, h / 2)), 1);
+        QCOMPARE(tap(QPointF(w * 0.75, h / 2)), 0);
     }
 
     // L11-C1 (revue T5, M2, D11-4) : mode select, outil courant le stylo ; un appui au doigt sur un objet le

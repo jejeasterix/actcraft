@@ -3,6 +3,7 @@
 #include <actcraft/core/inkprobe.h>
 #include <actcraft/input/gesture.h>
 #include <actcraft/input/routing.h>
+#include <actcraft/input/twouserpolicy.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/render/pendinglayeritem.h>
@@ -14,6 +15,7 @@
 #include <QPointer>
 #include <QQuickItem>
 #include <QTimer>
+#include <QVarLengthArray>
 #include <QtQml/qqmlregistration.h>
 
 #include <array>
@@ -247,6 +249,7 @@ private:
     // linéaire, capacité réservée, aucune allocation par point.
     struct ToolContact
     {
+        input::ContactKey key; // clé du routeur (L11-C1 : deux stylets ont chacun la leur)
         std::uint64_t pointer = 0;
         input::DeviceKind device = input::DeviceKind::Other;
         input::UserId user = input::kFirstUser;
@@ -260,7 +263,7 @@ private:
     // Applique la décision du routeur ; pressesInEvent : appuis de doigt non couverts de l'événement.
     bool applyDecision(input::Sample& sample, const input::Decision& decision, QPointF viewPos,
                        int pressesInEvent);
-    ToolContact* toolContact(std::uint64_t pointer);
+    ToolContact* toolContact(const input::ContactKey& key);
     // Outil d'un contact : imposé (FingerTool), sinon l'outil courant de l'utilisateur, sinon le stylo
     // interne.
     tools::Tool* toolOf(input::UserId user, input::FingerTool fingerTool) const;
@@ -352,11 +355,10 @@ private:
     QColor m_inkColor = Qt::black;
     qreal m_inkWidth = kDefaultInkWidth;
     bool m_inputBlocked = false;
-    bool m_stylusDrawing = false; // un contact du stylet, commencé sur la vue, est en cours
-    QPointF m_pointerPosition;    // voir pointerPosition
+    QPointF m_pointerPosition; // voir pointerPosition
     QPointF
         m_lastRawPagePoint; // dernier point brut routé vers l'outil (avant le filtre), coordonnées de page
-    std::uint64_t m_lastToolPointer = 0; // contact de ce point (finishStroke : son outil)
+    input::ContactKey m_lastToolKey; // contact de ce point (finishStroke : son outil)
     std::vector<ToolContact>
         m_toolContacts; // L11-T5 : contacts routés vers l'outil (doigts : trait en cours)
     std::array<GestureContact, 2> m_gestureContacts;
@@ -384,10 +386,12 @@ signals:
     void contactActiveChanged();
 
 private:
-    void holdContact(std::uint64_t pointer);    // appui retenu par le routeur (outil ou geste)
-    void forgetContact(std::uint64_t pointer);  // décision rendue par le routeur (relâché)
-    void releaseContact(std::uint64_t pointer); // m_router.release, puis forgetContact
-    QList<std::uint64_t> m_heldContacts;
+    // L11-C1 : un contact est sa clé du routeur (input::contactKeyOf), pas Sample::pointer (0 pour tout
+    // stylet).
+    void holdContact(const input::ContactKey& key);    // appui retenu par le routeur (outil ou geste)
+    void forgetContact(const input::ContactKey& key);  // décision rendue par le routeur (relâché)
+    void releaseContact(const input::ContactKey& key); // m_router.release(key), puis forgetContact
+    QList<input::ContactKey> m_heldContacts;
 
     // Lot 11 (L11-T5) : ajout en fin.
 public:
@@ -427,6 +431,26 @@ private:
     QPointF m_holdViewPoint;
     QPointF m_holdPagePoint;
     input::UserId m_holdUser = input::kFirstUser;
+
+    // Lot 11 (L11-C1) : ajout en fin.
+public:
+    // Aire de l'utilisateur 1 en coordonnées de VUE (moitié de la deuxième palette), pour une politique
+    // input::TwoUserPolicy posée par setRoutingPolicy : convertie en coordonnées de page (celles des
+    // échantillons) à la pose de l'aire, de la politique, et à chaque changement de zoom ou de défilement.
+    void setSecondUserViewArea(QRectF viewArea);
+
+private:
+    void updateSecondUserArea();
+    // Stylets dont le contact, commencé sur la vue, est en cours (Sample::deviceId ; 0 : sans identifiant) :
+    // chacun suivi à part, l'appui d'un autre ne le coupe pas. Quelques stylets : aucune allocation.
+    bool stylusDrawing(std::uint64_t device) const;
+    void setStylusDrawing(std::uint64_t device, bool drawing);
+    QVarLengthArray<std::uint64_t, 4> m_stylusesDrawing;
+    input::TwoUserPolicy* m_twoUserPolicy = nullptr; // la politique posée, si c'est elle (à elle : m_router)
+    std::optional<QRectF> m_secondUserViewArea;
+    // Horodatage du dernier événement de toucher à appuis : Qt Quick livre deux fois [A relâché, B appuyé]
+    // à la vue ; la seconde livraison n'a aucun effet (L11-C1).
+    quint64 m_lastPressEventTime = 0;
 };
 
 } // namespace actcraft::ui

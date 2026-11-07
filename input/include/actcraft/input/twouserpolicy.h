@@ -12,13 +12,16 @@ namespace actcraft::input {
 // pour le premier appareil vu (Sample::deviceId), 1 pour tout autre, 0 sans identifiant ; doigt → 1 dans
 // secondUserArea, sinon 0. Route : stylet et souris → outil ; doigt → outil, sauf pendant un contact de
 // stylet ou de souris du même utilisateur (paume) ou si ce même utilisateur a déjà un doigt sur l'outil
-// (doigt de plus) : rien. Jamais Gesture (gestes suspendus), jamais endToolContacts : le routeur couperait
-// aussi les doigts de l'autre utilisateur. Lit RouterState::stylusDownByUser et toolTouchesByUser.
+// (doigt de plus) : rien. Jamais Gesture (gestes suspendus). Un stylet ou la souris qui se pose termine les
+// doigts de son seul utilisateur qui sont à l'outil (paume posée avant lui : endToolContacts et
+// endUserContactsOnly, L11-C1) ; ceux de l'autre continuent. Lit RouterState::stylusDownByUser et
+// toolTouchesByUser.
 class TwoUserPolicy final : public RoutingPolicy
 {
 public:
-    // Aire de l'utilisateur 1 (moitié de la deuxième palette), comparée aux coordonnées des échantillons
-    // routés (la vue route en coordonnées de page) : l'appelant la tient à jour quand la vue change.
+    // Aire de l'utilisateur 1 (moitié de la deuxième palette) en COORDONNÉES DE PAGE : elle est comparée
+    // au point des échantillons routés, que la vue donne en coordonnées de page. Une aire de vue se pose
+    // par PageView::setSecondUserViewArea, qui la reconvertit à chaque zoom et défilement (L11-C1).
     explicit TwoUserPolicy(QRectF secondUserArea);
     void setSecondUserArea(QRectF area);
     Decision decide(const Sample& press, const RouterState& state) const override;
