@@ -160,7 +160,8 @@ jobs:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     runs-on: windows-latest
-    timeout-minutes: 20
+    # 20 min ne suffisaient plus au lot 5 : construction de l'installateur coupée à 18 min, deux fois (v0.6.0).
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
