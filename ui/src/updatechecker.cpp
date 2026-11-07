@@ -1,23 +1,94 @@
 #include <actcraft/ui/updatechecker.h>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QNetworkReply>
+#include <QNetworkRequest>
+
+#include <array>
+#include <chrono>
+#include <optional>
 
 namespace actcraft::ui {
 
-// Jalon rouge (L11-T21) : squelette qui reprend le patron interdit, une requête au démarrage sans condition.
+namespace {
+
+constexpr const char* kReleasesPage = "https://github.com/jejeasterix/actcraft/releases/latest";
+
+using Version = std::array<quint32, 3>;
+
+QStringView withoutPrefix(QStringView text)
+{
+    text = text.trimmed();
+    if (text.startsWith(u'v') || text.startsWith(u'V'))
+        text = text.sliced(1);
+    return text;
+}
+
+// « x.y.z » en chiffres, préfixe « v » toléré ; rien d'autre (« 2.0 », « 2.0.0-rc1 », « 2..0 » ne se lisent
+// pas).
+std::optional<Version> parseVersion(QStringView text)
+{
+    const QList<QStringView> parts = withoutPrefix(text).split(QChar(u'.'));
+    if (parts.size() != 3)
+        return std::nullopt;
+    Version version{};
+    for (std::size_t i = 0; i < version.size(); ++i) {
+        const QStringView part = parts.at(static_cast<qsizetype>(i));
+        if (part.isEmpty() || part.size() > 9)
+            return std::nullopt;
+        for (const QChar c : part) {
+            if (c.unicode() < u'0' || c.unicode() > u'9')
+                return std::nullopt;
+        }
+        version[i] = part.toUInt();
+    }
+    return version;
+}
+
+bool isLoopback(const QUrl& url)
+{
+    return url.host() == QLatin1String("127.0.0.1") || url.host() == QLatin1String("localhost");
+}
+
+} // namespace
 
 UpdateChecker::UpdateChecker(QObject* parent) : QObject(parent) {}
 
-UpdateChecker::~UpdateChecker() = default;
-
-bool UpdateChecker::isNewer(QStringView, QStringView)
+UpdateChecker::~UpdateChecker()
 {
-    return false;
+    if (m_reply) {
+        m_reply->disconnect(this);
+        m_reply->abort();
+        m_reply->deleteLater();
+    }
+}
+
+bool UpdateChecker::isNewer(QStringView candidate, QStringView current)
+{
+    const std::optional<Version> a = parseVersion(candidate);
+    const std::optional<Version> b = parseVersion(current);
+    return a && b && *a > *b;
 }
 
 QUrl UpdateChecker::endpoint()
 {
-    return QUrl(QString::fromLatin1(kDefaultEndpoint));
+    const QUrl fallback(QString::fromLatin1(kDefaultEndpoint));
+    const QString value = qEnvironmentVariable(kEndpointVariable).trimmed();
+    if (value.isEmpty())
+        return fallback;
+    // Essais seulement : un fichier, ou un serveur de la boucle locale sur un port donné ; aucune autre
+    // adresse.
+    const QUrl url(value);
+    if (!url.isValid() || url.isRelative())
+        return fallback;
+    if (url.isLocalFile())
+        return url;
+    if (url.scheme() == QLatin1String("http") && isLoopback(url) && url.port() > 0 &&
+        url.userInfo().isEmpty())
+        return url;
+    return fallback;
 }
 
 void UpdateChecker::setNetworkAccessManager(QNetworkAccessManager* manager)
@@ -27,23 +98,87 @@ void UpdateChecker::setNetworkAccessManager(QNetworkAccessManager* manager)
 
 QNetworkAccessManager* UpdateChecker::manager()
 {
-    return m_manager;
+    if (m_manager)
+        return m_manager;
+    // Aucun mandataire propre à ce gestionnaire : il suit celui de l'application, que
+    // NetworkSettings::apply() pose au démarrage (Main.qml) et à chaque changement ; sans hôte, la
+    // configuration du système.
+    if (!m_ownManager)
+        m_ownManager = std::make_unique<QNetworkAccessManager>();
+    return m_ownManager.get();
 }
 
 void UpdateChecker::check()
 {
+    if (m_state == State::Checking)
+        return; // une vérification à la fois
     ++m_requestCount;
-    emit stateChanged();
+    settle(State::Checking);
+
+    // Une lecture GET, sans jeton, sans cookie ni identifiant du poste.
+    QNetworkRequest request(endpoint());
+    request.setRawHeader("Accept", "application/vnd.github+json");
+    request.setTransferTimeout(std::chrono::seconds(20));
+    QNetworkReply* reply = manager()->get(request);
+    m_reply = reply;
+    connect(reply, &QNetworkReply::finished, this, [this, reply] { finish(reply); });
 }
 
 void UpdateChecker::start()
 {
-    check();
+    // Aucune requête au démarrage tant que le poste ne l'a pas demandée (faux par défaut).
+    if (checkAtStart())
+        check();
 }
 
-void UpdateChecker::finish(QNetworkReply*) {}
+void UpdateChecker::finish(QNetworkReply* reply)
+{
+    reply->deleteLater();
+    if (reply != m_reply)
+        return;
+    m_reply = nullptr;
 
-void UpdateChecker::settle(State, const QString&, const QUrl&) {}
+    // Hors ligne, refusée (404 d'un dépôt privé sans jeton) ou illisible : impossible de vérifier, sans plus.
+    if (reply->error() != QNetworkReply::NoError) {
+        settle(State::Failed);
+        return;
+    }
+    QJsonParseError parseError{};
+    const QJsonDocument document = QJsonDocument::fromJson(reply->readAll(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        settle(State::Failed);
+        return;
+    }
+    const QJsonObject release = document.object();
+    if (release.value(QLatin1String("draft")).toBool() ||
+        release.value(QLatin1String("prerelease")).toBool()) {
+        settle(State::UpToDate); // brouillons et préversions ignorés
+        return;
+    }
+    const QString tag = release.value(QLatin1String("tag_name")).toString();
+    if (!parseVersion(tag)) {
+        settle(State::Failed);
+        return;
+    }
+    const QString version = withoutPrefix(tag).toString();
+    if (!isNewer(tag, QString::fromLatin1(ACTCRAFT_VERSION))) {
+        settle(State::UpToDate, version);
+        return;
+    }
+    // Seule une page https s'ouvre dans le navigateur ; sinon la page des releases du dépôt.
+    QUrl page(release.value(QLatin1String("html_url")).toString());
+    if (!page.isValid() || page.scheme() != QLatin1String("https"))
+        page = QUrl(QString::fromLatin1(kReleasesPage));
+    settle(State::Available, version, page);
+}
+
+void UpdateChecker::settle(State state, const QString& version, const QUrl& page)
+{
+    m_state = state;
+    m_latestVersion = version;
+    m_releasePage = page;
+    emit stateChanged();
+}
 
 Preferences* UpdateChecker::preferences() const
 {
@@ -55,8 +190,11 @@ void UpdateChecker::setPreferences(Preferences* preferences)
     if (m_preferences == preferences) {
         return;
     }
+    const bool before = checkAtStart();
     m_preferences = preferences;
     emit preferencesChanged();
+    if (checkAtStart() != before)
+        emit checkAtStartChanged();
 }
 
 UpdateChecker::State UpdateChecker::state() const
@@ -76,10 +214,17 @@ QUrl UpdateChecker::releasePage() const
 
 bool UpdateChecker::checkAtStart() const
 {
-    return false;
+    return m_preferences && m_preferences->value(QString::fromLatin1(kCheckAtStart), false).toBool();
 }
 
-void UpdateChecker::setCheckAtStart(bool) {}
+void UpdateChecker::setCheckAtStart(bool on)
+{
+    // Réglage du poste : sans préférences liées (Main.qml les lie), rien à garder.
+    if (!m_preferences || on == checkAtStart())
+        return;
+    m_preferences->setValue(QString::fromLatin1(kCheckAtStart), on);
+    emit checkAtStartChanged();
+}
 
 int UpdateChecker::requestCount() const
 {

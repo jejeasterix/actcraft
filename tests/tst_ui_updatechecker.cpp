@@ -21,13 +21,13 @@ constexpr const char* kVariable = "ACTCRAFT_UPDATES_URL";
 
 bool isLocal(const QUrl& url)
 {
-    return url.isLocalFile()
-           || (url.scheme() == QLatin1String("http")
-               && (url.host() == QLatin1String("127.0.0.1") || url.host() == QLatin1String("localhost")));
+    return url.isLocalFile() ||
+           (url.scheme() == QLatin1String("http") &&
+            (url.host() == QLatin1String("127.0.0.1") || url.host() == QLatin1String("localhost")));
 }
 
-// Gestionnaire espion : compte les requêtes et ne sort jamais de la machine. Une adresse qui n'est ni file: ni
-// la boucle locale est détournée vers un fichier absent : même sous une mutation, aucun accès réseau réel.
+// Gestionnaire espion : compte les requêtes et ne sort jamais de la machine. Une adresse qui n'est ni file:
+// ni la boucle locale est détournée vers un fichier absent : même sous une mutation, aucun accès réseau réel.
 class SpyManager : public QNetworkAccessManager
 {
 public:
@@ -273,9 +273,9 @@ void TstUiUpdatechecker::remoteOverrideRefused()
     const QUrl fallback(QStringLiteral("https://api.github.com/repos/jejeasterix/actcraft/releases/latest"));
     QCOMPARE(UpdateChecker::endpoint(), fallback);
 
-    for (const char* refused :
-         {"https://exemple.invalid/x", "http://exemple.invalid:8080/x", "http://127.0.0.1.exemple.invalid:80/x",
-          "https://127.0.0.1:8443/x", "ftp://localhost:21/x", "pas une adresse"}) {
+    for (const char* refused : {"https://exemple.invalid/x", "http://exemple.invalid:8080/x",
+                                "http://127.0.0.1.exemple.invalid:80/x", "https://127.0.0.1:8443/x",
+                                "ftp://localhost:21/x", "pas une adresse"}) {
         qputenv(kVariable, refused);
         QCOMPARE(UpdateChecker::endpoint(), fallback);
     }

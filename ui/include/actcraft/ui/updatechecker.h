@@ -18,9 +18,9 @@ namespace actcraft::ui {
 
 // Recherche de mises à jour (F-760, F-930 ; D11-13). Une requête GET sur l'API des releases du dépôt, et
 // seulement sur demande : check() par la commande, start() au démarrage seulement si le réglage du poste
-// `updates/check-at-start` est vrai (faux par défaut). Rien n'est téléchargé, aucun identifiant n'est envoyé ;
-// le gestionnaire interne suit le mandataire de l'application posé par NetworkSettings (lot 6). Une réponse
-// absente, refusée (404 d'un dépôt privé) ou illisible donne Failed : « impossible de vérifier », sans alerte.
+// `updates/check-at-start` est vrai (faux par défaut). Rien n'est téléchargé, aucun identifiant envoyé.
+// Le gestionnaire interne suit le mandataire de l'application posé par NetworkSettings (lot 6).
+// Réponse absente, refusée (404 d'un dépôt privé) ou illisible : Failed, « impossible de vérifier ».
 class UpdateChecker : public QObject
 {
     Q_OBJECT
@@ -34,7 +34,14 @@ class UpdateChecker : public QObject
     Q_PROPERTY(int requestCount READ requestCount NOTIFY stateChanged)
 
 public:
-    enum class State { Idle, Checking, UpToDate, Available, Failed };
+    enum class State
+    {
+        Idle,
+        Checking,
+        UpToDate,
+        Available,
+        Failed
+    };
     Q_ENUM(State)
 
     static constexpr const char* kCheckAtStart = "updates/check-at-start";
@@ -47,8 +54,8 @@ public:
 
     // Versions « x.y.z », préfixe « v » toléré ; faux si l'une ne se lit pas.
     static bool isNewer(QStringView candidate, QStringView current);
-    // Point d'entrée : ACTCRAFT_UPDATES_URL si file: ou http://127.0.0.1 / localhost, sinon l'API des releases
-    // du dépôt.
+    // Point d'entrée : ACTCRAFT_UPDATES_URL si file: ou http://127.0.0.1 / localhost, sinon l'API des
+    // releases du dépôt.
     static QUrl endpoint();
     void setNetworkAccessManager(QNetworkAccessManager* manager); // tests ; sinon un gestionnaire interne
     Q_INVOKABLE void check();
