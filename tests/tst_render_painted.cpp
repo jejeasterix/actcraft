@@ -498,6 +498,37 @@ private slots:
         QVERIFY2(mean < 0.05, qPrintable(QString::number(mean)));
     }
 
+    // R-T3b (L8-T30) : le cadre web a une emprise et la page vivante le montre comme la miniature et l'export
+    // (repère neutre de paintPage, chemin de référence), jamais son contenu. Vérifié sur les pixels de la
+    // scène : le seul choix du moteur peint ne suffit pas, la texture se taille sur l'emprise.
+    void webFrameIsDrawnOnTheScene()
+    {
+        core::WebFrame frame;
+        frame.bounds = {200, 150, 300, 200};
+        frame.html = "<body style=\"background:#ff0000\"><p>rouge</p></body>";
+        frame.address = "http://127.0.0.1:9/";
+        core::Page page;
+        page.objects.push_back(frame);
+        const core::RectF b = core::boundsOnPage(page.objects[0]);
+        QVERIFY2(b.width >= 300 && b.height >= 200,
+                 qPrintable(QStringLiteral("%1 x %2").arg(b.width).arg(b.height)));
+        Fixture f;
+        QVERIFY(open(f, page));
+        const QImage scene = grab(f).convertToFormat(QImage::Format_RGB32);
+        const QImage painted = render::renderPage(page, kNoImages, 1.0).convertToFormat(QImage::Format_RGB32);
+        QCOMPARE(scene.size(), painted.size());
+        int marked = 0;
+        for (int x = 205; x < 495; ++x) {
+            const int darkest = std::min(scene.pixelColor(x, 149).red(), scene.pixelColor(x, 150).red());
+            marked += darkest < 230 ? 1 : 0;
+        }
+        QVERIFY2(marked > 40, qPrintable(QString::number(marked))); // tirets du bord haut, sur la scène
+        const QRect zone = QRectF(b.x, b.y, b.width, b.height).toAlignedRect();
+        const double zoneMean = meanDifference(scene, painted, zone);
+        QVERIFY2(zoneMean < 1.0, qPrintable(QString::number(zoneMean)));
+        QCOMPARE(scene.pixelColor(350, 250), QColor(Qt::white)); // intérieur : aucun contenu web
+    }
+
     // L2-C9, constat 8 (F-574) : motif à fond opaque. ActivInspire peint la couleur de fond sous le motif,
     // avec l'alpha de la couleur du contour ; en mode transparent, rien sous le motif. Écran (moteur peint,
     // direct et en texture) et miniature (peintre partagé) : mêmes pixels.

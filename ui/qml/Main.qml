@@ -146,6 +146,7 @@ Window {
         liftLayer: pageArea.liftLayer
         lockIgnored: appDesign.lockIgnored
         snapDisabled: appDesign.snapDisabled
+        designMode: appDesign // L8-T16 : restrictions et objets bloquants du mode conception
     }
 
     // Lot 5 : édition des objets, insertion, onglets, échanges de fichiers et impression (types C++ de L5-T1).
@@ -155,6 +156,13 @@ Window {
         document: appDocument
         tools: appTools
     }
+    MediaInsert {
+        id: appMediaInsert
+        objectName: "appMediaInsert"
+        commands: appCommands
+        document: appDocument
+    }
+
     Insertion {
         id: appInsertion
         objectName: "appInsertion"
@@ -328,6 +336,8 @@ Window {
             view: pageArea.view
             profile: appProfile
             preferences: appPreferences
+            actionModel: appActionBrowser
+            broadcast: appBroadcast // L8-T32 : les notes de la page sont du contenu protégé (H8-16)
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -463,6 +473,7 @@ Window {
         printing: appPrint
         exchange: appExchange
         fileExchangeActions: fileExchangeActions
+        commands: appCommands
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -505,47 +516,116 @@ Window {
         onClosed: root.popupClosed()
     }
 
-    // Lot 8 (L8-T2) : coquille. Les types C++ sont encore des talons (QtObject marqués) ; chaque tâche
-    // propriétaire remplace l'instance par le vrai type.
-    QtObject { // Talon L8 : rempli par L8-T9.
+    // L8-T9 : exécuteur des actions d'objet, devant l'outil de sélection (appTools.setActionRunner) ; exécute au
+    // relâché d'un clic, après la retombée du contact ; porte l'historique des pages (page.history-*).
+    ActionRunner {
         id: appActionRunner
         objectName: "appActionRunner"
+        commands: appCommands
+        contactActive: pageArea.view ? pageArea.view.contactActive : false
+        document: appDocument
+        designMode: appDesign
+        links: appLinks
+        mediaItems: appMediaItems // F-552 : « jouer un son » passe par le lecteur intégré
+        Component.onCompleted: appTools.setActionRunner(appActionRunner)
+    }
+    // L8-T25 : médias de la page affichée (vidéo et GIF en surcouche, lecteur intégré de deux pistes).
+    MediaItems {
+        id: appMediaItems
+        objectName: "appMediaItems"
+        document: appDocument
+        contactActive: pageArea.view ? pageArea.view.contactActive : false
+        links: appLinks
+        tools: appTools
+        // La couche des médias est posée par PageArea (pageOverlays, z 4) : elle reçoit ici son modèle et sa vue.
+        Component.onCompleted: {
+            for (const layer of pageArea.pageOverlays.children) {
+                if (layer.objectName === "mediaLayer") {
+                    layer.view = pageArea.view
+                    layer.items = appMediaItems
+                }
+            }
+        }
     }
     LinkLauncher { // L8-T10 : seul chemin d'un lien ou d'un fichier de document vers le système (D8-4)
         id: appLinks
         objectName: "appLinks"
     }
-    QtObject { // Talon L8 : rempli par L8-T11.
+    ActionBrowserModel { // L8-T11 : onglet « Sélection » du navigateur d'actions
         id: appActionBrowser
         objectName: "appActionBrowser"
+        commands: appCommands
+        contactActive: pageArea.view.contactActive
+        document: appDocument
+        toolHost: appTools
     }
-    QtObject { // Talon L8 : rempli par L8-T13.
+    DragDropActionsModel { // L8-T13 : actions par glisser-déposer (F-892)
         id: appDragDrop
         objectName: "appDragDrop"
+        commands: appCommands
+        document: appDocument
     }
-    DragDropActions { objectName: "dragDropActions" }
+    DragDropActions { // plateau d'icônes à côté du panneau des navigateurs
+        objectName: "dragDropActions"
+        model: appDragDrop
+        panel: browserPanel
+        view: pageArea.view
+    }
+    LinkDialogs { // L8-T22 : création des liens vers un fichier ou un site (F-550, F-551)
+        id: appLinkDialogs
+        objectName: "appLinkDialogs"
+        commands: appCommands
+        document: appDocument
+        toolHost: appTools
+        links: appLinks
+    }
     LinkDialog {
         id: linkDialog
         commands: appCommands
+        controller: appLinkDialogs
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
     LinkConfirmDialog {
         objectName: "linkConfirmDialog"
         launcher: appLinks
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
     WebFrameDialog { objectName: "webFrameDialog" }
     PublishDialog {
         id: publishDialog
         commands: appCommands
+        document: appDocument
+        banner: messageBanner
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+    // L8-T32 : diffusion protégée, porte du registre. Les règles du document ouvert grisent et refusent les
+    // commandes de leurs catégories (verrou de classe compris), la copie du champ de texte aussi ; un essai
+    // refusé s'affiche dans la bannière.
+    BroadcastGate {
+        id: appBroadcast
+        objectName: "appBroadcast"
+        commands: appCommands
+        document: appDocument
+        textEditing: appText
+        onRefused: (id, message) => messageBanner.show(message)
     }
     SoundController {
         id: soundController
         commands: appCommands
+        items: appMediaItems
+        view: pageArea.view
     }
     RecorderPalette {
         id: recorderPalette
         commands: appCommands
+        document: appDocument
+        mediaInsert: appMediaInsert
+        preferences: appPreferences
     }
-    RecordingIndicator { objectName: "recordingIndicator" }
+    RecordingIndicator { recorders: recorderPalette.recorders }
 
     AboutDialog {
         id: aboutDialog
@@ -559,6 +639,8 @@ Window {
         tabs: appTabs
         textEditing: appText
         preferences: appPreferences // documents récents gardés (L6-T24)
+        broadcast: appBroadcast // L8-T32 : « Enregistrer les modifications ? » refusé dans un document protégé
+        commands: appCommands // L8-C7 : « Enregistrer » de Quitter passe par file.save, comme la croix d'un onglet
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
         onSaveAbandoned: documentTabBar.closeAfterSave = false
@@ -586,6 +668,24 @@ Window {
         anchors.right: parent.right
         anchors.margins: Theme.espace2
         z: 10
+    }
+    // L8-C7 : les refus de l'exécuteur d'actions, du navigateur d'actions et du glisser-déposer, et l'échec d'une
+    // insertion de média, arrivent à la bannière.
+    Connections {
+        target: appActionRunner
+        function onActionRefused(reason) { messageBanner.show(reason) }
+    }
+    Connections {
+        target: appActionBrowser
+        function onRefused(reason) { messageBanner.show(reason) }
+    }
+    Connections {
+        target: appDragDrop
+        function onRefused(reason) { messageBanner.show(reason) }
+    }
+    Connections {
+        target: appMediaInsert
+        function onFailed(message) { messageBanner.show(message) }
     }
     // Échanges de fichiers (L5-T25) : l'échec et la fin arrivent à la bannière.
     Connections {
@@ -902,7 +1002,7 @@ Window {
         appCommands.setHandler("insert.image", root.argumentOrDialog(
             function (url) { appInsertion.insertImage(url) }, function () { fileExchangeActions.chooseImage() }))
         appCommands.setHandler("insert.media", root.argumentOrDialog(
-            function (url) { appInsertion.insertMedia(url) }, function () { fileExchangeActions.chooseMedia() }))
+            function (url) { appMediaInsert.insertFile(url) }, function () { fileExchangeActions.chooseMedia() }))
         appCommands.setHandler("tab.next", function () { appTabs.next() })
         appCommands.setHandler("tab.previous", function () { appTabs.previous() })
         // Sans argument (le clic du menu) : position suivante ; avec argument : seulement une position connue.

@@ -1,1 +1,27 @@
-{"format": "actcraft-scenario/1", "name": "conteneurs", "description": "Talon L8 : rempli par L8-T16.", "steps": [{"waitReady": true}]}
+{
+  "format": "actcraft-scenario/1",
+  "name": "conteneurs",
+  "description": "L8-T16 (F-577) : depuis l'outil Sélection, la carotte « légume » glissée dans le panier « fruit » revient à sa place sans étape d'annulation ; la pomme « fruit » y reste, en une étape.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.select"},
+    {"expect": "appTools.currentTool", "value": "select"},
+    {"fixture": "conteneurs", "path": "${SORTIE}/conteneurs.actcraft"},
+    {"command": "file.open", "argument": "${SORTIE}/conteneurs.actcraft"},
+    {"waitFor": "documentController.busy", "value": false, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 3},
+    {"expect": "appTools.currentTool", "value": "select"},
+    {"pointer": [[150, 500], [350, 425], [550, 350]], "space": "page"},
+    {"waitReady": true},
+    {"checkPixel": "revenu-au-depart", "at": [150, 500], "color": "#FF8000", "tolerance": 40},
+    {"checkPixel": "panier-vide", "at": [550, 350], "color": "#808080", "tolerance": 40},
+    {"expect": "documentController.canUndo", "value": false},
+    {"capture": "retour"},
+    {"pointer": [[150, 200], [350, 275], [550, 350]], "space": "page"},
+    {"waitReady": true},
+    {"checkPixel": "contenu-accepte", "at": [550, 350], "color": "#FF0000", "tolerance": 40},
+    {"expect": "documentController.canUndo", "value": true},
+    {"capture": "contenu"}
+  ]
+}

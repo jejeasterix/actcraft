@@ -352,9 +352,16 @@ bool isGeometryAction(const std::string& id) noexcept
     return table.find(id) != table.end();
 }
 
+std::unique_ptr<UndoCommand> editActionCommand(const Document& document, const std::string& id,
+                                               const std::string& parameters,
+                                               const ActionContext& context); // objectactions_edit.cpp
+
 std::unique_ptr<UndoCommand> objectActionCommand(const Document& document, const std::string& id,
                                                  const std::string& parameters, const ActionContext& context)
 {
+    if (isEditAction(id)) {
+        return editActionCommand(document, id, parameters, context); // L8-T8
+    }
     const auto& table = geometryTable();
     const auto builder = table.find(id);
     if (builder == table.end() || context.page >= document.pageCount()) {

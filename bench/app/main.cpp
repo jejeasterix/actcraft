@@ -4,7 +4,9 @@
 #include <actcraft/bench/options.h>
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/runner.h>
+#include <actcraft/bench/testroots.h>
 #include <actcraft/bench/verdict.h>
+#include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
 
 #include <QDir>
 #include <QGuiApplication>
@@ -14,6 +16,9 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
+#if ACTCRAFT_WEBFRAME
+#include <QtWebView/QtWebView>
+#endif
 
 #include <cstdio>
 
@@ -31,6 +36,9 @@ void printLine(const QString& line)
 // Dernière ligne et code de sortie : BUDGET TENU (0), BUDGET DEPASSE (1), MESURE INVALIDE (2).
 int main(int argc, char* argv[])
 {
+#if ACTCRAFT_WEBFRAME
+    QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
+#endif
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Banc"));
     const QStringList args = QGuiApplication::arguments();
@@ -54,6 +62,7 @@ int main(int argc, char* argv[])
     QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
+    actcraft::bench::useIsolatedResourceRoots(defaultDir); // jamais le Documents/ActCraft/Ressources du poste
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);

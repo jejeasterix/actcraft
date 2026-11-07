@@ -10,8 +10,10 @@
 #include <actcraft/tools/filltool.h>
 #include <actcraft/tools/penshapetool.h>
 #include <actcraft/tools/pentool.h>
+#include <actcraft/tools/revealinktool.h>
 #include <actcraft/tools/selecttool.h>
 #include <actcraft/tools/toolregistry.h>
+#include <actcraft/ui/designmode.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QByteArray>
@@ -19,6 +21,7 @@
 #include <QImage>
 #include <QInputEvent>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QPoint>
 #include <QPointF>
 #include <QQuickWindow>
@@ -30,6 +33,8 @@
 #include <QVariantList>
 
 #include <algorithm>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -55,6 +60,12 @@ const tools::ToolRegistry& registry()
                   [](tools::ToolContext& context) { return std::make_unique<tools::PenShapeTool>(context); });
         built.add(QStringLiteral("connector"), [](tools::ToolContext& context) {
             return std::make_unique<tools::ConnectorTool>(context);
+        });
+        // Lot 8 (L8-T18) : encre révélatrice, sur les échantillons du stylo.
+        built.add(QStringLiteral("reveal-ink"), [](tools::ToolContext& context) {
+            auto tool = std::make_unique<tools::RevealInkTool>(context.ink, context.strokes);
+            tool->setBaseWidth(context.user.settings(tool->id()).width);
+            return tool;
         });
         return built;
     }();
@@ -156,13 +167,152 @@ void writeShapeSettings(const QString& file, const tools::ShapeSettings& setting
 
 } // namespace
 
-ToolHost::ToolHost(QObject* parent) : QObject(parent), m_selectionFrame(hiddenFrame()) {}
+// L8-T9 : outil de sélection précédé de l'exécuteur d'actions, pour un geste armé par le filtre de
+// l'application (appui gauche sur un objet d'action, sous la sélection : ToolHost::armGate). L'appui va
+// d'abord à ActionRunner::press ; pris, il est retenu avec les déplacements que l'exécuteur prend (moins de 4
+// px) ; au premier refus (un glisser), l'outil reçoit l'appui retenu, les déplacements retenus, puis la suite
+// : aucun échantillon perdu. Le relâché d'un clic va à ActionRunner::release, qui exécute après la retombée
+// du contact, jamais ici. Fin du geste (clic, glisser rendu, appui refusé, annulation) : `done` désarme,
+// activeTool() rend de nouveau l'outil de sélection ; jamais à l'appui, sinon la suite irait à l'outil nu.
+class ActionGate final : public tools::Tool
+{
+public:
+    ActionGate(tools::Tool& inner, ActionRunner& runner, std::function<void()> done)
+        : m_inner(&inner), m_runner(&runner), m_done(std::move(done))
+    {}
+
+    tools::Tool* inner() const noexcept { return m_inner; }
+    ActionRunner* runner() const noexcept { return m_runner; }
+
+    QString id() const override { return m_inner->id(); }
+    void activate() override { m_inner->activate(); }
+    void deactivate() override
+    {
+        drop();
+        m_inner->deactivate();
+    }
+    bool isBusy() const noexcept override { return m_owning || m_inner->isBusy(); }
+    void cancel() override
+    {
+        drop();
+        m_inner->cancel();
+    }
+    void abandon() override
+    {
+        drop();
+        m_inner->abandon();
+    }
+    bool onKey(int key, int modifiers) override { return m_inner->onKey(key, modifiers); }
+
+    void onSample(const input::Sample& sample) override
+    {
+        const QPointF point(sample.x, sample.y);
+        const bool mine = m_owning && sample.pointer == m_pointer;
+        switch (sample.phase) {
+        case input::Phase::Press:
+            reset(); // sans `done` : le geste qui commence est celui que le filtre vient d'armer
+            if (m_runner->press(point, Qt::LeftButton)) {
+                m_owning = true;
+                m_pointer = sample.pointer;
+                m_held.push_back(sample);
+                return;
+            }
+            m_done();
+            break;
+        case input::Phase::Move:
+            if (mine) {
+                if (m_runner->move(point)) {
+                    m_held.push_back(sample);
+                    return;
+                }
+                replay();
+            }
+            break;
+        case input::Phase::Release:
+            if (mine) {
+                m_owning = false;
+                if (m_runner->release(point)) {
+                    m_held.clear(); // clic : ni l'appui ni le relâché ne vont à l'outil
+                    m_done();
+                    return;
+                }
+                replay();
+            }
+            break;
+        }
+        m_inner->onSample(sample);
+    }
+
+private:
+    void reset() // abandonne un appui retenu ; la porte reste armée
+    {
+        if (m_owning) {
+            m_runner->cancel();
+        }
+        m_owning = false;
+        m_held.clear();
+    }
+    void drop() // fin du geste : désarme
+    {
+        reset();
+        m_done();
+    }
+    void replay() // glisser : la suite va directement à l'outil (désarmé)
+    {
+        m_owning = false;
+        const std::vector<input::Sample> held = std::move(m_held);
+        m_held.clear();
+        m_done();
+        for (const input::Sample& sample : held) {
+            m_inner->onSample(sample);
+        }
+    }
+
+    tools::Tool* m_inner;
+    ActionRunner* m_runner;
+    std::function<void()> m_done;
+    std::vector<input::Sample> m_held;
+    std::uint64_t m_pointer = 0;
+    bool m_owning = false;
+};
+
+// L8-T16 (D8-9, M5) : les effets publiés de DesignMode traduits pour les outils, lus à chaque appel (aucun
+// état recopié, rien à resynchroniser). Sans DesignMode : tout actif.
+class DesignModePolicy final : public tools::InteractionPolicy
+{
+public:
+    QPointer<QObject> designMode;
+
+    bool actionsEnabled() const override
+    {
+        const DesignMode* mode = current();
+        return mode == nullptr || !mode->actionsDisabled();
+    }
+    bool restrictionsEnabled() const override
+    {
+        const DesignMode* mode = current();
+        return mode == nullptr || !mode->restrictionsDisabled();
+    }
+    bool blockersEnabled() const override
+    {
+        const DesignMode* mode = current();
+        return mode == nullptr || !mode->blockersDisabled();
+    }
+
+private:
+    const DesignMode* current() const { return qobject_cast<const DesignMode*>(designMode.data()); }
+};
+
+ToolHost::ToolHost(QObject* parent)
+    : QObject(parent), m_policy(std::make_unique<DesignModePolicy>()), m_selectionFrame(hiddenFrame())
+{}
 
 ToolHost::~ToolHost()
 {
     if (m_controller && m_observer != 0) {
         m_controller->removeChangeObserver(m_observer); // l'observateur tient `this`
     }
+    m_gate.reset();     // il regarde l'outil de sélection
     m_adapters.reset(); // les outils avant les adaptateurs qu'ils regardent
 }
 
@@ -488,6 +638,8 @@ void ToolHost::setWidth(qreal width)
                                 static_cast<double>(kMaxInkWidth));
     if (auto* pen = dynamic_cast<tools::PenTool*>(existingTool(id))) {
         pen->setBaseWidth(settings.width);
+    } else if (auto* reveal = dynamic_cast<tools::RevealInkTool*>(existingTool(id))) {
+        reveal->setBaseWidth(settings.width);
     }
     storeSettings(id, settings);
     configureTool(existingTool(currentTool()));
@@ -664,6 +816,14 @@ void ToolHost::configureTool(tools::Tool* tool) const
         pen.width = ink.width;
         penShape->setShape(core::penShapeFromId(m_penShape.toStdString()).value_or(core::PenShape::Free));
         penShape->setPen(pen, m_lastInk == QStringLiteral("highlighter"));
+    } else if (auto* reveal = dynamic_cast<tools::RevealInkTool*>(tool)) {
+        reveal->setBaseWidth(settingsOf(QStringLiteral("reveal-ink")).width);
+    } else if (auto* select = dynamic_cast<tools::SelectTool*>(tool)) {
+        select->setInteractionPolicy(m_policy.get()); // L8-T16 : vit aussi longtemps que l'hôte
+        auto* self = const_cast<ToolHost*>(this);
+        select->setContainerAccepted([self](core::ObjectId container, bool chime) {
+            emit self->containerAccepted(static_cast<quint64>(container), chime);
+        });
     }
 }
 
@@ -673,6 +833,9 @@ void ToolHost::cancelGesture()
         return;
     }
     tools::Tool* tool = existingTool(m_user->currentTool());
+    if (m_gate && tool != nullptr && m_gate->inner() == tool) {
+        tool = m_gate.get(); // un appui retenu par l'exécuteur est abandonné avec l'outil
+    }
     if (tool && tool->isBusy()) {
         tool->cancel();
     }
@@ -680,7 +843,62 @@ void ToolHost::cancelGesture()
 
 tools::Tool* ToolHost::activeTool(input::UserId) const
 {
-    return toolFor(currentTool());
+    tools::Tool* tool = toolFor(currentTool());
+    if (tool == nullptr || !m_gateArmed || !m_actionRunner || currentTool() != QLatin1String("select")) {
+        return tool;
+    }
+    if (!m_gate || m_gate->inner() != tool || m_gate->runner() != m_actionRunner.data()) {
+        auto* self = const_cast<ToolHost*>(this); // comme adapters() : l'hôte n'est jamais constant
+        m_gate = std::make_unique<ActionGate>(*tool, *m_actionRunner, [self] { self->m_gateArmed = false; });
+    }
+    return m_gate.get();
+}
+
+// L8-T9 : à l'appui (filtre de l'application, avant que la vue n'en fasse un échantillon), arme la porte de
+// l'exécuteur si l'outil courant est la sélection et qu'un objet d'action est sous le point ; sinon l'outil
+// reçoit l'appui directement.
+void ToolHost::armGate(const QEvent* event)
+{
+    m_gateArmed = false;
+    if (!m_actionRunner || !m_view || currentTool() != QLatin1String("select")) {
+        return;
+    }
+    const auto* pointer = static_cast<const QPointerEvent*>(event);
+    if (pointer->points().isEmpty()) {
+        return;
+    }
+    if (event->type() == QEvent::MouseButtonPress &&
+        static_cast<const QMouseEvent*>(event)->button() != Qt::LeftButton) {
+        return; // bouton droit : menu contextuel, jamais d'action
+    }
+    const QPointF scene = pointer->points().first().scenePosition();
+    if (!m_view->contains(m_view->mapFromScene(scene))) {
+        return;
+    }
+    m_gateArmed = m_actionRunner->takes(m_view->sceneToPage(scene));
+}
+
+void ToolHost::setActionRunner(ActionRunner* runner)
+{
+    if (runner == m_actionRunner) {
+        return;
+    }
+    cancelGesture();
+    if (m_actionRunner) {
+        m_actionRunner->setTools(nullptr);
+    }
+    m_gate.reset();
+    m_gateArmed = false;
+    m_actionRunner = runner;
+    if (runner != nullptr) {
+        runner->setTools(this);
+    }
+    emit actionRunnerChanged();
+}
+
+ActionRunner* ToolHost::actionRunner() const noexcept
+{
+    return m_actionRunner.data();
 }
 
 tools::UserState& ToolHost::user(input::UserId)
@@ -723,6 +941,20 @@ void ToolHost::setSnapDisabled(bool disabled)
     if (m_adapters) {
         m_adapters->context.snapDisabled = disabled;
     }
+    emit designFlagsChanged();
+}
+
+QObject* ToolHost::designMode() const noexcept
+{
+    return m_policy->designMode.data();
+}
+
+void ToolHost::setDesignMode(QObject* designMode)
+{
+    if (m_policy->designMode == designMode) {
+        return;
+    }
+    m_policy->designMode = designMode;
     emit designFlagsChanged();
 }
 
@@ -1022,6 +1254,7 @@ bool ToolHost::eventFilter(QObject* watched, QEvent* event)
     case QEvent::TouchBegin:
         relayModifiers(Qt::Key_unknown,
                        static_cast<int>(static_cast<const QInputEvent*>(event)->modifiers()));
+        armGate(event);
         break;
     default:
         break;

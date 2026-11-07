@@ -51,7 +51,7 @@
   {
    "id": "command.tool.shape",
    "category": "command",
-   "label": "Formes",
+   "label": "Outil formes",
    "icon": "action-objet",
    "command": "tool.shape",
    "drag-drop": true
@@ -218,14 +218,14 @@
   {
    "id": "command.file.new",
    "category": "command",
-   "label": "Créer un paperboard",
+   "label": "Nouveau paperboard",
    "icon": "action-objet",
    "command": "file.new"
   },
   {
    "id": "command.file.new-screen",
    "category": "command",
-   "label": "Paperboard à la taille de l'écran",
+   "label": "Nouveau paperboard à la taille de l'écran",
    "icon": "action-objet",
    "command": "file.new-screen"
   },
@@ -747,7 +747,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -760,7 +765,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -773,7 +783,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -786,7 +801,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -799,7 +819,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -812,7 +837,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -825,7 +855,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -838,7 +873,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -851,7 +891,12 @@
    "parameters": [
     {
      "name": "factor",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1035,11 +1080,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1052,11 +1107,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1069,11 +1134,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1086,11 +1161,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1103,11 +1188,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1120,11 +1215,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1137,11 +1242,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1154,11 +1269,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1171,11 +1296,21 @@
    "parameters": [
     {
      "name": "ratioX",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     },
     {
      "name": "ratioY",
-     "type": "number"
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
     }
    ]
   },
@@ -1199,28 +1334,28 @@
   {
    "id": "object.mirror-x",
    "category": "object",
-   "label": "Miroir horizontal",
+   "label": "Copie miroir verticale",
    "icon": "action-objet",
    "target": true
   },
   {
    "id": "object.mirror-y",
    "category": "object",
-   "label": "Miroir vertical",
+   "label": "Copie miroir horizontale",
    "icon": "action-objet",
    "target": true
   },
   {
    "id": "object.flip-x",
    "category": "object",
-   "label": "Retourner horizontalement",
+   "label": "Retourner de haut en bas",
    "icon": "action-objet",
    "target": true
   },
   {
    "id": "object.flip-y",
    "category": "object",
-   "label": "Retourner verticalement",
+   "label": "Retourner de gauche à droite",
    "icon": "action-objet",
    "target": true
   },

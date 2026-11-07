@@ -76,7 +76,10 @@ Item {
         onClosed: root.popupClosed()
         onSaveRequested: {
             root.closeAfterSave = true
-            root.commands.trigger("file.save")
+            // Refusé (verrou, diffusion protégée : la porte affiche le refus) : aucun enregistrement ne suit,
+            // l'onglet reste ouvert et aucune fermeture n'attend.
+            if (!root.commands.trigger("file.save"))
+                root.closeAfterSave = false
         }
         onDiscardRequested: root.tabs.closeWithoutSaving(root.tabs.currentIndex)
     }

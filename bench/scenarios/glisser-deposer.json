@@ -1,1 +1,114 @@
-{"format": "actcraft-scenario/1", "name": "glisser-deposer", "description": "Talon L8 : rempli par L8-T13.", "steps": [{"waitReady": true}]}
+{
+  "format": "actcraft-scenario/1",
+  "name": "glisser-deposer",
+  "description": "S11.3 : l'icône du stylo glissée de l'onglet sur un rectangle lui donne l'action, dessinée en surimpression à son coin haut droit ; le clic sur le rectangle active le stylo ; l'icône glissée vers la corbeille retire l'action (l'icône disparaît, le bleu du rectangle reparaît).",
+  "steps": [
+    {
+      "waitReady": true
+    },
+    {
+      "fixture": "glisser-deposer",
+      "path": "${SORTIE}/glisser-deposer.actcraft"
+    },
+    {
+      "command": "file.open",
+      "argument": "${SORTIE}/glisser-deposer.actcraft"
+    },
+    {
+      "waitFor": "documentController.busy",
+      "value": false
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "command": "tool.select"
+    },
+    {
+      "expect": "appTools.currentTool",
+      "value": "select"
+    },
+    {
+      "command": "browser.actions"
+    },
+    {
+      "expect": "browserPanel.current",
+      "value": "actions"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "pointer": [
+        [
+          293,
+          101
+        ],
+        [
+          897,
+          435
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "capture": "surimpression"
+    },
+    {
+      "checkPixel": "icone-surimpression",
+      "at": [
+        876,
+        312
+      ],
+      "color": "#2B2F36",
+      "tolerance": 40
+    },
+    {
+      "pointer": [
+        [
+          750,
+          400
+        ]
+      ],
+      "space": "page"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "expect": "appTools.currentTool",
+      "value": "pen"
+    },
+    {
+      "pointer": [
+        [
+          876,
+          312
+        ],
+        [
+          56,
+          765
+        ]
+      ],
+      "space": "window"
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "capture": "apres-corbeille"
+    },
+    {
+      "checkPixel": "icone-retiree",
+      "at": [
+        876,
+        312
+      ],
+      "color": "#1E88E5",
+      "tolerance": 40
+    }
+  ]
+}

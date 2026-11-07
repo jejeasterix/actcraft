@@ -70,6 +70,8 @@ actcraft_add_module(core
         src/containers.cpp
         include/actcraft/core/restrictors.h
         src/restrictors.cpp
+        include/actcraft/core/broadcast.h
+        src/broadcast.cpp
     DEPENDS
         Qt6::Core)
 

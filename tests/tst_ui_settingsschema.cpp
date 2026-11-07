@@ -2,6 +2,7 @@
 #include <actcraft/ui/networksettings.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/profilecontroller.h>
+#include <actcraft/ui/recorders.h>
 #include <actcraft/ui/settingsschema.h>
 
 #include <QJSValue>
@@ -314,7 +315,11 @@ private slots:
             existing << QString::fromLatin1(lot7.key);
         existing << QString::fromLatin1(Preferences::kLanguage) << QString::fromLatin1(NetworkSettings::kHost)
                  << QString::fromLatin1(NetworkSettings::kPort)
-                 << QString::fromLatin1(NetworkSettings::kUser);
+                 << QString::fromLatin1(NetworkSettings::kUser)
+                 // Lot 8 (L8-T28) : section « Enregistrements », lue par ui::Recorders.
+                 << QString::fromLatin1(actcraft::ui::Recorders::kFolderKey)
+                 << QString::fromLatin1(actcraft::ui::Recorders::kSoundFormatKey)
+                 << QString::fromLatin1(actcraft::ui::Recorders::kScreenFormatKey);
         int profileEntries = 0;
         for (const QString& id : sectionIds(f.schema)) {
             for (const QVariant& value : f.schema.entries(id)) {

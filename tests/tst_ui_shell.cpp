@@ -641,6 +641,97 @@ private slots:
         QTRY_VERIFY(!s.view->inputBlocked());
     }
 
+    // L8-C7 : les refus de l'exécuteur d'actions, du navigateur d'actions, du glisser-déposer et de
+    // l'insertion de média arrivent à la bannière de la fenêtre (avant, aucun abonné).
+    void refusalsReachTheBanner()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QQuickItem* banner = item(s, "messageBanner");
+        QVERIFY(banner);
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QVERIFY(commands);
+        // Refus réel : verrou de classe, dépôt sur la corbeille.
+        commands->setLocked(true);
+        auto* dragDrop = s.window->findChild<QObject*>(QStringLiteral("appDragDrop"));
+        QVERIFY(dragDrop);
+        QVERIFY(banner->property("message").toString().isEmpty());
+        QMetaObject::invokeMethod(dragDrop, "dropOnTrash", Q_ARG(quint64, 1));
+        QTRY_VERIFY(!banner->property("message").toString().isEmpty());
+        commands->setLocked(false);
+        // Les autres sources : leur signal de refus est émis, la bannière montre le motif.
+        const struct
+        {
+            const char* object;
+            const char* signal;
+            const char* text;
+        } sources[] = {{"appActionRunner", "actionRefused", "refus de l'exécuteur"},
+                       {"appActionBrowser", "refused", "refus du navigateur"},
+                       {"appDragDrop", "refused", "refus du glisser-déposer"},
+                       {"appMediaInsert", "failed", "échec d'insertion"}};
+        for (const auto& source : sources) {
+            QObject* emitter = s.window->findChild<QObject*>(QString::fromLatin1(source.object));
+            QVERIFY2(emitter, source.object);
+            QMetaObject::invokeMethod(banner, "dismiss");
+            QVERIFY(QMetaObject::invokeMethod(emitter, source.signal,
+                                              Q_ARG(QString, QString::fromUtf8(source.text))));
+            QCOMPARE(banner->property("message").toString(), QString::fromUtf8(source.text));
+        }
+    }
+
+    // L8-C7 : le lecteur de sons prend l'appui du stylet (couverture d'entrée, patron de DragDropActions) :
+    // un trait commencé sur son bouton d'arrêt ou sur son texte ne dessine rien derrière.
+    void soundStopButtonCoversThePageInput()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* tools = s.window->findChild<ui::ToolHost*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        tools->activate(QStringLiteral("pen"));
+        QObject* controller = s.window->findChild<QObject*>(QStringLiteral("soundController"));
+        QVERIFY(controller);
+        controller->setProperty("shown", true);
+        QQuickItem* stop = item(s, "soundControllerStop");
+        QVERIFY(stop);
+        QTRY_VERIFY(stop->isVisible());
+        const QPointF end = s.view->pageToScene(QPointF(500, 400));
+        for (const QPointF start : {stop->mapToScene(QPointF(stop->width() / 2, stop->height() / 2)),
+                                    stop->mapToScene(QPointF(-100, stop->height() / 2))}) { // bouton, texte
+            post(s, QEvent::TabletPress, start, Qt::LeftButton);
+            for (int i = 1; i <= 10; ++i) {
+                post(s, QEvent::TabletMove, start + (end - start) * i / 10, Qt::LeftButton);
+            }
+            post(s, QEvent::TabletRelease, end, Qt::NoButton);
+            QTest::qWait(300);
+            QCOMPARE(s.fixed->objectCount(), 0);
+        }
+    }
+
+    // L8-C7 : « Enregistrer les modifications ? » de Quitter passe par file.save du registre, comme la croix
+    // d'un onglet : sous le verrou de classe il est refusé, rien n'est enregistré (ni dialogue ouvert), la
+    // question reste.
+    void quitSaveGoesThroughTheRegistry()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(run(s, QStringLiteral("page.next"))); // document modifié
+        auto* commands = s.window->findChild<ui::Commands*>(QStringLiteral("commands"));
+        auto* actions = s.window->findChild<QObject*>(QStringLiteral("fileActions"));
+        auto* question = s.window->findChild<QObject*>(QStringLiteral("saveChangesDialog"));
+        auto* saveDialog = s.window->findChild<QObject*>(QStringLiteral("saveDialog"));
+        QVERIFY(commands && actions && question && saveDialog);
+        commands->setLocked(true);
+        QVERIFY(QMetaObject::invokeMethod(actions, "quit"));
+        QTRY_VERIFY(question->property("opened").toBool());
+        QVERIFY(QMetaObject::invokeMethod(question, "save"));
+        QTest::qWait(100);
+        QVERIFY(!saveDialog->property("visible").toBool());
+        QTRY_VERIFY(question->property("opened").toBool()); // la question est reposée
+        QVERIFY(!actions->property("quitting").toBool());
+        commands->setLocked(false);
+        QVERIFY(QMetaObject::invokeMethod(question, "cancel"));
+    }
+
     // L1-C5 : chaque texte, lien et icône réellement rendu tient le seuil AA contre le fond dessiné sous lui,
     // dans chaque état : repos, appuyé (au doigt, sans survol), menus et liste du zoom ouverts avec une
     // entrée surlignée (indicateur à 3:1 du menu), dialogue « À propos ».
@@ -849,6 +940,40 @@ private slots:
                          findItem(s.window->contentItem(), objectName),
                      name);
         }
+    }
+
+    // L8-T19 : les contrôleurs du lot 8 sont de vrais types C++ (plus aucun QtObject talon), câblés entre eux
+    // ; le navigateur d'actions reçoit son modèle du panneau, jamais par une recherche à la racine.
+    void lot8ControllersWired()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        const QList<QPair<const char*, const char*>> expected = {
+            {"appActionRunner", "actcraft::ui::ActionRunner"},
+            {"appLinks", "actcraft::ui::LinkLauncher"},
+            {"appActionBrowser", "actcraft::ui::ActionBrowserModel"},
+            {"appDragDrop", "actcraft::ui::DragDropActions"},
+        };
+        for (const auto& [name, cls] : expected) {
+            QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
+            QVERIFY2(o, name);
+            QCOMPARE(QByteArray(o->metaObject()->className()), QByteArray(cls));
+        }
+        QObject* runner = s.window->findChild<QObject*>(QStringLiteral("appActionRunner"));
+        for (const char* p : {"commands", "document", "designMode", "links"}) {
+            QVERIFY2(runner->property(p).value<QObject*>(), p);
+        }
+        QObject* tools = s.window->findChild<QObject*>(QStringLiteral("appTools"));
+        QVERIFY(tools);
+        QVERIFY(tools->property("designMode").value<QObject*>());
+        QObject* panel = item(s, "browserPanel");
+        QVERIFY(panel);
+        QCOMPARE(panel->property("actionModel").value<QObject*>(),
+                 s.window->findChild<QObject*>(QStringLiteral("appActionBrowser")));
+        QObject* browser = item(s, "actionBrowser");
+        QVERIFY(browser);
+        QCOMPARE(browser->property("model").value<QObject*>(),
+                 panel->property("actionModel").value<QObject*>());
     }
 
     // L8-T2 : un gestionnaire par commande du lot (talon jusqu'à la tâche propriétaire).

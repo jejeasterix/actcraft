@@ -1,1 +1,21 @@
-{"format": "actcraft-scenario/1", "name": "encre-revelatrice", "description": "Talon L8 : rempli par L8-T18.", "steps": [{"waitReady": true}]}
+{
+  "format": "actcraft-scenario/1",
+  "name": "encre-revelatrice",
+  "description": "L8-T18 (F-255) : depuis l'outil Sélection, un trait de stylo (couche du dessus), puis l'encre révélatrice en travers : sous elle le fond réapparaît, hors d'elle le trait reste ; versement immédiat.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.select"},
+    {"expect": "appTools.currentTool", "value": "select"},
+    {"command": "tool.pen"},
+    {"stroke": [[200, 400], [800, 400]], "pressure": 0.5},
+    {"waitReady": true},
+    {"checkPixel": "dessus-avant", "at": [500, 400], "color": "#000000", "tolerance": 60},
+    {"command": "tool.reveal-ink"},
+    {"expect": "appTools.currentTool", "value": "reveal-ink"},
+    {"stroke": [[500, 300], [500, 500]], "pressure": 0.5},
+    {"waitReady": true},
+    {"checkPixel": "fond-revele", "at": [500, 400], "color": "#FFFFFF", "tolerance": 30},
+    {"checkPixel": "dessus-garde", "at": [300, 400], "color": "#000000", "tolerance": 60},
+    {"capture": "revelation"}
+  ]
+}

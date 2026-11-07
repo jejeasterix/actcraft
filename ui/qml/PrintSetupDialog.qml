@@ -17,6 +17,8 @@ Popup {
     required property PrintController printing
     property var exchange: null
     property var fileExchangeActions: null // son dialogue d'export et le nom de fichier proposé
+    // Registre des commandes : « Exporter en PDF… » passe par export.pdf (verrou, diffusion protégée).
+    property var commands: null
     signal popupOpened()
     signal popupClosed()
 
@@ -213,7 +215,7 @@ Popup {
                     objectName: "exportButton"
                     text: qsTr("Exporter en PDF…")
                     enabled: dialog.exchange !== null
-                    onClicked: if (dialog.fileExchangeActions) dialog.fileExchangeActions.chooseExportPdf()
+                    onClicked: if (dialog.commands) dialog.commands.trigger("export.pdf")
                 }
                 Button {
                     objectName: "printButton"

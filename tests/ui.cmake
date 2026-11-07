@@ -249,3 +249,27 @@ actcraft_add_test(tst_formats_samples_interactivity
 if(DEFINED ENV{ACTCRAFT_SAMPLES_DIR})
     set_property(TEST tst_formats_samples_interactivity APPEND PROPERTY ENVIRONMENT "ACTCRAFT_SAMPLES_DIR=$ENV{ACTCRAFT_SAMPLES_DIR}")
 endif()
+
+# Lot 8 (L8-T21) : talons de 8b.
+actcraft_add_test(tst_ui_linkdialogs
+    SOURCES tst_ui_linkdialogs.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_mediainsert
+    SOURCES tst_ui_mediainsert.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_mediaitems
+    SOURCES tst_ui_mediaitems.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_recorders
+    SOURCES tst_ui_recorders.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_webpolicy
+    SOURCES tst_ui_webpolicy.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_webframe
+    SOURCES tst_ui_webframe.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+actcraft_add_test(tst_ui_broadcast
+    SOURCES tst_ui_broadcast.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_compile_definitions(tst_ui_webpolicy PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

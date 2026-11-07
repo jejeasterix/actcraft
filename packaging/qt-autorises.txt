@@ -62,3 +62,16 @@ Qt6Widgets
 # vérifiée dans l'en-tête qtconcurrentrun.h de Qt 6.12 (ligne SPDX) : « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR
 # GPL-2.0-only OR GPL-3.0-only », la même que QuickControls2Basic.
 Qt6Concurrent
+# Qt Multimedia et Qt WebView (lot 8, L8-T20, accord H8-6 de Jérôme du 2026-10-21) : modules Qt6Multimedia,
+# Qt6MultimediaQuick, Qt6WebView et Qt6WebViewQuick, liés dynamiquement. Licence vérifiée dans l'en-tête SPDX des
+# fichiers qmediaplayer.h, qtmultimediaquickglobal.h, qwebview.h et qtwebviewquickglobal.h de Qt 6.12.0 :
+# « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only », la même que QuickControls2Basic.
+# Dépendances relevées par otool -L sur Qt 6.12 de Homebrew : QtCore, QtGui, QtNetwork, QtOpenGL, QtQml, QtQuick
+# et leurs modules internes, déjà listés plus haut. Jamais Qt WebEngine, ni Qt6WebEngine*, ni Qt6Pdf avec lui.
+# Les greffons (multimedia/ : moteur FFmpeg de Qt sous Windows et Android, ffmpegmediaplugin ; webview/ : greffon
+# WebView2 sous Windows, greffon Android) ne sont pas des modules : le contrôle des licences lit les bibliothèques
+# Qt6*. Les noms exacts des greffons livrés par Qt 6.12 sont à relever au PC (docs/verifications/2026-10-22-lot8-modules.md).
+Qt6Multimedia
+Qt6MultimediaQuick
+Qt6WebView
+Qt6WebViewQuick

@@ -57,6 +57,33 @@ private slots:
                 for (const auto& p : a->parameters)
                     QVERIFY2(types.contains(p.type), qPrintable(a->id));
     }
+    // Revue L8-C13 : un facteur est réel, strictement positif, 1 au départ (ni borne ni défaut avant).
+    void stepFactorsAreRealPositiveWithDefaultOne()
+    {
+        int checked = 0;
+        for (const auto* a : m_catalog.inCategory(ActionCategory::Object)) {
+            if (!a->id.startsWith(QStringLiteral("object.size-step-")) &&
+                !a->id.startsWith(QStringLiteral("object.stretch-step-")))
+                continue;
+            for (const auto& p : a->parameters) {
+                ++checked;
+                QVERIFY2(p.exclusiveMinimum && p.minimum == 0, qPrintable(a->id + p.name));
+                QVERIFY2(p.hasDefault && p.defaultValue == 1.0, qPrintable(a->id + p.name));
+                QVERIFY2(p.decimals > 0 && p.step > 0 && p.step < 1, qPrintable(a->id + p.name));
+            }
+        }
+        QCOMPARE(checked, 27); // 9 size-step + 9 stretch-step x 2
+    }
+    // Revue L8-C13 : reflect(Axis::X) retourne de haut en bas ; le libellé suit le menu de même effet.
+    void flipAndMirrorLabelsFollowTheMenu()
+    {
+        for (const char* suffix : {"flip-x", "flip-y", "mirror-x", "mirror-y"}) {
+            const auto* action = m_catalog.find(QStringLiteral("object.") + QLatin1String(suffix));
+            const auto* command = m_registry.find(QStringLiteral("transform.") + QLatin1String(suffix));
+            QVERIFY2(action && command, suffix);
+            QCOMPARE(action->label, command->label);
+        }
+    }
     void dragDropListHasEighteen()
     {
         QCOMPARE(m_catalog.dragDropList().size(), 18); // sans les deux entrées de vote (D9)

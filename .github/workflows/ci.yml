@@ -59,7 +59,7 @@ jobs:
         shell: bash
         run: |
           host=$([ "${{ runner.os }}" = "Windows" ] && echo windows || echo mac)
-          python -m aqt install-qt "$host" desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt "$host" desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
@@ -108,7 +108,7 @@ jobs:
       - name: Installer Qt
         shell: bash
         run: |
-          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
@@ -168,9 +168,9 @@ jobs:
 
       - name: Installer Qt (hôte et Android)
         run: |
-          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
-          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
-          python -m aqt install-qt all_os android "$QT_VERSION" android_x86_64 -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_x86_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           echo "ACTCRAFT_QT_HOST_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_ARM64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_X86_64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_x86_64" >> "$GITHUB_ENV"

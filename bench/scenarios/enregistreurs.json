@@ -1,0 +1,30 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "enregistreurs",
+  "description": "S26 (L8-T28) : un enregistrement de son de 3 s par la commande (moteur simulé hors écran, jamais le micro) ; la mention de première utilisation s'affiche, l'indicateur est visible pendant tout l'enregistrement, l'arrêt dépose l'icône de lecture sur la page, l'indicateur disparaît et la durée relevée est celle du temps écoulé (± 0,5 s). Le volet « zone de l'écran, 5 s » est Windows seulement : il reste au PC.",
+  "steps": [
+    {"waitReady": true},
+    {"fixture": "medias", "path": "${SORTIE}/enregistreurs.actcraft"},
+    {"command": "file.open", "argument": "${SORTIE}/enregistreurs.actcraft"},
+    {"waitFor": "documentController.busy", "value": false, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 0},
+    {"expect": "recordingIndicator.visible", "value": false},
+    {"command": "record.sound"},
+    {"waitFor": "recordingIndicator.visible", "value": true, "timeoutMs": 5000},
+    {"expect": "appRecorders.noticeVisible", "value": true},
+    {"expect": "appRecorders.kind", "value": "sound"},
+    {"wait": 1500},
+    {"expect": "recordingIndicator.visible", "value": true},
+    {"waitReady": true},
+    {"capture": "indicateur"},
+    {"wait": 1500},
+    {"expect": "recordingIndicator.visible", "value": true},
+    {"command": "record.stop"},
+    {"waitFor": "documentController.shownObjectCount", "value": 1, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"expect": "recordingIndicator.visible", "value": false},
+    {"expect": "appRecorders.lastDurationOk", "value": true},
+    {"capture": "icone-son"}
+  ]
+}

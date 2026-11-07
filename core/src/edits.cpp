@@ -94,6 +94,9 @@ std::optional<RectF> localBounds(const PageObject& object) noexcept
     } else if (const auto* e = std::get_if<Equation>(&object)) {
         box.addRect(e->bounds);
         margin = 1; // repère d'un pixel (render/) : son anticrénelage déborde de la boîte
+    } else if (const auto* w = std::get_if<WebFrame>(&object)) {
+        box.addRect(w->bounds);
+        margin = 1; // repère d'un pixel (render/, paintWebFrame) : son anticrénelage déborde de la boîte
     } else if (const auto* u = std::get_if<UnknownObject>(&object); u && u->hasBounds) {
         box.addRect(u->bounds);
         margin = 1; // repère d'un pixel (render/) : son anticrénelage déborde de la boîte

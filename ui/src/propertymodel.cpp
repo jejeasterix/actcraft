@@ -1,14 +1,18 @@
-// L6-T12 : modèle du navigateur de propriétés (F-570 à F-576, F-581, F-583, F-840).
+// L6-T12 : modèle du navigateur de propriétés (F-570 à F-576, F-581, F-583, F-840) ; L8-T17 : sections de
+// l'interactivité (interactivityprops.h).
 #include <actcraft/core/arrange.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/objectflags.h>
 #include <actcraft/core/propertyedits.h>
 #include <actcraft/tools/userstate.h>
+#include <actcraft/ui/interactivityprops.h>
 #include <actcraft/ui/propertymodel.h>
 
 #include <QColor>
 #include <QRegularExpression>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 
 #include <algorithm>
 #include <array>
@@ -349,12 +353,38 @@ std::unique_ptr<core::UndoCommand> objectCommand(std::size_t page, std::vector<c
     }
 }
 
+// L8-C2 : objets que l'éditeur « object » propose pour `ids` (isTargetCandidate, la règle même des refus de
+// interactivityCommand), par leur nom, sinon par leur genre ; « Aucun » (identifiant 0) d'abord.
+QVariantList targetsOf(const core::Page& page, const std::vector<core::ObjectId>& ids,
+                       InteractivityField field)
+{
+    const auto entry = [](core::ObjectId id, const QString& name) {
+        return QVariantMap{{QStringLiteral("id"), QVariant(static_cast<qulonglong>(id))},
+                           {QStringLiteral("name"), name}};
+    };
+    QVariantList list{entry(0, PropertyModel::tr("Aucun"))};
+    for (const core::PageObject& object : page.objects) {
+        if (!isTargetCandidate(field, object, ids)) {
+            continue;
+        }
+        const QString name = object.common.name.empty() ? kindLabel(core::kindOf(object))
+                                                        : QString::fromStdString(object.common.name);
+        list.append(entry(object.common.id, name));
+    }
+    return list;
+}
+
 } // namespace
 
+// Ligne du lot 6 (descriptor) ou de l'interactivité (interactivity), jamais les deux.
 struct PropertyModel::Row
 {
     const Descriptor* descriptor = nullptr;
     QVariant value; // invalide si les objets diffèrent
+    const InteractivityRow* interactivity = nullptr;
+    bool enabled = true; // kEnabledRole ; toujours vrai pour une ligne du lot 6
+    // Éditeur « object » : objets proposés ({id, name}, « Aucun » d'abord), rôle ChoicesRole ; vide sinon.
+    QVariantList targets;
 };
 
 PropertyModel::PropertyModel(QObject* parent) : QAbstractListModel(parent)
@@ -382,6 +412,34 @@ QVariant PropertyModel::data(const QModelIndex& index, int role) const
         return {};
     }
     const Row& row = m_rows[static_cast<std::size_t>(index.row())];
+    if (const InteractivityRow* i = row.interactivity) {
+        switch (role) {
+        case SectionRole:
+            return QString::fromLatin1(i->section);
+        case SectionLabelRole:
+            return interactivitySectionLabel(QString::fromLatin1(i->section));
+        case KeyRole:
+            return QString::fromLatin1(i->key);
+        case Qt::DisplayRole:
+        case LabelRole:
+            return tr(i->label);
+        case EditorRole:
+            return interactivityEditorKey(i->editor);
+        case ValueRole:
+            return row.value;
+        case ChoicesRole:
+            return i->editor == InteractivityEditor::Object ? QVariant(row.targets)
+                                                            : QVariant(interactivityChoices(i->field));
+        case MinRole:
+            return std::isnan(i->min) ? QVariant() : QVariant(i->min);
+        case MaxRole:
+            return std::isnan(i->max) ? QVariant() : QVariant(i->max);
+        case kEnabledRole:
+            return row.enabled;
+        default:
+            return {};
+        }
+    }
     const Descriptor& d = *row.descriptor;
     switch (role) {
     case SectionRole:
@@ -403,6 +461,8 @@ QVariant PropertyModel::data(const QModelIndex& index, int role) const
         return std::isnan(d.min) ? QVariant() : QVariant(d.min);
     case MaxRole:
         return std::isnan(d.max) ? QVariant() : QVariant(d.max);
+    case kEnabledRole:
+        return true;
     default:
         return {};
     }
@@ -415,7 +475,7 @@ QHash<int, QByteArray> PropertyModel::roleNames() const
         {KeyRole, "key"},         {LabelRole, "label"},
         {EditorRole, "editor"},   {ValueRole, "value"},
         {ChoicesRole, "choices"}, {MinRole, "minimum"},
-        {MaxRole, "maximum"},
+        {MaxRole, "maximum"},     {kEnabledRole, "enabled"},
     };
 }
 
@@ -424,7 +484,31 @@ bool PropertyModel::setValue(int row, const QVariant& value)
     if (!editable() || row < 0 || row >= rowCount()) {
         return false;
     }
-    const Descriptor& d = *m_rows[static_cast<std::size_t>(row)].descriptor;
+    const Row& shown = m_rows[static_cast<std::size_t>(row)];
+    if (const InteractivityRow* i = shown.interactivity) {
+        // L8-T17 : une ligne grisée refuse ; une étape pour tous les objets montrés, close aussitôt.
+        if (!shown.enabled || m_ids.empty() || !value.isValid()) {
+            return false;
+        }
+        const auto page = static_cast<std::size_t>(m_page);
+        // « Mots acceptés » : la règle du conteneur (H8-12), saisie lue comme la ligne des mots-clés du
+        // lot 6.
+        std::unique_ptr<core::UndoCommand> command =
+            i->field == InteractivityField::ContainWords
+                ? std::make_unique<SetInteractivityCommand>(page, m_ids, InteractivityField::ContainWords,
+                                                            InteractivityValue{keywordsOf(value)})
+                : interactivityCommand(m_document->document().page(page), page, m_ids, *i, value);
+        if (!command) {
+            return false;
+        }
+        m_document->closeMerge();
+        m_sliding = false;
+        const int appliedBefore = m_applied;
+        m_document->execute(std::move(command));
+        m_document->closeMerge();
+        return m_applied != appliedBefore;
+    }
+    const Descriptor& d = *shown.descriptor;
     std::optional<core::PropertyValue> converted = fromVariant(d, value);
     if (!converted) {
         return false;
@@ -463,7 +547,9 @@ bool PropertyModel::setValue(int row, const QVariant& value)
 int PropertyModel::rowOf(const QString& key) const
 {
     for (std::size_t i = 0; i < m_rows.size(); ++i) {
-        if (key == QLatin1String(m_rows[i].descriptor->key)) {
+        const char* rowKey =
+            m_rows[i].interactivity != nullptr ? m_rows[i].interactivity->key : m_rows[i].descriptor->key;
+        if (key == QLatin1String(rowKey)) {
             return static_cast<int>(i);
         }
     }
@@ -583,20 +669,35 @@ void PropertyModel::flush()
     }
     m_pending = false;
     std::vector<Row> rows = rebuild();
-    const bool sameRows = rows.size() == m_rows.size() &&
-                          std::equal(rows.begin(), rows.end(), m_rows.begin(),
-                                     [](const Row& a, const Row& b) { return a.descriptor == b.descriptor; });
+    const bool sameRows =
+        rows.size() == m_rows.size() &&
+        std::equal(rows.begin(), rows.end(), m_rows.begin(), [](const Row& a, const Row& b) {
+            return a.descriptor == b.descriptor && a.interactivity == b.interactivity;
+        });
     if (sameRows) {
-        // Mêmes lignes : seules les valeurs changent, les délégués restent (réglette tenue, champ en saisie).
-        std::vector<int> changed;
+        // Mêmes lignes : seules les valeurs (et le grisé de l'interactivité) changent, les délégués restent
+        // (réglette tenue, champ en saisie). Une ligne du lot 6 ne change que sur ValueRole.
+        std::vector<std::pair<int, QList<int>>> changed;
         for (std::size_t i = 0; i < rows.size(); ++i) {
+            QList<int> roles;
             if (rows[i].value != m_rows[i].value) {
                 m_rows[i].value = std::move(rows[i].value);
-                changed.push_back(static_cast<int>(i));
+                roles.append(ValueRole);
+            }
+            if (rows[i].enabled != m_rows[i].enabled) {
+                m_rows[i].enabled = rows[i].enabled;
+                roles.append(kEnabledRole);
+            }
+            if (rows[i].targets != m_rows[i].targets) {
+                m_rows[i].targets = std::move(rows[i].targets);
+                roles.append(ChoicesRole);
+            }
+            if (!roles.isEmpty()) {
+                changed.emplace_back(static_cast<int>(i), std::move(roles));
             }
         }
-        for (const int row : changed) {
-            emit dataChanged(index(row), index(row), {ValueRole});
+        for (const auto& [row, roles] : changed) {
+            emit dataChanged(index(row), index(row), roles);
         }
     } else {
         beginResetModel();
@@ -631,7 +732,7 @@ std::vector<PropertyModel::Row> PropertyModel::rebuild()
     if (objects.empty()) {
         m_title = tr("Page");
         for (const Descriptor& d : kPageRows) {
-            rows.push_back({&d, toVariant(core::readPageProperty(page, d.pageProperty))});
+            rows.push_back({&d, toVariant(core::readPageProperty(page, d.pageProperty)), nullptr, true, {}});
         }
         return rows;
     }
@@ -654,8 +755,33 @@ std::vector<PropertyModel::Row> PropertyModel::rebuild()
             }
         }
         if (applies) {
-            rows.push_back({&d, common ? toVariant(*first) : QVariant()});
+            rows.push_back({&d, common ? toVariant(*first) : QVariant(), nullptr, true, {}});
         }
+    }
+    // L8-T17 : les cinq sections de l'interactivité, après celles du lot 6. Valeur commune ou invalide, comme
+    // ci-dessus ; grisée si elle l'est pour un des objets.
+    for (const InteractivityRow& r : interactivityRows()) {
+        const bool applies =
+            std::all_of(objects.begin(), objects.end(),
+                        [&r](const core::PageObject* object) { return appliesTo(r, *object); });
+        if (!applies) {
+            continue;
+        }
+        QVariant first;
+        bool common = true;
+        bool enabled = true;
+        for (std::size_t i = 0; i < objects.size(); ++i) {
+            QVariant value = readInteractivity(*objects[i], r.field);
+            if (i == 0) {
+                first = std::move(value);
+            } else if (value != first) {
+                common = false;
+            }
+            enabled = enabled && isEnabled(*objects[i], r.field);
+        }
+        rows.push_back(
+            {nullptr, common ? first : QVariant(), &r, enabled,
+             r.editor == InteractivityEditor::Object ? targetsOf(page, m_ids, r.field) : QVariantList()});
     }
     return rows;
 }
