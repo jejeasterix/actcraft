@@ -214,20 +214,30 @@ private slots:
         ui::MediaInsert insert;
         insert.setDocument(&controller);
         insert.setCommands(&commands);
+        // Une ressource média existe déjà : sans verrou, insertResource l'accepterait (une clé inconnue est
+        // refusée d'elle-même et ne prouverait rien du verrou).
+        QSignalSpy inserted(&insert, &ui::MediaInsert::inserted);
+        insert.insertFile(writeWav(dir, "avant.wav"));
+        QTRY_COMPARE(inserted.count(), 1);
+        const core::Media* before = mediaAt(controller, 0);
+        QVERIFY(before != nullptr);
+        const QString key = QString::fromStdString(before->media);
+        QVERIFY(controller.document().resource(key.toStdString()) != nullptr);
         QSignalSpy failed(&insert, &ui::MediaInsert::failed);
         commands.setLocked(true);
         insert.insertFile(writeWav(dir, "verrou.wav"));
         QCOMPARE(failed.count(), 1);
         QVERIFY(!insert.isBusy());
-        QVERIFY(!controller.canUndo());
-        insert.insertResource(QStringLiteral("x"));
+        insert.insertResource(key);
         QCOMPARE(failed.count(), 2);
+        QCOMPARE(failed.last().at(0).toString(),
+                 QStringLiteral("Insertion refusée : la classe est verrouillée"));
         QTest::qWait(100);
-        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{1});
+        QCOMPARE(inserted.count(), 1);
         commands.setLocked(false);
-        QSignalSpy inserted(&insert, &ui::MediaInsert::inserted);
         insert.insertFile(writeWav(dir, "libre.wav"));
-        QTRY_COMPARE(inserted.count(), 1);
+        QTRY_COMPARE(inserted.count(), 2);
     }
 };
 

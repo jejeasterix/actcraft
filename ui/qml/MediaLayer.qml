@@ -92,8 +92,26 @@ Item {
                         }
                         onLoaded: item.play()
                     }
-                    // Commandes (F-582 : masquées si controlsHidden) : état et avancement, sans prise d'entrée.
+                    // Lecture/pause et arrêt réels (F-552, F-582). Sans lecteur encore, la demande passe par le modèle
+                    // (qui extrait le fichier au besoin) et le lecteur créé joue aussitôt.
+                    function togglePlay() {
+                        if (!playerSlot.item) {
+                            if (mediaLayer.items)
+                                mediaLayer.items.play(slot.mediaId)
+                        } else if (video.playing) {
+                            playerSlot.item.pause()
+                        } else {
+                            playerSlot.item.play()
+                        }
+                    }
+                    function stopPlayback() {
+                        if (playerSlot.item)
+                            playerSlot.item.stop()
+                    }
+                    // Commandes (masquées si controlsHidden). La barre est une couverture d'entrée de la vue (comme le
+                    // plateau de glisser-déposer) : un clic dessus ne trace rien et ne déclenche aucune action de la page.
                     Rectangle {
+                        id: controls
                         objectName: "mediaControls-" + slot.mediaId
                         visible: !slot.controlsHidden
                         anchors.left: parent.left
@@ -101,13 +119,59 @@ Item {
                         anchors.bottom: parent.bottom
                         height: Math.min(24, parent.height / 4)
                         color: "#B0202428"
+                        function syncCover() {
+                            if (!mediaLayer.view)
+                                return
+                            if (controls.visible)
+                                mediaLayer.view.addInputCover(controls)
+                            else
+                                mediaLayer.view.removeInputCover(controls)
+                        }
+                        Component.onCompleted: syncCover()
+                        onVisibleChanged: syncCover()
+                        Component.onDestruction: if (mediaLayer.view) mediaLayer.view.removeInputCover(controls)
+                        Item {
+                            id: toggleButton
+                            objectName: "mediaPlayPause-" + slot.mediaId
+                            width: controls.height
+                            height: controls.height
+                            Text {
+                                anchors.centerIn: parent
+                                text: video.playing ? "\u275A\u275A" : "\u25B6"
+                                color: "#E8EAED"
+                                font.pixelSize: Math.max(8, parent.height * 0.5)
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: video.togglePlay()
+                            }
+                        }
+                        Item {
+                            id: stopButton
+                            objectName: "mediaStop-" + slot.mediaId
+                            x: controls.height
+                            width: controls.height
+                            height: controls.height
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: Math.max(6, parent.height * 0.4)
+                                height: width
+                                color: "#E8EAED"
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: video.stopPlayback()
+                            }
+                        }
                         Rectangle {
-                            anchors.left: parent.left
+                            anchors.left: stopButton.right
+                            anchors.leftMargin: 4
                             anchors.verticalCenter: parent.verticalCenter
                             height: 3
                             color: "#E8EAED"
                             width: playerSlot.item && playerSlot.item.duration > 0
-                                   ? parent.width * playerSlot.item.position / playerSlot.item.duration : 0
+                                   ? Math.max(0, controls.width - 2 * controls.height - 8) * playerSlot.item.position / playerSlot.item.duration
+                                   : 0
                         }
                     }
                     Connections {

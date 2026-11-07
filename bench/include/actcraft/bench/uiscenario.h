@@ -111,6 +111,10 @@ struct UiStep
     bool above = false; // Expect, WaitFor : vrai = lu strictement supérieur à la valeur (L4-T30)
     // Ajouté par L3-C4. MaxEventLoopGap : mesure écrite, l'écart au seuil ne fait pas échouer le scénario.
     bool informative = false;
+    // Ajoutés par L8-C9 : {"skipOn": ["macos"], "skipReason": "…"} — l'étape ne se joue pas sur ces
+    // plateformes (QSysInfo::productType) ; la ligne « SAUTE … » écrit le motif.
+    QStringList skipOn;
+    QString skipReason;
 };
 
 struct UiScenario
