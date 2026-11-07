@@ -7,6 +7,7 @@ Rectangle {
     objectName: "soundController"
     property var commands: null
     property var items: null // MediaItems de la fenêtre
+    property var view: null // vue de page : le lecteur prend l'appui du stylet (patron de DragDropActions)
     readonly property bool playing: items ? items.soundPlaying : false
     readonly property real position: items ? items.soundPosition : 0
     // État demandé, distinct de la visibilité effective (qui dépend aussi du parent) : la bascule le lit.
@@ -20,6 +21,8 @@ Rectangle {
     anchors.bottom: parent ? parent.bottom : undefined
     anchors.margins: 16
     z: 50
+
+    onViewChanged: if (view) view.addInputCover(controller)
 
     function toggle() {
         controller.shown = !controller.shown
@@ -53,6 +56,8 @@ Rectangle {
         Text { anchors.centerIn: parent; text: "■"; color: "#E8EAED" }
     }
     Component.onCompleted: {
+        if (view)
+            view.addInputCover(controller)
         if (!commands)
             return
         commands.setHandler("media.sound-controller", function (arg) { controller.toggle() })
