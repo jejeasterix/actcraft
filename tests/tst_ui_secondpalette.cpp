@@ -25,6 +25,9 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include <cstdint>
+#include <memory>
+
 using namespace actcraft;
 
 namespace {
@@ -162,6 +165,9 @@ private slots:
     void offRestoresTheTouchMode();
     void pinchZoomsOnlyWhenOff();
     void secondUserReceivesInDualMode();
+    // L11-C6 (revue de L11-T9).
+    void undoCancelsTheSecondUsersGesture();
+    void touchModeChangeKeepsTheUsers();
 
 private:
     QTemporaryDir m_settings;
@@ -438,6 +444,78 @@ void TstUiSecondpalette::secondUserReceivesInDualMode()
     QVERIFY(!other->isBusy());
     tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 210));
     QVERIFY(!own->isBusy());
+}
+
+void TstUiSecondpalette::undoCancelsTheSecondUsersGesture()
+{
+    // Revue de L11-T9, majeur 1 : Annuler (editAboutToApply → finishStroke → cancelGesture) abandonne aussi
+    // le geste du second utilisateur. Sans cela, le relâché synthétisé termine son trait en une étape, et
+    // Annuler retire ce trait au lieu de celui du premier.
+    App app;
+    QVERIFY(start(app));
+    ui::DocumentController* controller = app.tools->documentController();
+    QVERIFY(controller);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    const int before = controller->shownObjectCount();
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(680, 220));
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(680, 220));
+    QCOMPARE(controller->shownObjectCount(), before + 1); // trait du premier : une étape
+
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(140, 410));
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(180, 420));
+    QCOMPARE(app.view->lastContactUser(), 1);
+    tools::Tool* other = app.tools->activeTool(1);
+    QVERIFY(other && other->isBusy());
+
+    controller->undo();
+    QVERIFY(!other->isBusy());
+    QCOMPARE(controller->shownObjectCount(), before); // trait du premier retiré, aucun du second versé
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(220, 430));
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(220, 430));
+    QCOMPARE(controller->shownObjectCount(), before);
+}
+
+void TstUiSecondpalette::touchModeChangeKeepsTheUsers()
+{
+    // Revue de L11-T9, majeur 3 : changer le mode du toucher en mode à deux repose une TwoUserPolicy ; elle
+    // garde le stylet du premier utilisateur. Sans cela, le stylet qui se pose le premier après le changement
+    // devient l'utilisateur 0 : utilisateurs permutés.
+    App app;
+    QVERIFY(start(app));
+    auto* touch = app.window->findChild<ui::TouchModeController*>(QStringLiteral("appTouchMode"));
+    QVERIFY(touch);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
+    QCOMPARE(app.view->lastContactUser(), 0);
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 210));
+    const auto* policy = dynamic_cast<const input::TwoUserPolicy*>(app.view->router().policy());
+    QVERIFY(policy);
+    const std::uint64_t first = policy->firstStylusDevice();
+    QVERIFY(first != 0);
+
+    const QString next = touch->mode() == QStringLiteral("select") ? QStringLiteral("pen")
+                                                                    : QStringLiteral("select");
+    QVERIFY(touch->setMode(next));
+    policy = dynamic_cast<const input::TwoUserPolicy*>(app.view->router().policy());
+    QVERIFY(policy);
+    QCOMPARE(policy->firstStylusDevice(), first);
+
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(140, 410));
+    QCOMPARE(app.view->lastContactUser(), 1); // le premier posé après le changement reste le second
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(140, 410));
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 300));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 310));
+    QCOMPARE(app.view->lastContactUser(), 0);
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 310));
 }
 
 QTEST_MAIN(TstUiSecondpalette)
