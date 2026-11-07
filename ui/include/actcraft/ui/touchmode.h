@@ -46,6 +46,7 @@ signals:
     void preferencesChanged();
     void viewChanged();
     void modeChanged();
+    void menuRequested(); // la commande touch.mode jouée sans argument
 
 private:
     void apply(const QString& wanted);

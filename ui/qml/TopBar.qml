@@ -12,7 +12,7 @@ Rectangle {
     required property DocumentController documentController
     required property PageView view
     property bool notesVisible: false
-    property string touchMode: "full"
+    property QtObject touchModeSource: null // TouchModeController (mode coché, ouverture du menu)
     // Fenêtre compacte (< 600 dp) : les menus s'effacent derrière un bouton « … » qui ouvre le menu principal.
     property bool compact: false
     property bool mainMenuOpened: false
@@ -27,7 +27,7 @@ Rectangle {
     TouchModeMenu {
         id: touchModeMenu
         commands: bar.commands
-        mode: bar.touchMode
+        source: bar.touchModeSource
     }
 
     // Tout ce que la barre contient fait la hauteur de la barre, celle d'une cible tactile (Theme.hauteurBarre =

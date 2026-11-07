@@ -41,8 +41,14 @@ void TouchModeController::setCommands(Commands* commands)
     }
     m_commands = commands;
     if (m_commands) {
-        m_commands->setNativeHandler(QString::fromLatin1(kCommand),
-                                     [this](const QVariant& argument) { setMode(argument.toString()); });
+        m_commands->setNativeHandler(QString::fromLatin1(kCommand), [this](const QVariant& argument) {
+            // Sans argument (entrée du menu Affichage) : le menu des quatre choix s'ouvre.
+            if (!argument.isValid()) {
+                emit menuRequested();
+                return;
+            }
+            setMode(argument.toString());
+        });
     }
     emit commandsChanged();
 }

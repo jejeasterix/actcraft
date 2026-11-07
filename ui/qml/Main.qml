@@ -320,7 +320,7 @@ Window {
         commands: appCommands
         documentController: appDocument
         view: pageArea.view
-        touchMode: appTouchMode.mode
+        touchModeSource: appTouchMode
         notesVisible: browserPanel.hasNotes
         compact: appLayout.compact // L11-C2 : menus réunis derrière le bouton « … » de la barre
         mainMenuOpened: mainMenu.opened

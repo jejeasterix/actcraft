@@ -87,6 +87,14 @@ private:
     QTemporaryDir m_settings;
     QPointingDevice* m_touch = nullptr;
 
+    // Les fonctions QML rendent un QVariant.
+    static QString checkedMode(QObject* menu)
+    {
+        QVariant value;
+        QMetaObject::invokeMethod(menu, "checkedMode", Q_RETURN_ARG(QVariant, value));
+        return value.toString();
+    }
+
 private slots:
     void initTestCase()
     {
@@ -185,8 +193,8 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!app.view->contactActive(), 3000);
     }
 
-    // L11-T6 (reste) : l'entrée « Mode du toucher » du menu Affichage ouvre le sous-menu, le mode courant coché ;
-    // choisir « pen » pose le mode.
+    // L11-T6 (reste) : l'entrée « Mode du toucher » du menu Affichage ouvre le sous-menu, le mode courant
+    // coché ; choisir « pen » pose le mode.
     void menuOpensAndChooses()
     {
         App app;
@@ -196,18 +204,10 @@ private slots:
         QCOMPARE(menu->property("opened").toBool(), false);
         QVERIFY(app.controller->commands()->trigger(QStringLiteral("touch.mode")));
         QTRY_VERIFY_WITH_TIMEOUT(menu->property("opened").toBool(), 3000);
-        QString checked;
-        QVERIFY(QMetaObject::invokeMethod(menu, "checkedMode", Q_RETURN_ARG(QString, checked)));
-        QCOMPARE(checked, QStringLiteral("full"));
-        QVERIFY(QMetaObject::invokeMethod(menu, "choose", Q_ARG(QString, QStringLiteral("pen"))));
+        QCOMPARE(checkedMode(menu), QStringLiteral("full"));
+        QVERIFY(QMetaObject::invokeMethod(menu, "choose", Q_ARG(QVariant, QStringLiteral("pen"))));
         QCOMPARE(app.controller->property("mode").toString(), QStringLiteral("pen"));
-        QTRY_COMPARE_WITH_TIMEOUT(
-            [&] {
-                QString now;
-                QMetaObject::invokeMethod(menu, "checkedMode", Q_RETURN_ARG(QString, now));
-                return now;
-            }(),
-            QStringLiteral("pen"), 3000);
+        QTRY_COMPARE_WITH_TIMEOUT(checkedMode(menu), QStringLiteral("pen"), 3000);
     }
 };
 
