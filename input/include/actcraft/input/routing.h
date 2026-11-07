@@ -81,7 +81,9 @@ public:
     void setPolicy(std::unique_ptr<RoutingPolicy> policy); // les contacts en cours gardent leur décision
     // À l'appui, une décision retenue pour le même pointeur est remplacée ; la politique décide et la
     // décision est retenue pour `sample.pointer` (stylet et souris : 0) ; ensuite, la décision retenue ; au
-    // relâché, elle est rendue puis oubliée. Mouvement d'un contact inconnu : Ignore. endToolContacts : les
+    // relâché, elle est rendue puis oubliée. Clé du contact : `sample.pointer`, sauf un stylet de `deviceId`
+    // non nul, qui a la sienne (L11-T7 : deux stylets posés ensemble ; deviceId à chaque échantillon du
+    // contact). Mouvement d'un contact inconnu : Ignore. endToolContacts : les
     // décisions retenues des doigts routés vers l'outil passent à Gesture si l'appui vient d'un doigt
     // seul dans son événement, à Ignore sinon (stylet, souris, doigts posés ensemble ; M4 b).
     Decision route(const Sample& sample);
@@ -96,7 +98,7 @@ public:
     // Consulté à l'appui, avant la politique : vrai → Route::Cover rendue, sans effet sur RouterState.
     void setCoverTest(std::function<bool(const Sample&)> test);
     // Contact terminé ou non pris par la vue (deuxième doigt, annulation, appui couvert) : sa décision est
-    // oubliée.
+    // oubliée. 0 (stylet et souris) oublie la souris et tous les stylets.
     void release(std::uint64_t pointer);
 
 private:
