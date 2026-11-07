@@ -177,6 +177,7 @@ Window {
     MediaInsert {
         id: appMediaInsert
         objectName: "appMediaInsert"
+        portal: appPortal
         commands: appCommands
         document: appDocument
     }
@@ -185,6 +186,7 @@ Window {
         id: appInsertion
         objectName: "appInsertion"
         document: appDocument
+        portal: appPortal
         mediaInsert: appMediaInsert // les médias déposés ou choisis passent par lui (action, espace réservé, verrou)
     }
     DocumentTabs {
@@ -198,6 +200,7 @@ Window {
         id: appExchange
         objectName: "appExchange"
         document: appDocument
+        portal: appPortal
         tabs: appTabs
     }
     PrintController {
@@ -591,6 +594,8 @@ Window {
         objectName: "fileExchangeActions"
         exchange: appExchange
         insertion: appInsertion
+        onImagePicked: (url) => root.insertImageAdmitted(url)
+        onPdfPicked: (url) => root.importPdfAdmitted(url)
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -769,6 +774,8 @@ Window {
         tabs: appTabs
         textEditing: appText
         preferences: appPreferences // documents récents gardés (L6-T24)
+        portal: appPortal
+        onNotice: (message) => messageBanner.show(message)
         broadcast: appBroadcast // L8-T32 : « Enregistrer les modifications ? » refusé dans un document protégé
         commands: appCommands // L8-C7 : « Enregistrer » de Quitter passe par file.save, comme la croix d'un onglet
         onPopupOpened: root.popupOpened()
@@ -825,6 +832,42 @@ Window {
     Connections {
         target: appMediaInsert
         function onFailed(message) { messageBanner.show(message) }
+    }
+    // D11-9 : un document refusé par le portail n'est pas lu ; le message donne son nom, jamais son URL.
+    Connections {
+        target: appPortal
+        function onRefused(name) {
+            messageBanner.show(qsTr("« %1 » n'est plus accessible : l'accès au document est perdu ou le fournisseur ne répond pas.").arg(name))
+        }
+    }
+    // Permissions prêtées pour une lecture unique (image, PDF) : rendues quand plus aucune lecture ne court.
+    function returnLentPermissions() {
+        if (!appInsertion.busy && !appExchange.busy && !appMediaInsert.busy)
+            appPortal.returnLent()
+    }
+    Connections {
+        target: appInsertion
+        function onBusyChanged() { root.returnLentPermissions() }
+    }
+    Connections {
+        target: appExchange
+        function onBusyChanged() { root.returnLentPermissions() }
+    }
+    Connections {
+        target: appMediaInsert
+        function onBusyChanged() { root.returnLentPermissions() }
+    }
+    function insertImageAdmitted(url) {
+        if (appPortal.admit(url))
+            appInsertion.insertImage(url)
+        else
+            root.returnLentPermissions()
+    }
+    function importPdfAdmitted(url) {
+        if (appPortal.admit(url))
+            appExchange.importPdf(url)
+        else
+            root.returnLentPermissions()
     }
     // Échanges de fichiers (L5-T25) : l'échec et la fin arrivent à la bannière.
     Connections {
@@ -1139,7 +1182,7 @@ Window {
         appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
         appCommands.setChecked("view.pen-modifiers", penModifierBar.visible)
         appCommands.setHandler("insert.image", root.argumentOrDialog(
-            function (url) { appInsertion.insertImage(url) }, function () { fileExchangeActions.chooseImage() }))
+            function (url) { root.insertImageAdmitted(url) }, function () { fileExchangeActions.chooseImage() }))
         appCommands.setHandler("insert.media", root.argumentOrDialog(
             function (url) { appMediaInsert.insertFile(url) }, function () { fileExchangeActions.chooseMedia() }))
         appCommands.setHandler("tab.next", function () { appTabs.next() })
@@ -1159,7 +1202,7 @@ Window {
         appCommands.setHandler("export.pdf", root.argumentOrDialog(
             function (url) { appExchange.exportPdf(url) }, function () { fileExchangeActions.chooseExportPdf() }))
         appCommands.setHandler("file.import-pdf", root.argumentOrDialog(
-            function (url) { appExchange.importPdf(url) }, function () { fileExchangeActions.chooseImportPdf() }))
+            function (url) { root.importPdfAdmitted(url) }, function () { fileExchangeActions.chooseImportPdf() }))
         appCommands.setHandler("file.import-powerpoint-images", root.argumentOrDialog(
             function (url) { appExchange.importPowerpointImages(url) }, function () { fileExchangeActions.chooseImportPowerpoint() }))
         appCommands.setHandler("file.print", function () {

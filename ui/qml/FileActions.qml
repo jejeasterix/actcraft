@@ -28,6 +28,8 @@ Item {
     // (verrou de classe et diffusion protégée refusent par le registre). null : save() en direct.
     property var commands: null
     readonly property alias recents: recentList
+    property var portal: null // portail de documents (D11-9), partagé avec Main.qml
+    signal notice(string message) // message à montrer (bandeau de Main.qml)
     signal saved(url url) // enregistrement réussi ; Main.qml décide du résumé (L6-T23)
     property var pending: null    // action à reprendre après « enregistrer ? »
     property var afterSave: null  // action à reprendre après un enregistrement réussi
@@ -250,6 +252,13 @@ Item {
         id: recentList
         objectName: "appRecents"
         preferences: actions.preferences
+        portal: actions.portal
+    }
+    Connections {
+        target: recentList
+        function onStaleRemoved(name) {
+            actions.notice(qsTr("« %1 » a été retiré des documents récents : l'accès au document est perdu.").arg(name))
+        }
     }
     // Documents récents (L6-T24) : à côté de la Connections du lot 5, qui reste inchangée.
     Connections {

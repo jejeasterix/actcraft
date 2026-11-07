@@ -165,14 +165,14 @@ struct Prepared
 };
 
 // Fil du pool : lecture, première image, espace réservé. Aucune requête réseau (file et content seulement).
-Prepared prepare(const QUrl& url, const MediaInsert::FrameProbe& probe)
+Prepared prepare(const QUrl& url, const QString& displayName, const MediaInsert::FrameProbe& probe)
 {
     Prepared out;
     if (url.scheme() != QLatin1String("file") && url.scheme() != QLatin1String("content")) {
         out.error = QStringLiteral("Adresse non prise en charge");
         return out;
     }
-    const QFileInfo info(url.isLocalFile() ? url.toLocalFile() : url.path());
+    const QFileInfo info(displayName);
     out.kind = kindOf(info.suffix());
     if (out.kind == Kind::Unknown) {
         out.error = QStringLiteral("Format de média non pris en charge : %1").arg(info.fileName());
@@ -389,7 +389,10 @@ void MediaInsert::startFile(const QUrl& requested, std::optional<QPointF> center
                 if (done)
                     emit inserted(1);
             });
-    watcher->setFuture(QtConcurrent::run([url, probe = m_probe]() { return prepare(url, probe); }));
+    const QString name =
+        DocumentPortal::nameOf(m_portal, url); // fil principal : le fournisseur est interrogé ici
+    watcher->setFuture(
+        QtConcurrent::run([url, name, probe = m_probe]() { return prepare(url, name, probe); }));
 }
 
 void MediaInsert::insertResource(const QString& key)

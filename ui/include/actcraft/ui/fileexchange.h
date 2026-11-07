@@ -2,9 +2,11 @@
 #include <actcraft/export/pageexport.h>
 #include <actcraft/export/pdfimport.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documentportal.h>
 #include <actcraft/ui/documenttabs.h>
 
 #include <QObject>
+#include <QPointer>
 #include <QQmlEngine>
 #include <QString>
 #include <QUrl>
@@ -20,6 +22,7 @@ class FileExchange : public QObject
     QML_ELEMENT
     Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(DocumentTabs* tabs READ tabs WRITE setTabs NOTIFY tabsChanged)
+    Q_PROPERTY(actcraft::ui::DocumentPortal* portal READ portal WRITE setPortal)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
     Q_PROPERTY(bool pdfImportAvailable READ pdfImportAvailable CONSTANT)
     Q_PROPERTY(bool powerpointAvailable READ powerpointAvailable NOTIFY converterChanged)
@@ -29,6 +32,8 @@ public:
     void setDocument(DocumentController* document);
     DocumentTabs* tabs() const;
     void setTabs(DocumentTabs* tabs);
+    DocumentPortal* portal() const { return m_portal; }
+    void setPortal(DocumentPortal* portal) { m_portal = portal; } // noms d'URL content://
     bool isBusy() const;
     bool pdfImportAvailable() const;
     bool powerpointAvailable() const;
@@ -64,6 +69,7 @@ private:
                       const QString& busyMessage, const QString& doneFormat);
     DocumentController* m_document = nullptr;
     DocumentTabs* m_tabs = nullptr;
+    QPointer<DocumentPortal> m_portal;
     bool m_busy = false;
 };
 
