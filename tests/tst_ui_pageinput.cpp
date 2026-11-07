@@ -207,10 +207,12 @@ private slots:
         bool stylusDown = false;
         int ownMoves = 0;
         int otherMoves = 0;
+        int ownMovesBefore = 0;
+        int otherMovesBefore = 0;
         app.view->setSampleFilter([&](const input::Sample& sample) {
-            if (stylusDown && sample.device == input::DeviceKind::Touch &&
-                sample.phase == input::Phase::Move) {
-                ++(sample.user == input::kFirstUser ? ownMoves : otherMoves);
+            if (sample.device == input::DeviceKind::Touch && sample.phase == input::Phase::Move) {
+                const bool own = sample.user == input::kFirstUser;
+                ++(stylusDown ? (own ? ownMoves : otherMoves) : (own ? ownMovesBefore : otherMovesBefore));
             }
             return sample;
         });
@@ -221,6 +223,11 @@ private slots:
             .move(0, scenePoint(app, QPointF(320, 300)))
             .move(1, scenePoint(app, QPointF(720, 300)));
         QCOMPARE(app.view->lastContactUser(), 0);
+        // L11-C4 : Qt Quick regroupe les mouvements de toucher jusqu'à l'image suivante, et un appui du
+        // stylet ne les livre pas avant lui. Sans cette attente, le stylet arrivait parfois avant eux : le
+        // doigt de l'utilisateur 0 n'avait que son appui, et son trait d'un point n'était pas gardé (1 rouge
+        // sur 20). Les deux doigts écrivent bien avant que le stylet se pose.
+        QTRY_VERIFY_WITH_TIMEOUT(ownMovesBefore >= 1 && otherMovesBefore >= 1, 3000);
         stylusDown = true;
         tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(700, 500));
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 1, 3000); // trait du doigt gardé

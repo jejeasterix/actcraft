@@ -256,7 +256,7 @@
   { "id": "webframe.snapshot", "label": "Poser une image du cadre", "icon": "cadre-web", "lockable": true, "restrictable": true },
   { "id": "webframe.unblock", "label": "Débloquer le contenu du cadre", "icon": "cadre-web", "lockable": true, "restrictable": false },
   { "id": "file.publish", "label": "Diffuser en protégé…", "icon": "diffuser", "lockable": true, "restrictable": true },
-  { "id": "touch.mode", "label": "Mode du toucher", "argument": "text", "icon": "toucher", "lockable": true, "restrictable": false },
+  { "id": "touch.mode", "label": "Mode du toucher", "argument": "text", "optional": true, "icon": "toucher", "lockable": true, "restrictable": false },
   { "id": "users.dual", "label": "Mode à deux utilisateurs", "icon": "deux-utilisateurs", "checkable": true, "lockable": true, "restrictable": false },
   { "id": "help.check-updates", "label": "Rechercher des mises à jour…", "icon": "mises-a-jour", "platforms": ["windows"], "lockable": true, "restrictable": false },
   { "id": "recovery.discard", "label": "Abandonner la copie de reprise", "lockable": false, "restrictable": false },
