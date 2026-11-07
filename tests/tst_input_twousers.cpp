@@ -69,6 +69,61 @@ private slots:
     void initTestCase() { QVERIFY(m_dir.isValid()); }
     void cleanupTestCase() {}
 
+    // L11-C1 (revue T7, M1) : le routeur rend un seul contact, par sa clé ; la vue relâche ainsi l'appui
+    // couvert du stylet 22 sans oublier le stylet 11 qui écrit (release(0) les oubliait tous).
+    void releaseForgetsOnlyThatContact()
+    {
+        input::PointerRouter router;
+        router.setPolicy(twoUsers());
+        router.setCoverTest([](const input::Sample& s) { return s.deviceId == 22; });
+        QCOMPARE(router.route(press(DeviceKind::Stylus, 900, 100, 11)).route, Route::Tool);
+        const input::Sample covered = press(DeviceKind::Stylus, 100, 100, 22);
+        QCOMPARE(router.route(covered).route, Route::Cover);
+        router.release(covered);
+        const input::Decision still = router.route(moved(DeviceKind::Stylus, 905, 105, 11));
+        QCOMPARE(still.route, Route::Tool);
+        QCOMPARE(still.user, UserId{0});
+        // Un doigt (utilisateur 1) se rend de même, sans toucher au stylet 11.
+        const input::Sample finger = press(DeviceKind::Touch, 100, 400, 0, 3);
+        QCOMPARE(router.route(finger).route, Route::Tool);
+        router.release(finger);
+        QCOMPARE(router.route(moved(DeviceKind::Touch, 105, 405, 0, 3)).route, Route::Ignore);
+        QCOMPARE(router.route(moved(DeviceKind::Stylus, 910, 110, 11)).route, Route::Tool);
+    }
+
+    // L11-C1 (revue T7, M4) : par le routeur réel, une paume posée avant le stylet du même utilisateur
+    // cesse d'écrire quand ce stylet se pose (comme M4 b en mode à un) ; le doigt de l'autre utilisateur
+    // continue. Sous l'ancienne politique (jamais endToolContacts), la paume écrit toujours.
+    void stylusEndsOnlyItsUsersFingers()
+    {
+        input::PointerRouter router;
+        router.setPolicy(twoUsers());
+        const input::Decision palm = router.route(press(DeviceKind::Touch, 900, 100, 0, 1));
+        QCOMPARE(palm.route, Route::Tool);
+        QCOMPARE(palm.user, UserId{0});
+        const input::Decision other = router.route(press(DeviceKind::Touch, 100, 100, 0, 2));
+        QCOMPARE(other.route, Route::Tool);
+        QCOMPARE(other.user, UserId{1});
+
+        const input::Decision stylus = router.route(press(DeviceKind::Stylus, 900, 300, 11));
+        QCOMPARE(stylus.route, Route::Tool);
+        QCOMPARE(stylus.user, UserId{0});
+        QVERIFY(stylus.endToolContacts); // les doigts de l'utilisateur 0 seulement
+
+        QCOMPARE(router.route(moved(DeviceKind::Touch, 905, 105, 0, 1)).route, Route::Ignore);
+        const input::Decision still = router.route(moved(DeviceKind::Touch, 105, 105, 0, 2));
+        QCOMPARE(still.route, Route::Tool);
+        QCOMPARE(still.user, UserId{1});
+        QCOMPARE(router.route(moved(DeviceKind::Stylus, 905, 305, 11)).route, Route::Tool);
+
+        // Le stylet de l'utilisateur 1 coupe alors le doigt de l'utilisateur 1, pas le stylet 11.
+        const input::Decision second = router.route(press(DeviceKind::Stylus, 100, 300, 22));
+        QCOMPARE(second.user, UserId{1});
+        QVERIFY(second.endToolContacts);
+        QCOMPARE(router.route(moved(DeviceKind::Touch, 110, 110, 0, 2)).route, Route::Ignore);
+        QCOMPARE(router.route(moved(DeviceKind::Stylus, 910, 310, 11)).route, Route::Tool);
+    }
+
     // Souris → utilisateur 0, même dans la moitié de l'utilisateur 1 ; ce n'est pas un stylet.
     void mouseIsFirstUser()
     {
@@ -103,7 +158,10 @@ private slots:
         d = policy.decide(press(DeviceKind::Stylus, 900, 100, 22), state);
         QCOMPARE(d.route, Route::Tool);
         QCOMPARE(d.user, UserId{1});
-        QVERIFY(!d.endToolContacts);
+        // L11-C1 (revue T7, M4) : le doigt qui écrit est celui de l'utilisateur 1, celui de ce stylet : il
+        // est terminé, et lui seul.
+        QVERIFY(d.endToolContacts);
+        QVERIFY(d.endUserContactsOnly);
 
         d = policy.decide(press(DeviceKind::Stylus, 900, 100, 11), state);
         QCOMPARE(d.route, Route::Tool);

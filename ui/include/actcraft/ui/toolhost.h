@@ -143,6 +143,13 @@ public:
     // branchés. Pendant un appui sur un objet d'action sous la sélection (L8-T9) : la sélection précédée de
     // l'exécuteur.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
+    // L11-C1 (D11-4) : outil imposé à un contact de doigt (modes pen et select), sans changer l'outil
+    // courant. Select : si la sélection est déjà l'outil courant, activeTool(user) (la porte de l'exécuteur
+    // quand un appui sur un objet d'action l'a armée, L8-T9) ; sinon l'outil Sélectionner (créé à la première
+    // demande). Pen et Current : nullptr ; la vue garde son stylo imposé, réglé à chaque appui sur les
+    // réglages « pen » de l'utilisateur (l'hôte n'a qu'un outil par identifiant, partagé avec l'outil
+    // courant).
+    tools::Tool* imposedTool(input::UserId user, input::FingerTool tool) const;
     // État de l'utilisateur. Mode à deux utilisateurs allumé : tout id autre que kFirstUser rend le second
     // état (identifiant kSecondUser) ; éteint : l'utilisateur 0, comme le socle (D-S10).
     tools::UserState& user(input::UserId id = input::kFirstUser);

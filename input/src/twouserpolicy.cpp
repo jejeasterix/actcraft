@@ -24,10 +24,13 @@ UserId TwoUserPolicy::stylusUser(std::uint64_t deviceId) const noexcept
 
 Decision TwoUserPolicy::decide(const Sample& press, const RouterState& state) const
 {
-    Decision decision; // endToolContacts reste faux, fingerTool reste Current
+    Decision decision; // fingerTool reste Current
     if (press.device != DeviceKind::Touch) {
         decision.route = Route::Tool;
         decision.user = press.device == DeviceKind::Stylus ? stylusUser(press.deviceId) : kFirstUser;
+        // M4 b par utilisateur (L11-C1) : la paume de cet utilisateur, posée avant, cesse d'écrire.
+        decision.endToolContacts = state.toolTouchesByUser[decision.user] > 0;
+        decision.endUserContactsOnly = true;
         return decision;
     }
     decision.user = m_area.contains(QPointF(press.x, press.y)) ? kSecondUser : kFirstUser;

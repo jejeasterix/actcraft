@@ -9,13 +9,6 @@ namespace {
 
 // Stylet et souris partagent ce contact ; un doigt a l'identifiant de son point + 1 (qtevents.cpp).
 constexpr std::uint64_t kStylusOrMouse = 0;
-ContactKey contactKey(const Sample& sample) noexcept
-{
-    if (sample.device == DeviceKind::Stylus && sample.deviceId != 0) {
-        return {true, sample.deviceId}; // L11-T7 : deux stylets posés ensemble ne se remplacent pas
-    }
-    return {false, sample.pointer};
-}
 
 bool isStylusOrMouse(const ContactKey& key) noexcept
 {
@@ -49,6 +42,14 @@ RouterState stateOf(const std::map<ContactKey, Decision>& contacts)
 }
 
 } // namespace
+
+ContactKey contactKeyOf(const Sample& sample) noexcept
+{
+    if (sample.device == DeviceKind::Stylus && sample.deviceId != 0) {
+        return {true, sample.deviceId}; // L11-T7 : deux stylets posés ensemble ne se remplacent pas
+    }
+    return {false, sample.pointer};
+}
 
 // Gestion complète du toucher (L3-T5, D12). Seule cette politique dit où va un contact : la vue n'y compte
 // pas les doigts (le lot 11 change la politique, pas la vue).
@@ -90,10 +91,15 @@ void PointerRouter::setPolicy(std::unique_ptr<RoutingPolicy> policy)
     m_policy = std::move(policy);
 }
 
+RoutingPolicy* PointerRouter::policy() const noexcept
+{
+    return m_policy.get();
+}
+
 Decision PointerRouter::decidePress(const Sample& sample, bool covered, int pressesInEvent)
 {
     // Un appui redécide : la décision retenue du même pointeur (relâché jamais vu) est remplacée.
-    const ContactKey key = contactKey(sample);
+    const ContactKey key = contactKeyOf(sample);
     m_contacts.erase(key);
     m_state = stateOf(m_contacts);
     if (covered) {
@@ -116,8 +122,10 @@ Decision PointerRouter::decidePress(const Sample& sample, bool covered, int pres
         // Ignore.
         const bool loneFinger = sample.device == DeviceKind::Touch && pressesInEvent < 2;
         const Route moved = loneFinger ? Route::Gesture : Route::Ignore;
+        // Deux utilisateurs (L11-C1) : seuls les doigts de l'utilisateur de l'appui.
         for (auto& [heldKey, held] : m_contacts) {
-            if (!isStylusOrMouse(heldKey) && held.route == Route::Tool) {
+            const bool ofThisUser = !decision.endUserContactsOnly || held.user == decision.user;
+            if (!isStylusOrMouse(heldKey) && held.route == Route::Tool && ofThisUser) {
                 held.route = moved;
             }
         }
@@ -132,7 +140,7 @@ Decision PointerRouter::route(const Sample& sample)
     if (sample.phase == Phase::Press) {
         return decidePress(sample, m_coverTest && m_coverTest(sample), 1);
     }
-    const auto found = m_contacts.find(contactKey(sample));
+    const auto found = m_contacts.find(contactKeyOf(sample));
     if (found == m_contacts.end()) {
         return Decision{}; // contact inconnu (appui non vu, ou oublié) : Ignore
     }
@@ -188,9 +196,21 @@ void PointerRouter::setCoverTest(std::function<bool(const Sample&)> test)
     m_coverTest = std::move(test);
 }
 
+void PointerRouter::release(const Sample& sample)
+{
+    release(contactKeyOf(sample));
+}
+
+void PointerRouter::release(ContactKey key)
+{
+    if (m_contacts.erase(key) > 0) {
+        m_state = stateOf(m_contacts);
+    }
+}
+
 void PointerRouter::release(std::uint64_t pointer)
 {
-    // La vue relâche par Sample::pointer : 0 oublie la souris et tout stylet (clés par appareil comprises).
+    // Par pointeur : 0 oublie la souris et tout stylet (clés par appareil comprises).
     const auto erased =
         pointer == kStylusOrMouse
             ? std::erase_if(m_contacts, [](const auto& entry) { return isStylusOrMouse(entry.first); })

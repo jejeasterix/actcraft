@@ -1041,6 +1041,15 @@ void ToolHost::discardAdapters() const
     }
 }
 
+tools::Tool* ToolHost::imposedTool(input::UserId user, input::FingerTool tool) const
+{
+    if (tool != input::FingerTool::Select) {
+        return nullptr;
+    }
+    // Un seul sélecteur pour les deux utilisateurs (la sélection par utilisateur est à L11-T8).
+    return currentTool() == QLatin1String("select") ? activeTool(user) : selectTool();
+}
+
 tools::SelectTool* ToolHost::selectTool() const
 {
     return dynamic_cast<tools::SelectTool*>(toolFor(QStringLiteral("select")));

@@ -53,6 +53,9 @@ struct Decision
     // souris ou de doigts posés ensemble (pressesInEvent ≥ 2) : à Ignore (M4 b).
     bool endToolContacts =
         false; // les doigts en cours vers l'outil passent à Gesture ou à Ignore : la vue termine leur trait
+    // Avec endToolContacts : seuls les doigts de `user` (deux utilisateurs, L11-C1 : le stylet ou la souris
+    // d'un utilisateur coupe sa paume, pas le doigt de l'autre) ; faux : les doigts de tous.
+    bool endUserContactsOnly = false;
     FingerTool fingerTool = FingerTool::Current; // outil imposé au contact (modes pen et select, D11-4)
 };
 
@@ -85,12 +88,14 @@ struct ContactKey
     std::uint64_t id = 0;
     auto operator<=>(const ContactKey&) const = default;
 };
+ContactKey contactKeyOf(const Sample& sample) noexcept;
 
 class PointerRouter
 {
 public:
     PointerRouter();                                       // FullTouchPolicy
     void setPolicy(std::unique_ptr<RoutingPolicy> policy); // les contacts en cours gardent leur décision
+    RoutingPolicy* policy() const noexcept;                // la politique posée (à lui)
     // À l'appui, une décision retenue pour le même pointeur est remplacée ; la politique décide et la
     // décision est retenue pour `sample.pointer` (stylet et souris : 0) ; ensuite, la décision retenue ; au
     // relâché, elle est rendue puis oubliée. Clé du contact : `sample.pointer`, sauf un stylet de `deviceId`
@@ -109,8 +114,12 @@ public:
     void reset(); // tout contact oublié (perte de saisie)
     // Consulté à l'appui, avant la politique : vrai → Route::Cover rendue, sans effet sur RouterState.
     void setCoverTest(std::function<bool(const Sample&)> test);
-    // Contact terminé ou non pris par la vue (deuxième doigt, annulation, appui couvert) : sa décision est
-    // oubliée. 0 (stylet et souris) oublie la souris et tous les stylets.
+    // Contact terminé ou non pris par la vue (deuxième doigt, annulation, appui couvert) : la décision de ce
+    // seul contact (clé de `sample`, ou `key`) est oubliée ; un autre stylet garde la sienne (L11-C1). La vue
+    // rend toujours un contact ainsi.
+    void release(const Sample& sample);
+    void release(ContactKey key);
+    // Par pointeur (tests, perte de saisie) : 0 (stylet et souris) oublie la souris et tous les stylets.
     void release(std::uint64_t pointer);
 
 private:
