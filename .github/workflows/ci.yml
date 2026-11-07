@@ -6,6 +6,19 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      # Repli manuel seulement : macos-latest consomme des minutes payantes (dépôt privé), sur accord de Jérôme.
+      runner_macos:
+        description: "Exécuteur du build macOS : self-hosted (Mac mini) ou macos-latest (minutes payantes)"
+        type: choice
+        options: [self-hosted, macos-latest]
+        default: self-hosted
+      # Même règle pour Windows : windows-latest dépasse 1 h 30 (run 42179892383), repli sur accord de Jérôme.
+      runner_windows:
+        description: "Exécuteur du build Windows : self-hosted (PC) ou windows-latest (minutes payantes)"
+        type: choice
+        options: [self-hosted, windows-latest]
+        default: self-hosted
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -30,6 +43,9 @@ jobs:
           git ls-files '*.cpp' '*.h' '*.hpp' | xargs --no-run-if-empty clang-format --dry-run --Werror
 
   build:
+    # Nom fixe : les contrôles restent « build (windows-latest, win64_msvc2022_64) » et « build (macos-latest,
+    # clang_64) » quel que soit l'exécuteur réel.
+    name: build (${{ matrix.os }}, ${{ matrix.qt_arch }})
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     strategy:
       fail-fast: false
@@ -39,23 +55,78 @@ jobs:
             qt_arch: win64_msvc2022_64
           - os: macos-latest
             qt_arch: clang_64
-    runs-on: ${{ matrix.os }}
+    # Entrée macOS sur le runner auto-hébergé du Mac mini (cache Qt et ccache chauds), entrée Windows sur celui du PC
+    # (Qt local, arbre de compilation gardé d'un run à l'autre). Aucun repli automatique sur un exécuteur GitHub.
+    # Repli manuel : gh workflow run ci.yml --ref <branche> -f runner_macos=macos-latest (ou -f runner_windows=windows-latest).
+    runs-on: ${{ matrix.os == 'macos-latest' && (inputs.runner_macos == 'macos-latest' && 'macos-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]')) || (inputs.runner_windows == 'windows-latest' && 'windows-latest' || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]')) }}
     # Lot 4 : la suite debug Windows, jouée en série, dépasse 20 min (73/138 tests à 11 min, PR #8). Lot 5 : 170 tests,
     # coupée à 99/170 à 50 min (run 41715403316, PR #9) ; 90 min de marge.
     timeout-minutes: 90
     steps:
+      # Runner auto-hébergé : dépôt privé seulement, et pas de job lourd sous 3 Go de mémoire disponible (le Mac porte
+      # aussi les sessions Claude). La garde qui fait foi est côté Mac, hors de portée d'une PR :
+      # ~/actions-runner-actcraft/garde-job.sh (ACTIONS_RUNNER_HOOK_JOB_STARTED). Celle-ci la double.
+      - name: Gardes du runner auto-hébergé (visibilité, mémoire)
+        if: runner.environment != 'github-hosted' && runner.os == 'macOS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          visibilite=$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility)
+          if [ "$visibilite" != "private" ]; then
+            echo "::error::Dépôt $visibilite : runner auto-hébergé interdit. Arrêter et désenregistrer le runner du Mac (~/actions-runner-actcraft)."
+            exit 1
+          fi
+          dispo_go() {
+            # Part libre selon macOS (mémoire compressible comprise), en Go entiers.
+            memory_pressure | awk -v t="$(sysctl -n hw.memsize)" '/free percentage/ {sub("%","",$NF); printf "%d", $NF*t/100/1073741824}'
+          }
+          for i in $(seq 1 30); do
+            go=$(dispo_go)
+            if ! [ "$go" -ge 0 ] 2>/dev/null; then echo "::error::Mémoire disponible illisible (memory_pressure)"; exit 1; fi
+            if [ "$go" -ge 3 ]; then echo "Mémoire disponible : $go Go"; exit 0; fi
+            echo "Mémoire disponible : $go Go (< 3 Go), nouvel essai dans 30 s ($i/30)"
+            sleep 30
+          done
+          echo "::error::Moins de 3 Go de mémoire disponible sur le Mac depuis 15 min : build macOS abandonné, à relancer."
+          exit 1
+
+      # PC : la garde qui fait foi (dépôt privé, 2 Go libres) est C:\actions-runner-actcraft\garde-job.ps1
+      # (ACTIONS_RUNNER_HOOK_JOB_STARTED), hors de portée d'une PR. Celle-ci double la visibilité.
+      - name: Garde du runner auto-hébergé Windows (visibilité)
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $visibilite = (gh api "repos/$env:GITHUB_REPOSITORY" --jq .visibility).Trim()
+          if ($LASTEXITCODE -ne 0 -or $visibilite -ne 'private') {
+            "::error::Dépôt '$visibilite' : runner auto-hébergé interdit. Arrêter la tâche Claude-Runner-Actcraft et désenregistrer le runner (C:\actions-runner-actcraft)."
+            exit 1
+          }
+
+      # Runner du PC : l'arbre build/ reste d'un run à l'autre (compilation incrémentale de Ninja) ; tout autre fichier
+      # non suivi est retiré, comme le ferait le nettoyage par défaut.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          clean: ${{ runner.environment == 'github-hosted' || runner.os != 'Windows' }}
+
+      - name: Nettoyer la copie de travail, sauf build/ (runner Windows)
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        run: git clean -ffdx -e /build/
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: runner.environment == 'github-hosted'
         with:
           python-version: "3.12"
 
       # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) : version de développement,
       # épinglée sur le commit vérifié par les runs du 2026-10-15 (même commit dans les trois jobs).
       - name: Installer Ninja et aqtinstall
+        if: runner.environment == 'github-hosted'
         run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
       - name: Installer Qt
+        if: runner.environment == 'github-hosted'
         shell: bash
         run: |
           host=$([ "${{ runner.os }}" = "Windows" ] && echo windows || echo mac)
@@ -64,11 +135,82 @@ jobs:
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
 
+      # Mac mini : Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une fois dans le cache du
+      # runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à l'autre.
+      - name: Qt, Ninja et ccache du Mac
+        if: runner.environment != 'github-hosted' && runner.os == 'macOS'
+        shell: bash
+        run: |
+          cache="$HOME/actions-runner-actcraft/_cache"
+          mkdir -p "$cache"
+          brew_qt=/opt/homebrew/opt/qt
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1)
+          if [ "$version" = "$QT_VERSION" ]; then
+            qt_dir="$brew_qt"
+          else
+            echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
+            qt_dir="$cache/Qt/$QT_VERSION/macos"
+            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant.
+            if [ ! -f "$cache/Qt/$QT_VERSION/.complet" ]; then
+              rm -rf "$cache/Qt/$QT_VERSION"
+              python3 -m venv "$cache/venv-aqt"
+              "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf --outputdir "$cache/Qt"
+              touch "$cache/Qt/$QT_VERSION/.complet"
+            fi
+          fi
+          command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
+          echo "Qt : $qt_dir ($version)"
+          echo "ACTCRAFT_QT_DIR=$qt_dir" >> "$GITHUB_ENV"
+          echo "$qt_dir/bin" >> "$GITHUB_PATH"
+          # 4 compilations à la fois : le Mac (8 Go) garde de la mémoire pour les sessions pendant le build.
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=4" >> "$GITHUB_ENV"
+          if command -v ccache >/dev/null; then
+            echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            # Pas de CCACHE_BASEDIR : il rend __FILE__ relatif et casse QFINDTESTDATA (tst_modules, tst_ui_preferences).
+            # Le dossier de travail du runner est fixe, les chemins absolus suffisent au cache.
+            echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
+          fi
+
+      # PC : Qt installé une fois dans C:\Qt par aqtinstall (même commit que la CI, mêmes modules et plus).
+      - name: Qt du PC
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $qt = "C:\Qt\$env:QT_VERSION\msvc2022_64"
+          foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf') {
+            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 ...)"; exit 1 }
+          }
+          "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
+          "$qt\bin" >> $env:GITHUB_PATH
+          # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.
+          "CMAKE_BUILD_PARALLEL_LEVEL=6" >> $env:GITHUB_ENV
+          # 4 tests à la fois : en série, les tests d'interface prennent plus de 90 min sur les cœurs lents du PC
+          # (Core Ultra 5 125U, run 42268652493). Chacun tourne hors écran, avec réglages et ressources dans des
+          # dossiers jetables ; les plus gros (banc, captures) montent à ~270 Mo privés, d'où 4 et non 6.
+          "CTEST_PARALLEL_LEVEL=4" >> $env:GITHUB_ENV
+
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         if: runner.os == 'Windows'
 
+      # Ninja vient des Build Tools de Visual Studio (composant CMake), mis dans le PATH par msvc-dev-cmd.
+      - name: Outils du PC (Ninja, CMake, MSVC)
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($outil in 'ninja', 'cmake', 'cl') {
+            $chemin = (Get-Command $outil -ErrorAction SilentlyContinue).Source
+            if (-not $chemin) { "::error::$outil absent du PATH après msvc-dev-cmd (Build Tools 2022, composant CMake)"; exit 1 }
+            "$outil : $chemin"
+          }
+          ninja --version
+          cmake --version | Select-Object -First 1
+
+      # Runner du PC : --fresh refait le cache CMake (Qt, compilateur, options) à chaque run ; Ninja ne recompile que
+      # les fichiers changés ou dont la ligne de commande a changé.
       - name: Configurer
-        run: cmake --preset debug
+        run: cmake --preset debug ${{ (runner.environment != 'github-hosted' && runner.os == 'Windows') && '--fresh' || '' }}
 
       - name: Compiler
         run: cmake --build --preset debug
@@ -90,6 +232,9 @@ jobs:
           python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print('graphics_api =', d['graphics_api'])" "$RUNNER_TEMP/bench-macos.json"
 
   # S1 : installateur construit et essayé, jamais téléversé (DA9).
+  # Reste sur windows-latest : l'essai S1 installe ActCraft dans le profil de l'utilisateur (HKCU, menu Démarrer,
+  # association .actcraft) et ouvre une fenêtre ; sur le PC, ce serait le profil et l'écran de Jérôme. Son délai de
+  # 25 min est dépassé depuis le 2026-11-06 (runs 42172283244 à 42203688470) : à traiter à part.
   paquet-windows:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: windows-latest
@@ -141,11 +286,21 @@ jobs:
   android:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # 30 min : la libération du disque ajoute environ une minute à un job qui en prenait déjà 22.
+    timeout-minutes: 30
     env:
       # Un démon Gradle resté vivant verrouille le dossier de construction (piège L1-T17).
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
+      # ubuntu-latest manque de place pour l'image système de l'émulateur (« No space left on device »,
+      # run 42172283244). On retire des outils que le job n'utilise pas ; le SDK Android (NDK, plateformes),
+      # Java, Python et pwsh restent en place.
+      - name: Libérer de la place disque
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/share/swift
+          df -h /
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
