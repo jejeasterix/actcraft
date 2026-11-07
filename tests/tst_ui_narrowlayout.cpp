@@ -108,6 +108,7 @@ private slots:
     void paletteCollapsible();
     void wideLayoutUnchanged();
     void paletteFitsShortWindow();
+    void topBarOverflow();
 
 private:
     QTemporaryDir m_settings;
@@ -404,6 +405,38 @@ void TstUiNarrowlayout::paletteFitsShortWindow()
         }
         QTRY_VERIFY(inView());
     }
+}
+
+void TstUiNarrowlayout::topBarOverflow()
+{
+    Shell s;
+    QVERIFY(start(s));
+    QQuickItem* topBar = item(s, "topBar");
+    QVERIFY(topBar);
+    // Le débordement appartient à la barre : le bouton « … » en est un descendant.
+    QQuickItem* overflow = findItem(topBar, QStringLiteral("topOverflow"));
+    QVERIFY(overflow);
+    QQuickItem* menu = findItem(topBar, QStringLiteral("menu-file"));
+    QVERIFY(menu);
+    // Large : menus visibles, bouton caché.
+    QVERIFY(resizeTo(s, QSize(1280, 800)));
+    QVERIFY(menu->isVisible());
+    QVERIFY(!overflow->isVisible());
+    // Compacte (< 600 dp) : menus cachés, bouton visible, son clic ouvre le menu principal.
+    QVERIFY(resizeTo(s, QSize(500, 900)));
+    QTRY_VERIFY(!menu->isVisible());
+    QVERIFY(overflow->isVisible());
+    QObject* mainMenu = s.window->findChild<QObject*>(QStringLiteral("mainMenu"));
+    QVERIFY(mainMenu);
+    QVERIFY(!mainMenu->property("opened").toBool());
+    clickCenter(s, overflow);
+    QTRY_VERIFY(mainMenu->property("opened").toBool());
+    QVERIFY(QMetaObject::invokeMethod(mainMenu, "close"));
+    QTRY_VERIFY(!mainMenu->property("opened").toBool());
+    // Retour en large.
+    QVERIFY(resizeTo(s, QSize(1280, 800)));
+    QTRY_VERIFY(menu->isVisible());
+    QVERIFY(!overflow->isVisible());
 }
 
 QTEST_MAIN(TstUiNarrowlayout)

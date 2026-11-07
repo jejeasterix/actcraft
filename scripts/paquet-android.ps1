@@ -77,7 +77,7 @@ try {
         }
         if ($LASTEXITCODE -ne 0) { throw "construction $preset en échec" }
         $brut = Get-ChildItem -Recurse -Filter '*.apk' "build/$preset" |
-            Where-Object { $_.FullName -match 'outputs[\\/]apk' } | Sort-Object LastWriteTime | Select-Object -Last 1
+            Where-Object { $_.FullName -match 'outputs[\\/]apk' -and $_.Name -notmatch 'actcraft-bench' } | Sort-Object LastWriteTime | Select-Object -Last 1
         if (-not $brut) { throw "aucun APK produit sous build/$preset" }
 
         $aligne = Join-Path $sortie "ActCraft-$version-$a-aligne.apk"
