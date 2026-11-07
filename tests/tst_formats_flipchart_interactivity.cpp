@@ -187,6 +187,28 @@ private slots:
         QCOMPARE(objects[0].common.layer, core::Layer::Middle);
     }
 
+    // L8-C6 (plan L8-T5 étape 2) : la combinaison qui découpe vraiment. Le rendu ne découpe que si l'encre
+    // révélatrice est sur la couche du dessus (render/src/pagepainter.cpp:885-888) ; le plan 2 du fichier
+    // donne Layer::Top (formats/src/flipchart.cpp:999). Le lecteur lit le plan du fichier, il ne force rien :
+    // le test précédent (plan 1) garde le cas de la couche intermédiaire.
+    void revealInkOnTopLayerRead()
+    {
+        using fctest::synth::io;
+        using fctest::synth::ir;
+        Obj stroke = fctest::synth::item(3, 1011, "Encre", 2, 1, fctest::synth::place(10, 10));
+        stroke.object(10, 6, Obj(20, 0).integer(2, 2).real(3, 6).integer(5, 32).argb(7, kBlack))
+            .integer(39, 2201);
+        const auto r = readPage({Node(1010, 3, 1011)}, {io(1011, stroke)},
+                                {ir(2201, Obj(4, 2201).points(4, {QPointF(0, 0), QPointF(20, 10)}))});
+        QVERIFY2(r.ok, qPrintable(r.error));
+        const auto& objects = r.document.page(0).objects;
+        QCOMPARE(objects.size(), std::size_t{1});
+        const auto* s = std::get_if<core::Stroke>(&objects[0]);
+        QVERIFY(s);
+        QCOMPARE(s->kind, core::StrokeKind::Revealer);
+        QCOMPARE(objects[0].common.layer, core::Layer::Top);
+    }
+
     // Aucun identifiant au préfixe des noms de l'original dans nos numéros du format.
     void noNameOfTheOriginal()
     {

@@ -49,6 +49,9 @@ constexpr QLatin1StringView kBroadcast("diffusion-protegee");
 // L8-T23 (S25) : une page vide et, à côté du document, deux sons « son.wav » et « son2.wav » de 0,5 s à
 // insérer.
 constexpr QLatin1StringView kMedias("medias");
+// L8-C6 (étape 5 du plan L8-T18, F-255) : un rectangle vert sur la couche intermédiaire, recouvert par un
+// rectangle rouge de la couche du dessus.
+constexpr QLatin1StringView kRevealingInk("encre-revelatrice");
 
 // PNG de 64 × 64 produit par Qt à chaque passage : moitié gauche rouge, moitié droite blanche.
 QByteArray redAndWhitePng()
@@ -374,6 +377,26 @@ bool buildBroadcast(const QString& path, QString& error)
     return writeActcraft(document, path, error);
 }
 
+// Page 1024 × 768 : rectangle vert #00A000 (200, 200, 600, 400) sur la couche intermédiaire, rectangle rouge
+// #FF0000 de même emprise sur la couche du dessus. L'encre révélatrice qui le traverse laisse voir le vert
+// sous son tracé (la couche intermédiaire n'est pas découpée) ; hors de son tracé le rouge reste. Un outil
+// qui gommerait le trait, ou qui découperait aussi la couche intermédiaire, fait rougir le scénario.
+bool buildRevealingInk(const QString& path, QString& error)
+{
+    const auto block = [](core::ObjectId id, core::Argb fill, core::Layer layer) {
+        core::Shape rect;
+        rect.kind = core::ShapeKind::Rectangle;
+        rect.bounds = {200, 200, 600, 400};
+        rect.fill = fill;
+        core::PageObject object = rect;
+        object.common.id = id;
+        object.common.layer = layer;
+        return object;
+    };
+    return writeOnePage({block(1, 0xFF00A000u, core::Layer::Middle), block(2, 0xFFFF0000u, core::Layer::Top)},
+                        "Encre révélatrice", path, error);
+}
+
 // Table des fixtures : nom, écriture du fichier (un seul endroit pour la liste et pour la construction).
 struct FixtureEntry
 {
@@ -394,6 +417,7 @@ constexpr FixtureEntry kFixtures[] = {
     {kInteractivity, buildInteractivity},
     {kBroadcast, buildBroadcast},
     {kMedias, buildMedias},
+    {kRevealingInk, buildRevealingInk},
 };
 
 } // namespace

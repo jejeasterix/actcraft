@@ -25,12 +25,31 @@ Item {
     property int currentRow: -1
     readonly property int targetRow: currentRow >= 0 && currentRow < count ? currentRow : (count > 0 ? 0 : -1)
     property var dialog: null
-    readonly property bool covered: confirm.opened || (dialog !== null && dialog.opened)
+    // Vue native au-dessus de tout le QML : masquée tant qu'une boîte de la fenêtre est ouverte, la
+    // nôtre (ci-dessous, relayée) ou toute autre (menus compris : Main.openPopups, via PageArea.inputBlocked).
+    readonly property bool covered: confirm.opened || (dialog !== null && dialog.opened) ||
+                                    (pageArea !== null && pageArea.inputBlocked)
 
     WebFrameItems {
         id: appWebFrames
         objectName: "appWebFrames"
         document: frameLayer.pageArea ? frameLayer.pageArea.documentController : null
+    }
+
+    // La boîte du cadre (Main.qml) recouvre la page comme les autres : relayée à la fenêtre par PageArea
+    // (popupOpened/popupClosed vers Main.openPopups), pour que le stylet ne dessine pas derrière et que Échap
+    // ne soit plus global tant qu'elle est ouverte.
+    Connections {
+        target: frameLayer.dialog
+        ignoreUnknownSignals: true
+        function onOpenedChanged() {
+            if (!frameLayer.pageArea)
+                return
+            if (frameLayer.dialog.opened)
+                frameLayer.pageArea.popupOpened()
+            else
+                frameLayer.pageArea.popupClosed()
+        }
     }
 
     function findArea() {
@@ -317,5 +336,7 @@ Item {
         }
         onAccepted: appWebFrames.answer(true)
         onRejected: appWebFrames.answer(false)
+        onOpened: if (frameLayer.pageArea) frameLayer.pageArea.popupOpened()
+        onClosed: if (frameLayer.pageArea) frameLayer.pageArea.popupClosed()
     }
 }
