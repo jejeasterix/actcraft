@@ -44,6 +44,8 @@
 
 namespace actcraft::ui {
 
+void discardToolAdapters(std::unique_ptr<ToolAdapters>& slot); // ci-dessous (L11-T9 : deux jeux)
+
 namespace {
 
 constexpr int kRelayedModifiers = Qt::ShiftModifier | Qt::ControlModifier;
@@ -331,8 +333,9 @@ ToolHost::~ToolHost()
     if (m_controller && m_observer != 0) {
         m_controller->removeChangeObserver(m_observer); // l'observateur tient `this`
     }
-    m_gate.reset();     // il regarde l'outil de sélection
-    m_adapters.reset(); // les outils avant les adaptateurs qu'ils regardent
+    m_gate.reset();           // il regarde l'outil de sélection
+    m_secondAdapters.reset(); // les outils avant les adaptateurs qu'ils regardent
+    m_adapters.reset();
 }
 
 Commands* ToolHost::commands() const noexcept
@@ -348,6 +351,7 @@ void ToolHost::setCommands(Commands* commands)
     cancelGesture();
     m_commands = commands;
     m_adapters.reset();
+    m_secondAdapters.reset();
     syncToolCommands();
     emit wiringChanged();
 }
@@ -372,6 +376,7 @@ void ToolHost::setDocumentController(DocumentController* controller)
     m_observer = 0;
     m_controller = controller;
     m_adapters.reset();
+    m_secondAdapters.reset();
     if (m_controller) {
         // Annuler, Rétablir, Effacer, Ouvrir… et changement de page : l'outil abandonne d'abord son geste ;
         // la sélection et la gomme déposent sans étape (M2). Le soulèvement, lui, n'annonce rien (B1).
@@ -408,6 +413,7 @@ void ToolHost::setView(PageView* view)
     }
     m_view = view;
     m_adapters.reset();
+    m_secondAdapters.reset();
     if (m_view) {
         // L'encre remplacée : les adaptateurs sont reconstruits à la demande suivante (adapters()), après
         // l'abandon du geste en cours (m1, L3-C8 : discardAdapters, pas cancelGesture, voir plus bas).
@@ -436,6 +442,7 @@ void ToolHost::setLiftLayer(render::LiftLayerItem* layer)
     cancelGesture();
     m_liftLayer = layer;
     m_adapters.reset();
+    m_secondAdapters.reset();
     emit wiringChanged();
 }
 
@@ -573,6 +580,7 @@ void ToolHost::activate(const QString& toolId)
         previous->deactivate(); // abandon du geste en cours (M9) ; la sélection masque son cadre
     }
     state.setCurrentTool(toolId);
+    m_fingerSelecting = false; // un autre outil choisi : le cadre suit de nouveau l'outil courant
     if (isInkTool(toolId)) {
         m_lastInk = toolId;
     }
@@ -860,8 +868,11 @@ void ToolHost::cancelGesture()
     }
 }
 
-tools::Tool* ToolHost::activeTool(input::UserId) const
+tools::Tool* ToolHost::activeTool(input::UserId user) const
 {
+    if (isSecond(user)) {
+        return secondToolFor(m_secondUser->currentTool()); // L11-T9 : son outil, jamais la porte du premier
+    }
     tools::Tool* tool = toolFor(currentTool());
     if (tool == nullptr || !m_gateArmed || !m_actionRunner || currentTool() != QLatin1String("select")) {
         return tool;
@@ -943,6 +954,16 @@ void ToolHost::setDualUsers(bool on)
     }
     if (on && !m_secondUser) {
         m_secondUser = std::make_unique<tools::UserState>(input::kSecondUser);
+    }
+    if (!on && m_secondAdapters) { // L11-T9 : un geste du second utilisateur s'arrête, ses objets sont rendus
+        for (const auto& entry : m_secondAdapters->tools) {
+            if (tools::Tool* busy = entry.second.get(); busy && busy->isBusy()) {
+                busy->cancel();
+            }
+        }
+    }
+    if (!on) {
+        m_grabs.release(input::kSecondUser);
     }
     m_dualUsers = on;
     emit dualUsersChanged();
@@ -1029,7 +1050,13 @@ ToolAdapters* ToolHost::adapters() const
 // deux fois.
 void ToolHost::discardAdapters() const
 {
-    const std::unique_ptr<ToolAdapters> discarded = std::move(m_adapters);
+    discardToolAdapters(m_secondAdapters);
+    discardToolAdapters(m_adapters);
+}
+
+void discardToolAdapters(std::unique_ptr<ToolAdapters>& slot)
+{
+    const std::unique_ptr<ToolAdapters> discarded = std::move(slot);
     if (!discarded || !discarded->controllerRef || !discarded->viewRef || !discarded->inkRef ||
         !discarded->layerRef) {
         return;
@@ -1046,8 +1073,15 @@ tools::Tool* ToolHost::imposedTool(input::UserId user, input::FingerTool tool) c
     if (tool != input::FingerTool::Select) {
         return nullptr;
     }
-    // Un seul sélecteur pour les deux utilisateurs (la sélection par utilisateur est à L11-T8).
-    return currentTool() == QLatin1String("select") ? activeTool(user) : selectTool();
+    if (isSecond(user)) { // L11-T9 : le sélecteur du second utilisateur
+        return m_secondUser->currentTool() == QLatin1String("select") ? activeTool(user)
+                                                                       : secondToolFor(QStringLiteral("select"));
+    }
+    if (currentTool() == QLatin1String("select")) {
+        return activeTool(user);
+    }
+    m_fingerSelecting = true; // son cadre est montré (showSelection)
+    return selectTool();
 }
 
 tools::SelectTool* ToolHost::selectTool() const
@@ -1082,8 +1116,162 @@ tools::Tool* ToolHost::toolFor(const QString& id) const
         return nullptr;
     }
     tools::Tool* added = wired->tools.emplace(id, std::move(created)).first->second.get();
+    adopt(added);
     configureTool(added);
     return added;
+}
+
+bool ToolHost::isSecond(input::UserId user) const noexcept
+{
+    return m_dualUsers && m_secondUser && user != input::kFirstUser;
+}
+
+void ToolHost::adopt(tools::Tool* tool) const
+{
+    if (auto* select = dynamic_cast<tools::SelectTool*>(tool)) {
+        select->setGrabs(&m_grabs); // outil neuf : rien en cours, rien à abandonner avant
+    }
+}
+
+ToolAdapters* ToolHost::secondAdapters() const
+{
+    render::InkItem* ink = m_view ? m_view->ink() : nullptr;
+    if (!m_secondUser || !m_controller || !m_view || !m_liftLayer || !ink) {
+        discardToolAdapters(m_secondAdapters);
+        return nullptr;
+    }
+    if (m_secondAdapters && m_secondAdapters->matches(m_controller.data(), m_view.data(), ink,
+                                                      m_liftLayer.data(), m_commands.data())) {
+        return m_secondAdapters.get();
+    }
+    discardToolAdapters(m_secondAdapters);
+    auto* self = const_cast<ToolHost*>(this);
+    // Cadre du second utilisateur non montré : la surcouche n'en dessine qu'un, celui du premier (consigné).
+    m_secondAdapters = std::make_unique<ToolAdapters>(
+        *m_controller, *m_view, *ink, *m_liftLayer, m_commands.data(), *m_secondUser,
+        [](const QVariantMap&, bool) {}, [self] { return self->m_trashArea; }, [](bool) {});
+    m_secondAdapters->context.lockIgnored = m_lockIgnored;
+    m_secondAdapters->context.snapDisabled = m_snapDisabled;
+    return m_secondAdapters.get();
+}
+
+tools::Tool* ToolHost::secondToolFor(const QString& id) const
+{
+    ToolAdapters* wired = secondAdapters();
+    if (!wired) {
+        return nullptr;
+    }
+    if (auto found = wired->tools.find(id); found != wired->tools.end()) {
+        return found->second.get();
+    }
+    std::unique_ptr<tools::Tool> created = registry().create(id, wired->context); // réglages du second
+    if (!created) {
+        return nullptr;
+    }
+    tools::Tool* added = wired->tools.emplace(id, std::move(created)).first->second.get();
+    adopt(added);
+    configureTool(added);
+    return added;
+}
+
+tools::Tool* ToolHost::secondExistingTool(const QString& id) const
+{
+    if (!m_secondAdapters) {
+        return nullptr;
+    }
+    const auto found = m_secondAdapters->tools.find(id);
+    return found == m_secondAdapters->tools.end() ? nullptr : found->second.get();
+}
+
+namespace {
+
+input::UserId toUserId(int user) noexcept
+{
+    return static_cast<input::UserId>(std::clamp(user, 0, 255));
+}
+
+} // namespace
+
+void ToolHost::activateFor(const QString& toolId, int user)
+{
+    const input::UserId id = toUserId(user);
+    if (!isSecond(id)) {
+        activate(toolId);
+        return;
+    }
+    if (!registry().contains(toolId)) {
+        return; // select-points, pen-shape : réservés au premier utilisateur
+    }
+    tools::UserState& state = *m_secondUser;
+    if (state.currentTool() == toolId) {
+        return;
+    }
+    if (tools::Tool* previous = secondExistingTool(state.currentTool())) {
+        previous->deactivate();
+    }
+    state.setCurrentTool(toolId);
+    if (isInkTool(toolId)) {
+        m_secondLastInk = toolId;
+    }
+    if (tools::Tool* next = activeTool(id)) {
+        configureTool(next);
+        next->activate();
+    }
+}
+
+void ToolHost::setColor(const QColor& color, int user)
+{
+    const input::UserId id = toUserId(user);
+    if (!isSecond(id)) {
+        setColor(color);
+        return;
+    }
+    if (!color.isValid()) {
+        return;
+    }
+    tools::UserState& state = *m_secondUser;
+    if (!ownsColor(state.currentTool())) {
+        activateFor(m_secondLastInk, user); // comme le premier : au dernier outil d'encre (L3-T0)
+    }
+    const QString tool = state.currentTool();
+    tools::InkSettings settings = state.settings(tool);
+    settings.color = opaque(color);
+    if (auto* pen = dynamic_cast<tools::PenTool*>(secondExistingTool(tool))) {
+        pen->setColor(settings.color);
+    }
+    state.setSettings(tool, settings); // en mémoire seulement : le fichier garde ceux du premier (F-136)
+    configureTool(secondExistingTool(tool));
+    emit settingsChanged();
+}
+
+void ToolHost::setWidth(qreal width, int user)
+{
+    const input::UserId id = toUserId(user);
+    if (!isSecond(id)) {
+        setWidth(width);
+        return;
+    }
+    if (!(width > 0)) {
+        return;
+    }
+    tools::UserState& state = *m_secondUser;
+    if (const QString shown = state.currentTool(); shown == QStringLiteral("select") ||
+                                                   shown == QStringLiteral("fill") ||
+                                                   shown == QStringLiteral("connector")) {
+        activateFor(m_secondLastInk, user);
+    }
+    const QString tool = state.currentTool();
+    tools::InkSettings settings = state.settings(tool);
+    settings.width = std::clamp(static_cast<double>(width), static_cast<double>(kMinInkWidth),
+                                static_cast<double>(kMaxInkWidth));
+    if (auto* pen = dynamic_cast<tools::PenTool*>(secondExistingTool(tool))) {
+        pen->setBaseWidth(settings.width);
+    } else if (auto* reveal = dynamic_cast<tools::RevealInkTool*>(secondExistingTool(tool))) {
+        reveal->setBaseWidth(settings.width);
+    }
+    state.setSettings(tool, settings);
+    configureTool(secondExistingTool(tool));
+    emit settingsChanged();
 }
 
 tools::Tool* ToolHost::existingTool(const QString& id) const
@@ -1224,7 +1412,8 @@ void ToolHost::showSelection(const QVariantMap& frame, bool handlesVisible)
 {
     // Un autre outil que Sélectionner peut faire agir la sélection (Supprimer au stylo) : le cadre reste
     // masqué.
-    const bool shown = currentTool() == QStringLiteral("select");
+    // L11-T9 (rapport de L11-T6) : le doigt qui sélectionne par le sélecteur imposé montre son cadre.
+    const bool shown = currentTool() == QStringLiteral("select") || m_fingerSelecting;
     m_selectionFrame = shown ? frame : hiddenFrame();
     m_handlesVisible = shown && handlesVisible;
     emit selectionChanged();

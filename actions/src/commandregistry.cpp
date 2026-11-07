@@ -200,7 +200,8 @@ bool CommandRegistry::loadDeclarations(const QByteArray& json, QString& error)
             return true;
         };
         if (!readFlag(QStringLiteral("lockable"), info.lockable) ||
-            !readFlag(QStringLiteral("restrictable"), info.restrictable)) {
+            !readFlag(QStringLiteral("restrictable"), info.restrictable) ||
+            !readFlag(QStringLiteral("opensDialog"), info.opensDialog)) {
             return false;
         }
         seen.insert(info.id);

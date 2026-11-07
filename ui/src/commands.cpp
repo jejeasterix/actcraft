@@ -131,7 +131,7 @@ void Commands::bindHandler(const QString& id)
         if (!handler.isCallable() || !engine) {
             return;
         }
-        const QJSValue result = handler.call({engine->toScriptValue(argument)});
+        const QJSValue result = handler.call({engine->toScriptValue(argument), QJSValue(m_triggerUser)});
         if (result.isError()) {
             qWarning("ActCraft : commande %s : %s", qPrintable(id), qPrintable(result.toString()));
         }
@@ -305,12 +305,29 @@ const actions::CommandRegistry& Commands::registry() const noexcept
 
 bool Commands::trigger(const QString& id, const QVariant& argument)
 {
+    return trigger(id, argument, 0);
+}
+
+bool Commands::trigger(const QString& id, const QVariant& argument, int user)
+{
+    if (user != 0) {
+        const actions::CommandInfo* info = m_registry.find(id);
+        if (info && info->opensDialog) {
+            emit refusedForSecondUser(id); // F-303 : seul le premier utilisateur ouvre une boîte
+            return false;
+        }
+    }
     bool done = false;
     {
         // Profondeur rendue même si le gestionnaire lève une exception : sinon tout reload() serait différé
-        // à jamais.
+        // à jamais. L'utilisateur d'un déclenchement imbriqué est rendu au retour.
         ++m_triggerDepth;
-        const auto leave = qScopeGuard([this] { --m_triggerDepth; });
+        const int outerUser = m_triggerUser;
+        m_triggerUser = user;
+        const auto leave = qScopeGuard([this, outerUser] {
+            --m_triggerDepth;
+            m_triggerUser = outerUser;
+        });
         done = m_registry.trigger(id, argument, m_platform);
     }
     if (m_triggerDepth == 0 && m_reloadPending) {

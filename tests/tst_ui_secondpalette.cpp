@@ -106,17 +106,35 @@ void tablet(App& app, const QPointingDevice* device, QEvent::Type type, QPointF 
     QCoreApplication::sendEvent(app.window, &event);
 }
 
-void pinch(App& app, QPointingDevice* touch, qreal from, qreal to)
+// Les délégués d'un Repeater ne sont pas enfants QObject de la palette : recherche dans l'arbre visuel.
+QQuickItem* findItem(QQuickItem* root, const QString& name)
 {
-    const QPointF c = app.view->mapToScene(QPointF(app.view->width() / 2, app.view->height() / 2));
-    const auto at = [&](qreal d, int side) { return (c + QPointF(side * d / 2, 0)).toPoint(); };
-    QTest::touchEvent(app.window, touch).press(0, at(from, -1), app.window).press(1, at(from, 1), app.window);
-    for (int i = 1; i <= 10; ++i) {
-        const qreal d = from + (to - from) * i / 10;
-        QTest::touchEvent(app.window, touch).move(0, at(d, -1), app.window).move(1, at(d, 1), app.window);
+    if (!root) {
+        return nullptr;
     }
-    QTest::touchEvent(app.window, touch).release(0, at(to, -1), app.window).release(1, at(to, 1), app.window);
-    QCoreApplication::processEvents();
+    if (root->objectName() == name) {
+        return root;
+    }
+    for (QQuickItem* child : root->childItems()) {
+        if (QQuickItem* found = findItem(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+// Décision de la politique de la vue pour un deuxième doigt posé pendant qu'un premier touche l'outil.
+input::Route secondFingerRoute(ui::PageView& view)
+{
+    input::Sample press;
+    press.device = input::DeviceKind::Touch;
+    press.phase = input::Phase::Press;
+    press.x = 700;
+    press.y = 400;
+    press.pointer = 2;
+    input::RouterState state;
+    state.toolTouches = 1;
+    return view.router().policy()->decide(press, state).route;
 }
 
 QColor penColor(ui::ToolHost& tools, input::UserId user)
@@ -143,7 +161,6 @@ private slots:
 private:
     QTemporaryDir m_settings;
     QTemporaryDir m_profile;
-    QPointingDevice* m_touch = nullptr;
 };
 
 void TstUiSecondpalette::initTestCase()
@@ -156,7 +173,6 @@ void TstUiSecondpalette::initTestCase()
     QSettings probe;
     QCOMPARE(probe.format(), QSettings::IniFormat);
     QVERIFY(probe.fileName().startsWith(m_settings.path()));
-    m_touch = QTest::createTouchDevice();
 }
 
 void TstUiSecondpalette::opensDialogParsed()
@@ -240,7 +256,7 @@ void TstUiSecondpalette::secondUserCannotOpenADialog()
     QSignalSpy triggered(&commands, &ui::Commands::triggered);
 
     // Le refus est dans trigger : le gestionnaire n'est jamais appelé, quelle que soit la voie.
-    QVERIFY(!commands.trigger(QStringLiteral("file.open"), QVariantMap{}, 1));
+    QVERIFY(!commands.trigger(QStringLiteral("file.open"), QVariant(), 1));
     QCOMPARE(probe.calls(QStringLiteral("open")), 0);
     QCOMPARE(refused.count(), 1);
     QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("file.open"));
@@ -263,7 +279,7 @@ void TstUiSecondpalette::firstUserStillCan()
     commands.setHandler(QStringLiteral("file.open"), probe.handler(QStringLiteral("open")));
     QSignalSpy refused(&commands, &ui::Commands::refusedForSecondUser);
 
-    QVERIFY(commands.trigger(QStringLiteral("file.open"), QVariantMap{}, 0));
+    QVERIFY(commands.trigger(QStringLiteral("file.open"), QVariant(), 0));
     QCOMPARE(probe.calls(QStringLiteral("open")), 1);
     QCOMPARE(probe.lastUser(QStringLiteral("open")).toInt(), 0);
     // L'ancienne signature vaut user = 0.
@@ -334,18 +350,21 @@ void TstUiSecondpalette::offRestoresTheTouchMode()
 
 void TstUiSecondpalette::pinchZoomsOnlyWhenOff()
 {
+    // Le pincement réel (zoom inchangé allumé, changé éteint) est joué par le scénario S28 : son injection passe
+    // par l'interface système privée de Qt, interdite aux tests (N4). Ici, sa cause : un deuxième doigt fait un
+    // geste en gestion complète, mais va à l'outil d'un utilisateur en mode à deux, et le geste revient éteint.
     App app;
     QVERIFY(start(app));
+    auto* touch = app.window->findChild<ui::TouchModeController*>(QStringLiteral("appTouchMode"));
+    QVERIFY(touch);
+    QVERIFY(touch->setMode(QStringLiteral("full")));
+    QCOMPARE(secondFingerRoute(*app.view), input::Route::Gesture);
     const qreal z0 = app.view->zoom();
     QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
-    QVERIFY(app.dual->active());
-    pinch(app, m_touch, 100, 200);
-    QCOMPARE(app.view->zoom(), z0); // les doigts vont aux outils des deux utilisateurs
-
+    QCOMPARE(secondFingerRoute(*app.view), input::Route::Tool);
     QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
-    QVERIFY(!app.dual->active());
-    pinch(app, m_touch, 100, 200);
-    QVERIFY2(!qFuzzyCompare(app.view->zoom(), z0), qPrintable(QString::number(app.view->zoom())));
+    QCOMPARE(secondFingerRoute(*app.view), input::Route::Gesture);
+    QCOMPARE(app.view->zoom(), z0);
 }
 
 void TstUiSecondpalette::secondUserReceivesInDualMode()
@@ -382,7 +401,7 @@ void TstUiSecondpalette::secondUserReceivesInDualMode()
 
     // La deuxième palette passe par trigger (signal triggered), pour l'utilisateur 1.
     QSignalSpy triggered(app.commands, &ui::Commands::triggered);
-    QObject* green = app.window->findChild<QObject*>(QStringLiteral("secondColor_2"));
+    QQuickItem* green = findItem(palette, QStringLiteral("secondColor_2"));
     QVERIFY(green);
     QVariant done;
     QVERIFY(QMetaObject::invokeMethod(green, "press", Q_RETURN_ARG(QVariant, done)));

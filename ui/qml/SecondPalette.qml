@@ -21,9 +21,12 @@ Rectangle {
         id: button
         property string commandId
         property var argument: undefined
+        // Un composant en ligne ne voit pas les id du document : commandes et utilisateur lui sont passés.
+        property Commands commands: null
+        property int user: 0
         // Même chemin qu'un tapé : appelée aussi par l'accessibilité et les tests.
         function press() {
-            return palette.commands.trigger(button.commandId, button.argument, palette.secondUser)
+            return button.commands ? button.commands.trigger(button.commandId, button.argument, button.user) : false
         }
         width: 44
         height: 44
@@ -50,6 +53,8 @@ Rectangle {
                 PaletteButton {
                     required property string modelData
                     objectName: "secondTool_" + modelData
+                    commands: palette.commands
+                    user: palette.secondUser
                     commandId: "tool." + modelData
                     Accessible.name: palette.commands.label(commandId)
                     Image {
@@ -72,6 +77,8 @@ Rectangle {
                     required property string modelData
                     required property int index
                     objectName: "secondColor_" + index
+                    commands: palette.commands
+                    user: palette.secondUser
                     commandId: "pen.color"
                     argument: modelData
                     color: modelData
@@ -88,6 +95,8 @@ Rectangle {
                     required property int modelData
                     required property int index
                     objectName: "secondWidth_" + index
+                    commands: palette.commands
+                    user: palette.secondUser
                     commandId: "pen.width"
                     argument: modelData
                     width: 92

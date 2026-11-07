@@ -167,6 +167,15 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         if (o.contains(QStringLiteral("argument"))) {
             step.argument = o.value(QStringLiteral("argument")).toVariant();
         }
+        if (o.contains(QStringLiteral("user"))) { // L11-T9 : entier ≥ 0
+            const QJsonValue user = o.value(QStringLiteral("user"));
+            const double value = user.toDouble(-1);
+            if (!user.isDouble() || value < 0 || value > 255 || value != static_cast<double>(user.toInt())) {
+                why = QStringLiteral("utilisateur invalide");
+                return false;
+            }
+            step.user = user.toInt();
+        }
         if (step.command.isEmpty()) {
             why = QStringLiteral("commande vide");
             return false;
@@ -1981,15 +1990,22 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
             argumentValue = expanded;
         }
         QVariant result;
-        const bool invoked = QMetaObject::invokeMethod(m_window, "runCommand", Q_RETURN_ARG(QVariant, result),
-                                                       Q_ARG(QVariant, QVariant(step.command)),
-                                                       Q_ARG(QVariant, argumentValue));
+        // L11-T9 : un utilisateur autre que le premier passe par runCommandAs (Commands::trigger(id, argument,
+        // user)) ; le premier garde runCommand.
+        const bool invoked =
+            step.user == 0
+                ? QMetaObject::invokeMethod(m_window, "runCommand", Q_RETURN_ARG(QVariant, result),
+                                            Q_ARG(QVariant, QVariant(step.command)), Q_ARG(QVariant, argumentValue))
+                : QMetaObject::invokeMethod(m_window, "runCommandAs", Q_RETURN_ARG(QVariant, result),
+                                            Q_ARG(QVariant, QVariant(step.command)), Q_ARG(QVariant, argumentValue),
+                                            Q_ARG(QVariant, QVariant(step.user)));
         QCoreApplication::processEvents();
         const bool ok = invoked && result.toBool();
         const QString argument =
             argumentValue.isValid() ? QStringLiteral(" ") + propertyText(argumentValue) : QString();
-        report << QStringLiteral("COMMANDE %1%2 %3")
-                      .arg(step.command, argument, ok ? QStringLiteral("OK") : QStringLiteral("ECHEC"));
+        const QString who = step.user == 0 ? QString() : QStringLiteral(" utilisateur %1").arg(step.user);
+        report << QStringLiteral("COMMANDE %1%2%3 %4")
+                      .arg(step.command, argument, who, ok ? QStringLiteral("OK") : QStringLiteral("ECHEC"));
         return ok;
     }
     case UiStepKind::Stroke:

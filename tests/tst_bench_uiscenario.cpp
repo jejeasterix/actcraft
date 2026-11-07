@@ -1876,6 +1876,24 @@ Item {
         QCOMPARE(report.at(0), QStringLiteral("BOUCLE sonde démarrée (aucune image rendue en 1000 ms)"));
         QVERIFY2(elapsed >= 1000 && elapsed < 5000, qPrintable(QString::number(elapsed)));
     }
+
+    // L11-T9 : champ "user" de l'étape command (Commands::trigger(id, argument, user)) ; 0 par défaut ; entier
+    // positif seulement.
+    void commandStepCarriesTheUser()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps(R"({"command": "tool.pen", "user": 1}, {"command": "pen.color", "argument": "#1E88E5"})",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t(2));
+        QCOMPARE(s.steps[0].kind, UiStepKind::Command);
+        QCOMPARE(s.steps[0].user, 1);
+        QCOMPARE(s.steps[1].user, 0);
+        QVERIFY(!parseSteps(R"({"command": "tool.pen", "user": -1})", s, error));
+        QVERIFY(!parseSteps(R"({"command": "tool.pen", "user": 1.5})", s, error));
+        QVERIFY(!parseSteps(R"({"command": "tool.pen", "user": "1"})", s, error));
+    }
 };
 
 QTEST_MAIN(TstBenchUiScenario)
