@@ -141,8 +141,7 @@ private:
     void scheduleRefresh(bool pageShown);
     void refresh();
     std::vector<Entry> collect(bool pageShown);
-    // Écriture synchrone d'une ressource (son de confirmation seulement : court, et sans attente possible).
-    QString fileFor(const std::string& key);           // vide : absente, ou écriture en cours
+    void applyRows(std::vector<Entry> next); // mise à jour par identifiant (insertion, retrait, rang)
     using Ready = std::function<void(const QString&)>; // chemin du fichier ; vide : écriture impossible
     // Faux : ressource absente ou dossier inutilisable. Vrai : `done` est appelée (peut être vide), tout de
     // suite si le fichier est déjà extrait, sinon une fois l'écriture finie, par la boucle d'événements.
@@ -154,7 +153,7 @@ private:
     void fetchFiles(); // lance l'écriture des fichiers attendus par les éléments (needsFile)
     Entry* entryById(quint64 id);
     void retireDirectory();
-    QString defaultChime();
+    void playDefaultChime(); // écrit hors du fil principal, puis joue sur la piste 2
     bool startSound(const QString& path, bool loop);
     void updateSound();
     // Document remplacé (ou autre contrôleur) : lectures arrêtées, fichiers extraits supprimés.
@@ -189,6 +188,7 @@ private:
     qint64 m_soundPosition = 0;
     bool m_soundPlaying = false;
     QString m_chime;
+    bool m_chimeWriting = false;
 };
 
 } // namespace actcraft::ui

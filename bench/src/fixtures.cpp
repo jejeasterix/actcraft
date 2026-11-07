@@ -256,9 +256,127 @@ bool buildInteractivity(const QString& path, QString& error)
 }
 
 // WAV de 0,5 s (8 kHz, mono, 16 bits, silence) : en-tête RIFF écrit à la main.
+// Vidéo H.264 de 3 s (64 × 48, 10 images/s, damier qui glisse) produite par nous (AVAssetWriter), reprise de
+// tests/tst_ui_mediaitems.cpp : aucune ressource d'un tiers.
+const char kClipBase64[] =
+    "AAAAHGZ0eXBtcDQyAAAAAWlzb21tcDQxbXA0MgAAAAFtZGF0AAAAAAAADDgAAAA2BgUtR1ZK3FxMQz+U78URPNFDqAEAAAMAAQMA"
+    "AAMAAQIAAF3ACwAAAwAAAwAAAwFADAORPwGAAAAAjiW4IAO/8P/C0UAAz4vxAADANEAALgJPg4CvEAAMASIAAXB58HAS8QAAwBIg"
+    "ABcHnwcBLxAADAEiAAFweeCQUGOAAIAccAAQHb7777776glN09PT0wSV1111111BLT09PTBJXXXXXXXEYoxABAB4gEACzre1ta66"
+    "6666666euuuuuuuuuuunrrrrrrrrrrwAAABDIeEEDPgMChz4zB64gABELEAAjYzB64gABELEAAjYzB64gABELEAAjRHxOD7zvnfO"
+    "8R8/nfO+d4j/QYUX/qov/VRfwAAAAEUh4ggK+AwqHF7GYONxAACAkQABFxmDi+IAAQCRAAEfGYOJ8QAAgEiAAI8R8Tg43nfO+d4j"
+    "5/O+d87xH+g0ov/VRf+qi/gAAABHIeMMCPgE+odpcZg5uIAAVBYgABANjMHJcQAAqCxAACATGYOS4gABUFiAAEAkR8TilzvnfO8R"
+    "8/nfO+d4j/QcUX/qov/VRfwAAABQIeQQG+AvoJxyqqqqrz4zBwfxAACQJEAAIh8Zg4L8QAAkGiAAEQuMwcF+IAASDRAACIWI+JxQ"
+    "XO+d87xHz+d8753iP9B5eGKELEf6qL/1UX8AAABJIeUUE+AwKHaxmDhTiAAFwLEAAKBMZg4W4gABcHiAAFATGYOFuIAAXB4gABQE"
+    "iPjcHDP2d8753iPn8753zvEf6BAov/VRf+qi/gAAAE0h5hgvgMCCcdWta9jMHBXiAAGAaIAAXB8Zg4L8QAAwBIgABcHxmDgvxAAD"
+    "AEiAAFweI+JwcGed8753iPn8753zvEf6BEov/VRf+qi/gAAAAFQh5xx834f+FhwoD4o+IAAZNEAALDYzBwLcQAAyDxAACwNjMHAk"
+    "4gABkCxAACwNjMHAk4gABkCxAACwNEfPvO+d87xHz+d8753iP9AkUX/qov/VRfwAAABKIeggfYECAlaHPjcHAS8QAAwBIgABcHxm"
+    "DgJeIAAYAkQAAuD4zBwEvEAAMASIAAXB4j59Z3zvneI+fzvnfO8R/oEii/9VF/6qL+AAAABeIekkfN+H/hYcKD4o+IAAZJEAALGz"
+    "f//C0U+KPiAAGQLEAALA2b//4WinxR8QAAyBYgABYGzf//C0U+KPiAAGQLEAALA0R8/nfO+d4j5/O+d87xH+gSKL/1UX/qov4AAA"
+    "ABoGBRVHVkrcXExDP5TvxRE80UOoAwAAAwABgAAAAI8luBAH/w/8LDhQB8X4gABhogABck+DgK8QAAwBIgABcHnwcBLxAADAEiAA"
+    "FwefBwEvEAAMASIAAXB/D//BECQV8cAA3HAAEBO+++++++oJTdPT09MEldddddddQS09PT0wSV111111xGKADEAEAeIBAHnW9ra1"
+    "1111111109dddddddddddPXXXXXXXXXXgAAAAFAh4QR+AwIJhyqqqq3xmDgW4gABkDxAACwNjMHAk4gABkCxAACwNjMHAk4gABkC"
+    "xAACwNEfN+H/h+/nfO+d4j5/O+d87xH+gSKL/1UX/qov4AAAAFch4gh834f+FhwoPi/EAAMaIAAXTGYOAl4gABgCRAAC4PjMHAS8"
+    "QAAwBIgABcHxmDgJeIAAYAkQAAuDxHz5/O+d87xHz+d8753iP5kCRXmiP51UX/qov4AAAABSIeMMfN+H/hYc/FHxAADMiAAFtjMH"
+    "Ak4gABkHiAAFgbGYOBJxAADIFiAAFgbGYOBJxAADIFiAAFgaI+fzvnfO8R8/nfO+d4j/QJFF/6qL/1UX8AAAAFwh5BB8bHA4CLxw"
+    "ADCIAAXmbD//C0UfFPiAAGAJEAALg+b//4Wij4p8QAAwBIgABcHzf//C0UfFPiAAGAJEAALg8R8+8753zvEfP53zvneI/mQJFeaI"
+    "/nVRf+qi/gAAAFkh5RQ/N+H/gjHCj44AB1HAANM3//wtFPij4gAB0BYgABoDYzBwCTiAAHQFiAAGgNmw//wtFPij4gAB0BYgABoD"
+    "RHz+d8753iPn8753zvEf6BMov/VRf+qi/gAAAFgh5hgXxscDgArxAABAAsQAA7cZg4AIvEAAEAAAkQAA6AuMwcAEXiAACAAASIAA"
+    "dAXGYOACLxAABAAAJEAAOgLEfP53zvneI+fzvnfO8R/oFCi/9VF/6qL+AAAAXSHnHB/GxwoAFiAACAL4gAAgALjMHAAjcQAAQBQB"
+    "YgAAgAAExmDgARuIAAIAoAsQAAQAACYzBwAI3EAAEAUAWIAAIAABIj5/O+d87xHz+d8753iP9AqUX/qov/VRfwAAAF4h6CAfxscD"
+    "gAtxAABAEWIAAIAL4zBwAT8QAAQBADRAABABALjMHABF4gAAgCACRAABABALjMHABF4gAAgCACRAABABALEfP53zvneI+fzvnfO8"
+    "R/oFSi/9VF/6qL+AAAAAYCHpJB/GxwOAEbiAACAK8QAAQAC4zBwAicQAAQBQBYgAAgAANjMHACJxAABAFAFiAACAAATGYOAETiAA"
+    "CAKALEAAEAAAkR8/i39i39i39EfP53zvneI/0CpRf+qi/9VF/AAAABoGBRVHVkrcXExDP5TvxRE80UOoAwAAAwABgAAAAKIluCAH"
+    "/8P/Cw5eKHxAABAEPEAAEAEX//+FooPih8QAAQBABIgAAgAgF///haKD4ofEAAEAQASIAAIAIBf//4Wig+KHxAABAEAEiAACACAX"
+    "//+CIFQo+OAATjgACATfffffffUFdPT09MFVdddddddQV09PT0wVV111111xGKAATiACA8QCA9ra2tdddddddddddddddddddddd"
+    "dddddddddeAAAABiIeEEH834f+FhwoB8UfEAAEAUWIAAIAA+MwcALcQAAQBQBYgAAgAANjMHACJxAABAFAFiAACAAATGYOAETiAA"
+    "CAKALEAAEAAAkR8+XzvnfO8R8/nfO+d4j/QKlF/6qL/1UX8AAABsIeIIH834f+Fhwp8UPiAACAIPEAAEAEPm//+Foo+KfEAAEAQA"
+    "0QAAQAQC5v//haKPinxAABAEAEiAACACAXN//8LRR8U+IAAIAgAkQAAQAQCxHz+dz+dz+dz8R8/nfO+d4j/QKlF/6qL/1UX8AAAA"
+    "WiHjDB/gQIJhyqqqqqf43BwAk4gAAgCgCxAABAAAbGYOAE3EAAEAUAWIAAIAABMZg4AROIAAIAoAsQAAQAACRHxOKAFzvnfO8R8/"
+    "nfO+d4j/QKlF/6qL/1UX8AAAAG0h5BAfzfh/4WHCgfFD4gAAgCAsQAAQAQfN//8LRR8U+IAAIAgAkQAAQAQC5v//haKPinxAABAE"
+    "AEiAACACAXN//8LRR8U+IAAIAgAkQAAQAQCxHz+dz+dz+dz8R8/nfO+d4j/QKlF/6qL/1UX8AAAAWiHlFB/gQIJhyqqqqrx3G4OA"
+    "EnEAAEAUAWIAAIAADYzBwAm4gAAgCgCxAABAAAJjMHACJxAABAFAFiAACAAASI+JxQAud8753iPn8753zvEf6BUov/VRf+qi/gAA"
+    "AG4h5hgfzfh/4WHCgB8UPiAACAIBYgAAgAgLm//+FooPih8QAAQBABIgAAgAgHzf//C0UHxQ+IAAIAgAkQAAQAQC5v//haKD4ofE"
+    "AAEAQASIAAIAIBYj4vvnfO+d4j5/O+d87xH+gVKL/1UX/qov4AAAAG4h5xwfzfh/4WHCgAFvFB8QAAQBQPEAAEAAAub//4Wih8UH"
+    "xAABAFAFiAACAAA2b//4Wih8UHxAABAFAFiAACAAATN//8LRQ+KD4gAAgCgCxAABAAAJEfP53zvneI+fzvnfO8R/oFSi/9VF/6qL"
+    "+AAAAG8h6CAfzfh/4WHCgAEPFD4gAAgCALEAAEAEA+b//4Wig+KHxAABAEANEAAEAEAub//4Wig+KHxAABAEAEiAACACAXN//8LR"
+    "QfFD4gAAgCACRAABABALEfF/s753zvEfP53zvneI/0CpRf+qi/9VF/AAAABvIekkH834f+FhwoABrxQfEAAEAUAsQAAQAABc3//w"
+    "tFD4oPiAACAKALEAAEAABs3//wtFD4oPiAACAKALEAAEAAAmb//4Wih8UHxAABAFAFiAACAAASI+L753zvneI+fzvnfO8R/oFSi/"
+    "9VF/6qL+AAADW21vb3YAAABsbXZoZAAAAADnE8yJ5xPMiQAAAlgAAAcIAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAA"
+    "AQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAALndHJhawAAAFx0a2hkAAAAAecTzInnE8yJ"
+    "AAAAAQAAAAAAAAcIAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAABAAAAAMAAAAAAA"
+    "JGVkdHMAAAAcZWxzdAAAAAAAAAABAAAHCAAAAAAAAQAAAAACX21kaWEAAAAgbWRoZAAAAADnE8yJ5xPMiQAAAlgAAAcIVcQAAAAA"
+    "ADFoZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAQ29yZSBNZWRpYSBWaWRlbwAAAAIGbWluZgAAABR2bWhkAAAAAQAAAAAAAAAA"
+    "AAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAABxnN0YmwAAACcc3RzZAAAAAAAAAABAAAAjGF2YzEAAAAAAAAA"
+    "AQAAAAAAAAAAAAAAAAAAAAAAQAAwAEgAAABIAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY//8AAAAi"
+    "YXZjQwFCAAv/4QALJ0IAC6tBhvAgwygBAAQozjyAAAAACmZpZWwBAAAAAApjaHJtAAAAAAAYc3R0cwAAAAAAAAABAAAAHgAAADwA"
+    "AAAcc3RzcwAAAAAAAAADAAAAAQAAAAsAAAAVAAAAKnNkdHAAAAAAIBAQEBAQEBAQECAQEBAQEBAQEBAgEBAQEBAQEBAQAAAAHHN0"
+    "c2MAAAAAAAAAAQAAAAEAAAAKAAAAAQAAAIxzdHN6AAAAAAAAAAAAAAAeAAAAzAAAAEcAAABJAAAASwAAAFQAAABNAAAAUQAAAFgA"
+    "AABOAAAAYgAAALEAAABUAAAAWwAAAFYAAABgAAAAXQAAAFwAAABhAAAAYgAAAGQAAADEAAAAZgAAAHAAAABeAAAAcQAAAF4AAABy"
+    "AAAAcgAAAHMAAABzAAAAHHN0Y28AAAAAAAAAAwAAACwAAAPNAAAHww==";
+
+// GIF89a de `size` × `size` en boucle : image 1 rouge, image 2 bleue, 400 ms chacune. LZW sans croissance de
+// table : un code d'effacement tous les deux pixels (codes de 3 bits).
+QByteArray twoFrameGif(int size)
+{
+    QByteArray g("GIF89a");
+    auto u16 = [&g](int v) {
+        g.append(static_cast<char>(v & 0xFF));
+        g.append(static_cast<char>((v >> 8) & 0xFF));
+    };
+    u16(size);
+    u16(size);
+    g.append(static_cast<char>(0x91)); // table globale de 4 couleurs
+    g.append('\0');
+    g.append('\0');
+    const unsigned char palette[] = {0xFF, 0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0};
+    g.append(reinterpret_cast<const char*>(palette), sizeof palette);
+    const unsigned char loop[] = {0x21, 0xFF, 0x0B, 'N', 'E',  'T',  'S', 'C', 'A', 'P',
+                                  'E',  '2',  '.',  '0', 0x03, 0x01, 0,   0,   0};
+    g.append(reinterpret_cast<const char*>(loop), sizeof loop);
+    for (int colour = 0; colour < 2; ++colour) {
+        const unsigned char control[] = {0x21, 0xF9, 0x04, 0x04, 40, 0, 0, 0};
+        g.append(reinterpret_cast<const char*>(control), sizeof control);
+        g.append(static_cast<char>(0x2C));
+        u16(0);
+        u16(0);
+        u16(size);
+        u16(size);
+        g.append('\0');
+        g.append(static_cast<char>(2)); // taille minimale des codes
+        QByteArray bytes;
+        quint32 buffer = 0;
+        int bits = 0;
+        auto put = [&](int code) {
+            buffer |= static_cast<quint32>(code) << bits;
+            bits += 3;
+            while (bits >= 8) {
+                bytes.append(static_cast<char>(buffer & 0xFF));
+                buffer >>= 8;
+                bits -= 8;
+            }
+        };
+        for (int i = 0; i < size * size; i += 2) {
+            put(4);
+            put(colour);
+            put(colour);
+        }
+        put(5);
+        if (bits > 0)
+            bytes.append(static_cast<char>(buffer & 0xFF));
+        for (qsizetype at = 0; at < bytes.size(); at += 255) {
+            const qsizetype n = std::min<qsizetype>(255, bytes.size() - at);
+            g.append(static_cast<char>(n));
+            g.append(bytes.mid(at, n));
+        }
+        g.append('\0');
+    }
+    g.append(static_cast<char>(0x3B));
+    return g;
+}
+
 QByteArray silentWav()
 {
-    constexpr quint32 samples = 4000;
+    constexpr quint32 samples = 24000; // 3 s : le son cliqué joue encore quand le scénario le lit
     QByteArray wav("RIFF");
     const auto put = [&wav](quint32 value, int bytes) {
         for (int i = 0; i < bytes; ++i)
@@ -284,14 +402,17 @@ bool buildMedias(const QString& path, QString& error)
     if (!writeOnePage({}, "Médias", path, error))
         return false;
     const QDir folder = QFileInfo(path).dir();
-    for (const char* name : {"son.wav", "son2.wav"}) {
+    const auto write = [&](const char* name, const QByteArray& data) {
         QFile file(folder.filePath(QString::fromLatin1(name)));
-        if (!file.open(QIODevice::WriteOnly) || file.write(silentWav()) < 0) {
+        if (!file.open(QIODevice::WriteOnly) || file.write(data) != data.size()) {
             error = QStringLiteral("écriture impossible : %1").arg(file.fileName());
             return false;
         }
-    }
-    return true;
+        return true;
+    };
+    return write("son.wav", silentWav()) && write("son2.wav", silentWav()) &&
+           write("clip.mp4", QByteArray::fromBase64(QByteArray(kClipBase64))) &&
+           write("anim.gif", twoFrameGif(64));
 }
 
 bool buildActionBrowser(const QString& path, QString& error)

@@ -4,6 +4,7 @@
 #include <actcraft/core/undo.h>
 #include <actcraft/formats/urlio.h>
 #include <actcraft/ui/insertion.h>
+#include <actcraft/ui/mediainsert.h>
 
 #include <QBuffer>
 #include <QCoreApplication>
@@ -311,12 +312,54 @@ void Insertion::insertImage(const QUrl& url)
     start({job});
 }
 
+MediaInsert* Insertion::mediaInsert() const
+{
+    return m_mediaInsert.data();
+}
+
+void Insertion::setMediaInsert(MediaInsert* insert)
+{
+    if (m_mediaInsert == insert)
+        return;
+    if (m_mediaInsert)
+        disconnect(m_mediaInsert, nullptr, this, nullptr);
+    m_mediaInsert = insert;
+    if (insert) {
+        // Chaque média confié rend un seul signal final (inséré ou refusé) : seuls ceux-là sont relayés.
+        connect(insert, &MediaInsert::inserted, this, [this](int count) {
+            if (m_forwarded > 0) {
+                --m_forwarded;
+                emit inserted(count);
+            }
+        });
+        connect(insert, &MediaInsert::failed, this, [this](QString message) {
+            if (m_forwarded > 0) {
+                --m_forwarded;
+                emit failed(std::move(message));
+            }
+        });
+    }
+    emit mediaInsertChanged();
+}
+
+void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center)
+{
+    if (!m_mediaInsert) {
+        auto* own = new MediaInsert(this);
+        own->setDocument(m_document);
+        connect(this, &Insertion::documentChanged, own, [this, own] { own->setDocument(m_document); });
+        setMediaInsert(own);
+    }
+    ++m_forwarded;
+    if (center)
+        m_mediaInsert->insertFileAt(url, *center);
+    else
+        m_mediaInsert->insertFile(url);
+}
+
 void Insertion::insertMedia(const QUrl& url)
 {
-    InsertionJob job;
-    job.url = url;
-    job.mode = Mode::Media;
-    start({job});
+    routeMedia(url, std::nullopt);
 }
 
 void Insertion::insertImageData(const QImage& image)
@@ -332,10 +375,16 @@ bool Insertion::acceptDrop(const QVariantList& urls, const QString& text, QPoint
     if (m_document == nullptr)
         return false;
     std::vector<InsertionJob> jobs;
+    bool routed = false;
     for (const QVariant& value : urls) {
         const QUrl url = value.canConvert<QUrl>() ? value.toUrl() : QUrl::fromUserInput(value.toString());
         if (!url.isValid() || url.isEmpty())
             continue;
+        if (isMediaExtension(QFileInfo(url.isLocalFile() ? url.toLocalFile() : url.path()).suffix())) {
+            routeMedia(url, pagePoint); // son ou vidéo : MediaInsert (action, espace réservé, verrou)
+            routed = true;
+            continue;
+        }
         InsertionJob job;
         job.url = url;
         job.mode = Mode::Any;
@@ -343,10 +392,11 @@ bool Insertion::acceptDrop(const QVariantList& urls, const QString& text, QPoint
         job.center = pagePoint;
         jobs.push_back(std::move(job));
     }
-    if (!jobs.empty()) {
+    const bool started = !jobs.empty(); // avant le déplacement : `jobs` est vidé par start()
+    if (started)
         start(std::move(jobs));
+    if (started || routed)
         return true;
-    }
     if (text.trimmed().isEmpty())
         return false;
     // Texte brut seulement : jamais d'HTML interprété, donc rien à charger (M13).

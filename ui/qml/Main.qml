@@ -167,6 +167,7 @@ Window {
         id: appInsertion
         objectName: "appInsertion"
         document: appDocument
+        mediaInsert: appMediaInsert // les médias déposés ou choisis passent par lui (action, espace réservé, verrou)
     }
     DocumentTabs {
         id: appTabs

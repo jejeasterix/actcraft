@@ -4,12 +4,14 @@
 
 #include <QImage>
 #include <QObject>
+#include <QPointF>
 #include <QPointer>
 #include <QQmlEngine>
 #include <QString>
 #include <QUrl>
 
 #include <functional>
+#include <optional>
 
 namespace actcraft::ui {
 
@@ -40,6 +42,8 @@ public:
 
     // Fichier local ou content:// ; refusé sous le verrou de classe (« insert.media » est verrouillable).
     Q_INVOKABLE void insertFile(const QUrl& url);
+    // Même insertion, centrée sur `center` (coordonnées de page) : fichier déposé sur la page.
+    void insertFileAt(const QUrl& url, QPointF center);
     // Ressource déjà dans le document (glissée depuis la bibliothèque).
     Q_INVOKABLE void insertResource(const QString& key);
 
@@ -52,6 +56,7 @@ signals:
 
 private:
     bool allowed();
+    void startFile(const QUrl& url, std::optional<QPointF> center);
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_document;
     FrameProbe m_probe;
