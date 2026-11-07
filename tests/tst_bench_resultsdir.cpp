@@ -44,11 +44,17 @@ private slots:
         const QString files =
             QStringLiteral("/sdcard/Android/data/io.github.jejeasterix.actcraft.banc/files");
         const QString dir = resultsDirFor(Platform::Android, files);
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        const QString out = tmp.filePath(QStringLiteral("x"));
+        QFile f(out); // ROUGE : un fichier de ce nom existe déjà
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.close();
         BenchOptions options;
         QString error;
-        QVERIFY(parseBenchOptions({QStringLiteral("b"), QStringLiteral("--sortie"), QStringLiteral("/tmp/x")},
-                                  options, error));
-        QCOMPARE(resolveOutputPath(options, dir, QStringLiteral("r.json")), QStringLiteral("/tmp/x/r.json"));
+        QVERIFY2(parseBenchOptions({QStringLiteral("b"), QStringLiteral("--sortie"), out}, options, error),
+                 qPrintable(error));
+        QCOMPARE(resolveOutputPath(options, dir, QStringLiteral("r.json")), out + QStringLiteral("/r.json"));
         QVERIFY(parseBenchOptions({QStringLiteral("b")}, options, error));
         QCOMPARE(resolveOutputPath(options, dir, QStringLiteral("r.json")), dir + QStringLiteral("/r.json"));
     }
