@@ -1,8 +1,17 @@
 {
   "format": "actcraft-scenario/1",
   "name": "mises-a-jour",
-  "description": "Talon L11 : rempli par L11-T22.",
+  "description": "S29 (L11-T22) : aucune requête au démarrage (réglage faux) ; help.check-updates ouvre la boîte et la réponse simulée (ACTCRAFT_UPDATES_URL vers un fichier local, jamais le réseau) donne la version 9.9.9. Aucun clic sur « Voir la version » (il ouvrirait le navigateur).",
   "steps": [
-    {"waitReady": true}
+    {"waitReady": true},
+    {"expect": "appUpdates.requestCount", "value": 0},
+    {"expect": "appUpdates.checkAtStart", "value": false},
+    {"expect": "updateDialog.visible", "value": false},
+    {"command": "help.check-updates"},
+    {"waitFor": "appUpdates.state", "value": "Available", "timeoutMs": 10000},
+    {"expect": "updateDialog.visible", "value": true},
+    {"expect": "appUpdates.requestCount", "value": 1},
+    {"expect": "appUpdates.latestVersion", "value": "9.9.9"},
+    {"capture": "version-plus-recente"}
   ]
 }

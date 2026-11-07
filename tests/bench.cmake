@@ -588,6 +588,9 @@ actcraft_add_lot11_capture(tst_captures_aide_complete aide-complete)
 add_test(NAME tst_captures_pseudo_langue COMMAND ${CMAKE_COMMAND} -E echo "Talon L11 : rempli par L11-T20.")
 set_tests_properties(tst_captures_pseudo_langue PROPERTIES SKIP_REGULAR_EXPRESSION "Talon L11")
 actcraft_add_lot11_capture(tst_captures_mises_a_jour mises-a-jour)
+# Réponse simulée : un fichier local, jamais le réseau (D11-13) ; la liste _bench_env_offscreen est gardée.
+set_tests_properties(tst_captures_mises_a_jour PROPERTIES
+    ENVIRONMENT "${_bench_env_offscreen};ACTCRAFT_UPDATES_URL=file:///${PROJECT_SOURCE_DIR}/tests/data/updates/newer.json")
 actcraft_add_lot11_capture(tst_captures_classe_protegee_complete classe-protegee-complete)
 actcraft_add_lot11_capture(tst_captures_profils_complets profils-complets)
 

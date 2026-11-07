@@ -391,8 +391,8 @@ void TstUiUpdatechecker::remoteOverrideRefused()
     QCOMPARE(UpdateChecker::endpoint(), QUrl(QString::fromUtf8(local)));
 }
 
-// M15 : la coquille (Main.qml) appelle appUpdates.start() une seule fois, au chargement. Sans cet appel, la case
-// « au démarrage » ne ferait rien. Réglage vrai : une requête, vers le fichier local ; faux : aucune.
+// M15 : la coquille (Main.qml) appelle appUpdates.start() une seule fois, au chargement. Sans cet appel, la
+// case « au démarrage » ne ferait rien. Réglage vrai : une requête, vers le fichier local ; faux : aucune.
 void TstUiUpdatechecker::startCalledOnceByTheShell()
 {
     qputenv(kVariable, fileUrl(data("newer.json")));
