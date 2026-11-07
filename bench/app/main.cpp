@@ -33,6 +33,9 @@ void printLine(const QString& line)
 {
     std::printf("%s\n", line.toUtf8().constData());
     std::fflush(stdout);
+#ifdef Q_OS_ANDROID
+    qInfo().noquote() << line; // stdout n'atteint pas logcat : scripts/banc-android.ps1 y lit le verdict
+#endif
 }
 
 #ifdef Q_OS_ANDROID
