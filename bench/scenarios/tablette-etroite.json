@@ -1,8 +1,28 @@
 {
   "format": "actcraft-scenario/1",
   "name": "tablette-etroite",
-  "description": "Talon L11 : rempli par L11-T10.",
+  "description": "Mise en page étroite de la tablette : navigateurs en tiroir, palette repliée en un bouton, palette entière à 720 px de haut (barre de défilement visible), retour à la disposition large.",
   "steps": [
-    {"waitReady": true}
+    {"waitReady": true},
+    {"resize": [800, 1280]},
+    {"waitFor": "appLayout.narrow", "value": true},
+    {"capture": "portrait"},
+    {"pointer": [[32, 74]], "space": "window", "button": "left"},
+    {"waitFor": "browserPanel.opened", "value": true},
+    {"capture": "tiroir-ouvert"},
+    {"pointer": [[700, 640]], "space": "window", "button": "left"},
+    {"waitFor": "browserPanel.opened", "value": false},
+    {"command": "tool.pen"},
+    {"touch": [[400, 500], [450, 550], [500, 600]], "space": "window"},
+    {"stroke": [[300, 100], [500, 250]], "pressure": 0.5},
+    {"wait": 200},
+    {"checkPixel": "trait-au-doigt", "at": [400, 175], "color": "#000000", "tolerance": 80},
+    {"resize": [1280, 720]},
+    {"waitFor": "appLayout.narrow", "value": false},
+    {"waitFor": "paletteScrollBar.visible", "value": true},
+    {"capture": "palette-courte"},
+    {"resize": [1280, 800]},
+    {"waitFor": "appLayout.narrow", "value": false},
+    {"capture": "large"}
   ]
 }

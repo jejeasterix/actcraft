@@ -520,6 +520,16 @@ Window {
         target: appLayout
         function onMetricsChanged() { root.syncTopMenus() }
     }
+    // Le fond du tiroir n'est couverture d'entrée de la page que tiroir ouvert (fermé, le stylet doit passer).
+    Connections {
+        target: browserPanel
+        function onVisibleChanged() {
+            if (browserPanel.visible && appLayout.narrow)
+                pageArea.view.addInputCover(drawerScrim)
+            else
+                pageArea.view.removeInputCover(drawerScrim)
+        }
+    }
 
     // Lot 11 : emplacements du bandeau de reprise, du menu au doigt et de la boîte des mises à jour (talons).
     RecoveryBanner { id: recoveryBanner; commands: appCommands }
@@ -656,7 +666,6 @@ Window {
         tools: appTools
         // La couche des médias est posée par PageArea (pageOverlays, z 4) : elle reçoit ici son modèle et sa vue.
         Component.onCompleted: {
-        pageArea.view.addInputCover(drawerScrim)
         pageArea.view.addInputCover(browsersButton)
         root.syncTopMenus()
             for (const layer of pageArea.pageOverlays.children) {
