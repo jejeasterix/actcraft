@@ -56,6 +56,42 @@ Item {
     property Pages pages: null
     clip: true
 
+    // D11-11 : clavier logiciel. Pendant l'édition d'un texte, la zone remonte de `appliedShift` pour que le cadre du
+    // texte reste au-dessus du clavier ; elle revient à 0 quand le clavier se masque ou que le texte se ferme. La
+    // vue garde son défilement (il est borné à la page : une page entière tient sans marge à défiler).
+    readonly property real appliedShift: area.textEditing && area.textEditing.active ? keyboardInset.shift : 0
+    transform: Translate { y: -area.appliedShift }
+
+    KeyboardInset {
+        id: keyboardInset
+        objectName: "keyboardInset"
+        keyboardRect: Qt.inputMethod.keyboardRectangle
+    }
+    // Le cadre du texte en coordonnées de fenêtre, hors décalage appliqué (sinon la mesure se mordrait la queue).
+    function refreshCaret() {
+        if (!area.textEditing || !area.textEditing.active) {
+            keyboardInset.caretRect = Qt.rect(0, 0, 0, 0)
+            return
+        }
+        const f = area.textEditing.frame
+        const topLeft = view.pageToScene(Qt.point(f.x, f.y))
+        const bottomRight = view.pageToScene(Qt.point(f.x + f.width, f.y + f.height))
+        keyboardInset.caretRect = Qt.rect(topLeft.x, topLeft.y + area.appliedShift, bottomRight.x - topLeft.x,
+                                          bottomRight.y - topLeft.y)
+    }
+    Connections {
+        target: area.textEditing
+        function onActiveChanged() { area.refreshCaret() }
+        function onFrameChanged() { area.refreshCaret() }
+    }
+    Connections {
+        target: view
+        function onZoomChanged() { area.refreshCaret() }
+        function onPanChanged() { area.refreshCaret() }
+        function onWidthChanged() { area.refreshCaret() }
+        function onHeightChanged() { area.refreshCaret() }
+    }
+
     PageView {
         id: view
         objectName: "pageView"
