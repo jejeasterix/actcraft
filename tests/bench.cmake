@@ -581,10 +581,12 @@ actcraft_add_lot11_capture(tst_captures_rotation_clavier rotation-clavier)
 actcraft_add_lot11_capture(tst_captures_au_doigt au-doigt)
 actcraft_add_lot11_capture(tst_captures_cycle_de_vie cycle-de-vie)
 actcraft_add_lot11_capture(tst_captures_aide_complete aide-complete)
-# Pseudo-langue de contrôle (L11-T19) : traduction produite par tests/ui.cmake. Désactivé jusqu'à L11-T20, qui
-# corrige les chaînes non marquées puis retire DISABLED ; la liste des écarts se lit par le joueur en direct.
-actcraft_add_lot11_capture(tst_captures_pseudo_langue controle/pseudo-langue --traduction ${ACTCRAFT_PSEUDO_QM})
-set_tests_properties(tst_captures_pseudo_langue PROPERTIES DISABLED TRUE)
+# Pseudo-langue de contrôle (L11-T19) : le scénario est rempli, mais le test reste un talon sauté jusqu'à L11-T20,
+# qui corrige les chaînes non marquées puis le remplace par la ligne ci-dessous (le joueur est lancé en direct
+# d'ici là, avec la traduction produite par tests/ui.cmake) :
+#   actcraft_add_lot11_capture(tst_captures_pseudo_langue controle/pseudo-langue --traduction ${ACTCRAFT_PSEUDO_QM})
+add_test(NAME tst_captures_pseudo_langue COMMAND ${CMAKE_COMMAND} -E echo "Talon L11 : rempli par L11-T20.")
+set_tests_properties(tst_captures_pseudo_langue PROPERTIES SKIP_REGULAR_EXPRESSION "Talon L11")
 actcraft_add_lot11_capture(tst_captures_mises_a_jour mises-a-jour)
 actcraft_add_lot11_capture(tst_captures_classe_protegee_complete classe-protegee-complete)
 actcraft_add_lot11_capture(tst_captures_profils_complets profils-complets)
