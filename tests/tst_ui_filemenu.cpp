@@ -783,8 +783,9 @@ private slots:
         }
     }
 
-    // L8-PC-CI : l'argument texte d'« insert.image » est un chemin nu, comme pour « insert.media » (décision 20,
-    // urlFromArgument). Sous Windows, « C:/… » se lisait comme une URL de schéma « c » : aucune image insérée.
+    // L8-PC-CI : l'argument texte d'« insert.image » est un chemin nu, comme pour « insert.media » (décision
+    // 20, urlFromArgument). Sous Windows, « C:/… » se lisait comme une URL de schéma « c » : aucune image
+    // insérée.
     void insertImageTakesABarePathArgument()
     {
         Shell s;

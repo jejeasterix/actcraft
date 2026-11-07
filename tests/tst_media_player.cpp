@@ -334,7 +334,8 @@ private slots:
     {
         const QString denied = writeSilentWav(m_dir.path(), QStringLiteral("interdit.wav"), 500);
         QVERIFY(!denied.isEmpty());
-        // Sous Windows, Qt ne retire pas la lecture (droits NTFS) : setPermissions rend faux, le test est sauté.
+        // Sous Windows, Qt ne retire pas la lecture (droits NTFS) : setPermissions rend faux, le test est
+        // sauté.
         if (!QFile::setPermissions(denied, QFileDevice::Permissions{}) || QFileInfo(denied).isReadable())
             QSKIP("droits de lecture non retirables sur ce système de fichiers");
         OpenTrap trap;

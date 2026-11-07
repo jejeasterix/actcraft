@@ -190,6 +190,8 @@ jobs:
           # (Core Ultra 5 125U, run 42268652493). Chacun tourne hors écran, avec réglages et ressources dans des
           # dossiers jetables ; les plus gros (banc, captures) montent à ~270 Mo privés, d'où 4 et non 6.
           "CTEST_PARALLEL_LEVEL=4" >> $env:GITHUB_ENV
+          # Micro du PC à 64 % de la durée (L8-PC-CI) : tst_media_soundrecorder saute ses cas « micro » ici seulement.
+          "ACTCRAFT_CI_SANS_MICRO=1" >> $env:GITHUB_ENV
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         if: runner.os == 'Windows'
