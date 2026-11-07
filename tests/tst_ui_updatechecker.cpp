@@ -1,3 +1,5 @@
+#include "startup.h"
+
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/updatechecker.h>
 
@@ -5,6 +7,8 @@
 #include <QNetworkAccessManager>
 #include <QNetworkProxy>
 #include <QNetworkReply>
+#include <QQmlApplicationEngine>
+#include <QQuickWindow>
 #include <QRegularExpression>
 #include <QScopeGuard>
 #include <QSettings>
@@ -13,9 +17,12 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
 #include <utility>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using actcraft::ui::Preferences;
 using actcraft::ui::UpdateChecker;
@@ -107,6 +114,7 @@ private slots:
     void draftAndPrereleaseIgnored();
     void failureReported();
     void remoteOverrideRefused();
+    void startCalledOnceByTheShell();
 
 private:
     QString data(const char* name) const;
@@ -381,6 +389,35 @@ void TstUiUpdatechecker::remoteOverrideRefused()
     const QByteArray local = fileUrl(data("newer.json"));
     qputenv(kVariable, local);
     QCOMPARE(UpdateChecker::endpoint(), QUrl(QString::fromUtf8(local)));
+}
+
+// M15 : la coquille (Main.qml) appelle appUpdates.start() une seule fois, au chargement. Sans cet appel, la case
+// « au démarrage » ne ferait rien. Réglage vrai : une requête, vers le fichier local ; faux : aucune.
+void TstUiUpdatechecker::startCalledOnceByTheShell()
+{
+    qputenv(kVariable, fileUrl(data("newer.json")));
+    for (const bool atStart : {true, false}) {
+        {
+            QSettings settings;
+            settings.setValue(QStringLiteral("updates/check-at-start"), atStart);
+            settings.sync();
+        }
+        QTemporaryDir profiles;
+        QVERIFY(profiles.isValid());
+        QQmlApplicationEngine engine;
+        StartupOptions options;
+        options.profileRoot = profiles.path();
+        QQuickWindow* window = loadMainWindow(engine, options);
+        QVERIFY(window);
+        auto* checker = window->findChild<UpdateChecker*>(QStringLiteral("appUpdates"));
+        QVERIFY(checker);
+        QCOMPARE(checker->checkAtStart(), atStart);
+        QCOMPARE(checker->requestCount(), atStart ? 1 : 0);
+        if (atStart)
+            QTRY_COMPARE(checker->state(), UpdateChecker::State::Available);
+        else
+            QCOMPARE(checker->state(), UpdateChecker::State::Idle);
+    }
 }
 
 QTEST_MAIN(TstUiUpdatechecker)
