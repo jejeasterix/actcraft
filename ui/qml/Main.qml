@@ -113,6 +113,16 @@ Window {
     TouchModeController { id: appTouchMode; objectName: "appTouchMode"; commands: appCommands; preferences: appPreferences; view: pageArea.view }
     DualMode { id: appDualMode; objectName: "appDualMode"; commands: appCommands; view: pageArea.view }
     LayoutMetrics { id: appLayout; objectName: "appLayout"; windowWidth: root.width; windowHeight: root.height; preferences: appPreferences }
+    // L11-T10 (D11-5, D11-6) : les tailles du jeu de jetons suivent la mise en page (48 dp au doigt, jamais moins de
+    // 44 ; palette élargie d'une colonne de barre de défilement).
+    Binding { target: Theme; property: "tailleBouton"; value: appLayout.targetSize }
+    Binding { target: Theme; property: "hauteurBarre"; value: appLayout.targetSize }
+    Binding { target: Theme; property: "espaceCible"; value: appLayout.spacing }
+    Binding { target: Theme; property: "touchUi"; value: appLayout.touchUi }
+    Binding {
+        target: Theme; property: "largeurPalette"
+        value: appLayout.touchUi ? 2 * appLayout.targetSize + appLayout.spacing + 3 * Theme.espace2 : 112
+    }
     LifecycleKeeper { id: appLifecycle; objectName: "appLifecycle"; document: appDocument; view: pageArea.view }
     DocumentPortal { id: appPortal; objectName: "appPortal" }
     UpdateChecker { id: appUpdates; objectName: "appUpdates"; preferences: appPreferences }
@@ -356,6 +366,9 @@ Window {
             preferences: appPreferences
             actionModel: appActionBrowser
             broadcast: appBroadcast // L8-T32 : les notes de la page sont du contenu protégé (H8-16)
+            drawerHost: drawerLayer // L11-T10 : tiroir en fenêtre étroite
+            drawerMode: appLayout.narrow
+            stacker: appLayout
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -413,6 +426,7 @@ Window {
             view: pageArea.view
             profile: appProfile
             preferences: appPreferences
+            narrowMode: appLayout.narrow // L11-T10 : repliée en un bouton
 
             ToolPalette {
                 id: toolPalette
@@ -425,6 +439,86 @@ Window {
                 preferences: appPreferences
             }
         }
+    }
+
+    // L11-T10 : couche du tiroir des navigateurs, sur la région de la page. Le fond (objectName drawerScrim) capte l'appui
+    // hors du tiroir et le referme ; il est couverture d'entrée de la page tant que le tiroir est ouvert.
+    Item {
+        id: drawerLayer
+        objectName: "drawerLayer"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: appTabs.position === "bottom" ? topBar.bottom : documentTabBar.bottom
+        anchors.bottom: appTabs.position === "bottom" ? documentTabBar.top : parent.bottom
+        visible: appLayout.narrow
+        z: 5
+        Rectangle {
+            anchors.fill: parent
+            color: "#59000000"
+            visible: browserPanel.visible
+        }
+        MouseArea {
+            id: drawerScrim
+            objectName: "drawerScrim"
+            anchors.fill: parent
+            enabled: browserPanel.visible
+            onClicked: browserPanel.visible = false
+        }
+    }
+    // Bouton du tiroir (fenêtre étroite, tiroir fermé) : coin haut gauche de la page.
+    CommandButton {
+        id: browsersButton
+        commands: appCommands
+        commandId: "view.browsers"
+        visible: appLayout.narrow && !browserPanel.visible
+        x: Theme.espace2
+        y: (appTabs.position === "bottom" ? topBar.y + topBar.height : documentTabBar.y + documentTabBar.height) + Theme.espace2
+        z: 6
+    }
+    // Menu de débordement (fenêtre compacte, < 600 dp) : les menus de la ligne supérieure y sont réunis.
+    ToolButton {
+        id: topOverflow
+        objectName: "topOverflow"
+        visible: appLayout.compact
+        x: Theme.espace2
+        y: topBar.y
+        width: Theme.tailleBouton
+        height: topBar.height
+        z: 7
+        focusPolicy: Qt.NoFocus
+        text: "…"
+        font.pixelSize: Theme.taillePoliceTitre
+        Accessible.name: qsTr("Menus")
+        contentItem: Label {
+            text: topOverflow.text
+            font: topOverflow.font
+            color: Theme.texte
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+        background: Rectangle {
+            radius: Theme.rayon
+            color: mainMenu.opened ? Theme.surfaceActive : topOverflow.hovered ? Theme.surfaceSurvol : "transparent"
+        }
+        onClicked: mainMenu.popup(topOverflow, 0, topOverflow.height)
+    }
+    // Les boutons de menu de la ligne supérieure (objectName « menu-<id> ») s'effacent en fenêtre compacte.
+    function syncTopMenus() {
+        const shown = !appLayout.compact
+        const stack = [topBar]
+        while (stack.length > 0) {
+            const parentItem = stack.pop()
+            for (const child of parentItem.children) {
+                if (String(child.objectName).startsWith("menu-"))
+                    child.visible = shown
+                else
+                    stack.push(child)
+            }
+        }
+    }
+    Connections {
+        target: appLayout
+        function onMetricsChanged() { root.syncTopMenus() }
     }
 
     // Lot 11 : emplacements du bandeau de reprise, du menu au doigt et de la boîte des mises à jour (talons).
@@ -562,6 +656,9 @@ Window {
         tools: appTools
         // La couche des médias est posée par PageArea (pageOverlays, z 4) : elle reçoit ici son modèle et sa vue.
         Component.onCompleted: {
+        pageArea.view.addInputCover(drawerScrim)
+        pageArea.view.addInputCover(browsersButton)
+        root.syncTopMenus()
             for (const layer of pageArea.pageOverlays.children) {
                 if (layer.objectName === "mediaLayer") {
                     layer.view = pageArea.view

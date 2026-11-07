@@ -4,6 +4,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QQuickItem>
 #include <QtQml/qqmlregistration.h>
 
 namespace actcraft::ui {
@@ -52,6 +53,11 @@ public:
     bool touchUi() const;
     qreal targetSize() const;
     qreal spacing() const;
+
+    // Ordre des enfants d'une ligne : `stackBefore` et `stackAfter` de QQuickItem ne sont pas appelables
+    // depuis le QML (Qt 6.12). Le tiroir des navigateurs retrouve par là sa place à côté de la page.
+    Q_INVOKABLE void stackItemBefore(QQuickItem* item, QQuickItem* sibling) const;
+    Q_INVOKABLE void stackItemAfter(QQuickItem* item, QQuickItem* sibling) const;
 
 signals:
     void preferencesChanged();

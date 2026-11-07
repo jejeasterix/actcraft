@@ -46,7 +46,32 @@ Rectangle {
     readonly property int minWidth: 160
     readonly property int maxWidth: 480
     property int panelWidth: 220
-    readonly property int iconSize: 30
+    // Au doigt : les boutons du navigateur sont des cibles de la taille de Theme.tailleBouton (L11-T10).
+    readonly property int iconSize: Theme.touchUi ? Theme.tailleBouton : 30
+
+    // L11-T10 (D11-6) : fenêtre étroite (< 960 dp), le panneau devient un tiroir. Il quitte la ligne de la page, se
+    // pose dans `drawerHost` (couche de Main.qml au-dessus de la page), recouvre la page sans la pousser et reste
+    // fermé par défaut. `opened` est l'état visible du panneau, dans les deux dispositions.
+    property Item drawerHost: null
+    property bool drawerMode: false
+    property Item rowParent: null
+    property var stacker: null // LayoutMetrics de Main.qml : pose l'ordre des enfants de la ligne
+    readonly property bool opened: root.visible
+    function toggleDrawer() {
+        root.visible = !root.visible
+    }
+    onDrawerModeChanged: {
+        if (root.drawerMode)
+            root.visible = false
+        root.dock()
+    }
+    Binding { target: root; property: "x"; when: root.drawerMode; value: root.side === "left" ? 0 : (root.parent ? root.parent.width - root.width : 0) }
+    Binding { target: root; property: "y"; when: root.drawerMode; value: 0 }
+    Binding { target: root; property: "height"; when: root.drawerMode; value: root.parent ? root.parent.height : 0 }
+    Binding {
+        target: root; property: "width"; when: root.drawerMode
+        value: Math.min(Math.max(root.minWidth, Math.min(root.maxWidth, root.panelWidth)), root.parent ? root.parent.width * 0.8 : root.panelWidth)
+    }
 
     // Les menus du navigateur recouvrent la vue : relayés à la fenêtre (Main.openPopups).
     signal popupOpened()
@@ -60,7 +85,14 @@ Rectangle {
     // Place du panneau dans la ligne : avant ou après la zone de page (l'ordre des enfants fixe celui de la
     // ligne ; la mise en page est forcée ensuite).
     function dock() {
-        const row = root.parent
+        if (!root.rowParent && root.parent && root.parent !== root.drawerHost)
+            root.rowParent = root.parent
+        if (root.drawerMode) {
+            if (root.drawerHost && root.parent !== root.drawerHost)
+                root.parent = root.drawerHost
+            return
+        }
+        const row = root.rowParent
         if (!row)
             return
         let area = null
@@ -74,10 +106,12 @@ Rectangle {
         // reconstruit alors à sa prochaine mise en page, dans l'ordre fixé ensuite).
         root.parent = null
         root.parent = row
-        if (root.side === "right")
-            root.stackAfter(area)
-        else
-            root.stackBefore(area)
+        if (root.stacker) {
+            if (root.side === "right")
+                root.stacker.stackItemAfter(root, area)
+            else
+                root.stacker.stackItemBefore(root, area)
+        }
     }
     onSideChanged: root.dock()
 

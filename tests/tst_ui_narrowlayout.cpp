@@ -80,7 +80,11 @@ void collectCommandButtons(QQuickItem* root, QList<QQuickItem*>& out)
 bool resizeTo(Shell& s, QSize size)
 {
     s.window->resize(size);
-    return QTest::qWaitFor([&] { return s.window->size() == size; }, 5000);
+    if (!QTest::qWaitFor([&] { return s.window->size() == size; }, 5000)) {
+        return false;
+    }
+    QTest::qWait(100); // la ligne se refait au tour de rendu suivant
+    return true;
 }
 
 void clickCenter(Shell& s, QQuickItem* target)
@@ -96,6 +100,7 @@ class TstUiNarrowlayout : public QObject
     Q_OBJECT
 private slots:
     void initTestCase();
+    void cleanup();
     void thresholds();
     void touchUiFromSetting();
     void everyTargetAtLeast48dp();
@@ -118,6 +123,11 @@ void TstUiNarrowlayout::initTestCase()
     QSettings probe;
     QCOMPARE(probe.format(), QSettings::IniFormat);
     QVERIFY(probe.fileName().startsWith(m_settings.path()));
+}
+
+void TstUiNarrowlayout::cleanup()
+{
+    QSettings().remove(QStringLiteral("workstation/touch-ui"));
 }
 
 void TstUiNarrowlayout::thresholds()
@@ -210,8 +220,6 @@ void TstUiNarrowlayout::everyTargetAtLeast48dp()
                 qPrintable(QStringLiteral("%1 et %2 trop proches").arg(a->objectName(), b->objectName())));
         }
     }
-    QSettings seed;
-    seed.remove(QStringLiteral("workstation/touch-ui"));
 }
 
 void TstUiNarrowlayout::browsersHiddenWhenNarrow()
@@ -222,12 +230,13 @@ void TstUiNarrowlayout::browsersHiddenWhenNarrow()
     QQuickItem* pageArea = item(s, "pageArea");
     QVERIFY(browser && pageArea);
     // Large : le panneau est dans la ligne (il pousse la page).
+    const qreal closedWidth = pageArea->width();
     QVERIFY(QMetaObject::invokeMethod(browser, "toggleDrawer"));
     QTRY_VERIFY(browser->isVisible());
-    const qreal wideWidth = pageArea->width();
+    QTRY_VERIFY(pageArea->width() < closedWidth);
     QVERIFY(QMetaObject::invokeMethod(browser, "toggleDrawer"));
     QTRY_VERIFY(!browser->isVisible());
-    QVERIFY(pageArea->width() > wideWidth);
+    QTRY_COMPARE(pageArea->width(), closedWidth);
 
     QVERIFY(resizeTo(s, QSize(800, 1280)));
     QVERIFY(!browser->isVisible());
@@ -250,7 +259,7 @@ void TstUiNarrowlayout::browsersHiddenWhenNarrow()
     QVERIFY(resizeTo(s, QSize(1280, 800)));
     QVERIFY(QMetaObject::invokeMethod(browser, "toggleDrawer"));
     QTRY_VERIFY(browser->isVisible());
-    QTRY_COMPARE(pageArea->width(), wideWidth);
+    QTRY_VERIFY(pageArea->width() < closedWidth);
 }
 
 void TstUiNarrowlayout::paletteCollapsible()
@@ -389,6 +398,7 @@ void TstUiNarrowlayout::paletteFitsShortWindow()
         for (int i = 0; i < 40 && !inView(); ++i) {
             QWheelEvent wheel(at, s.window->mapToGlobal(at), QPoint(), QPoint(0, -120), Qt::NoButton,
                               Qt::NoModifier, Qt::NoScrollPhase, false);
+            wheel.setTimestamp(static_cast<ulong>(1000 * (i + 1)));
             QCoreApplication::sendEvent(s.window, &wheel);
             QTest::qWait(20);
         }

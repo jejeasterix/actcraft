@@ -38,6 +38,20 @@ qreal LayoutMetrics::spacing() const
     return touchUi() ? kTouchSpacing : kPointerSpacing;
 }
 
+void LayoutMetrics::stackItemBefore(QQuickItem* item, QQuickItem* sibling) const
+{
+    if (item && sibling) {
+        item->stackBefore(sibling);
+    }
+}
+
+void LayoutMetrics::stackItemAfter(QQuickItem* item, QQuickItem* sibling) const
+{
+    if (item && sibling) {
+        item->stackAfter(sibling);
+    }
+}
+
 Preferences* LayoutMetrics::preferences() const noexcept
 {
     return m_preferences;
