@@ -9,8 +9,8 @@ Branche principale locale au lancement : main @ 9563919
 Cadrage : docs/specs/2026-10-14-livraison-complete-cadrage.md + amendement 1 (2026-10-17)   Plans : docs/plans/2026-10-18-livraison-complete-lot7-PLAN.md (7a) et …-lot7b-PLAN.md (7b), bf8c930, relus et corrigés hors socle
 Relectures : mac
 Chantier parent : `livraison-complete` (état : C:\Users\JeromeDenis\ActCraft\.worktrees\livraison-complete\docs\sessions\livraison-complete-etat.md, lecture seule)
-Lot : 7 « Présentation et outils » — 33/33 tâches terminées (+ L7-T33b, corrective) ; fin de lot (3.8) en cours
-Tâche : lot 7 fini côté Mac (2026-11-05) — reste la passe PC groupée (voir « Fin du lot 7 côté Mac »)
+Lot : 7 « Présentation et outils » — 33/33 tâches terminées (+ L7-T33b, corrective) ; **lot clos** le 2026-11-07 (fusion dans `main`, voir « Lot 7 dans main »)
+Tâche : lot 7 clos (O73, 2026-11-07) — fusionné dans `main` par la branche `feat/lot7-vers-main` ; restent S22 et S23 (H7-20, H7-21)
 Questions à Jérôme : —
 
 ## Redémarrage du PC (2026-10-18 vers 22h53, cause probable : mémoire)
@@ -256,3 +256,42 @@ Exercer avant de clore (3.8, étape 3), tête 1eb33eb4, `build-mac` Debug, 0 ave
 **Passe PC groupée, à faire au retour du PC** (réservée au PC, non faite sur le Mac) : banc D3D11 plein écran de clôture, dont S22 `effets-page` (« aucune image au-delà de la limite » ; Mac logiciel : 2,4 à 2,5 % > 25 ms) et S23 `message-defilant` ; captures à l'écran en D3D11 (`captures.ps1 -Scenario tous -Rendu d3d11`, jeton `ecran`) ; `NOMS OK` ; graphe (`graphify update .`) ; caméra en pixels logiques avec un rapport de pixels ≠ 1 (`camera_win.cpp:75-83`) ; preuves de `keyinjector_win.cpp` ; seuil de 125/200 ms de la garde M4 sur vraie machine ; mutant de la caméra `desktopCaptureKeepsTheSelection` (plantage au lieu d'échec, L7-T35).
 **Passe PC groupée faite** (O33, 2026-11-07, PR #18 mergée en ba1dca03 par O45 ; rapport `docs/mesures/2026-11-07-lot7-passe-windows.md`) : captures D3D11 à l'écran 29/33, garde M4 verte, `keyinjector_win` prouvé à l'écran avec Jérôme, mutant tué par une exception non gérée. **Restent ouverts pour B** : S22 `effets-page` **non tenu** au banc D3D11 plein écran (1,65 % des images > 25 ms, jusqu'à 83,5 ms) ; S23 `message-defilant` : images tenues, mais latence du stylet p50 35,3 ms pour un seuil de 20 ms. À corriger sur le Mac, puis remesure au PC (banc à l'écran, avec Jérôme).
 **À la porte de clôture** : H-M8 révisée (choisir un outil de la fenêtre principale pendant l'annotation ferme l'annotation, écart à l'original) ; raccourcis `Qt.ApplicationShortcut` actifs pendant l'annotation (défaut antérieur) ; `/INCREMENTAL` dans les presets ; conversions de la sélection limitées au stylo ; H7-16 ; écart de L7-T25 ; simplifications et consignés du tour 2 (`relecture-lot7-tour2.md`) ; mineurs consignés de L7-T42 et L7-T43 (leurs lignes) ; erreurs QML `BrowserPanel.qml:51/53` (lot 4).
+
+## Lot 7 dans main (O73, 2026-11-07, PC)
+Demande relayée par le Pilote (Jérôme, 2026-11-07, mot pour mot : « Il me semble qu'il restait encore le lot 6 et le
+lot 7 d'Actcraft. »). La branche n'avait jamais été fusionnée : 620 commits absents de `main`. Le lot 8 étant dans
+`main` (#16), la fusion se fait vers `main` et non vers `feat/livraison-complete` (lot 11 en cours, non touché) ; le
+lot 11 prendra le lot 7 en fusionnant `main` à sa clôture.
+- Branche `feat/lot7-vers-main` depuis `origin/main` (cc7f012a), `git merge origin/feat/livraison-complete-b`
+  (805a8ea7), commit de fusion 907c874b. 16 fichiers en conflit, résolus des deux côtés ; détail fichier par fichier
+  dans le message du commit. Seul choix de logique : `tools/src/selecttool.cpp`, le pivot d'une rotation à règle
+  (lot 8) l'emporte sur l'origine XY montrée (lot 7), sinon l'origine, sinon le centre du cadre ; test
+  `ruleRotationKeepsItsPivotWhenTheOriginIsShown` (`tests/tst_tools_interactivity.cpp`, 17f728b8), rouge sous la
+  résolution du seul lot 7.
+- `NOMS EN ECHEC : 4`, tous venus de `main` (lot 8) : renommés (3dcdc54a). Après : `NOMS OK : 1170 fichiers`.
+- Build debug et release MSVC `/W4 /WX` verts. Suite release (P = 4) : 301/305, 3 sautés attendus, 1 rouge connu
+  (`tst_media_soundrecorder`, vrai micro du PC, `docs/mesures/2026-11-06-lot6-passe-windows.md:60`). Suite debug :
+  tests 1 à 116 en série, 117 à 305 en P = 4 ; rouges : `tst_media_soundrecorder` (connu), `tst_bench_result` et
+  `tst_bench_verdict` (fumée du banc invalide en debug sur ce PC lent : `edition.paste` refusé, 15 effets sur 16 ;
+  verts en release, la fumée release est valide). `tst_ui_resources` rouge dans la suite debug, vert rejoué seul.
+  `tst_bench_verdict` release : un échec sans sortie au premier rejeu seul (arrêt anormal du processus, cause non
+  trouvée), puis vert trois fois (seul, ctest, suite).
+- Banc D3D11 plein écran (release, Dell Latitude 5450, écran principal 1920 × 1080 à 60 Hz, PC inactif depuis 12 h,
+  OneDrive non suspendu) : premier passage invalide (`export-fond` : export de fond incomplet, `content-check-failed`,
+  comme au lot 6), second valide, `bench/results/2026-11-07_233859-Dell-Inc-Latitude-5450-direct3d11.json` (non
+  suivi par git), verdict brut `BUDGET DEPASSE` comme à chaque banc D3D11. Référence tenue : `stroke`, `zoom`,
+  `scroll` à 60 i/s, p95 16,9 à 17,0 ms, latence p50 10,0 ms.
+  - **S22 `effets-page` : non tenu.** 60 i/s, p95 17,2 ms, **2,10 % > 25 ms** (seuil 1 %), p99 33,8 ms, max 40,6 ms
+    (#18 : 1,65 %, max 83,5 ms).
+  - **S23 `message-defilant` : images tenues** (0 % > 25 ms, max 17,8 ms), **latence non tenue** : p50 38,3 ms,
+    p95 53,4 ms pour 20 ms (#18 : 35,3 et 50,5 ms) ; délai de réception p95 20,1 ms.
+  - Hors critères, comme avant : pic mémoire 1 185,6 Mio (seuil 1 024 Mio), `onglets` 52,7 i/s.
+- **H7-20 (à revoir)** : S22 ne bloque pas la clôture du lot 7. Les images au-delà de 25 ms tombent aux changements
+  de page (16 reconstructions du cache pour 16 changements de page) ; correctif à chercher dans une tâche dédiée, remesure au banc
+  D3D11 à l'écran.
+- **H7-21 (à revoir)** : S23 ne bloque pas la clôture du lot 7. Le défilement du message retarde le traitement des
+  points du stylet (latence p50 38 ms contre 10 ms sans message) ; correctif à chercher dans une tâche dédiée,
+  remesure au banc D3D11 à l'écran.
+- `tst_captures_imprimer` (rouge hors écran au #18, clic à coordonnée fixe) : vert ici en debug et en release.
+- Restent du lot 7, inchangés : la liste « À la porte de clôture » de « Fin du lot 7 côté Mac » ; `qtpdf` absent de
+  `release.yml` (import PDF non construit dans les paquets, à régler avant la release).
