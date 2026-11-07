@@ -231,6 +231,7 @@ void SelectTool::onSample(const input::Sample& sample)
     case input::Phase::Press:
         if (m_state == State::Idle) {
             press(sample);
+            holdTargets();
         }
         break;
     case input::Phase::Move:
@@ -292,6 +293,7 @@ bool SelectTool::onKey(int key, int modifiers)
         return true;
     }
     if (key == Qt::Key_Delete) {
+        dropHeldByOthers();
         if (m_context.user.selection().empty()) {
             return false;
         }
@@ -309,7 +311,7 @@ void SelectTool::selectAll()
             ids.push_back(object.common.id);
         }
     }
-    m_context.user.setSelection(std::move(ids));
+    m_context.user.setSelection(withoutHeldByOthers(std::move(ids)));
     showFrame();
 }
 
@@ -321,6 +323,7 @@ void SelectTool::clearSelection()
 
 void SelectTool::deleteSelection()
 {
+    dropHeldByOthers();
     const std::vector<core::ObjectId> ids = present(m_context.document.page(), m_context.user.selection());
     if (ids.empty()) {
         return; // F-541 : sans sélection, rien
@@ -343,6 +346,7 @@ void SelectTool::reduce()
 
 void SelectTool::scaleSelection(double factor)
 {
+    dropHeldByOthers();
     const core::Page& page = m_context.document.page();
     const std::vector<core::ObjectId> ids = present(page, m_context.user.selection());
     const std::vector<core::ObjectId> scaled = resizableAmong(page, ids, m_context.lockIgnored);
@@ -357,6 +361,7 @@ void SelectTool::scaleSelection(double factor)
 
 void SelectTool::setTranslucency(std::uint8_t value)
 {
+    dropHeldByOthers();
     const std::vector<core::ObjectId> ids = present(m_context.document.page(), m_context.user.selection());
     if (ids.empty()) {
         return;
@@ -409,6 +414,73 @@ void SelectTool::setInteractionPolicy(const InteractionPolicy* policy) noexcept
 void SelectTool::setGrabs(Grabs* grabs) noexcept
 {
     m_grabs = grabs;
+}
+
+bool SelectTool::heldByOther(core::ObjectId id) const
+{
+    if (!m_grabs) {
+        return false;
+    }
+    const std::optional<input::UserId> holder = m_grabs->holder(id);
+    return holder && *holder != m_context.user.id();
+}
+
+std::vector<core::ObjectId> SelectTool::withoutHeldByOthers(std::vector<core::ObjectId> ids) const
+{
+    if (m_grabs) {
+        std::erase_if(ids, [this](core::ObjectId id) { return heldByOther(id); });
+    }
+    return ids;
+}
+
+void SelectTool::dropHeldByOthers()
+{
+    const std::vector<core::ObjectId>& selection = m_context.user.selection();
+    if (std::any_of(selection.begin(), selection.end(),
+                    [this](core::ObjectId id) { return heldByOther(id); })) {
+        m_context.user.setSelection(withoutHeldByOthers(selection));
+    }
+}
+
+std::optional<core::ObjectId> SelectTool::designate(const core::Page& page, core::PointF point,
+                                                    double tolerance) const
+{
+    const std::optional<core::ObjectId> hit = core::objectAt(page, point, tolerance);
+    if (!hit || !heldByOther(*hit)) {
+        return hit;
+    }
+    // Rare (l'objet touché est tenu par l'autre) : à l'appui seulement, jamais pendant les mouvements.
+    core::Page probe = page;
+    std::erase_if(probe.objects,
+                  [this](const core::PageObject& object) { return heldByOther(object.common.id); });
+    return core::objectAt(probe, point, tolerance);
+}
+
+void SelectTool::holdTargets()
+{
+    if (!m_grabs || m_state == State::Idle) {
+        return;
+    }
+    switch (m_grab) {
+    case Grab::None:
+    case Grab::Band:
+        return;
+    case Grab::Drag:
+    case Grab::FreeMove:
+        for (const core::ObjectId id : m_grabbed) {
+            m_grabs->hold(id, m_context.user.id());
+        }
+        return;
+    case Grab::Handle:
+    case Grab::Rotate:
+    case Grab::Command:
+    case Grab::SmartPoint:
+    case Grab::ShapePoint:
+        for (const core::ObjectId id : m_context.user.selection()) {
+            m_grabs->hold(id, m_context.user.id());
+        }
+        return;
+    }
 }
 
 void SelectTool::setContainerAccepted(ContainerAccepted callback)
@@ -621,9 +693,10 @@ void SelectTool::press(const input::Sample& sample)
     m_grabbed.clear();
     m_grab = Grab::None;
     m_state = State::Pressed;
+    dropHeldByOthers(); // L11-T8 : ni cadre, ni poignée, ni glisser sur ce que tient l'autre
 
     const double zoom = m_context.view.zoom();
-    const std::optional<core::ObjectId> hit = core::objectAt(page, m_start, core::kHitToleranceScreen / zoom);
+    const std::optional<core::ObjectId> hit = designate(page, m_start, core::kHitToleranceScreen / zoom);
     const std::vector<core::ObjectId>& selection = m_context.user.selection();
     const std::vector<core::PointF> points = shownShapePoints(selection);
     if (const std::optional<std::size_t> point = shapePointAt(points, m_start, zoom)) {
@@ -1170,8 +1243,8 @@ void SelectTool::release(const input::Sample& sample)
         }
         break;
     case State::RubberBand: {
-        std::vector<core::ObjectId> ids =
-            core::objectsTouching(m_context.document.page(), core::normalizedRect(m_start, point));
+        std::vector<core::ObjectId> ids = withoutHeldByOthers(
+            core::objectsTouching(m_context.document.page(), core::normalizedRect(m_start, point)));
         if (m_additive) {
             std::vector<core::ObjectId> merged = m_base;
             for (const core::ObjectId id : ids) {
@@ -1221,6 +1294,9 @@ void SelectTool::publish(const SelectionView& view)
 
 void SelectTool::reset() noexcept
 {
+    if (m_grabs) {
+        m_grabs->release(m_context.user.id());
+    }
     m_state = State::Idle;
     m_grab = Grab::None;
     m_pendingSelect = 0;

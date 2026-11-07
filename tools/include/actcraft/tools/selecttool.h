@@ -124,7 +124,15 @@ private:
     void showBand(core::PointF point);
     void showFrame();
     void publish(const SelectionView& view);
-    void reset() noexcept;
+    void reset() noexcept; // relâche aussi ce que l'utilisateur tient (setGrabs)
+    // Objets tenus (L11-T8) : sans registre, aucun objet n'est tenu par un autre.
+    bool heldByOther(core::ObjectId id) const;
+    std::vector<core::ObjectId> withoutHeldByOthers(std::vector<core::ObjectId> ids) const;
+    void dropHeldByOthers(); // la sélection de l'utilisateur perd les objets tenus par un autre
+    // Objet le plus haut sous `point` (core::objectAt), en sautant ceux que tient un autre utilisateur.
+    std::optional<core::ObjectId> designate(const core::Page& page, core::PointF point,
+                                            double tolerance) const;
+    void holdTargets(); // après l'appui : le geste tient les objets qu'il vise (rien pour un rectangle)
 
     ToolContext& m_context;
     State m_state = State::Idle;
