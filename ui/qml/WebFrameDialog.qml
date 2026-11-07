@@ -10,7 +10,11 @@ Item {
     visible: false
     objectName: "webFrameDialog"
     property var frames: null
+    property alias address: addressField.text
+    property alias code: codeField.text
     readonly property bool opened: dialog.opened
+    // « OK » ne crée rien tant que l'adresse et le code sont vides (le modèle refuserait de toute façon).
+    readonly property bool canInsert: address.trim().length > 0 || code.trim().length > 0
 
     function open(target) {
         frames = target
@@ -29,8 +33,9 @@ Item {
         width: 540
         title: qsTr("Cadre web")
         standardButtons: Dialog.Ok | Dialog.Cancel
+        Component.onCompleted: standardButton(Dialog.Ok).enabled = Qt.binding(function () { return root.canInsert })
         onAccepted: {
-            if (root.frames)
+            if (root.frames && root.canInsert)
                 root.frames.insertFrame(codeField.text, addressField.text)
         }
 

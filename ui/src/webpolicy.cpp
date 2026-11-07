@@ -144,7 +144,7 @@ void WebContentPolicy::typedByUser(const QString& documentKey, const QUrl& addre
         m_documents[documentKey].typed.insert(originOf(address));
 }
 
-void WebContentPolicy::unblock(const QString& documentKey, int page)
+void WebContentPolicy::unblock(const QString& documentKey, std::uint64_t page)
 {
     m_documents[documentKey].unblocked.insert(page);
 }
@@ -159,8 +159,21 @@ int WebContentPolicy::diskQueries()
     return g_diskQueries.load();
 }
 
+actions::Platform WebContentPolicy::buildPlatform() noexcept
+{
+#if defined(Q_OS_ANDROID)
+    return actions::Platform::Android;
+#elif defined(Q_OS_WIN)
+    return actions::Platform::Windows;
+#elif defined(Q_OS_MACOS)
+    return actions::Platform::MacOS;
+#else
+    return actions::Platform::Linux;
+#endif
+}
+
 WebContentPolicy::Verdict WebContentPolicy::decide(const QUrl& url, const QString& documentKey,
-                                                   int page) const
+                                                   std::uint64_t page) const
 {
     if (!url.isValid())
         return Verdict::Refuse;
@@ -173,6 +186,11 @@ WebContentPolicy::Verdict WebContentPolicy::decide(const QUrl& url, const QStrin
     if (scheme == QLatin1String("file"))
         return isAllowedFile(url, state.folder) ? Verdict::Load : Verdict::Refuse;
     if (!isAcceptableRemote(url)) // tout autre schéma, hôte absent, identifiants
+        return Verdict::Refuse;
+    // H8-15 contre F-302 « A (local seulement) » (cadrage, amendement l. 116) : sous Android, un cadre
+    // distant ne charge pas, même saisi par l'utilisateur ou débloqué. Refus et non blocage : débloquer
+    // n'y changerait rien.
+    if (m_platform == actions::Platform::Android)
         return Verdict::Refuse;
     if (state.typed.contains(originOf(url)))
         return Verdict::Load;
