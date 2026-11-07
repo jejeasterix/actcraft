@@ -1197,6 +1197,18 @@ input::PointerRouter& PageView::router() noexcept
     return m_router;
 }
 
+void PageView::setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy)
+{
+    (void)policy;
+}
+
+int PageView::lastContactUser() const noexcept
+{
+    return 0;
+}
+
+void PageView::finishContacts() {}
+
 void PageView::addInputCover(QQuickItem* cover)
 {
     if (!cover || m_covers.contains(cover)) {

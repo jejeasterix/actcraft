@@ -358,6 +358,21 @@ private:
     void forgetContact(std::uint64_t pointer);  // décision rendue par le routeur (relâché)
     void releaseContact(std::uint64_t pointer); // m_router.release, puis forgetContact
     QList<std::uint64_t> m_heldContacts;
+
+    // Lot 11 (L11-T5) : ajout en fin.
+public:
+    // Remplace la politique du routeur (nullptr : gestion complète) ; les contacts en cours gardent leur
+    // décision. Posée par le contrôleur du mode du toucher (L11-T6) : la vue ne lit aucun réglage.
+    void setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy);
+    // Utilisateur de la dernière décision d'appui routée vers l'outil ou le geste (tests).
+    int lastContactUser() const noexcept;
+    // Chaque contact en cours se termine comme un relâché à sa dernière position (trait gardé) ; le routeur
+    // est remis à zéro, contactActive devient faux. La suite d'un contact terminé n'écrit plus.
+    Q_INVOKABLE void finishContacts();
+
+signals:
+    // D11-7 : un doigt routé vers l'outil est resté immobile (≤ kTouchHoldToleranceDp) kTouchHoldMs.
+    void touchHeld(QPointF pagePoint, QPointF windowPoint, int user);
 };
 
 } // namespace actcraft::ui
