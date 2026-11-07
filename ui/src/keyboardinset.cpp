@@ -58,7 +58,8 @@ qreal KeyboardInset::shift() const noexcept
 
 void KeyboardInset::update()
 {
-    // Clavier masqué : rectangle vide. Le curseur est dégagé si son bas, plus la marge, tient au-dessus du clavier.
+    // Clavier masqué : rectangle vide. Le curseur est dégagé si son bas, plus la marge, tient au-dessus du
+    // clavier.
     qreal shift = 0;
     if (m_keyboardRect.height() > 0 && !m_caretRect.isNull()) {
         shift = std::max<qreal>(0, m_caretRect.bottom() + m_margin - m_keyboardRect.top());

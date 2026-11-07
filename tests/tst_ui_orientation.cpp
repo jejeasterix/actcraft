@@ -179,8 +179,10 @@ void TstUiOrientation::rotationKeepsTheStroke()
     QVERIFY(resizeTo(s, QSize(800, 1280)));
     QCOMPARE(s.document->shownObjectCount(), before + 1);
     const QPointF scene = s.view->pageToScene(QPointF(400, 300));
-    QVERIFY(QRectF(QPointF(0, 0), QSizeF(s.window->size())).contains(scene)); // le trait reste dans la fenêtre
-    const QColor c = s.window->grabWindow().pixelColor((scene * s.window->effectiveDevicePixelRatio()).toPoint());
+    QVERIFY(
+        QRectF(QPointF(0, 0), QSizeF(s.window->size())).contains(scene)); // le trait reste dans la fenêtre
+    const QColor c =
+        s.window->grabWindow().pixelColor((scene * s.window->effectiveDevicePixelRatio()).toPoint());
     QVERIFY2(c.lightness() < 160, qPrintable(c.name()));
     // Retour en paysage : toujours là.
     QVERIFY(resizeTo(s, QSize(1280, 800)));
