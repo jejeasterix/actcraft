@@ -75,6 +75,7 @@ private:
 
     Opener m_opener;
     QHash<int, Pending> m_pending;
+    QHash<QString, int> m_writing; // chemin extrait → écritures en cours (fil d'écriture)
     int m_nextToken = 1;
     int m_openedCount = 0;
     std::map<QString, std::unique_ptr<QTemporaryDir>> m_extractionDirs; // par clé de document

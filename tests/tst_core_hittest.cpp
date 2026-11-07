@@ -42,6 +42,26 @@ private slots:
         QCOMPARE(objectAt(page, {120, 120}, 0).value_or(0), ObjectId{1});
         QVERIFY(!objectAt(page, {10, 10}, 0).has_value());
     }
+    // L8-C15 : touche d'un trait lue sur l'objet lui-même (sans page sonde), même réponse que objectAt.
+    void strokeTouchedAgreesWithObjectAt()
+    {
+        PageObject hidden = strokeObject(7, {{0, 0, 0.5f}, {400, 400, 0.5f}}, 10);
+        hidden.common.visible =
+            false; // un porteur d'action masqué reste cliquable : la visibilité n'y entre pas
+        Page page;
+        PageObject shown = hidden;
+        shown.common.visible = true;
+        insertAtTopOfLayer(page, shown);
+        for (const PointF p : {PointF{200, 200}, PointF{200, 204}, PointF{200, 215}, PointF{350, 50},
+                               PointF{0, 0}, PointF{600, 600}}) {
+            for (const double tolerance : {0.0, 8.0}) {
+                QCOMPARE(strokeTouched(hidden, p, tolerance), objectAt(page, p, tolerance).has_value());
+            }
+        }
+        QVERIFY(strokeTouched(hidden, {200, 200}, 0));
+        QVERIFY(!strokeTouched(hidden, {350, 50}, 8));
+        QVERIFY(!strokeTouched(rectObject(2, {0, 0, 100, 100}), {50, 50}, 0)); // pas un trait
+    }
     void strokeHitUsesWidthAndTolerance()
     {
         Page page;

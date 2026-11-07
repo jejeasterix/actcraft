@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,9 @@ std::map<std::string, Resource> pageResources(const Document& document, const st
 // référence hors de la page, ou à 0 (« aucun »), reste telle quelle. Identifiants épuisés (allocateId rend
 // 0) : les objets restants gardent 0, et la copie n'est pas à insérer.
 Page withFreshIds(Document& document, Page page);
+// Idem, mais seuls les objets dont l'identifiant est dans `taken` en reçoivent un neuf (les autres gardent
+// le leur) ; les références internes aux objets renumérotés suivent.
+Page withFreshIdsWhere(Document& document, Page page, const std::set<ObjectId>& taken);
 
 // Indices des pages déplacées après MovePagesCommand(pages, before) (F-802 : elles restent sélectionnées).
 std::vector<std::size_t> positionsAfterMove(std::size_t pageCount, const std::vector<std::size_t>& pages,

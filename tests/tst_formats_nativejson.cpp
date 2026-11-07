@@ -1297,6 +1297,29 @@ private slots:
         QCOMPARE(line->pen.color, core::Outline{}.color);
     }
 
+    // L8-C15 : un identifiant en double (fichier édité à la main, ancien logiciel) est renuméroté à la
+    // lecture : le premier objet le garde, le second en reçoit un neuf ; l'avertissement reste.
+    void duplicateObjectIdsAreRenumberedOnRead()
+    {
+        core::Document rich = richdoc::richDocument();
+        auto& objects = rich.page(0).objects;
+        QVERIFY(!objects.empty());
+        const core::ObjectId shared = objects.front().common.id;
+        core::PageObject twin = objects.front();
+        objects.push_back(twin); // même identifiant deux fois
+        core::Document back;
+        const auto r = formats::documentFromJson(formats::documentToJson(rich), loaderFrom(rich), back);
+        QVERIFY(r.ok);
+        QVERIFY(core::hasUniqueIds(back));
+        QVERIFY(!r.warnings.isEmpty()); // l'avertissement est gardé
+        const auto& read = back.page(0).objects;
+        QCOMPARE(read.size(), objects.size());
+        QCOMPARE(read.front().common.id, shared);
+        QVERIFY(read.back().common.id != shared);
+        QVERIFY(read.back().common.id != 0);
+        QVERIFY(back.nextId() > read.back().common.id);
+    }
+
     void noPageGivesOneBlankPage()
     {
         QJsonObject root{{u"format"_s, u"actcraft-document/1"_s}, {u"pages"_s, QJsonArray{}}};

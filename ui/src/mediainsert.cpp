@@ -239,12 +239,14 @@ private:
 
 // À droite du dernier média de la page (V126), sinon au centre ; sous lui si la page n'a plus de place à
 // droite.
-core::RectF placeBox(const core::Page& page, Box box)
+core::RectF placeBox(const core::Page& page, Box box, std::optional<QPointF> center)
 {
     const double share =
         std::min({1.0, kMaxShare * page.width / box.width, kMaxShare * page.height / box.height});
     const double width = box.width * share;
     const double height = box.height * share;
+    if (center) // déposé à un point de la page : centré dessus, comme une image
+        return {center->x() - width / 2, center->y() - height / 2, width, height};
     const core::Media* last = nullptr;
     for (const core::PageObject& object : page.objects)
         if (const auto* media = std::get_if<core::Media>(&core::body(object)))
@@ -262,10 +264,10 @@ core::RectF placeBox(const core::Page& page, Box box)
 
 void place(DocumentController& controller, std::size_t pageIndex, Kind kind, Box box, const std::string& name,
            const std::string& fileName, QByteArray data, std::string extension, std::string existingKey,
-           QByteArray placeholder)
+           QByteArray placeholder, std::optional<QPointF> center = std::nullopt)
 {
     core::Media media;
-    media.bounds = placeBox(controller.document().page(pageIndex), box);
+    media.bounds = placeBox(controller.document().page(pageIndex), box, center);
     media.fileName = fileName;
     media.aspectLocked = kind == Kind::Video;
     core::PageObject object = std::move(media);
@@ -332,6 +334,16 @@ bool MediaInsert::allowed()
 
 void MediaInsert::insertFile(const QUrl& requested)
 {
+    startFile(requested, std::nullopt);
+}
+
+void MediaInsert::insertFileAt(const QUrl& requested, QPointF center)
+{
+    startFile(requested, center);
+}
+
+void MediaInsert::startFile(const QUrl& requested, std::optional<QPointF> center)
+{
     if (!allowed())
         return;
     QUrl url = requested;
@@ -343,30 +355,31 @@ void MediaInsert::insertFile(const QUrl& requested)
     if (m_pending++ == 0)
         emit busyChanged();
     auto* watcher = new QFutureWatcher<Prepared>(this);
-    connect(watcher, &QFutureWatcher<Prepared>::finished, this, [this, watcher, generation, origin]() {
-        Prepared prepared = watcher->result();
-        watcher->deleteLater();
-        bool done = false;
-        QString error = prepared.error;
-        if (error.isEmpty()) {
-            if (m_document != nullptr && m_document->generation() == generation &&
-                static_cast<std::size_t>(m_document->currentIndex()) == origin &&
-                origin < m_document->document().pageCount()) {
-                place(*m_document, origin, prepared.kind, prepared.box, prepared.name, prepared.fileName,
-                      std::move(prepared.data), std::move(prepared.extension), {},
-                      std::move(prepared.placeholder));
-                done = true;
-            } else {
-                error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
-            }
-        }
-        if (--m_pending == 0)
-            emit busyChanged();
-        if (!error.isEmpty())
-            emit failed(error);
-        if (done)
-            emit inserted(1);
-    });
+    connect(watcher, &QFutureWatcher<Prepared>::finished, this,
+            [this, watcher, generation, origin, center]() {
+                Prepared prepared = watcher->result();
+                watcher->deleteLater();
+                bool done = false;
+                QString error = prepared.error;
+                if (error.isEmpty()) {
+                    if (m_document != nullptr && m_document->generation() == generation &&
+                        static_cast<std::size_t>(m_document->currentIndex()) == origin &&
+                        origin < m_document->document().pageCount()) {
+                        place(*m_document, origin, prepared.kind, prepared.box, prepared.name,
+                              prepared.fileName, std::move(prepared.data), std::move(prepared.extension), {},
+                              std::move(prepared.placeholder), center);
+                        done = true;
+                    } else {
+                        error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
+                    }
+                }
+                if (--m_pending == 0)
+                    emit busyChanged();
+                if (!error.isEmpty())
+                    emit failed(error);
+                if (done)
+                    emit inserted(1);
+            });
     watcher->setFuture(QtConcurrent::run([url, probe = m_probe]() { return prepare(url, probe); }));
 }
 

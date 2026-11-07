@@ -196,7 +196,13 @@ int main(int argc, char* argv[])
         for (const UiStep& read : reads) {
             ok = player->expect(read, report) && ok;
         }
-        printLine(ok ? QStringLiteral("SCENARIO OK") : QStringLiteral("SCENARIO EN ECHEC"));
+        // Les étapes sautées (skipOn) ne passent pas inaperçues dans le verdict final.
+        const qsizetype skipped = report.filter(QStringLiteral("SAUTE étape"), Qt::CaseSensitive).size();
+        QString verdict = QStringLiteral("SCENARIO OK");
+        if (skipped > 0) {
+            verdict += QStringLiteral(" (%1 étape(s) sautée(s))").arg(skipped);
+        }
+        printLine(ok ? verdict : QStringLiteral("SCENARIO EN ECHEC"));
         code = ok ? 0 : 1;
         QCoreApplication::exit(code);
     });

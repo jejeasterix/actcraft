@@ -71,7 +71,9 @@ public:
     void redo(core::Document& document, core::Changes& changes) override
     {
         if (!m_data.isEmpty() && (m_key.empty() || document.resource(m_key) == nullptr)) {
-            m_key = document.addResource(m_data, m_extension);
+            // Clé déjà calculée sur le fil de lecture : pas de nouveau hachage sur le fil de l'interface.
+            m_key = m_key.empty() ? document.addResource(m_data, m_extension)
+                                  : document.addResource(m_data, m_extension, m_key);
             ++g_insertions;
         }
         if (!m_inner)

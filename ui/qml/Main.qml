@@ -167,6 +167,7 @@ Window {
         id: appInsertion
         objectName: "appInsertion"
         document: appDocument
+        mediaInsert: appMediaInsert // les médias déposés ou choisis passent par lui (action, espace réservé, verrou)
     }
     DocumentTabs {
         id: appTabs
@@ -683,6 +684,15 @@ Window {
     Connections {
         target: appDragDrop
         function onRefused(reason) { messageBanner.show(reason) }
+    }
+    // Refus asynchrone d'un fichier rangé (illisible, vide, trop gros, verrou) : la boîte est déjà fermée, la
+    // bannière le dit. Boîte ouverte, son propre message d'erreur suffit.
+    Connections {
+        target: appLinkDialogs
+        function onRefused(reason) {
+            if (!linkDialog.visible)
+                messageBanner.show(reason)
+        }
     }
     Connections {
         target: appMediaInsert

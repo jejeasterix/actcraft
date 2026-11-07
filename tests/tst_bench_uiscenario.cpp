@@ -659,6 +659,13 @@ private slots:
             << QByteArray("{\"remember\":\"a.b\",\"as\":\"SAMPLES\"}") << QStringLiteral("mémoire invalide");
         QTest::newRow("remember nom invalide")
             << QByteArray("{\"remember\":\"a.b\",\"as\":\"a}b\"}") << QStringLiteral("mémoire invalide");
+        // L8-C15 : saut d'une étape selon la plateforme.
+        QTest::newRow("skipOn motif blanc")
+            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"skipOn\":[\"macos\"],\"skipReason\":\"  \"}")
+            << QStringLiteral("skipOn");
+        QTest::newRow("skipOn pas un tableau")
+            << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"skipOn\":\"macos\",\"skipReason\":\"x\"}")
+            << QStringLiteral("skipOn");
         // L5-T32 : contrôle d'un fichier écrit.
         QTest::newRow("file sans contrôle")
             << QByteArray("{\"file\":\"x\"}") << QStringLiteral("fichier invalide");
@@ -802,6 +809,40 @@ private slots:
     }
 
     // L5-C28 : clic nommé. Le centre de l'élément est visé en repère fenêtre : la mise en page ne compte pas.
+    // L8-C9 : une étape peut se sauter selon la plateforme, avec un motif obligatoire.
+    void skipOnIsParsedAndNeedsAReason()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"wait\": 5, \"skipOn\": [\"macos\"], \"skipReason\": \"H8-17\"}", s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps[0].skipOn, QStringList{QStringLiteral("macos")});
+        QCOMPARE(s.steps[0].skipReason, QStringLiteral("H8-17"));
+        QVERIFY(!parseSteps("{\"wait\": 5, \"skipOn\": [\"macos\"]}", s, error));
+        QVERIFY(error.contains(QStringLiteral("skipReason")));
+    }
+
+    void skippedStepIsReportedAndNotPlayed()
+    {
+        UiScenario s;
+        QString error;
+        const QString here = QSysInfo::productType();
+        QVERIFY2(
+            parseSteps(QStringLiteral("{\"expect\": \"nulle-part.x\", \"value\": 1, \"skipOn\": [\"%1\"], "
+                                      "\"skipReason\": \"motif-ecrit\"}")
+                           .arg(here)
+                           .toUtf8(),
+                       s, error),
+            qPrintable(error));
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(report.join(QLatin1Char('\n'))
+                     .contains(QStringLiteral("SAUTE étape 1 (") + here + QStringLiteral(") : motif-ecrit")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+    }
+
     void tapStepParsed()
     {
         UiScenario s;
