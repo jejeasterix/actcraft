@@ -221,6 +221,7 @@ actcraft_add_test(tst_ui_help
 actcraft_add_test(tst_ui_language
     SOURCES tst_ui_language.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_compile_definitions(tst_ui_language PRIVATE ACTCRAFT_LABELS_SRC="${PROJECT_SOURCE_DIR}")
 
 # Pseudo-langue de contrôle (L11-T19, D11-14) : `build/<preset>/i18n/actcraft_xx.qm`, produite au build des tests
 # seulement (scripts/pseudo-langue.py puis lrelease) ; jamais dans les ressources ni dans les paquets.
