@@ -6,12 +6,15 @@
 #include <QFileInfo>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QSemaphore>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QThread>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
+#include <atomic>
 #include <memory>
 
 #ifdef Q_OS_MACOS
@@ -256,7 +259,7 @@ private slots:
             QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
             l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("..\\..\\a<b>.pdf"),
                             QStringLiteral("doc1"));
-            QCOMPARE(ask.size(), 1);
+            QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 1, 10000); // écriture hors du fil (L8-C8)
             const QString shown = ask[0][0].toString();
             QVERIFY(shown.endsWith(QStringLiteral("ab.pdf")));
             QVERIFY(!shown.contains(QStringLiteral("..")));
@@ -299,7 +302,7 @@ private slots:
             l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("b.pdf"), QStringLiteral("doc1"));
             l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("b.pdf"), QStringLiteral("doc.1"));
             l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("b.pdf"), QStringLiteral("doc/1"));
-            QCOMPARE(ask.size(), 4);
+            QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 4, 10000);
             QCOMPARE(parentDirOf(ask[1][0].toString()), extractionDir);
             QVERIFY(parentDirOf(ask[2][0].toString()) != extractionDir);
             QVERIFY(parentDirOf(ask[3][0].toString()) != extractionDir);
@@ -309,7 +312,7 @@ private slots:
             l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("COM0.pdf"), QStringLiteral("doc1"));
             l.requestStored(QByteArray("texte"), QStringLiteral("lpt0.txt"), QStringLiteral("doc1"));
             l.requestStored(QByteArray("texte"), QStringLiteral("nul.txt"), QStringLiteral("doc1"));
-            QCOMPARE(ask.size(), 7);
+            QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 7, 10000);
             QVERIFY2(ask[4][0].toString().endsWith(QStringLiteral("_COM0.pdf")),
                      qPrintable(ask[4][0].toString()));
             QVERIFY2(ask[5][0].toString().endsWith(QStringLiteral("_lpt0.txt")),
@@ -322,6 +325,51 @@ private slots:
             QCOMPARE(m_opened, QList<QUrl>{QUrl::fromLocalFile(extracted)});
         }
         QVERIFY(!QFileInfo::exists(extractionDir)); // le dossier part avec le lanceur
+    }
+    // Le patron écarté écrit le fichier extrait dans l'appel, sur le fil de l'interface. Ici la sonde bloque
+    // le fil d'écriture : l'appel rend la main pendant ce blocage, rien n'est encore soumis à la
+    // confirmation, puis elle arrive, écrite ailleurs que sur le fil de l'interface.
+    void storedFileIsWrittenOffTheUiThread()
+    {
+        QSemaphore release;
+        std::atomic<QThread*> writeThread{nullptr};
+        LinkLauncher::setWriteProbe([&release, &writeThread] {
+            writeThread = QThread::currentThread();
+            release.tryAcquire(1, 2000); // borné : un fil bloqué à tort ne gèle pas la suite
+        });
+        LinkLauncher l;
+        fake(l);
+        QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+        l.requestStored(QByteArray("%PDF-1.4"), QStringLiteral("cours.pdf"), QStringLiteral("doc1"));
+        QCOMPARE(ask.size(), 0);
+        QVERIFY(m_opened.isEmpty());
+        release.release();
+        QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 1, 10000);
+        LinkLauncher::setWriteProbe({});
+        QVERIFY(writeThread.load() != nullptr);
+        QVERIFY(writeThread.load() != QThread::currentThread());
+        QFile written(QDir::fromNativeSeparators(ask[0][0].toString()));
+        QVERIFY(written.open(QIODevice::ReadOnly)); // complet quand la confirmation arrive
+        QCOMPARE(written.readAll(), QByteArray("%PDF-1.4"));
+        QVERIFY(m_opened.isEmpty());
+    }
+    // Lanceur détruit pendant l'écriture : aucune confirmation, aucun refus, aucun fil laissé derrière.
+    void launcherGoneDuringTheWriteDeliversNothing()
+    {
+        QSemaphore release;
+        LinkLauncher::setWriteProbe([&release] { release.tryAcquire(1, 2000); });
+        auto l = std::make_unique<LinkLauncher>();
+        fake(*l);
+        QSignalSpy ask(l.get(), &LinkLauncher::confirmationNeeded);
+        QSignalSpy refused(l.get(), &LinkLauncher::refused);
+        l->requestStored(QByteArray("%PDF-1.4"), QStringLiteral("cours.pdf"), QStringLiteral("doc1"));
+        release.release();
+        l.reset();
+        QTest::qWait(200);
+        LinkLauncher::setWriteProbe({});
+        QCOMPARE(ask.size(), 0);
+        QCOMPARE(refused.size(), 0);
+        QVERIFY(m_opened.isEmpty());
     }
     void confirmationShowsTheFullTarget()
     {

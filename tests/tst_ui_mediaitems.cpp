@@ -864,8 +864,10 @@ void TstUiMediaitems::unreadableVideoFallsBackAsStoredFile()
     QSignalSpy asked(m_links.get(), &ui::LinkLauncher::confirmationNeeded);
     QSignalSpy refused(m_links.get(), &ui::LinkLauncher::refused);
     m_items->videoFailed(91);
+    // L'extraction du fichier rangé se fait hors du fil de l'interface (L8-C8) : la confirmation arrive au
+    // retour de l'écriture, plus dans l'appel.
+    QTRY_COMPARE_WITH_TIMEOUT(asked.count(), 1, 10000);
     QCOMPARE(refused.count(), 0);
-    QCOMPARE(asked.count(), 1);
     const QString shown = asked.first().at(0).toString();
     QVERIFY2(shown.contains(QLatin1String("ma-video.mp4")), qPrintable(shown));
     QVERIFY2(!shown.contains(extracted), qPrintable(shown));

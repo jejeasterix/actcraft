@@ -310,6 +310,17 @@ bool touches(const core::Page& page, const core::PageObject& object, core::Point
     return core::objectAt(probe, point, tolerance).has_value();
 }
 
+// Clé du dossier d'extraction des fichiers rangés : propre au document à l'écran, jamais son adresse (vide
+// tant qu'il n'est pas enregistré, donc commune à tous les documents sans fichier). Même patron que
+// WebFrameItems::documentReplaced : une clé neuve à chaque remplacement du document (generation()), que
+// l'enregistrement ne change pas ; le contrôleur la distingue de celle d'un autre.
+QString extractionKey(const DocumentController& controller)
+{
+    return QStringLiteral("document-%1-%2")
+        .arg(reinterpret_cast<quintptr>(&controller))
+        .arg(controller.generation());
+}
+
 QJsonObject parametersOf(const core::Action& action)
 {
     return QJsonDocument::fromJson(QByteArray::fromStdString(action.parameters)).object();
@@ -614,7 +625,7 @@ void ActionRunner::runDocument(const actions::ObjectActionInfo& info, const core
             if (name.isEmpty()) {
                 name = QString::fromStdString(action.resource + "." + stored->extension);
             }
-            m_links->requestStored(stored->data, name, controller()->fileUrl().toString());
+            m_links->requestStored(stored->data, name, extractionKey(*controller()));
             return;
         }
     }

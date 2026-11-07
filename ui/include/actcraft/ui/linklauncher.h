@@ -13,6 +13,8 @@
 
 class QTemporaryDir;
 
+class QThreadPool;
+
 namespace actcraft::ui {
 
 // Seul chemin vers QDesktopServices::openUrl pour le contenu d'un document (D8-4) : la cible est validée,
@@ -40,13 +42,17 @@ public:
     ~LinkLauncher() override; // retire les dossiers d'extraction
 
     void setOpener(Opener opener); // tests ; défaut : QDesktopServices::openUrl
+    // Sonde de test, appelée sur le fil qui écrit le fichier extrait (jamais le fil de l'interface).
+    static void setWriteProbe(std::function<void()> probe);
     int openedCount() const { return m_openedCount; }
 
     // Valide la cible ; émet confirmationNeeded (cible montrée, jeton) ou refused (motif). N'ouvre jamais.
     Q_INVOKABLE void request(const QString& target, int kind);
     // Fichier rangé dans le document : octets, nom d'origine, clé du document. Extrait sous un nom assaini
     // dans un dossier temporaire propre au document (nom imprévisible, 0700), marqué « venu d'ailleurs »,
-    // puis soumis à la confirmation. N'ouvre jamais.
+    // puis soumis à la confirmation. N'ouvre jamais. L'écriture se fait hors du fil de l'interface, dans
+    // l'ordre des demandes : confirmationNeeded ou refused arrive ensuite, et rien n'arrive si le lanceur a
+    // disparu entre-temps.
     void requestStored(const QByteArray& bytes, const QString& originalName, const QString& documentKey);
     Q_INVOKABLE void answer(int token, bool accepted); // seul point qui ouvre ; un jeton ne sert qu'une fois
     static QString refusalFor(const QUrl& url, int kind); // vide : acceptée
@@ -72,6 +78,9 @@ private:
     int m_nextToken = 1;
     int m_openedCount = 0;
     std::map<QString, std::unique_ptr<QTemporaryDir>> m_extractionDirs; // par clé de document
+    // Un seul fil d'écriture (ordre des demandes) ; déclaré après les dossiers : détruit, donc terminé, avant
+    // eux.
+    std::unique_ptr<QThreadPool> m_writers;
 };
 
 } // namespace actcraft::ui
