@@ -131,8 +131,11 @@ int main(int argc, char* argv[])
     const QDir outputDir(output);
     const QString settingsDir = outputDir.filePath(QStringLiteral("reglages"));
     const QString profilesDir = outputDir.filePath(QStringLiteral("profils"));
+    // Copie de reprise (L11-T13) : vidée au lancement, gardée à l'étape `restart` (la reprise s'y relit).
+    const QString recoveryDir = outputDir.filePath(QStringLiteral("reprise"));
     QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
+    QDir(recoveryDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
     // Racines « Mes ressources » et partagées d'essai sous `<sortie>`, vidées à chaque lancement (le mode
     // test ne déplace pas DocumentsLocation : jamais le vrai Documents/ActCraft/Ressources du poste).
@@ -142,6 +145,7 @@ int main(int argc, char* argv[])
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
     StartupOptions startup = parseStartupOptions(args); // --sans-cache compris
     startup.profileRoot = profilesDir;
+    startup.recoveryDir = recoveryDir;
 
     // Pseudo-langue de contrôle (L11-T19) : traduction installée AVANT le chargement de l'interface.
     const QString translation = valueAfter(args, QStringLiteral("--traduction"));

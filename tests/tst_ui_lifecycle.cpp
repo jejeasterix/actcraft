@@ -1,8 +1,11 @@
+#include "startup.h"
+
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
 #include <actcraft/ui/lifecycle.h>
+#include <actcraft/ui/pageview.h>
 
 #include <QCoreApplication>
 #include <QElapsedTimer>
@@ -10,6 +13,9 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPointingDevice>
+#include <QQmlApplicationEngine>
+#include <QQuickWindow>
 #include <QSaveFile>
 #include <QScopeGuard>
 #include <QSemaphore>
@@ -22,9 +28,12 @@
 #include <QThread>
 #include <QUrl>
 #include <QtGui/qevent.h>
+#include <QtQml/qqmlextensionplugin.h>
 
 #include <atomic>
 #include <memory>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
 
@@ -84,6 +93,17 @@ class TstUiLifecycle : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_settings;
+    std::unique_ptr<QPointingDevice> m_stylus; // détruit après chaque moteur QML (Qt Quick le garde)
+
+    // Livré tout de suite à la fenêtre (le filtre de la vue capte le stylet), comme tst_ui_pageinput.
+    void tablet(QQuickWindow* window, ui::PageView* view, QEvent::Type type, QPointF page)
+    {
+        const bool press = type == QEvent::TabletPress;
+        const QPointF scene = view->pageToScene(page);
+        QTabletEvent event(type, m_stylus.get(), scene, window->mapToGlobal(scene), 0.7, 0, 0, 0, 0, 0,
+                           Qt::NoModifier, press ? Qt::LeftButton : Qt::NoButton, Qt::LeftButton);
+        QCoreApplication::sendEvent(window, &event);
+    }
 
 private slots:
     void initTestCase()
@@ -91,6 +111,11 @@ private slots:
         QStandardPaths::setTestModeEnabled(true);
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settings.path());
+        m_stylus = std::make_unique<QPointingDevice>(
+            QStringLiteral("tst-lifecycle-stylus"), 1311, QInputDevice::DeviceType::Stylus,
+            QPointingDevice::PointerType::Pen,
+            QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3, QString(),
+            QPointingDeviceUniqueId::fromNumericId(31));
         QSettings probe;
         QCOMPARE(probe.format(), QSettings::IniFormat);
         QVERIFY(probe.fileName().startsWith(m_settings.path()));
@@ -184,6 +209,50 @@ private slots:
         QVERIFY(writer.load() != nullptr);
         QVERIFY(writer.load() != QThread::currentThread());
         QVERIFY(writer.load() != qApp->thread());
+    }
+
+    // Contact de stylet en cours à la mise en arrière-plan (Main.qml chargé, dossier de reprise d'essai posé
+    // par StartupOptions::recoveryDir) : il est terminé, le trait est dans la copie et la vue n'a plus de
+    // contact.
+    void strokeInProgressIsKept()
+    {
+        QTemporaryDir profiles;
+        QTemporaryDir dir;
+        StartupOptions options;
+        options.cacheEnabled = false;
+        options.generatedPage = false;
+        options.profileRoot = profiles.path();
+        options.recoveryDir = dir.filePath(QStringLiteral("reprise"));
+        QQmlApplicationEngine engine;
+        QQuickWindow* window = loadMainWindow(engine, options);
+        QVERIFY(window != nullptr);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        auto* view = window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+        auto* keeper = window->findChild<ui::LifecycleKeeper*>(QStringLiteral("appLifecycle"));
+        auto* document = window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(view && keeper && document);
+        QCOMPARE(keeper->recoveryDir(), options.recoveryDir);
+        QCOMPARE(keeper->view(), view);
+        QVERIFY(QTest::qWaitFor([&] { return view->cacheReady(); }, 20000));
+        QVERIFY(!document->isModified());
+        const std::size_t before = document->document().page(0).objects.size();
+
+        tablet(window, view, QEvent::TabletPress, QPointF(300, 300));
+        tablet(window, view, QEvent::TabletMove, QPointF(320, 305));
+        tablet(window, view, QEvent::TabletMove, QPointF(340, 310));
+        QVERIFY(view->contactActive());
+        QVERIFY(writeCopy(*keeper));
+        QVERIFY(!view->contactActive());
+        QCOMPARE(document->document().page(0).objects.size(), before + 1);
+
+        ui::DocumentController reader;
+        QSignalSpy loaded(&reader, &ui::DocumentController::loadFinished);
+        reader.openUrl(QUrl::fromLocalFile(options.recoveryDir + QStringLiteral("/reprise.actcraft")));
+        QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, 5000);
+        QVERIFY(loaded.at(0).at(0).toBool());
+        QCOMPARE(reader.document().page(0).objects.size(), before + 1);
+        QCOMPARE(reader.fingerprintText(), document->fingerprintText());
+        tablet(window, view, QEvent::TabletRelease, QPointF(340, 310));
     }
 
     // Processus tué en arrière-plan (ni enregistrement ni fermeture) : au relancement, un nouvel objet sur le
