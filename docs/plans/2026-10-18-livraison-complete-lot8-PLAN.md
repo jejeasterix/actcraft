@@ -439,7 +439,9 @@ V2. Une API supposée qui diffère du code livré amende la section de la tâche
 `git -C <wt> grep -n -E "QDesktopServices|openUrlExternally" -- core formats actions tools render ui app media features`
 ne rend que : `ui/src/linklauncher.cpp` (ouvreur des liens du document, après confirmation), `ui/src/presentationcommands.cpp`
 (navigateur web du lot 7, adresse d'accueil réglée par l'utilisateur, jamais tirée d'un document), `ui/qml/AboutDialog.qml`
-et `ui/qml/Main.qml` (page du projet, adresse fixe). Toute autre ligne refuse la tâche.
+et `ui/qml/Main.qml` (page du projet, adresse fixe), plus quatre occurrences d'avant le lot, connues et permises
+(L8-T34) : `ui/qml/HelpViewer.qml`, `ui/src/fileexchange.cpp`, `ui/src/launchers.cpp`, `ui/src/printcontroller.cpp`.
+Toute autre ligne refuse la tâche.
 
 ## Scénarios
 
