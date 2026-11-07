@@ -1,6 +1,6 @@
 // L11-T14 : portail de documents (D11-9). Les permissions gardées d'Android passent par une PermissionBackend
-// factice : une URL content:// vaut par sa permission, jamais par un chemin tiré de l'URL. Dossiers temporaires
-// et réglages d'essai seulement.
+// factice : une URL content:// vaut par sa permission, jamais par un chemin tiré de l'URL. Dossiers
+// temporaires et réglages d'essai seulement.
 #include <actcraft/ui/documentportal.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/recentdocuments.h>
@@ -52,8 +52,9 @@ QUrl touch(const QTemporaryDir& dir, const QString& name)
 // Document rendu par le sélecteur du système : le nom affiché est le dernier segment décodé du chemin.
 QUrl picked(const QString& name)
 {
-    return QUrl(QStringLiteral("content://com.android.externalstorage.documents/document/primary%3ADocuments%2F") +
-                name);
+    return QUrl(
+        QStringLiteral("content://com.android.externalstorage.documents/document/primary%3ADocuments%2F") +
+        name);
 }
 
 QStringList names(const ui::RecentDocuments& list)
@@ -147,7 +148,8 @@ private slots:
         }
         backend.held.remove(doc.toString()); // document retiré, ou permission rendue par le système
 
-        // Relance : la liste relue retire l'entrée perdue (oubliée, pas cachée) et le dit par son nom affiché.
+        // Relance : la liste relue retire l'entrée perdue (oubliée, pas cachée) et le dit par son nom
+        // affiché.
         ui::RecentDocuments list;
         list.setPortal(&portal);
         QSignalSpy removed(&list, &ui::RecentDocuments::staleRemoved);
@@ -217,7 +219,8 @@ private slots:
         QTemporaryDir dir;
         const QUrl real = touch(dir, QStringLiteral("leurre.actcraft"));
         const QUrl decoy(QStringLiteral("content://leurre") + real.path());
-        const QUrl heldNowhere(QStringLiteral("content://leurre") + dir.filePath(QStringLiteral("nulle-part.actcraft")));
+        const QUrl heldNowhere(QStringLiteral("content://leurre") +
+                               dir.filePath(QStringLiteral("nulle-part.actcraft")));
         FakeBackend backend;
         backend.held.insert(heldNowhere.toString());
         ui::DocumentPortal portal;
