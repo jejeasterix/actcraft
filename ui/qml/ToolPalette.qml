@@ -28,6 +28,17 @@ Rectangle {
     implicitWidth: Theme.largeurPalette
     color: Theme.palette
 
+    // L11-T12 (D11-7) : l'appui long d'un doigt sur un bouton montre son libellé pendant 1,5 s, sans déclencher la
+    // commande.
+    function showLabel(button) {
+        paletteLabel.text = paletteRoot.commands.label(button.commandId)
+        const at = paletteRoot.mapFromItem(button, 0, button.height / 2)
+        paletteLabel.x = Math.max(0, at.x - paletteLabel.width - Theme.espace2)
+        paletteLabel.y = Math.max(0, Math.min(paletteRoot.height - paletteLabel.height, at.y - paletteLabel.height / 2))
+        paletteLabel.visible = true
+        labelTimer.restart()
+    }
+
     Flickable {
         id: flick
         objectName: "paletteFlick"
@@ -111,9 +122,33 @@ Rectangle {
                             Repeater {
                                 model: groupItem.modelData.items
                                 delegate: CommandButton {
+                                    id: paletteButton
                                     required property var modelData
                                     commands: paletteRoot.commands
                                     commandId: modelData.id
+                                    // Appui long d'un doigt tenu : le bouton est désactivé le temps de l'appui (il
+                                    // ne reçoit plus le relâché, donc ne déclenche rien).
+                                    property bool labelHeld: false
+                                    Binding {
+                                        target: paletteButton
+                                        property: "enabled"
+                                        value: false
+                                        when: paletteButton.labelHeld
+                                    }
+                                    Timer {
+                                        id: releaseTimer
+                                        interval: 200
+                                        onTriggered: paletteButton.labelHeld = false
+                                    }
+                                    TapHandler {
+                                        acceptedDevices: PointerDevice.TouchScreen
+                                        longPressThreshold: 0.5
+                                        onLongPressed: {
+                                            paletteButton.labelHeld = true
+                                            releaseTimer.restart()
+                                            paletteRoot.showLabel(paletteButton)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -146,5 +181,30 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         visible: paletteRoot.commands.revision >= 0 && paletteRoot.commands.isChecked(trash.commandId)
+    }
+
+    // Bulle de libellé (appui long d'un bouton) : devant tout le reste de la palette.
+    Rectangle {
+        id: paletteLabel
+        objectName: "paletteLabel"
+        property alias text: labelText.text
+        visible: false
+        z: 20
+        width: labelText.implicitWidth + 2 * Theme.espace3
+        height: labelText.implicitHeight + 2 * Theme.espace2
+        radius: Theme.rayon
+        color: Theme.surface
+        border.color: Theme.separateur
+        Label {
+            id: labelText
+            anchors.centerIn: parent
+            font.pixelSize: Theme.taillePolice
+            color: Theme.texte
+        }
+        Timer {
+            id: labelTimer
+            interval: 1500
+            onTriggered: paletteLabel.visible = false
+        }
     }
 }

@@ -494,7 +494,15 @@ Window {
 
     // Lot 11 : emplacements du bandeau de reprise, du menu au doigt et de la boîte des mises à jour (talons).
     RecoveryBanner { id: recoveryBanner; commands: appCommands }
-    FingerMenu { id: fingerMenu }
+    FingerMenu {
+        id: fingerMenu
+        view: pageArea.view
+        tools: appTools
+        commands: appCommands
+        objectMenu: objectEditMenu
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
     UpdateDialog { id: updateDialog; commands: appCommands }
 
     // Lot 4 : barres de texte sous la ligne supérieure, boîtes de la grille et du fond (talons).
