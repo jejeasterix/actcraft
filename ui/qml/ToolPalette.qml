@@ -29,6 +29,8 @@ Rectangle {
     color: Theme.palette
 
     Flickable {
+        id: flick
+        objectName: "paletteFlick"
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -40,6 +42,13 @@ Rectangle {
         flickableDirection: paletteRoot.horizontal ? Flickable.HorizontalFlick : Flickable.VerticalFlick
         clip: true
         boundsBehavior: Flickable.StopAtBounds
+        // Poignée toujours visible quand le contenu déborde (AsNeeded la laisserait transparente hors survol, style
+        // Basic) ; dans la marge droite de la palette, sans recouvrir de bouton.
+        ScrollBar.vertical: ScrollBar {
+            objectName: "paletteScrollBar"
+            width: Theme.espace2
+            policy: !paletteRoot.horizontal && flick.contentHeight > flick.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+        }
 
         GridLayout {
             id: column
@@ -98,7 +107,7 @@ Rectangle {
                         id: buttonsComponent
                         Grid {
                             columns: paletteRoot.horizontal ? 64 : 2
-                            spacing: Theme.espace1
+                            spacing: Theme.espaceCible
                             Repeater {
                                 model: groupItem.modelData.items
                                 delegate: CommandButton {
