@@ -1,9 +1,12 @@
+#include "objectactions_common.h"
+
 #include <actcraft/core/alignment.h>
 #include <actcraft/core/arrange.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/objectactions.h>
 #include <actcraft/core/objectedits.h>
 #include <actcraft/core/propertyedits.h>
+#include <actcraft/core/restrictors.h>
 
 #include <QByteArray>
 #include <QJsonDocument>
@@ -28,6 +31,8 @@ namespace actcraft::core {
 namespace {
 
 constexpr double kEps = 1e-9;
+
+using detail::number;
 
 struct Target
 {
@@ -56,15 +61,6 @@ const std::pair<const char*, Anchor> kAnchors[] = {
 PointF at(const RectF& r, Anchor a) noexcept
 {
     return {r.x + a.x * r.width, r.y + a.y * r.height};
-}
-
-std::optional<double> number(const QJsonObject& parameters, const char* name)
-{
-    const QJsonValue v = parameters.value(QString::fromLatin1(name));
-    if (!v.isDouble() || !std::isfinite(v.toDouble())) {
-        return std::nullopt;
-    }
-    return v.toDouble();
 }
 
 // Objets dont la transformation change : la cible ; pour un groupe, ses membres, seuls porteurs d'une
@@ -102,43 +98,6 @@ std::unique_ptr<UndoCommand> transformEach(const Target& t, TransformList list)
     return std::make_unique<TransformEachCommand>(t.context.page, std::move(list));
 }
 
-// Pivot de rotation de la cible (D8-7), en coordonnées de page.
-PointF pivotOf(const Target& t)
-{
-    const Restrictions& r = t.object.common.restrictions;
-    switch (r.pivot) {
-    case Mark::TopLeft:
-        return at(t.box, {0, 0});
-    case Mark::Top:
-        return at(t.box, {0.5, 0});
-    case Mark::TopRight:
-        return at(t.box, {1, 0});
-    case Mark::Right:
-        return at(t.box, {1, 0.5});
-    case Mark::BottomRight:
-        return at(t.box, {1, 1});
-    case Mark::Bottom:
-        return at(t.box, {0.5, 1});
-    case Mark::BottomLeft:
-        return at(t.box, {0, 1});
-    case Mark::Left:
-        return at(t.box, {0, 0.5});
-    case Mark::Point:
-        return t.object.common.transform.map(r.pivotPoint);
-    case Mark::OtherObject: {
-        const std::size_t i = indexOf(t.page, r.pivotObject);
-        if (r.pivotObject != 0 && i < t.page.objects.size() && hasExtent(t.page, t.page.objects[i])) {
-            return boundsOnPage(t.page, t.page.objects[i]).center();
-        }
-        return t.box.center();
-    }
-    case Mark::Center:
-    case Mark::FirstTextLine:
-        break;
-    }
-    return t.box.center();
-}
-
 bool rotatable(const Target& t) noexcept
 {
     return t.object.common.restrictions.rotatable;
@@ -163,7 +122,7 @@ std::unique_ptr<UndoCommand> turn(const Target& t, bool absolute)
     }
     // Angle de la propriété « Rotation » (propertyedits.h), sans le demi-tour d'un objet reflété.
     const double degrees = absolute ? *angle - objectAngle(t.object.common.transform) : *angle;
-    return transformBy(t, rotationAbout(pivotOf(t), degrees));
+    return transformBy(t, rotationAbout(pivotOf(t.page, t.object), degrees));
 }
 
 // Repère propre de la cible : sa boîte droite (rotation retirée autour du centre) et son angle ; celui de la
@@ -352,15 +311,11 @@ bool isGeometryAction(const std::string& id) noexcept
     return table.find(id) != table.end();
 }
 
-std::unique_ptr<UndoCommand> editActionCommand(const Document& document, const std::string& id,
-                                               const std::string& parameters,
-                                               const ActionContext& context); // objectactions_edit.cpp
-
 std::unique_ptr<UndoCommand> objectActionCommand(const Document& document, const std::string& id,
                                                  const std::string& parameters, const ActionContext& context)
 {
     if (isEditAction(id)) {
-        return editActionCommand(document, id, parameters, context); // L8-T8
+        return detail::editActionCommand(document, id, parameters, context); // L8-T8
     }
     const auto& table = geometryTable();
     const auto builder = table.find(id);
@@ -368,21 +323,16 @@ std::unique_ptr<UndoCommand> objectActionCommand(const Document& document, const
         return nullptr;
     }
     const Page& page = document.page(context.page);
-    const ObjectId targetId = context.target != 0 ? context.target : context.source;
-    const std::size_t index = indexOf(page, targetId);
-    if (targetId == 0 || index >= page.objects.size() || !hasExtent(page, page.objects[index])) {
+    const std::size_t index = detail::targetIndex(page, context);
+    if (index >= page.objects.size() || !hasExtent(page, page.objects[index])) {
         return nullptr;
     }
-    QJsonObject values;
-    if (!parameters.empty()) {
-        const QJsonDocument json = QJsonDocument::fromJson(QByteArray::fromStdString(parameters));
-        if (!json.isObject()) {
-            return nullptr;
-        }
-        values = json.object();
+    const std::optional<QJsonObject> values = detail::parseParameters(parameters);
+    if (!values) {
+        return nullptr;
     }
     const PageObject& object = page.objects[index];
-    const Target target{page, object, boundsOnPage(page, object), context, values};
+    const Target target{page, object, boundsOnPage(page, object), context, *values};
     return builder->second(target);
 }
 
