@@ -45,6 +45,8 @@ int main(int argc, char* argv[])
     if (QGuiApplication::platformName() == QLatin1String("offscreen"))
         actcraft::bench::useSimulatedRecorders(); // hors écran : ni micro ni fenêtre de permission
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Banc"));
+    // Avant le relevé REGLAGES, qui montre ainsi le vrai chemin du fichier de réglages.
+    QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
     // L7-T38 : réglages propres à la passe, dans un dossier temporaire, comme bench/captures/main.cpp :
     // l'effet de page choisi par « effets-page » (QSettings, TransitionController) ne survit pas à une passe
     // interrompue (Ctrl+C) et ne touche ni les passes suivantes ni de vrais réglages. QSettings natif
@@ -82,7 +84,6 @@ int main(int argc, char* argv[])
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
     actcraft::bench::useIsolatedResourceRoots(defaultDir); // jamais le Documents/ActCraft/Ressources du poste
-    QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
 
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde les périphériques
     // synthétiques de l'injecteur, et le collecteur reçoit des appels directs du fil de rendu.
