@@ -13,10 +13,9 @@ msvcp140*.dll LicenseRef-Microsoft-Redistributable
 D3Dcompiler_47.dll LicenseRef-Microsoft-Redistributable
 dxcompiler.dll LicenseRef-Microsoft-Redistributable
 dxil.dll LicenseRef-Microsoft-Redistributable
-# Windows : rendu OpenGL logiciel livré par Qt (Mesa llvmpipe, déposé par windeployqt).
-opengl32sw.dll MIT
 
-# FFmpeg, chargé par le greffon multimédia de Qt (Windows : avcodec-61.dll… ; Android : libavcodec….so).
+# FFmpeg, chargé par le greffon multimédia de Qt (Windows : avcodec-<n>.dll… ; Android : libavcodec….so).
+# verifier-licences.ps1 lit aussi la licence compilée dans chaque bibliothèque : « LGPL version 2.1 or later » exigée.
 avcodec*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
 avformat*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
 avutil*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
@@ -31,6 +30,9 @@ libswscale*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Sourc
 # Greffons de Qt (ils suivent la licence de leur module, LGPL-3.0-only) : Windows, dossiers de windeployqt
 # (platforms/qwindows.dll, imageformats/qjpeg.dll, qml/…/qtquick2plugin.dll, multimedia/ffmpegmediaplugin.dll…) ;
 # Android, noms d'androiddeployqt (libplugins_platforms_qtforandroid_arm64-v8a.so, libqml_QtQuick_…_arm64-v8a.so).
+# Le motif seul ne suffit pas : toute bibliothèque rangée sous LGPL-3.0-only doit venir de l'installation de Qt
+# (Windows : même chemin relatif sous $ACTCRAFT_QT_DIR/plugins ou $ACTCRAFT_QT_DIR/qml ; APK : même nom sous
+# plugins/ ou qml/ de $ACTCRAFT_QT_ANDROID_ARM64_DIR), sinon verifier-licences.ps1 la refuse.
 q*.dll LGPL-3.0-only
 *plugin.dll LGPL-3.0-only
 libplugins_*.so LGPL-3.0-only
