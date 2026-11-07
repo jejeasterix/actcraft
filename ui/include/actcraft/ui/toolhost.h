@@ -53,6 +53,8 @@ class ToolHost : public QObject
     Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
     Q_PROPERTY(bool handlesVisible READ handlesVisible NOTIFY selectionChanged)
     Q_PROPERTY(QVariantMap selectionFrame READ selectionFrame NOTIFY selectionChanged)
+    // L11-C10 (F) : cadre du second utilisateur (mode à deux), même forme que selectionFrame ; masqué hors mode.
+    Q_PROPERTY(QVariantMap secondSelectionFrame READ secondSelectionFrame NOTIFY secondSelectionChanged)
     Q_PROPERTY(QRectF trashArea READ trashArea WRITE setTrashArea NOTIFY trashAreaChanged) // scène
     Q_PROPERTY(bool trashHover READ trashHover NOTIFY trashHoverChanged)
     // Vide : réglages de l'application ; tests : chemin d'un fichier .ini.
@@ -100,6 +102,7 @@ public:
     int connectorCapB() const noexcept;
     bool handlesVisible() const;
     QVariantMap selectionFrame() const;
+    QVariantMap secondSelectionFrame() const;
     QRectF trashArea() const noexcept;
     void setTrashArea(const QRectF& area);
     bool trashHover() const noexcept;
@@ -166,6 +169,11 @@ public:
     // État de l'utilisateur. Mode à deux utilisateurs allumé : tout id autre que kFirstUser rend le second
     // état (identifiant kSecondUser) ; éteint : l'utilisateur 0, comme le socle (D-S10).
     tools::UserState& user(input::UserId id = input::kFirstUser);
+    // L11-C10 (G, H11-13) : sélection de l'utilisateur sans les objets que l'autre tient (Grabs) ; c'est
+    // elle que lisent les panneaux et les commandes qui agissent sur la sélection (propriétés, édition,
+    // arbre des objets, barre de raccourcis, navigateur d'actions). La sélection brute reste dans
+    // user(id).selection().
+    std::vector<core::ObjectId> usableSelection(input::UserId id = input::kFirstUser);
     bool dualUsers() const noexcept;
     // Allumé, le second UserState est créé à la première fois (un état neuf commence au stylo, H11-16) puis
     // gardé : éteindre puis rallumer rend le même état, avec son outil et ses réglages.
@@ -196,6 +204,7 @@ signals:
     void currentToolChanged();
     void settingsChanged();
     void selectionChanged();
+    void secondSelectionChanged();
     void trashAreaChanged();
     void trashHoverChanged();
     void settingsFileChanged();
@@ -233,6 +242,7 @@ private:
     void applyToView(); // couleur (alpha du marqueur) et épaisseur rendues à PageView
     void syncToolCommands();
     void showSelection(const QVariantMap& frame, bool handlesVisible);
+    void showSecondSelection(const QVariantMap& frame);
     void setTrashHoverState(bool hover);
     void refreshSelection();
     void relayModifiers(int key, int modifiers);
@@ -278,6 +288,7 @@ private:
     std::unique_ptr<DesignModePolicy> m_policy; // posée sur l'outil de sélection à sa création
     QString m_lastInk = QStringLiteral("pen");  // dernier outil d'encre (L3-T0)
     QVariantMap m_selectionFrame;
+    QVariantMap m_secondSelectionFrame; // L11-C10 (F)
     bool m_handlesVisible = false;
     bool m_settingsLoaded = false;
     bool m_filtering = false;

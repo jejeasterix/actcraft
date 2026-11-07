@@ -256,7 +256,7 @@ void ObjectTreeModel::select(int row, int modifiers)
         // la ligne d'un groupe retire le groupe et ses membres.
         const core::Page& page =
             m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
-        ids = m_tools->user().selection();
+        ids = m_tools->usableSelection();
         const std::unordered_set<core::ObjectId> selected(ids.begin(), ids.end());
         if (rowSelected(page, id, groupIds(page), hiddenIds(page), selected)) {
             std::unordered_set<core::ObjectId> dropped{id};
@@ -494,7 +494,7 @@ void ObjectTreeModel::rebuild()
     }
     std::unordered_set<core::ObjectId> selected;
     if (m_tools) {
-        const std::vector<core::ObjectId>& selection = m_tools->user().selection();
+        const std::vector<core::ObjectId> selection = m_tools->usableSelection();
         selected.insert(selection.begin(), selection.end());
     }
     // Lignes d'objet par couche, avec leur rang de dessin.
