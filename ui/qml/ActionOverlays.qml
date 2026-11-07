@@ -126,7 +126,9 @@ Item {
                     ghost.x = 0
                     ghost.y = 0
                     const trash = overlays.host ? overlays.host.trashArea : Qt.rect(0, 0, 0, 0)
-                    if (trash.width > 0 && trash.contains(Qt.point(scene.x, scene.y)))
+                    // QRectF n'a pas de méthode contains() en QML : comparaison des bornes.
+                    if (trash.width > 0 && scene.x >= trash.x && scene.x <= trash.x + trash.width
+                            && scene.y >= trash.y && scene.y <= trash.y + trash.height)
                         overlays.dragDrop.dropOnTrash(badge.modelData.objectId)
                 }
             }
