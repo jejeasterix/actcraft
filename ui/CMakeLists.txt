@@ -429,12 +429,18 @@ actcraft_set_warnings(actcraft_ui)
 # Version affichée par « À propos » (décision 31).
 target_compile_definitions(actcraft_ui PRIVATE ACTCRAFT_VERSION="${PROJECT_VERSION}")
 
-# Notices des composants tiers, affichées par « À propos » et livrées dans les paquets (décision 34).
+# Notices des composants tiers, affichées par « À propos » et livrées dans les paquets (décision 34), avec les
+# textes des licences qu'elles citent (:/actcraft/LICENSES/<id>.txt) : l'APK n'a pas d'autre copie (L11-T25).
 set_source_files_properties(${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md
     PROPERTIES QT_RESOURCE_ALIAS THIRD_PARTY_NOTICES.md)
+file(GLOB _actcraft_license_texts CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/LICENSES/*.txt)
+foreach(_text IN LISTS _actcraft_license_texts)
+    get_filename_component(_name ${_text} NAME)
+    set_source_files_properties(${_text} PROPERTIES QT_RESOURCE_ALIAS LICENSES/${_name})
+endforeach()
 qt_add_resources(actcraft_ui "ui_notices"
     PREFIX "/actcraft"
-    FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md)
+    FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md ${_actcraft_license_texts})
 
 # Orthographe (D6-9) : dictionnaire français (Grammalecte, MPL 2.0), copié au premier usage dans un dossier lisible
 # par Hunspell (qui lit des chemins de fichiers).
@@ -449,7 +455,9 @@ qt_add_resources(actcraft_ui "ui_dictionaries"
 qt_add_resources(actcraft_ui "ui_lot6_data"
     PREFIX "/actcraft"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}
-    FILES help/index.html)
+    FILES help/index.html
+          help/pen.html help/select.html help/highlighter.html help/eraser.html help/shape.html
+          help/text.html help/text-vertical.html help/fill.html help/connector.html)
 
 # Traductions (D6-11, L6-T36) : le .ts (produit par lupdate, cible update_translations) devient un .qm dans les
 # ressources, sous /actcraft/i18n. Français livré : traduction identité.
