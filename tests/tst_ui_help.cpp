@@ -32,9 +32,9 @@ private slots:
     void currentToolPageOrIndex()
     {
         HelpViewer help;
-        help.openFor(QStringLiteral("tool.pen")); // aucune page d'outil au lot 6 : l'index
+        help.openFor(QStringLiteral("tool.inconnu")); // aucune page pour cet outil : l'index
         QCOMPARE(help.source(), kIndex);
-        help.openFor(QStringLiteral("pen"));
+        help.openFor(QStringLiteral("inconnu"));
         QCOMPARE(help.source(), kIndex);
         QVERIFY(!help.html().isEmpty());
     }
