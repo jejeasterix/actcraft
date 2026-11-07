@@ -1,13 +1,17 @@
 #include <actcraft/ui/recorders.h>
 
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QPointer>
 #include <QStandardPaths>
+#include <QTemporaryDir>
 #include <QUrl>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <utility>
 
 namespace actcraft::ui {
 
@@ -60,7 +64,25 @@ void Recorders::resetDefaultEngines()
 Recorders::Recorders(QObject* parent)
     : QObject(parent), m_sound(makeSoundRecorder(this)), m_display(makeDisplayRecorder(this))
 {
+    // Dossier par défaut propre à la session (L8-T26) : le fichier, copié dans le document par l'insertion, y
+    // est effacé ensuite ; un fichier que l'insertion a refusé y reste, et le message le dit.
+    QTemporaryDir session(QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
+                          QStringLiteral("/actcraft-recordings-XXXXXX"));
+    if (session.isValid()) {
+        session.setAutoRemove(false);
+        m_sessionFolder = session.path();
+        if (m_sound)
+            m_sound->setFolder(m_sessionFolder);
+        if (m_display)
+            m_display->setFolder(m_sessionFolder);
+    }
     wire();
+}
+
+Recorders::~Recorders()
+{
+    if (!m_sessionFolder.isEmpty())
+        QDir().rmdir(m_sessionFolder); // vide seulement : un fichier refusé par l'insertion reste
 }
 
 void Recorders::wire()
@@ -146,8 +168,10 @@ void Recorders::setMediaInsert(MediaInsert* insert)
     if (m_insert)
         m_insert->disconnect(this);
     m_insert = insert;
-    if (m_insert)
-        connect(m_insert, &MediaInsert::failed, this, &Recorders::setMessage);
+    if (m_insert) {
+        connect(m_insert, &MediaInsert::failed, this, &Recorders::onInsertFailed);
+        connect(m_insert, &MediaInsert::inserted, this, &Recorders::onInserted);
+    }
     emit mediaInsertChanged();
 }
 
@@ -207,7 +231,8 @@ void Recorders::unbindCommands()
 }
 
 // La commande « enregistrer le son » suit l'enregistreur : désactivée tant que la permission du micro est
-// refusée, réactivée si l'enregistreur redevient disponible.
+// refusée. Elle ne se réactive pas d'elle-même : l'enregistreur ne redevient disponible qu'au prochain
+// lancement d'ActCraft, après l'autorisation donnée dans les réglages du système.
 void Recorders::syncCommandState()
 {
     if (m_commands)
@@ -293,7 +318,7 @@ bool Recorders::lastDurationOk() const
 
 QString Recorders::sessionFolder() const
 {
-    return {};
+    return m_sessionFolder;
 }
 
 QString Recorders::folder() const
@@ -525,10 +550,27 @@ void Recorders::insert(const QString& path)
     m_lastDurationMs = m_recordedAtStop;
     m_lastDurationOk = m_recordedAtStop > 0 && std::llabs(m_recordedAtStop - wall) <= kDurationToleranceMs;
     emit lastDurationChanged();
-    if (m_insert)
+    if (m_insert) {
+        m_pendingInsert = path;
         m_insert->insertFile(QUrl::fromLocalFile(path));
-    else
+    } else {
         setMessage(tr("Enregistrement rangé : %1").arg(path));
+    }
+}
+
+// Insertion réussie : le média est une ressource du document, le fichier du dossier de la session est
+// inutile. Un dossier choisi par l'utilisateur n'est jamais touché.
+void Recorders::onInserted()
+{
+    const QString path = std::exchange(m_pendingInsert, QString());
+    if (!path.isEmpty() && !m_sessionFolder.isEmpty() && QFileInfo(path).absolutePath() == m_sessionFolder)
+        QFile::remove(path);
+}
+
+void Recorders::onInsertFailed(const QString& message)
+{
+    const QString path = std::exchange(m_pendingInsert, QString());
+    setMessage(path.isEmpty() ? message : tr("%1 Le fichier enregistré reste ici : %2").arg(message, path));
 }
 
 void Recorders::setMessage(const QString& message)

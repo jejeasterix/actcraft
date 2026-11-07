@@ -56,6 +56,7 @@ public:
     static constexpr const char* kNoticeShownKey = "recordings/notice-shown";
 
     explicit Recorders(QObject* parent = nullptr);
+    ~Recorders() override;
 
     Commands* commands() const;
     void setCommands(Commands* commands);
@@ -100,7 +101,8 @@ public:
     bool lastDurationOk() const;
     // Réglages de la section « Enregistrements » (vide : dossier temporaire du document).
     QString folder() const;
-    // Dossier temporaire de la session (enregistreurs propres) ; vide si les enregistreurs viennent de l'extérieur.
+    // Dossier temporaire de la session (enregistreurs propres) ; vide si les enregistreurs viennent de
+    // l'extérieur.
     QString sessionFolder() const;
     QString soundFormat() const;
     QString screenFormat() const;
@@ -162,6 +164,8 @@ private:
     void onPausedChanged();
     void applyFolders();
     void showNoticeOnce();
+    void onInserted();
+    void onInsertFailed(const QString& message);
 
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_document;
@@ -171,6 +175,8 @@ private:
     QPointer<media::DisplayRecorder> m_display;
     bool m_ownRecorders = true;
     QString m_message;
+    QString m_sessionFolder; // dossier par défaut des enregistrements propres à la session (jamais partagé)
+    QString m_pendingInsert; // fichier confié à l'insertion, en attente de sa réponse
     bool m_paletteVisible = true;
     bool m_noticeVisible = false;
     bool m_noticeShownInSession = false;

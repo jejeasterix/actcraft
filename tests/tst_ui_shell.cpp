@@ -942,8 +942,8 @@ private slots:
         }
     }
 
-    // L8-C10, essai 2 (revue, majeur 1) : la fenêtre de l'indicateur d'écran n'a pas la fenêtre principale pour
-    // parent : réduire ActCraft ne la réduit pas, l'enregistrement continuant.
+    // L8-C10, essai 2 (revue, majeur 1) : la fenêtre de l'indicateur d'écran n'a pas la fenêtre principale
+    // pour parent : réduire ActCraft ne la réduit pas, l'enregistrement continuant.
     void recordingIndicatorWindowIsNotTransient()
     {
         Shell s;

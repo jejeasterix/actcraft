@@ -118,12 +118,15 @@ Item {
         objectName: "recordingIndicatorWindow"
         readonly property var primary: Qt.application.screens.length > 0 ? Qt.application.screens[0] : null
         visible: root.active && root.separate
+        // Pas de fenêtre parente : réduire ActCraft ne réduit pas l'indicateur, l'enregistrement continuant.
+        transientParent: null
         flags: Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool
         color: "transparent"
         width: content.item ? content.item.width : 240
         height: 36
         screen: primary
         onVisibleChanged: if (visible) place()
+        onWidthChanged: if (visible) place()
         function place() {
             if (!primary || !root.recorders)
                 return

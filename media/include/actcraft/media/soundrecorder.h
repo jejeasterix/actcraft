@@ -1,8 +1,10 @@
 #pragma once
 
+#include <QFile>
 #include <QMediaFormat>
 #include <QObject>
 #include <QString>
+#include <QTimer>
 
 #include <functional>
 #include <memory>
@@ -30,10 +32,46 @@ public:
     // Format du fichier écrit (vide pour une source simulée).
     virtual QMediaFormat mediaFormat() const { return {}; }
 
+    // Délai de garde d'un abandon : un moteur qui ne ferme jamais son fichier est libéré après lui.
+    void setAbandonTimeout(int milliseconds) { m_abandonTimeoutMs = milliseconds; }
+
+    // Fin confiée au moteur (document fermé, panne), règle de DisplayEngine::abandon : effacer le fichier
+    // avant sa fermeture échoue (fichier ouvert sous Windows) ou le manque (écrit après coup). Le moteur
+    // demande l'arrêt, attend stopped() (ou le délai de garde), efface alors le fichier partiel, puis se
+    // libère par deleteLater. À appeler une fois, par l'enregistreur seulement, après l'avoir déconnecté ;
+    // path est l'emplacement demandé, effacé si le moteur n'a rien dit à l'expiration du délai.
+    void abandon(const QString& path)
+    {
+        if (m_abandoned)
+            return;
+        m_abandoned = true;
+        setParent(nullptr); // plus rien ne le détruit à la place du moteur
+        connect(this, &RecordingEngine::stopped, this, [this](const QString& closed) { discard(closed); });
+        auto* guard = new QTimer(this);
+        guard->setSingleShot(true);
+        connect(guard, &QTimer::timeout, this, [this, path] { discard(path); });
+        guard->start(m_abandonTimeoutMs);
+        stop();
+    }
+
 signals:
     // Fichier fermé et complet ; path est l'emplacement réel, qui peut différer de celui demandé.
     void stopped(const QString& path);
     void failed(const QString& reason);
+
+private:
+    void discard(const QString& path)
+    {
+        if (m_discarded)
+            return;
+        m_discarded = true;
+        QFile::remove(path);
+        deleteLater();
+    }
+
+    int m_abandonTimeoutMs = 30'000;
+    bool m_abandoned = false;
+    bool m_discarded = false;
 };
 
 // F-293 : enregistreur de son. Premier appui : l'enregistrement commence (permission du micro demandée à la

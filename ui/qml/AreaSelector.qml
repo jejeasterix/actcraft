@@ -9,6 +9,8 @@ FocusScope {
     id: root
     objectName: "areaSelector"
     property var recorders: null
+    // Vue de la page : le calque prend l'entrée du stylet tant qu'il est actif (view.addInputCover).
+    property var view: null
     readonly property bool active: recorders ? recorders.selectingArea : false
     // L'enregistreur capture l'écran principal : une zone tracée sur un autre écran ne le désignerait pas.
     readonly property bool onPrimaryScreen: Qt.application.screens.length === 0
@@ -31,7 +33,19 @@ FocusScope {
         dragging = false
         if (active)
             forceActiveFocus()
+        syncCover()
     }
+    onViewChanged: syncCover()
+    function syncCover() {
+        if (!view)
+            return
+        if (active)
+            view.addInputCover(root)
+        else
+            view.removeInputCover(root)
+    }
+    // Échap est aussi le raccourci de tool.select : le calque actif le garde pour lui.
+    Keys.onShortcutOverride: event => { event.accepted = event.key === Qt.Key_Escape }
     Keys.onEscapePressed: root.recorders.cancelAreaSelection()
 
     Rectangle {

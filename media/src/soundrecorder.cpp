@@ -87,12 +87,12 @@ SoundRecorder::~SoundRecorder()
 {
     if (!m_engine)
         return;
-    // Document fermé pendant l'enregistrement : le moteur ferme son fichier en se détruisant, puis le fichier
-    // partiel est effacé. Il ne rappelle plus un enregistreur à demi détruit.
+    // Document fermé pendant l'enregistrement : le moteur ferme son fichier, puis l'efface lui-même (abandon)
+    // ; il ne rappelle plus un enregistreur à demi détruit.
     const QString path = m_path;
-    m_engine->disconnect(this);
-    m_engine.reset();
-    QFile::remove(path);
+    RecordingEngine* const engine = m_engine.release();
+    engine->disconnect(this);
+    engine->abandon(path);
 }
 
 std::unique_ptr<RecordingEngine> SoundRecorder::createCaptureEngine()
@@ -303,8 +303,12 @@ void SoundRecorder::engineFailed(const QString& reason)
 {
     if (m_state != State::Recording && m_state != State::Paused && m_state != State::Finishing)
         return;
-    QFile::remove(m_path);
-    retireEngine(true);
+    // Le fichier incomplet s'efface quand le moteur l'a fermé (abandon), jamais avant.
+    if (m_engine) {
+        RecordingEngine* const engine = m_engine.release();
+        engine->disconnect(this);
+        engine->abandon(m_path);
+    }
     m_path.clear();
     end();
     emit failed(reason);

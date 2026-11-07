@@ -389,7 +389,8 @@ private slots:
         {
             ~Reset() { ui::Recorders::resetDefaultEngines(); }
         } reset;
-        ui::Recorders::setDefaultEngines({&makeSound, [](std::function<void(bool)> answer) { answer(true); }, {}});
+        ui::Recorders::setDefaultEngines(
+            {&makeSound, [](std::function<void(bool)> answer) { answer(true); }, {}});
         ui::DocumentController controller;
         controller.newDocument(1024, 768);
         ui::MediaInsert insert;
@@ -408,14 +409,16 @@ private slots:
         QTRY_VERIFY(QDir(session).isEmpty());
     }
 
-    // L8-C10, essai 2, constat 6 : insertion refusée après l'arrêt (verrou) ; le message dit où est le fichier.
+    // L8-C10, essai 2, constat 6 : insertion refusée après l'arrêt (verrou) ; le message dit où est le
+    // fichier.
     void refusedInsertionTellsWhereTheFileIs()
     {
         struct Reset
         {
             ~Reset() { ui::Recorders::resetDefaultEngines(); }
         } reset;
-        ui::Recorders::setDefaultEngines({&makeSound, [](std::function<void(bool)> answer) { answer(true); }, {}});
+        ui::Recorders::setDefaultEngines(
+            {&makeSound, [](std::function<void(bool)> answer) { answer(true); }, {}});
         ui::Commands commands;
         ui::DocumentController controller;
         controller.newDocument(1024, 768);
