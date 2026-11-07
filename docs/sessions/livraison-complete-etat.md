@@ -440,6 +440,7 @@ Questions à Jérôme (lot 11) : aucune ouverte.
 
 ### Tâches du lot 11
 - **L11-T0 mergée le 2026-11-07** (merge 6c16d53b ; 6f221ba0, b2bb232f ; rapport `docs/verifications/2026-10-19-lot11-principes.md`) : N11 = 246 (Mac), N = 278 dès L11-T1 ; D11-8, D11-9, D11-12, D11-16 amendées (version de tête 0.6.0) ; table A : `appTools.activate(outil, user)` entre en collision avec `activate(toolId, argument)` (`toolhost.h:112`) → nom distinct (`activateFor`) pour L11-T9 ; A22 publique (`qevent.h:1029`), écouter l'événement, pas le signal (L11-T13 tranche) ; `bench/app/CMakeLists.txt` absent (banc dans `bench/CMakeLists.txt:63`) ; `actcraft_add_lot8_capture` ne reconnaît que « Talon L8 » ; clé `optional` (pas `argumentOptional`) ; `help.check-updates` absent ; `Sample::deviceId` absent, `Sample::user` présent ; `RecentDocuments` sans retrait. L11-C0 : aucun. Lot 7 absent : L11-T8 limité à `openMathTools` (A11), L11-T27 lit `pinned`.
+- Référence rapide du lot 11 (Mac, 6c16d53b = c263919d + rapport de L11-T0 ; `build-mac` debug hors écran, orchestrateur, 2026-11-07) : **246/246** (4 sautés : oracle, oracle_synth, miniatures_samples, raccourcis_programmes), 0 avertissement. N11 = 246 ; N = 278 dès L11-T1. Phase 0 (3.1) : les preuves du lot portent sur des tests neufs, jugées en 3.6 (« N tests, N ≥ 1, nom présent »).
 
 ### Restes pour le PC (lot 11)
 - **L11-T0-PC** : corpus vidéo, spécification (F-110, F-303, F-930, F-760, F-950 à F-953), REA statique d'ActivInspire, relevé brut hors dépôt et `lot11-noms.txt` ; points « à élucider » pris au défaut du plan.
