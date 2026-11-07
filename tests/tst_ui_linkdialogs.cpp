@@ -3,6 +3,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/core/replace.h>
 #include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/designmode.h>
@@ -10,16 +11,20 @@
 #include <actcraft/ui/linkdialogs.h>
 #include <actcraft/ui/linklauncher.h>
 
+#include <QCryptographicHash>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSemaphore>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QThread>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
+#include <atomic>
 #include <memory>
 #include <variant>
 
@@ -57,6 +62,11 @@ private slots:
     void fileRefusedWithTheLaunchersReason();
     void closedWithoutSourcesOrUnderLock();
     void iconAndActionFormsCreateObjects();
+    void storedFileIsReadOffTheUiThread();
+    void redoDoesNotStoreTheResourceAgain();
+    void resultDroppedWhenTheDocumentIsReplaced();
+    void resultDroppedWhenTheObjectIsGone();
+    void localPathKeepsUrlSyntaxCharacters();
 
 private:
     QString makeFile(const QString& name, const QByteArray& bytes) const;
@@ -113,6 +123,7 @@ void TstUiLinkdialogs::init()
 
 void TstUiLinkdialogs::cleanup()
 {
+    ui::LinkDialogs::setReadProbe({});
     m_dialogs.reset();
     m_runner.reset();
     m_links.reset();
@@ -201,8 +212,10 @@ void TstUiLinkdialogs::storedFileBecomesAResource()
     const QString path = makeFile(QStringLiteral("cours.pdf"), bytes);
     QVERIFY(!path.isEmpty());
     QVERIFY(m_controller->document().resources().empty());
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::DocumentStorage, 0));
+    QSignalSpy storedCreated(m_dialogs.get(), &ui::LinkDialogs::created);
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
+    // Le fichier rangé est lu hors du fil de l'interface : le lien arrive au retour (L8-C8).
+    QTRY_COMPARE_WITH_TIMEOUT(storedCreated.size(), 1, 10000);
     QCOMPARE(m_controller->document().resources().size(), size_t(1));
     const core::PageObject& made = page().objects.back();
     const core::Action& action = onlyAction(made);
@@ -219,7 +232,7 @@ void TstUiLinkdialogs::storedFileBecomesAResource()
     const auto* text = std::get_if<core::Text>(&core::body(made));
     QVERIFY(text != nullptr);
     click(QPointF(text->bounds.x + 2, text->bounds.y + 2));
-    QCOMPARE(ask.size(), 1);
+    QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 1, 10000); // extraction hors du fil (L8-C8)
     QVERIFY(m_opened.isEmpty());
 }
 
@@ -227,8 +240,7 @@ void TstUiLinkdialogs::externalPathKeptAsIs()
 {
     const QString path = makeFile(QStringLiteral("fiche.txt"), "bonjour");
     QVERIFY(!path.isEmpty());
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::ExternalStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::ExternalStorage, 0));
     QVERIFY(m_controller->document().resources().empty());
     const core::Action& action = onlyAction(page().objects.back());
     QCOMPARE(action.catalogId, std::string("document.open-file"));
@@ -241,8 +253,7 @@ void TstUiLinkdialogs::commandLineArgumentsNeverPassed()
     const QString path = makeFile(QStringLiteral("fiche.txt"), "bonjour");
     QVERIFY(!path.isEmpty());
     m_dialogs->setArguments(QStringLiteral("--evil /c calc"));
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::ExternalStorage, 0));
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::ExternalStorage, 0));
     const core::PageObject& made = page().objects.back();
     // Gardés dans les paramètres de l'action…
     QCOMPARE(jsonOf(onlyAction(made).parameters).value(QStringLiteral("arguments")).toString(),
@@ -291,8 +302,9 @@ void TstUiLinkdialogs::oneStep()
     const QString path = makeFile(QStringLiteral("cours.pdf"), "%PDF-1.4");
     QVERIFY(!path.isEmpty());
     QVERIFY(!m_controller->canUndo());
-    QVERIFY(m_dialogs->createFileLink(QUrl::fromLocalFile(path), ui::LinkDialogs::TextForm,
-                                      ui::LinkDialogs::DocumentStorage, 0));
+    QSignalSpy storedCreated(m_dialogs.get(), &ui::LinkDialogs::created);
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
+    QTRY_COMPARE_WITH_TIMEOUT(storedCreated.size(), 1, 10000); // lecture hors du fil (L8-C8)
     QVERIFY(m_controller->canUndo());
     m_controller->undo(); // une seule annulation défait objet et lien
     QCOMPARE(page().objects.size(), size_t(1));
@@ -313,7 +325,7 @@ void TstUiLinkdialogs::fileRefusedWithTheLaunchersReason()
              {int(ui::LinkDialogs::ExternalStorage), int(ui::LinkDialogs::DocumentStorage)}) {
             refused.clear();
             const QUrl url = QUrl::fromLocalFile(path);
-            QVERIFY2(!m_dialogs->createFileLink(url, ui::LinkDialogs::TextForm, storage, 0),
+            QVERIFY2(!m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, storage, 0),
                      qPrintable(path));
             QCOMPARE(refused.size(), 1);
             const int kind = storage == ui::LinkDialogs::ExternalStorage ? int(ui::LinkLauncher::File)
@@ -357,6 +369,136 @@ void TstUiLinkdialogs::iconAndActionFormsCreateObjects()
     QVERIFY(std::holds_alternative<core::Shape>(core::body(page().objects.back())));
     QCOMPARE(onlyAction(page().objects.back()).catalogId, std::string("document.open-website"));
     QCOMPARE(page().objects.size(), size_t(3));
+}
+
+// Le patron écarté lit le fichier dans l'appel (fil de l'interface) et pose le lien avant de rendre la main.
+// Ici la sonde bloque le fil de lecture : l'appel doit rendre la main pendant ce blocage, rien n'est encore
+// posé, puis le lien arrive une fois la lecture finie, lue ailleurs que sur le fil de l'interface.
+void TstUiLinkdialogs::storedFileIsReadOffTheUiThread()
+{
+    const QString path = makeFile(QStringLiteral("cours.pdf"), "%PDF-1.4 contenu d'essai");
+    QVERIFY(!path.isEmpty());
+    QSemaphore release;
+    std::atomic<QThread*> readThread{nullptr};
+    ui::LinkDialogs::setReadProbe([&release, &readThread] {
+        readThread = QThread::currentThread();
+        release.tryAcquire(1, 2000); // borné : un fil bloqué à tort ne gèle pas la suite
+    });
+    QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
+    QCOMPARE(created.size(), 0);
+    QVERIFY(m_dialogs->busy());
+    QCOMPARE(page().objects.size(), size_t(1));
+    QVERIFY(!m_controller->canUndo());
+    QVERIFY(m_controller->document().resources().empty());
+    release.release();
+    QTRY_COMPARE_WITH_TIMEOUT(created.size(), 1, 10000);
+    QVERIFY(!m_dialogs->busy());
+    QVERIFY(readThread.load() != nullptr);
+    QVERIFY(readThread.load() != QThread::currentThread());
+    QCOMPARE(m_controller->document().resources().size(), size_t(1));
+}
+
+// Le patron écarté range les octets à chaque redo, donc recalcule leur SHA-256 à chaque rejeu.
+void TstUiLinkdialogs::redoDoesNotStoreTheResourceAgain()
+{
+    const QByteArray bytes("%PDF-1.4 contenu d'essai");
+    const QString path = makeFile(QStringLiteral("cours.pdf"), bytes);
+    QVERIFY(!path.isEmpty());
+    const int before = ui::LinkDialogs::resourceInsertions();
+    QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
+    QTRY_COMPARE_WITH_TIMEOUT(created.size(), 1, 10000);
+    const std::string key = onlyAction(page().objects.back()).resource;
+    QCOMPARE(QString::fromStdString(key),
+             QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex()));
+    for (int round = 0; round < 2; ++round) {
+        m_controller->undo();
+        QCOMPARE(page().objects.size(), size_t(1));
+        m_controller->redo();
+        QCOMPARE(page().objects.size(), size_t(2));
+        QCOMPARE(onlyAction(page().objects.back()).resource, key); // la même clé à chaque rejeu
+    }
+    QCOMPARE(m_controller->document().resources().size(), size_t(1));
+    QCOMPARE(ui::LinkDialogs::resourceInsertions() - before, 1); // rangée une fois, jamais par redo
+}
+
+// Document remplacé pendant la lecture (Nouveau, Ouvrir) : le résultat est jeté, rien n'est posé dans le
+// document qui est maintenant à l'écran.
+void TstUiLinkdialogs::resultDroppedWhenTheDocumentIsReplaced()
+{
+    const QString path = makeFile(QStringLiteral("cours.pdf"), "%PDF-1.4");
+    QVERIFY(!path.isEmpty());
+    QSemaphore release;
+    ui::LinkDialogs::setReadProbe([&release] { release.tryAcquire(1, 2000); });
+    QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
+    QSignalSpy refused(m_dialogs.get(), &ui::LinkDialogs::refused);
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0));
+    QVERIFY(m_dialogs->busy());
+    load(); // un autre document prend la place pendant la lecture
+    release.release();
+    QTRY_VERIFY_WITH_TIMEOUT(!m_dialogs->busy(), 10000);
+    QCOMPARE(created.size(), 0);
+    QCOMPARE(refused.size(), 0);
+    QCOMPARE(page().objects.size(), size_t(1));
+    QVERIFY(m_controller->document().resources().empty());
+    QVERIFY(!m_controller->canUndo());
+}
+
+// Objet visé supprimé pendant la lecture : aucune ressource orpheline, aucune étape d'annulation.
+void TstUiLinkdialogs::resultDroppedWhenTheObjectIsGone()
+{
+    const QString path = makeFile(QStringLiteral("cours.pdf"), "%PDF-1.4");
+    QVERIFY(!path.isEmpty());
+    QSemaphore release;
+    ui::LinkDialogs::setReadProbe([&release] { release.tryAcquire(1, 2000); });
+    QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
+    QVERIFY(m_dialogs->createFileLink(path, ui::LinkDialogs::ExistingForm, ui::LinkDialogs::DocumentStorage,
+                                      kExisting));
+    QVERIFY(m_dialogs->busy());
+    m_controller->execute(std::make_unique<core::ReplaceObjectsCommand>(
+        0, std::vector<core::ObjectId>{kExisting}, std::vector<core::PageObject>{}));
+    QCOMPARE(page().objects.size(), size_t(0));
+    release.release();
+    QTRY_VERIFY_WITH_TIMEOUT(!m_dialogs->busy(), 10000);
+    QCOMPARE(created.size(), 0);
+    QCOMPARE(page().objects.size(), size_t(0));
+    QVERIFY(m_controller->document().resources().empty());
+    m_controller->undo(); // l'étape de suppression, seule de la pile
+    QCOMPARE(page().objects.size(), size_t(1));
+    QCOMPARE(page().objects.front().common.actions.size(), size_t(1));
+}
+
+// « Parcourir… » rend une URL de fichier, le champ garde un chemin : `#`, `?` et `%` sont des caractères du
+// nom. Le patron écarté rendait le texte de l'URL (`file:///…a%23b`), échappé, qui n'est pas ce fichier.
+void TstUiLinkdialogs::localPathKeepsUrlSyntaxCharacters()
+{
+    const QStringList names{QStringLiteral("a#b.txt"), QStringLiteral("c%23d.txt"), QStringLiteral("e?f.txt"),
+                            QStringLiteral("100%.txt")};
+    QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
+    for (const QString& name : names) {
+        const QString path = makeFile(name, "bonjour");
+        QVERIFY2(!path.isEmpty(), qPrintable(name));
+        const QString chosen = m_dialogs->localPath(QUrl::fromLocalFile(path)); // le rendu du sélecteur
+        QCOMPARE(chosen, path);
+        QVERIFY2(
+            m_dialogs->createFileLink(chosen, ui::LinkDialogs::TextForm, ui::LinkDialogs::ExternalStorage, 0),
+            qPrintable(name));
+        QCOMPARE(
+            jsonOf(onlyAction(page().objects.back()).parameters).value(QStringLiteral("file")).toString(),
+            path);
+        // Rangé : le contenu est celui du fichier de ce nom, le document ne garde que le nom.
+        created.clear();
+        QVERIFY2(
+            m_dialogs->createFileLink(chosen, ui::LinkDialogs::TextForm, ui::LinkDialogs::DocumentStorage, 0),
+            qPrintable(name));
+        QTRY_COMPARE_WITH_TIMEOUT(created.size(), 1, 10000);
+        const core::Action& stored = onlyAction(page().objects.back());
+        QCOMPARE(jsonOf(stored.parameters).value(QStringLiteral("file")).toString(), name);
+        const core::Resource* resource = m_controller->document().resource(stored.resource);
+        QVERIFY2(resource != nullptr, qPrintable(name));
+        QCOMPARE(resource->data, QByteArray("bonjour"));
+    }
 }
 
 QTEST_MAIN(TstUiLinkdialogs)

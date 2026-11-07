@@ -11,6 +11,9 @@
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
+#include <string>
+
 namespace actcraft::ui {
 
 // Création des liens vers un fichier ou un site (F-550, F-551), en une seule étape d'annulation : la boîte
@@ -33,6 +36,8 @@ class LinkDialogs : public QObject
     // Paramètres de ligne de commande de la référence : gardés dans les paramètres de l'action d'un lien
     // vers un fichier, jamais passés à l'ouverture.
     Q_PROPERTY(QString arguments READ arguments WRITE setArguments NOTIFY argumentsChanged)
+    // Vrai tant qu'un fichier à ranger dans le document est lu et haché hors du fil de l'interface.
+    Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
 
 public:
     enum Form
@@ -63,9 +68,25 @@ public:
     void setLinks(LinkLauncher* links);
     QString arguments() const { return m_arguments; }
     void setArguments(const QString& arguments);
+    bool busy() const noexcept { return m_busy; }
 
-    // Vrai : lien créé en une étape (created émis). Faux : refused émis avec le motif, document intact.
-    Q_INVOKABLE bool createFileLink(const QUrl& file, int form, int storage, quint64 existing = 0);
+    // Sondes de test, sur le modèle de LinkLauncher::setOpener. La sonde de lecture est appelée sur le fil
+    // qui lit et hache le fichier rangé ; le compteur donne le nombre de rangements de ressource faits par
+    // les commandes de lien (un par étape créée, jamais un par rejeu).
+    static void setReadProbe(std::function<void()> probe);
+    static int resourceInsertions() noexcept;
+
+    // Vrai : lien créé en une étape (created émis), ou, pour un fichier rangé dans le document, lecture
+    // acceptée : le fichier est lu et haché hors du fil de l'interface, puis created (ou refused) arrive au
+    // retour, et rien n'est posé si le document ou l'objet visé a disparu entre-temps (busy vrai entre les
+    // deux). Faux : refused émis avec le motif, document intact.
+    // `path` : chemin local en texte, tel que le champ de la boîte le garde ; `#`, `?` et `%` y sont des
+    // caractères du nom, jamais de la syntaxe d'URL. Un texte à schéma d'au moins deux lettres (file:, http:)
+    // reste une adresse, jugée par LinkLauncher::refusalFor.
+    Q_INVOKABLE bool createFileLink(const QString& path, int form, int storage, quint64 existing = 0);
+    // Chemin local d'une URL de fichier (rendu du sélecteur « Parcourir… »), décodé ; une URL qui n'est pas
+    // un fichier local est rendue telle quelle.
+    Q_INVOKABLE QString localPath(const QUrl& url) const;
     Q_INVOKABLE bool createWebsiteLink(const QString& address, int form, quint64 existing = 0);
 
 signals:
@@ -73,18 +94,24 @@ signals:
     void refused(const QString& reason);
     void sourcesChanged();
     void argumentsChanged();
+    void busyChanged();
 
 private:
     bool refuse(const QString& reason);
     bool locked(const char* command) const;
+    void setBusy(bool busy);
+    void storeFile(const QString& path, const QString& name, const QString& parameters, int form,
+                   quint64 existing);
     bool commit(const QString& label, const QString& catalogId, const QString& parameters, int form,
-                quint64 existing, const QByteArray& stored, const QString& extension);
+                quint64 existing, const QByteArray& stored, const QString& extension,
+                std::string storedKey = {});
 
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_document;
     QPointer<ToolHost> m_tools;
     QPointer<LinkLauncher> m_links;
     QString m_arguments;
+    bool m_busy = false;
 };
 
 } // namespace actcraft::ui

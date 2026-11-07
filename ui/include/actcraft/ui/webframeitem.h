@@ -106,6 +106,9 @@ public:
     bool unblockPending() const noexcept { return m_pendingRow >= 0; }
     QString documentKey() const { return m_key; }
     static bool engineBuilt() noexcept { return ACTCRAFT_WEBFRAME != 0; }
+    // Conversions du HTML enregistré (std::string) en QString faites par rebuild(), depuis le début du
+    // processus (fil de l'interface seulement) : la mesure que lisent les tests.
+    static std::uint64_t htmlConversionCount() noexcept;
 
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;
@@ -180,6 +183,9 @@ private:
         QVector<QUrl> history;
         int historyIndex = -1;
         int serial = 0;
+        // Navigation courante (navigate, prepareRow) : une réponse réseau d'une navigation précédente ne vaut
+        // plus. `serial` ne le dit pas : il n'avance qu'à l'arrivée du contenu.
+        std::uint64_t request = 0;
         std::uint64_t preparing = 0; // jeton de la réécriture en cours, 0 sinon
     };
 
@@ -200,7 +206,7 @@ private:
     struct Pending
     {
         std::uint64_t id = 0;
-        int serial = 0;
+        std::uint64_t request = 0;
         int redirects = 0;
     };
 
@@ -211,7 +217,12 @@ private:
     std::uint64_t m_generation = 0;
     std::uint64_t m_keys = 0;
     std::uint64_t m_tickets = 0;
+    std::uint64_t m_requests = 0; // numéro de navigation, unique pour toute la vie du modèle (Row::request)
     int m_page = -1;
+    // Identifiant stable de la page affichée pour la politique : le plus petit identifiant de ses cadres
+    // visibles (unique dans le document), et non son numéro, qui passe à une autre page quand on en retire ou
+    // en insère une avant elle. 0 : aucun cadre.
+    std::uint64_t m_pageKey = 0;
     QVector<Row> m_rows;
     int m_pendingRow = -1;
     Grabber m_grabber;

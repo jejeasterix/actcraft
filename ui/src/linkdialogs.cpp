@@ -6,16 +6,25 @@
 #include <actcraft/core/replace.h>
 #include <actcraft/core/undo.h>
 
+#include <QCryptographicHash>
 #include <QFile>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QTextDocument>
+#include <QThreadPool>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -33,22 +42,40 @@ namespace {
 constexpr qint64 kMaxStoredBytes =
     100LL * 1024 * 1024; // un fichier plus gros ne se range pas dans un document
 
-// Une étape : la ressource du fichier rangé (clé SHA-256 tirée au redo, la même à chaque rejeu) puis la
-// commande qui pose le lien, construite avec cette clé au premier redo.
+std::mutex g_probeMutex;
+std::function<void()> g_readProbe;
+std::atomic<int> g_insertions{0};
+
+void runReadProbe()
+{
+    std::function<void()> probe;
+    {
+        const std::lock_guard<std::mutex> lock(g_probeMutex);
+        probe = g_readProbe;
+    }
+    if (probe)
+        probe();
+}
+
+// Une étape : la ressource du fichier rangé (clé SHA-256 calculée une fois, hors du fil de l'interface, par
+// readStoredFile) puis la commande qui pose le lien, construite avec cette clé au premier redo. Les octets ne
+// sont rangés qu'une fois : un rejeu retrouve la ressource par sa clé et ne rehache rien.
 class LinkCommand final : public core::UndoCommand
 {
 public:
     using Build = std::function<std::unique_ptr<core::UndoCommand>(const std::string& resourceKey)>;
-    LinkCommand(QByteArray data, std::string extension, Build build)
-        : m_data(std::move(data)), m_extension(std::move(extension)), m_build(std::move(build))
+    LinkCommand(QByteArray data, std::string key, std::string extension, Build build)
+        : m_data(std::move(data)), m_key(std::move(key)), m_extension(std::move(extension)),
+          m_build(std::move(build))
     {}
     void redo(core::Document& document, core::Changes& changes) override
     {
-        std::string key;
-        if (!m_data.isEmpty())
-            key = document.addResource(m_data, m_extension);
+        if (!m_data.isEmpty() && (m_key.empty() || document.resource(m_key) == nullptr)) {
+            m_key = document.addResource(m_data, m_extension);
+            ++g_insertions;
+        }
         if (!m_inner)
-            m_inner = m_build(key);
+            m_inner = m_build(m_key);
         m_inner->redo(document, changes);
     }
     void undo(core::Document& document, core::Changes& changes) override
@@ -59,10 +86,49 @@ public:
 
 private:
     QByteArray m_data;
+    std::string m_key;
     std::string m_extension;
     Build m_build;
     std::unique_ptr<core::UndoCommand> m_inner;
 };
+
+// Résultat du travail hors du fil de l'interface : les octets du fichier et leur clé SHA-256 (hexadécimal
+// minuscule, la clé de Document::addResource), ou la raison de l'échec.
+struct StoredRead
+{
+    enum class Failure
+    {
+        None,
+        Unreadable,
+        Empty,
+        TooBig
+    };
+    Failure failure = Failure::None;
+    QByteArray bytes;
+    std::string key;
+};
+
+// Fil du pool global : n'écrit nulle part, ne touche ni le document ni un objet de l'interface.
+StoredRead readStoredFile(const QString& path)
+{
+    runReadProbe();
+    StoredRead result;
+    QFile source(path);
+    if (!source.open(QIODevice::ReadOnly)) {
+        result.failure = StoredRead::Failure::Unreadable;
+        return result;
+    }
+    result.bytes = source.read(kMaxStoredBytes + 1); // un fichier qui a grossi depuis le contrôle reste borné
+    if (result.bytes.size() > kMaxStoredBytes) {
+        result.failure = StoredRead::Failure::TooBig;
+        result.bytes.clear();
+    } else if (result.bytes.isEmpty()) {
+        result.failure = StoredRead::Failure::Empty;
+    } else {
+        result.key = QCryptographicHash::hash(result.bytes, QCryptographicHash::Sha256).toHex().toStdString();
+    }
+    return result;
+}
 
 QString compactJson(const QJsonObject& object)
 {
@@ -91,6 +157,17 @@ core::RectF centered(double pageWidth, double pageHeight, double width, double h
 LinkDialogs::LinkDialogs(QObject* parent) : QObject(parent) {}
 
 LinkDialogs::~LinkDialogs() = default;
+
+void LinkDialogs::setReadProbe(std::function<void()> probe)
+{
+    const std::lock_guard<std::mutex> lock(g_probeMutex);
+    g_readProbe = std::move(probe);
+}
+
+int LinkDialogs::resourceInsertions() noexcept
+{
+    return g_insertions.load();
+}
 
 void LinkDialogs::setCommands(Commands* commands)
 {
@@ -161,44 +238,100 @@ bool LinkDialogs::createWebsiteLink(const QString& address, int form, quint64 ex
                   {});
 }
 
-bool LinkDialogs::createFileLink(const QUrl& file, int form, int storage, quint64 existing)
+QString LinkDialogs::localPath(const QUrl& url) const
+{
+    return url.isLocalFile() ? url.toLocalFile() : url.toString();
+}
+
+bool LinkDialogs::createFileLink(const QString& path, int form, int storage, quint64 existing)
 {
     if (m_links.isNull() || m_document.isNull())
         return refuse(tr("Les liens ne sont pas disponibles."));
     if (locked("link.file"))
         return refuse(tr("Cette fonction est verrouillée."));
-    // Un chemin nu (sans schéma, lettre de lecteur comprise) se lit comme un fichier local (request).
-    const QUrl url = file.scheme().size() > 1 ? file : QUrl::fromLocalFile(file.toString());
+    // Un chemin nu (sans schéma, lettre de lecteur comprise) est un fichier local, pris tel quel : jamais lu
+    // comme une URL, où `#`, `?` et `%` ouvrent un fragment, une requête ou un échappement.
+    static const QRegularExpression scheme(QStringLiteral("^[A-Za-z][A-Za-z0-9+.-]+:"));
+    const QUrl url = scheme.match(path).hasMatch() ? QUrl(path) : QUrl::fromLocalFile(path);
     const bool stored = storage == DocumentStorage;
     if (const QString reason =
             LinkLauncher::refusalFor(url, stored ? LinkLauncher::StoredFile : LinkLauncher::File);
         !reason.isEmpty())
         return refuse(reason);
-    const QString path = url.toLocalFile();
-    const QString name = QFileInfo(path).fileName();
+    const QString localFile = url.toLocalFile();
+    const QString name = QFileInfo(localFile).fileName();
     QJsonObject parameters;
-    QByteArray bytes;
-    if (stored) {
-        QFile source(path);
-        if (source.size() > kMaxStoredBytes)
-            return refuse(tr("Ce fichier est trop gros pour être rangé dans le paperboard : %1").arg(name));
-        if (!source.open(QIODevice::ReadOnly))
-            return refuse(tr("Fichier illisible : %1").arg(name));
-        bytes = source.readAll();
-        if (bytes.isEmpty())
-            return refuse(tr("Fichier vide : %1").arg(name));
-        parameters.insert(QStringLiteral("file"), name); // jamais le dossier de l'auteur
-    } else {
-        parameters.insert(QStringLiteral("file"), path);
-    }
-    if (!m_arguments.trimmed().isEmpty()) // gardés, jamais passés (aucun QProcess, H8-3)
+    parameters.insert(QStringLiteral("file"),
+                      stored ? name : localFile); // jamais le dossier de l'auteur si rangé
+    if (!m_arguments.trimmed().isEmpty())         // gardés, jamais passés (aucun QProcess, H8-3)
         parameters.insert(QStringLiteral("arguments"), m_arguments);
-    return commit(name, QStringLiteral("document.open-file"), compactJson(parameters), form, existing, bytes,
-                  QString::fromStdString(resourceExtension(name)));
+    const QString json = compactJson(parameters);
+    if (!stored)
+        return commit(name, QStringLiteral("document.open-file"), json, form, existing, {}, {});
+    if (m_busy)
+        return refuse(tr("Un fichier est déjà en cours de lecture."));
+    if (QFileInfo(localFile).size() > kMaxStoredBytes)
+        return refuse(tr("Ce fichier est trop gros pour être rangé dans le paperboard : %1").arg(name));
+    storeFile(localFile, name, json, form, existing);
+    return true; // accepté : created ou refused suivra, une fois la lecture finie
+}
+
+void LinkDialogs::setBusy(bool busy)
+{
+    if (busy == m_busy)
+        return;
+    m_busy = busy;
+    emit busyChanged();
+}
+
+// Lecture et SHA-256 sur le pool global (même patron que DocumentController::saveToUrl), résultat relayé sur
+// le fil de l'interface par un QFutureWatcher fils de cet objet : détruit avec lui, il ne livre plus rien. Le
+// résultat est jeté si le document n'est plus celui du clic (remplacé, détruit) ; l'objet visé est revérifié
+// par commit, au retour.
+void LinkDialogs::storeFile(const QString& path, const QString& name, const QString& parameters, int form,
+                            quint64 existing)
+{
+    DocumentController* controller = m_document.data();
+    const std::uint64_t generation = controller->generation();
+    setBusy(true);
+    auto* watcher = new QFutureWatcher<StoredRead>(this);
+    connect(watcher, &QFutureWatcher<StoredRead>::finished, this,
+            [this, watcher, document = m_document, generation, name, parameters, form, existing] {
+                StoredRead read = watcher->result();
+                watcher->deleteLater();
+                setBusy(false);
+                if (document.isNull() || document.data() != m_document.data() ||
+                    document->generation() != generation)
+                    return; // jeté : le document du clic n'est plus à l'écran
+                switch (read.failure) {
+                case StoredRead::Failure::Unreadable:
+                    refuse(tr("Fichier illisible : %1").arg(name));
+                    return;
+                case StoredRead::Failure::Empty:
+                    refuse(tr("Fichier vide : %1").arg(name));
+                    return;
+                case StoredRead::Failure::TooBig:
+                    refuse(tr("Ce fichier est trop gros pour être rangé dans le paperboard : %1").arg(name));
+                    return;
+                case StoredRead::Failure::None:
+                    break;
+                }
+                // L'état a pu changer pendant la lecture : verrou de classe, lanceur retiré.
+                if (m_links.isNull() || locked("link.file")) {
+                    refuse(m_links.isNull() ? tr("Les liens ne sont pas disponibles.")
+                                            : tr("Cette fonction est verrouillée."));
+                    return;
+                }
+                commit(name, QStringLiteral("document.open-file"), parameters, form, existing, read.bytes,
+                       QString::fromStdString(resourceExtension(name)), std::move(read.key));
+            });
+    watcher->setFuture(
+        QtConcurrent::run(QThreadPool::globalInstance(), [path] { return readStoredFile(path); }));
 }
 
 bool LinkDialogs::commit(const QString& label, const QString& catalogId, const QString& parameters, int form,
-                         quint64 existing, const QByteArray& stored, const QString& extension)
+                         quint64 existing, const QByteArray& stored, const QString& extension,
+                         std::string storedKey)
 {
     DocumentController* controller = m_document.data();
     if (controller->pageCount() <= 0 || controller->currentIndex() < 0)
@@ -281,7 +414,8 @@ bool LinkDialogs::commit(const QString& label, const QString& catalogId, const Q
         };
     }
 
-    controller->execute(std::make_unique<LinkCommand>(stored, extension.toStdString(), std::move(build)));
+    controller->execute(std::make_unique<LinkCommand>(stored, std::move(storedKey), extension.toStdString(),
+                                                      std::move(build)));
 
     core::ObjectId made = existing;
     if (form != ExistingForm) {

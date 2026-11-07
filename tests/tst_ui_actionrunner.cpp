@@ -4,6 +4,7 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/pageedits.h>
+#include <actcraft/input/sample.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/liftlayeritem.h>
 #include <actcraft/render/pagepainter.h>
@@ -215,6 +216,9 @@ private slots:
     void textActionRemeasuresVerticalColumn();
     void textActionKeepsTheWidthOfReadLines();
     void textActionRecomputesFirstBaseline();
+    // Correctifs de la revue L8-C8.
+    void storedFilesOfUnsavedDocumentsDoNotShareAFolder();
+    void secondFingerReplaysTheHeldPress();
 
 private:
     void load(core::Document document);
@@ -1005,6 +1009,79 @@ void TstUiActionrunner::textActionRecomputesFirstBaseline()
     m_controllerOwner->undo();
     const auto* undone = std::get_if<core::Text>(&core::body(*object(kLabel)));
     QVERIFY(undone->firstBaseline && undone->firstBaseline->x == 0 && undone->firstBaseline->y == 0);
+}
+
+// Le patron écarté indexait le dossier d'extraction par l'adresse du fichier : vide pour tout document non
+// enregistré, donc un seul dossier pour tous. Deux documents sans fichier, chacun avec un « cours.pdf » rangé
+// de contenu différent : chaque copie extraite reste dans son dossier et garde son contenu.
+void TstUiActionrunner::storedFilesOfUnsavedDocumentsDoNotShareAFolder()
+{
+    QList<QUrl> opened;
+    m_links->setOpener([&opened](const QUrl& url) {
+        opened << url;
+        return true;
+    });
+    QSignalSpy ask(m_links, &ui::LinkLauncher::confirmationNeeded);
+    for (const QByteArray& bytes : {QByteArray("premier document"), QByteArray("second document")}) {
+        core::Document document(1024, 768);
+        core::Action open = action("document.open-file", 0, R"({"file":"cours.pdf"})");
+        open.resource = document.addResource(bytes, "pdf");
+        document.page(0).objects.push_back(roundObject({open}));
+        // Document neuf : aucune adresse de fichier.
+        m_controllerOwner->replaceDocument(std::move(document), QUrl(), QStringLiteral("sans titre"));
+        QVERIFY(m_controllerOwner->fileUrl().isEmpty());
+        ask.clear();
+        click(kOnRound);
+        QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 1, 10000); // extraction hors du fil (L8-C8)
+        m_links->answer(ask.first().at(1).toInt(), true);
+    }
+    QCOMPARE(opened.size(), 2);
+    const QString first = opened.at(0).toLocalFile();
+    const QString second = opened.at(1).toLocalFile();
+    QVERIFY(QFileInfo(first).absolutePath() != QFileInfo(second).absolutePath());
+    QFile one(first);
+    QVERIFY(one.open(QIODevice::ReadOnly));
+    QCOMPARE(one.readAll(), QByteArray("premier document")); // jamais écrasé par le second
+    QFile two(second);
+    QVERIFY(two.open(QIODevice::ReadOnly));
+    QCOMPARE(two.readAll(), QByteArray("second document"));
+}
+
+// Le patron écarté abandonnait l'appui retenu du premier doigt dès qu'un second se posait : l'outil recevait
+// ensuite le déplacement et le relâché d'un doigt dont il n'avait jamais vu l'appui. L'appui retenu est
+// rejoué à l'outil de sélection, qui sélectionne alors l'objet touché.
+void TstUiActionrunner::secondFingerReplaysTheHeldPress()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    ViewMount mount;
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    QVERIFY(mount.mount(*m_controllerOwner, tools));
+    tools.setActionRunner(m_runner.get());
+    tools.selectObjects({});
+    const QPoint at = windowPoint(*mount.view, kOnRound);
+    m_runner->setContactActive(true);
+    QTest::mousePress(mount.window, Qt::LeftButton, Qt::NoModifier, at);
+    QCOMPARE(tools.selectionCount(), 0); // retenu par la porte : l'outil n'a encore rien vu
+    tools::Tool* gate = tools.activeTool();
+    QVERIFY(gate != nullptr);
+    QVERIFY(gate->isBusy());
+    input::Sample second;
+    second.phase = input::Phase::Press;
+    second.pointer = 2; // un autre doigt
+    second.x = 950;
+    second.y = 700; // hors de tout objet d'action : l'exécuteur ne le prend pas
+    gate->onSample(second);
+    // L'outil de sélection ne suit que le pointeur de son appui et ignore un appui tant qu'il est occupé :
+    // avec l'appui du premier doigt rejoué, son relâché achève un clic (objet sélectionné) ; sans lui,
+    // l'outil suit le second doigt et ce relâché est ignoré.
+    QTest::mouseRelease(mount.window, Qt::LeftButton, Qt::NoModifier, at);
+    QCOMPARE(tools.selectionCount(), 1);
+    QVERIFY(!tools.activeTool()->isBusy());
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    tools.setActionRunner(nullptr);
 }
 
 QTEST_MAIN(TstUiActionrunner)

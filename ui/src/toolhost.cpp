@@ -182,7 +182,7 @@ public:
     {}
 
     tools::Tool* inner() const noexcept { return m_inner; }
-    ActionRunner* runner() const noexcept { return m_runner; }
+    ActionRunner* runner() const noexcept { return m_runner.data(); }
 
     QString id() const override { return m_inner->id(); }
     void activate() override { m_inner->activate(); }
@@ -210,8 +210,11 @@ public:
         const bool mine = m_owning && sample.pointer == m_pointer;
         switch (sample.phase) {
         case input::Phase::Press:
-            reset(); // sans `done` : le geste qui commence est celui que le filtre vient d'armer
-            if (m_runner->press(point, Qt::LeftButton)) {
+            // Un appui encore retenu est celui d'un premier doigt que l'exécuteur n'a pas encore tranché : il
+            // va à l'outil, qui verra son déplacement et son relâché. Sans `done` : le geste qui commence est
+            // celui que le filtre vient d'armer.
+            replayHeldPress();
+            if (m_runner && m_runner->press(point, Qt::LeftButton)) {
                 m_owning = true;
                 m_pointer = sample.pointer;
                 m_held.push_back(sample);
@@ -221,7 +224,7 @@ public:
             break;
         case input::Phase::Move:
             if (mine) {
-                if (m_runner->move(point)) {
+                if (m_runner && m_runner->move(point)) {
                     m_held.push_back(sample);
                     return;
                 }
@@ -231,7 +234,7 @@ public:
         case input::Phase::Release:
             if (mine) {
                 m_owning = false;
-                if (m_runner->release(point)) {
+                if (m_runner && m_runner->release(point)) {
                     m_held.clear(); // clic : ni l'appui ni le relâché ne vont à l'outil
                     m_done();
                     return;
@@ -244,17 +247,33 @@ public:
     }
 
 private:
-    void reset() // abandonne un appui retenu ; la porte reste armée
+    void discardHeldPress() // abandonne un appui retenu : l'outil ne le voit pas ; la porte reste armée
     {
-        if (m_owning) {
+        if (m_owning && m_runner) {
             m_runner->cancel();
         }
         m_owning = false;
         m_held.clear();
     }
+    void replayHeldPress() // un second appui arrive : le premier va à l'outil, la porte reste armée
+    {
+        if (!m_owning) {
+            m_held.clear();
+            return;
+        }
+        if (m_runner) {
+            m_runner->cancel();
+        }
+        m_owning = false;
+        const std::vector<input::Sample> held = std::move(m_held);
+        m_held.clear();
+        for (const input::Sample& sample : held) {
+            m_inner->onSample(sample);
+        }
+    }
     void drop() // fin du geste : désarme
     {
-        reset();
+        discardHeldPress();
         m_done();
     }
     void replay() // glisser : la suite va directement à l'outil (désarmé)
@@ -269,7 +288,7 @@ private:
     }
 
     tools::Tool* m_inner;
-    ActionRunner* m_runner;
+    QPointer<ActionRunner> m_runner;
     std::function<void()> m_done;
     std::vector<input::Sample> m_held;
     std::uint64_t m_pointer = 0;
