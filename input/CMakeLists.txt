@@ -8,5 +8,9 @@ actcraft_add_module(input
         src/routing.cpp
         include/actcraft/input/gesture.h
         src/gesture.cpp
+        include/actcraft/input/touchmodes.h
+        src/touchmodes.cpp
+        include/actcraft/input/twouserpolicy.h
+        src/twouserpolicy.cpp
     DEPENDS
         ActCraft::core Qt6::Gui)

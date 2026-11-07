@@ -273,3 +273,77 @@ actcraft_add_test(tst_ui_broadcast
     SOURCES tst_ui_broadcast.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_compile_definitions(tst_ui_webpolicy PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
+# Lot 11 (L11-T1) : talons QSKIP, remplis par les tâches nommées dans leur message.
+actcraft_add_test(tst_ui_pageinput
+    SOURCES tst_ui_pageinput.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_pageinput PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_touchmode
+    SOURCES tst_ui_touchmode.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_touchmode PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_secondpalette
+    SOURCES tst_ui_secondpalette.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_secondpalette PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_narrowlayout
+    SOURCES tst_ui_narrowlayout.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_narrowlayout PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_orientation
+    SOURCES tst_ui_orientation.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_orientation PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_fingermenus
+    SOURCES tst_ui_fingermenus.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_fingermenus PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_lifecycle
+    SOURCES tst_ui_lifecycle.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_lifecycle PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_updatechecker
+    SOURCES tst_ui_updatechecker.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_updatechecker PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_shortcuts
+    SOURCES tst_ui_shortcuts.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_shortcuts PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_accessibility
+    SOURCES tst_ui_accessibility.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_accessibility PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_lockall
+    SOURCES tst_ui_lockall.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_lockall PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_profilesall
+    SOURCES tst_ui_profilesall.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_profilesall PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_documentportal
+    SOURCES tst_ui_documentportal.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_pseudolocale
+    SOURCES tst_ui_pseudolocale.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_helppages
+    SOURCES tst_ui_helppages.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+

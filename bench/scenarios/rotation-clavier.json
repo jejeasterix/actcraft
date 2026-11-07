@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "rotation-clavier",
+  "description": "Talon L11 : rempli par L11-T11.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

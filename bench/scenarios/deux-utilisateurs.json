@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "deux-utilisateurs",
+  "description": "Talon L11 : rempli par L11-T9.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

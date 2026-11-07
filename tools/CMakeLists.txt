@@ -28,5 +28,7 @@ actcraft_add_module(tools
         include/actcraft/tools/revealinktool.h
         src/revealinktool.cpp
         include/actcraft/tools/interactionpolicy.h
+        include/actcraft/tools/grabs.h
+        src/grabs.cpp
     DEPENDS
         ActCraft::core ActCraft::actions ActCraft::input ActCraft::render Qt6::Concurrent)
