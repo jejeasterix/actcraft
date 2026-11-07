@@ -1,8 +1,35 @@
 {
   "format": "actcraft-scenario/1",
   "name": "modes-toucher",
-  "description": "Talon L11 : rempli par L11-T6.",
+  "description": "S28 (modes du toucher) : pour chacun des quatre modes, un doigt injecté produit l'effet attendu.",
   "steps": [
-    {"waitReady": true}
+    {"waitReady": true},
+    {"command": "tool.shape"},
+    {"command": "shape.choose", "argument": "rectangle"},
+    {"pointer": [[600, 500], [700, 575], [800, 650]]},
+    {"waitReady": true},
+    {"command": "tool.pen"},
+    {"command": "touch.mode", "argument": "ignore"},
+    {"expect": "appTouchMode.mode", "value": "ignore"},
+    {"touch": [[200, 200], [400, 200]]},
+    {"waitReady": true},
+    {"checkPixel": "ignore-rien", "at": [300, 200], "color": "#FFFFFF", "tolerance": 8},
+    {"command": "touch.mode", "argument": "pen"},
+    {"command": "tool.select"},
+    {"touch": [[200, 300], [400, 300]]},
+    {"waitReady": true},
+    {"checkPixel": "pen-trait", "at": [300, 300], "color": "#000000", "tolerance": 90},
+    {"capture": "pen"},
+    {"command": "touch.mode", "argument": "select"},
+    {"command": "tool.pen"},
+    {"touch": [[700, 575], [700, 575]]},
+    {"waitReady": true},
+    {"expect": "appTools.selectionCount", "value": 1},
+    {"capture": "select"},
+    {"command": "touch.mode", "argument": "full"},
+    {"touch": [[200, 400], [400, 400]]},
+    {"waitReady": true},
+    {"checkPixel": "full-trait", "at": [300, 400], "color": "#000000", "tolerance": 90},
+    {"expect": "appTouchMode.mode", "value": "full"}
   ]
 }
