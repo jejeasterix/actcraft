@@ -49,7 +49,7 @@ sur machine calme avant de conclure à une régression ; le lot 8 en cours est d
 
 Tête bf4d4cf3 : merge de `feat/livraison-complete` (57ecfb14), qui apporte L8-C14 (captures et banc hors du vrai
 dossier des ressources). Conflit unique, `actions/data/object-actions.json` : bornes de A gardées, paramètres renommés
-`ratioX` et `ratioY` comme le lit `core/src/objectactions_geometry.cpp:322-323`.
+`ratioX` et `ratioY` comme le lit `core/src/objectactions_geometry.cpp:322-323` ; les trois libellés neutres de 57d10f6c (« Formes », « Créer un paperboard », « Paperboard à la taille de l'écran »), perdus par la fusion, rétablis après relecture.
 
 - **Préalable** : témoin `Documents\ActCraft\Ressources\temoin-o33.txt` posé avant la suite ; présent après la suite
   debug (captures comprises) et après le banc.
@@ -57,11 +57,11 @@ dossier des ressources). Conflit unique, `actions/data/object-actions.json` : bo
   `tst_bench_verdict` (485 s), délais dus à la charge. Restent 4 échecs, tous dans du code du lot 8 en cours chez A :
   - `tst_media_player` `deniedFileIsReportedWithoutFallback` : `QFile::setPermissions(denied, Permissions{}) returned FALSE`
     (refuser la lecture par les permissions ne marche pas sous Windows) ;
-  - `tst_media_soundrecorder` `writesAWav(micro)` 1 792 ms pour 3 s, `pauseAndResume(micro)` 1 013 ms (vrai micro du PC) ;
+  - `tst_media_soundrecorder` `writesAWav(micro)` 2 101 ms pour 3 s (1 792 ms dans la suite), `pauseAndResume(micro)` 1 013 ms pour 2 s (vrai micro du PC ; sorties QtTest dans `.tmp/o33-tst_media_player.txt` et `.tmp/o33-tst_media_soundrecorder.txt`) ;
   - `tst_ui_webframe` : SegFault dans `viewFetchesOnlyDecidedSubResources`, près de `qt_plugin_instance` ;
   - `tst_captures_glisser_deposer` : `PIXEL icone-retiree ECART (lu #3a3d44, attendu #1e88e5)` (scénario en cours).
-- `scripts/paquet.ps1` : `PAQUET OK` (`build\paquet\ActCraft-0.6.0-setup.exe`, 22,8 min) ;
-  `verifier-licences.ps1 -Dossier build\paquet\windows` : `LICENCES OK` (1 483 fichiers).
+- `scripts/paquet.ps1` : `PAQUET OK` (`build\paquet\ActCraft-0.6.0-setup.exe`) ;
+  `verifier-licences.ps1 -Dossier build\paquet\windows` : `LICENCES OK` (dossier de 1 483 fichiers).
 
 ### Banc D3D11 plein écran, machine calme (05 h 05)
 
@@ -77,7 +77,7 @@ allumé et session ouverte. Premier passage invalide (`export-fond` : `content-c
 
 Critères de la référence tenus : `stroke`, `zoom`, `scroll` à 60 i/s, p95 16,9 à 17,0 ms, 0 % > 25 ms, latence p50
 10,1 ms. Hors critères : `page` p95 43,3 ms (hier 66 à 73), `gommer` 27,7 ms, `forme-page-annotee` 35,3 ms,
-`miniatures-pauses` 1,02 %. **Pic mémoire 1 150 Mio** (hier 1 041 à 1 055, lot 5 : 1 036) : +100 Mio, lot 8 dans la
+`miniatures-pauses` 1,02 %. **Pic mémoire 1 097 Mio** (`memory_peak_bytes` 1 149 816 832 ; hier 1 041 à 1 055 Mio) : +41 à +56 Mio, lot 8 dans la
 tête mesurée, cause non cherchée.
 
 ## Non fait

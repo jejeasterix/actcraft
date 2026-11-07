@@ -51,7 +51,7 @@
   {
    "id": "command.tool.shape",
    "category": "command",
-   "label": "Outil formes",
+   "label": "Formes",
    "icon": "action-objet",
    "command": "tool.shape",
    "drag-drop": true
@@ -218,14 +218,14 @@
   {
    "id": "command.file.new",
    "category": "command",
-   "label": "Nouveau paperboard",
+   "label": "Créer un paperboard",
    "icon": "action-objet",
    "command": "file.new"
   },
   {
    "id": "command.file.new-screen",
    "category": "command",
-   "label": "Nouveau paperboard à la taille de l'écran",
+   "label": "Paperboard à la taille de l'écran",
    "icon": "action-objet",
    "command": "file.new-screen"
   },
