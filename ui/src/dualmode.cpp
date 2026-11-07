@@ -103,7 +103,7 @@ void DualMode::setTouchMode(TouchModeController* touchMode)
         // Le contrôleur pose sa politique puis émet modeChanged : allumé, la politique à deux est reposée.
         connect(m_touchMode, &TouchModeController::modeChanged, this, [this] {
             if (m_active) {
-                poseTwoUserPolicy();
+                poseTwoUserPolicy(true); // L11-C6 : utilisateurs jamais permutés
             }
         });
     }
@@ -141,13 +141,17 @@ void DualMode::applyPending()
     emit activeChanged();
 }
 
-void DualMode::poseTwoUserPolicy()
+void DualMode::poseTwoUserPolicy(bool keepFirstStylus)
 {
     if (!m_view) {
         return;
     }
     m_view->setSecondUserViewArea(secondArea());
-    m_view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF())); // aire reçue de la vue
+    auto policy = std::make_unique<input::TwoUserPolicy>(QRectF()); // aire reçue de la vue
+    if (keepFirstStylus) {
+        policy->setFirstStylusDevice(m_view->lastFirstStylusDevice());
+    }
+    m_view->setRoutingPolicy(std::move(policy));
 }
 
 void DualMode::restoreTouchPolicy()

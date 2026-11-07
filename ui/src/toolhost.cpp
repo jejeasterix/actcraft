@@ -44,7 +44,6 @@
 
 namespace actcraft::ui {
 
-void discardToolAdapters(std::unique_ptr<ToolAdapters>& slot); // ci-dessous (L11-T9 : deux jeux)
 
 namespace {
 
@@ -348,7 +347,7 @@ void ToolHost::setCommands(Commands* commands)
     if (commands == m_commands) {
         return;
     }
-    cancelGesture();
+    cancelAllGestures();
     m_commands = commands;
     m_adapters.reset();
     m_secondAdapters.reset();
@@ -366,7 +365,7 @@ void ToolHost::setDocumentController(DocumentController* controller)
     if (controller == m_controller) {
         return;
     }
-    cancelGesture();
+    cancelAllGestures();
     if (m_controller) {
         disconnect(m_controller, nullptr, this, nullptr);
         if (m_observer != 0) {
@@ -380,8 +379,8 @@ void ToolHost::setDocumentController(DocumentController* controller)
     if (m_controller) {
         // Annuler, Rétablir, Effacer, Ouvrir… et changement de page : l'outil abandonne d'abord son geste ;
         // la sélection et la gomme déposent sans étape (M2). Le soulèvement, lui, n'annonce rien (B1).
-        connect(m_controller, &DocumentController::editAboutToApply, this, &ToolHost::cancelGesture);
-        connect(m_controller, &DocumentController::pageAboutToChange, this, &ToolHost::cancelGesture);
+        connect(m_controller, &DocumentController::editAboutToApply, this, &ToolHost::cancelAllGestures);
+        connect(m_controller, &DocumentController::pageAboutToChange, this, &ToolHost::cancelAllGestures);
         connect(m_controller, &DocumentController::pagesChanged, this, &ToolHost::refreshSelection);
         connect(m_controller, &DocumentController::documentChanged, this, &ToolHost::refreshSelection);
         // Annuler et Rétablir vident la sélection (décision de L3-T0).
@@ -407,7 +406,7 @@ void ToolHost::setView(PageView* view)
     if (view == m_view) {
         return;
     }
-    cancelGesture();
+    cancelAllGestures();
     if (m_view) {
         disconnect(m_view, nullptr, this, nullptr);
     }
@@ -439,7 +438,7 @@ void ToolHost::setLiftLayer(render::LiftLayerItem* layer)
     if (layer == m_liftLayer) {
         return;
     }
-    cancelGesture();
+    cancelAllGestures();
     m_liftLayer = layer;
     m_adapters.reset();
     m_secondAdapters.reset();
@@ -854,6 +853,31 @@ void ToolHost::configureTool(tools::Tool* tool) const
     }
 }
 
+namespace {
+
+// Les outils occupés d'un jeu d'adaptateurs abandonnent leur geste (L11-C6 : abandon des deux gestes,
+// extinction du mode à deux, adaptateurs jetés).
+void cancelBusyTools(const ToolAdapters& adapters)
+{
+    for (const auto& entry : adapters.tools) {
+        if (tools::Tool* tool = entry.second.get(); tool && tool->isBusy()) {
+            tool->cancel();
+        }
+    }
+}
+
+void discardToolAdapters(std::unique_ptr<ToolAdapters>& slot)
+{
+    const std::unique_ptr<ToolAdapters> discarded = std::move(slot);
+    if (!discarded || !discarded->controllerRef || !discarded->viewRef || !discarded->inkRef ||
+        !discarded->layerRef) {
+        return;
+    }
+    cancelBusyTools(*discarded);
+}
+
+} // namespace
+
 void ToolHost::cancelGesture()
 {
     if (!m_user) {
@@ -865,6 +889,14 @@ void ToolHost::cancelGesture()
     }
     if (tool && tool->isBusy()) {
         tool->cancel();
+    }
+}
+
+void ToolHost::cancelAllGestures()
+{
+    cancelGesture();
+    if (m_secondAdapters) { // L11-C6 : le glisser du second s'arrête aussi, sans étape
+        cancelBusyTools(*m_secondAdapters);
     }
 }
 
@@ -956,11 +988,7 @@ void ToolHost::setDualUsers(bool on)
         m_secondUser = std::make_unique<tools::UserState>(input::kSecondUser);
     }
     if (!on && m_secondAdapters) { // L11-T9 : un geste du second utilisateur s'arrête, ses objets sont rendus
-        for (const auto& entry : m_secondAdapters->tools) {
-            if (tools::Tool* busy = entry.second.get(); busy && busy->isBusy()) {
-                busy->cancel();
-            }
-        }
+        cancelBusyTools(*m_secondAdapters);
     }
     if (!on) {
         m_grabs.release(input::kSecondUser);
@@ -1052,20 +1080,6 @@ void ToolHost::discardAdapters() const
 {
     discardToolAdapters(m_secondAdapters);
     discardToolAdapters(m_adapters);
-}
-
-void discardToolAdapters(std::unique_ptr<ToolAdapters>& slot)
-{
-    const std::unique_ptr<ToolAdapters> discarded = std::move(slot);
-    if (!discarded || !discarded->controllerRef || !discarded->viewRef || !discarded->inkRef ||
-        !discarded->layerRef) {
-        return;
-    }
-    for (const auto& entry : discarded->tools) {
-        if (tools::Tool* tool = entry.second.get(); tool && tool->isBusy()) {
-            tool->cancel();
-        }
-    }
 }
 
 tools::Tool* ToolHost::imposedTool(input::UserId user, input::FingerTool tool) const

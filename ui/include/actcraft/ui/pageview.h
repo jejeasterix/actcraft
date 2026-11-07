@@ -398,6 +398,9 @@ public:
     // Remplace la politique du routeur (nullptr : gestion complète) ; les contacts en cours gardent leur
     // décision. Posée par le contrôleur du mode du toucher (L11-T6) : la vue ne lit aucun réglage.
     void setRoutingPolicy(std::unique_ptr<input::RoutingPolicy> policy);
+    // L11-C6 : premier stylet de la dernière input::TwoUserPolicy remplacée par setRoutingPolicy (0 : aucun) ;
+    // DualMode le rend à celle qu'il repose après un changement du mode du toucher.
+    std::uint64_t lastFirstStylusDevice() const noexcept { return m_lastFirstStylus; }
     // Utilisateur de la dernière décision d'appui routée vers l'outil ou le geste (tests).
     int lastContactUser() const noexcept;
     // Chaque contact en cours se termine comme un relâché à sa dernière position (trait gardé) ; le geste
@@ -440,6 +443,7 @@ private:
     void setStylusDrawing(std::uint64_t device, bool drawing);
     QVarLengthArray<std::uint64_t, 4> m_stylusesDrawing;
     std::optional<QRectF> m_secondUserViewArea;
+    std::uint64_t m_lastFirstStylus = 0; // L11-C6
     // Horodatage du dernier événement de toucher à appuis : Qt Quick livre deux fois [A relâché, B appuyé]
     // à la vue ; la seconde livraison n'a aucun effet (L11-C1).
     quint64 m_lastPressEventTime = 0;
