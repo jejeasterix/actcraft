@@ -24,11 +24,7 @@ Change noPixelChange(std::size_t page, ObjectId id)
 
 bool sameActions(const std::vector<Action>& a, const std::vector<Action>& b) noexcept
 {
-    return std::equal(a.begin(), a.end(), b.begin(), b.end(), [](const Action& x, const Action& y) {
-        return x.kind == y.kind && x.sourceType == y.sourceType && x.command == y.command &&
-               x.target == y.target && x.resource == y.resource && x.unknownKeys == y.unknownKeys &&
-               x.catalogId == y.catalogId && x.parameters == y.parameters && x.dragDrop == y.dragDrop;
-    });
+    return std::equal(a.begin(), a.end(), b.begin(), b.end());
 }
 
 SetObjectActionsCommand::SetObjectActionsCommand(std::size_t page, std::vector<ObjectId> ids,

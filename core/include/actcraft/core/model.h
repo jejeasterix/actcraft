@@ -250,6 +250,7 @@ struct Action
     std::string catalogId;
     std::string parameters;
     bool dragDrop = false;
+    bool operator==(const Action&) const = default;
 };
 
 // Style de la légende d'un objet (F-576), écrit par nous. Valeurs par défaut : pas de clé dans le fichier,
@@ -663,7 +664,8 @@ struct BroadcastRules
     bool noPrint = false;
     bool noCamera = false;
     std::string author; // informations de l'auteur, jamais affichées aux utilisateurs
-    bool isDefault() const noexcept { return !noCopy && !noSave && !noPrint && !noCamera && author.empty(); }
+    bool operator==(const BroadcastRules&) const = default;
+    bool isDefault() const noexcept { return *this == BroadcastRules{}; }
 };
 
 } // namespace actcraft::core
