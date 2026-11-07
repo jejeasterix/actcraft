@@ -1,8 +1,35 @@
 {
   "format": "actcraft-scenario/1",
   "name": "aide-complete",
-  "description": "Talon L11 : rempli par L11-T18.",
+  "description": "L11-T18 (S29) : F1 ouvre le lecteur d'aide sur la page de l'outil courant (stylo, encre révélatrice), sans réseau ; le lecteur est capturé puis fermé par Échap ; F1 reste utilisable en mode à deux utilisateurs.",
   "steps": [
-    {"waitReady": true}
+    {"waitReady": true},
+    {"command": "tool.pen"},
+    {"key": "F1"},
+    {"wait": 400},
+    {"expect": "helpViewer.visible", "value": true},
+    {"capture": "aide-stylo"},
+    {"key": "Esc"},
+    {"wait": 200},
+    {"expect": "helpViewer.visible", "value": false},
+    {"command": "tool.reveal-ink"},
+    {"key": "F1"},
+    {"wait": 400},
+    {"expect": "helpViewer.visible", "value": true},
+    {"capture": "aide-encre-revelatrice"},
+    {"key": "Esc"},
+    {"wait": 200},
+    {"expect": "helpViewer.visible", "value": false},
+    {"command": "users.dual"},
+    {"expect": "appDualMode.active", "value": true},
+    {"key": "F1"},
+    {"wait": 400},
+    {"expect": "helpViewer.visible", "value": true},
+    {"capture": "aide-deux-utilisateurs"},
+    {"key": "Esc"},
+    {"wait": 200},
+    {"expect": "helpViewer.visible", "value": false},
+    {"command": "users.dual"},
+    {"expect": "appDualMode.active", "value": false}
   ]
 }
