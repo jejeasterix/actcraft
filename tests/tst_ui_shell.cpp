@@ -995,12 +995,9 @@ private slots:
         Shell s;
         QVERIFY(start(s));
         const QList<QPair<const char*, const char*>> expected = {
-            {"appLinkDialogs", "actcraft::ui::LinkDialogs"},
-            {"appMediaInsert", "actcraft::ui::MediaInsert"},
-            {"appMediaItems", "actcraft::ui::MediaItems"},
-            {"appBroadcast", "actcraft::ui::BroadcastGate"},
-            {"appRecorders", "actcraft::ui::Recorders"},
-            {"appWebFrames", "actcraft::ui::WebFrameItems"},
+            {"appLinkDialogs", "actcraft::ui::LinkDialogs"}, {"appMediaInsert", "actcraft::ui::MediaInsert"},
+            {"appMediaItems", "actcraft::ui::MediaItems"},   {"appBroadcast", "actcraft::ui::BroadcastGate"},
+            {"appRecorders", "actcraft::ui::Recorders"},     {"appWebFrames", "actcraft::ui::WebFrameItems"},
         };
         for (const auto& [name, cls] : expected) {
             QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
