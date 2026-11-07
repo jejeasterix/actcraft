@@ -367,6 +367,15 @@ bool DocumentController::isLifting() const noexcept
 // soulèvement : le document garé est entier. Aucune demande de redessin, aucun rattachement : la page fixe
 // garde son ancienne scène jusqu'à resumeSession, qui la reconstruit une fois (amendement 3, M1). L'appelant
 // reprend une session avant de rendre la main à la boucle d'événements.
+namespace {
+// Identité d'un document affiché (documentKey) : jamais réutilisée dans le processus.
+std::uint64_t freshDocumentKey()
+{
+    static std::uint64_t last = 1; // 1 : celle du premier document de chaque contrôleur
+    return ++last;
+}
+} // namespace
+
 std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSession()
 {
     announceEdit();
@@ -378,6 +387,7 @@ std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSessi
     session->fileUrl = std::exchange(m_fileUrl, QUrl());
     session->title = std::exchange(m_title, untitled());
     session->modifiedOutsideStack = std::exchange(m_modifiedOutsideStack, false);
+    session->documentKey = std::exchange(m_documentKey, freshDocumentKey());
     session->warnings = m_warnings;
     session->reference = m_referenceGeneration == m_generation ? m_reference : nullptr;
     m_reference.reset();
@@ -401,6 +411,7 @@ void DocumentController::resumeSession(std::unique_ptr<ParkedSession> session)
     m_fileUrl = session->fileUrl;
     m_title = session->title.isEmpty() ? untitled() : session->title;
     m_modifiedOutsideStack = session->modifiedOutsideStack;
+    m_documentKey = session->documentKey != 0 ? session->documentKey : freshDocumentKey();
     ++m_generation;
     ++m_revision;
     m_reference = std::move(session->reference);
@@ -648,6 +659,7 @@ void DocumentController::replaceDocument(core::Document document, const QUrl& fi
     m_fileUrl = fileUrl;
     m_title = title.isEmpty() ? untitled() : title;
     m_modifiedOutsideStack = false;
+    m_documentKey = freshDocumentKey();
     ++m_generation;
     ++m_revision;
     show(0);

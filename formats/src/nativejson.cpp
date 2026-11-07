@@ -2311,6 +2311,17 @@ JsonReadResult documentFromJson(const QJsonObject& json, const ResourceLoader& l
     document.reserveIdsBelow(r.readId(json, u"nextId"));
     if (!hasUniqueIds(document)) {
         r.warn(u"identifiants d'objets absents ou en double"_s);
+        // Les doublons (le premier garde l'identifiant) en reçoivent un neuf : deux objets ne se distinguent
+        // plus sinon (sélection, actions, annulation). 0 (« absent ») reste tel quel.
+        document.refreshNextId();
+        std::set<ObjectId> seen;
+        for (std::size_t i = 0; i < document.pageCount(); ++i) {
+            for (PageObject& o : document.page(i).objects) {
+                if (o.common.id != 0 && !seen.insert(o.common.id).second) {
+                    o.common.id = document.allocateId();
+                }
+            }
+        }
     }
     out = std::move(document);
     result.ok = true;

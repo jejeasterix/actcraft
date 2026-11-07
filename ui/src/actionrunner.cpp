@@ -287,8 +287,8 @@ private:
 };
 
 // Touche d'un objet, règle de core::objectAt (core/src/hittest.cpp) : emprise agrandie de `tolerance`, et
-// pour un trait sa ligne (strokeHit), jouée par objectAt lui-même sur une page sonde réduite à ce trait
-// (rendu visible : un porteur d'action masqué reste cliquable, D5). Emprise lue sur la page (un groupe).
+// pour un trait sa ligne (core::strokeTouched, la règle de objectAt, un porteur d'action masqué reste
+// cliquable, D5). Emprise lue sur la page (un groupe).
 bool touches(const core::Page& page, const core::PageObject& object, core::PointF point, double tolerance)
 {
     if (!core::hasExtent(page, object)) {
@@ -303,22 +303,18 @@ bool touches(const core::Page& page, const core::PageObject& object, core::Point
     if (std::get_if<core::Stroke>(&core::body(object)) == nullptr) {
         return true;
     }
-    core::Page probe;
-    core::PageObject copy = object;
-    copy.common.visible = true;
-    probe.objects.push_back(std::move(copy));
-    return core::objectAt(probe, point, tolerance).has_value();
+    return core::strokeTouched(object, point, tolerance); // sans copie, visibilité sans effet (D5)
 }
 
 // Clé du dossier d'extraction des fichiers rangés : propre au document à l'écran, jamais son adresse (vide
-// tant qu'il n'est pas enregistré, donc commune à tous les documents sans fichier). Même patron que
-// WebFrameItems::documentReplaced : une clé neuve à chaque remplacement du document (generation()), que
-// l'enregistrement ne change pas ; le contrôleur la distingue de celle d'un autre.
+// tant qu'il n'est pas enregistré, donc commune à tous les documents sans fichier). Une clé par document
+// (documentKey()) : neuve à chaque remplacement, que l'enregistrement ne change pas, et la même au retour
+// d'un onglet (generation() monte à chaque garage : un dossier et une copie de plus à chaque fois).
 QString extractionKey(const DocumentController& controller)
 {
     return QStringLiteral("document-%1-%2")
         .arg(reinterpret_cast<quintptr>(&controller))
-        .arg(controller.generation());
+        .arg(controller.documentKey());
 }
 
 QJsonObject parametersOf(const core::Action& action)

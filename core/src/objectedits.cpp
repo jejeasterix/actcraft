@@ -2,11 +2,13 @@
 #include <actcraft/core/edits.h>
 #include <actcraft/core/hittest.h>
 #include <actcraft/core/objectedits.h>
+#include <actcraft/core/pageedits.h>
 
 #include <algorithm>
 #include <cmath>
 #include <iterator>
 #include <limits>
+#include <set>
 #include <utility>
 
 namespace actcraft::core {
@@ -161,6 +163,26 @@ void ReplacePageCommand::redo(Document& document, Changes& changes)
     Page& page = document.page(m_page);
     if (fingerprint(page) == fingerprint(m_other)) {
         return; // déjà la page enregistrée : rien ne change
+    }
+    if (!m_prepared) {
+        // Premier rétablissement seulement (annuler puis rétablir redonne les mêmes identifiants) : après un
+        // déplacement ou une insertion de page, la page enregistrée peut porter des identifiants d'une autre
+        // page ; ceux-là en reçoivent de neufs.
+        m_prepared = true;
+        std::set<ObjectId> taken;
+        for (std::size_t i = 0; i < document.pageCount(); ++i) {
+            if (i == m_page) {
+                continue;
+            }
+            for (const PageObject& object : document.page(i).objects) {
+                taken.insert(object.common.id);
+            }
+        }
+        const bool collides = std::any_of(m_other.objects.begin(), m_other.objects.end(),
+                                          [&taken](const PageObject& o) { return taken.count(o.common.id) != 0; });
+        if (collides) {
+            m_other = withFreshIdsWhere(document, std::move(m_other), taken);
+        }
     }
     std::swap(page, m_other);
     ObjectId largest = 0;
