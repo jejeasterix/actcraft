@@ -1,5 +1,7 @@
 #pragma once
 
+#include <actcraft/ui/documentportal.h>
+
 #include <QHash>
 #include <QObject>
 #include <QPointer>
@@ -18,8 +20,13 @@ class DocumentController;
 class Preferences;
 
 // Documents récents du poste (F-700, D6-1) : `workstation/recent-documents`, dix au plus, le dernier ouvert
-// ou enregistré en tête. Un fichier local absent est caché (non oublié) ; une URL content:// est gardée, son
-// existence ne se teste pas. `preferences` nul : liste en mémoire seulement.
+// ou enregistré en tête. Un fichier local absent est caché (non oublié). Une URL content:// (D11-9) garde sa
+// permission par le portail dès l'ajout, et son nom donné par le fournisseur (gardé avec la liste : il reste
+// connu quand le document a disparu). À la relecture de la liste, une entrée dont la permission est perdue
+// est retirée (oubliée) et `staleRemoved` donne son nom affiché ; permise mais sans réponse du fournisseur
+// (carte démontée), elle est cachée, pas oubliée, permission gardée. Une entrée poussée au-delà de dix rend
+// sa permission ; `clear` n'en rend aucune (le document ouvert garde la sienne). `portal` nul : celui de la
+// plateforme. `preferences` nul : liste en mémoire seulement.
 // Vignettes (L6-T23, amendement 11) : chaque entrée locale porte la page 1 de l'archive
 // (`thumbnails/page-1.png`) en URL `data:`, lue hors du fil principal (patron de PageThumbnails::pump : une
 // lecture à la fois, aucune pendant un contact). Fichier absent, illisible ou sans miniature : `thumbnail`
@@ -30,6 +37,7 @@ class RecentDocuments : public QObject
     QML_ELEMENT
     Q_PROPERTY(actcraft::ui::Preferences* preferences READ preferences WRITE setPreferences NOTIFY
                    preferencesChanged)
+    Q_PROPERTY(actcraft::ui::DocumentPortal* portal READ portal WRITE setPortal NOTIFY portalChanged)
     Q_PROPERTY(QVariantList entries READ entries NOTIFY changed) // [{url, name, when}]
     Q_PROPERTY(int count READ count NOTIFY changed)
     // Vrai pendant un contact (stylet, doigt) sur la page : aucune lecture de vignette ne part alors.
@@ -45,6 +53,8 @@ public:
 
     Preferences* preferences() const { return m_preferences; }
     void setPreferences(Preferences* preferences);
+    DocumentPortal* portal() const { return m_portal; }
+    void setPortal(DocumentPortal* portal);
     QVariantList entries() const; // [{url, name, when, thumbnail}]
     int count() const;
     bool contactActive() const noexcept { return m_contactActive; }
@@ -55,6 +65,8 @@ public:
     // Met `url` en tête (une URL déjà présente remonte) ; une URL vide est ignorée.
     Q_INVOKABLE void note(const QUrl& url);
     Q_INVOKABLE void clear();
+    // Relit les permissions des URL content:// et retire les entrées perdues (affichage du panneau, reprise).
+    Q_INVOKABLE void refresh();
     // Nom, pages, objets, ressources et taille du fichier, lus sur le modèle en mémoire (jamais en relisant
     // le fichier) ; `bytes` vaut 0 pour une URL qui n'est pas un fichier local.
     Q_INVOKABLE QVariantMap summary(actcraft::ui::DocumentController* document, const QUrl& url) const;
@@ -63,6 +75,9 @@ signals:
     void changed();
     void preferencesChanged();
     void contactActiveChanged();
+    void portalChanged();
+    // Entrée content:// retirée faute de permission ; `name` est le nom affiché, jamais l'URL.
+    void staleRemoved(const QString& name);
 
 private:
     struct Thumbnail
@@ -72,6 +87,10 @@ private:
     };
 
     void reload();
+    void prune();
+    void trimToMax(); // au-delà de kMax : retirées, permission rendue
+    QString nameOf(const QString& text) const;
+    DocumentPortal& activePortal() const;
     void persist();
     void requestThumbnails();
     void pumpThumbnails();
@@ -80,7 +99,11 @@ private:
     static qint64 stampOf(const QUrl& url);
 
     QPointer<Preferences> m_preferences;
-    QStringList m_urls; // les plus récentes d'abord, au plus kMax
+    QPointer<DocumentPortal> m_portal;
+    DocumentPortal* m_platformPortal = nullptr; // enfant, quand `portal` est nul
+    QStringList m_urls;                         // les plus récentes d'abord, au plus kMax
+    QHash<QString, QString> m_names;            // URL content:// → nom donné par le fournisseur
+    QStringList m_hidden;                       // URL content:// permises dont le fournisseur se tait
     bool m_contactActive = false;
     bool m_thumbnailInFlight = false;
     QString m_thumbnailLoading; // URL en cours de lecture
