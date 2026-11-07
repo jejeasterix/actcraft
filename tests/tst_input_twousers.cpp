@@ -11,6 +11,7 @@
 #include <QtTest>
 
 #include <cstdint>
+#include <memory>
 
 using namespace actcraft;
 using input::DeviceKind;
@@ -22,17 +23,40 @@ namespace {
 
 const QRectF kLeftHalf(0, 0, 640, 800); // moitié de la deuxième palette (à gauche) : l'utilisateur 1
 
-input::Sample press(DeviceKind device, double x, double y, std::uint64_t deviceId = 0,
-                    std::uint64_t pointer = 0)
+input::Sample sampleOf(input::Phase phase, DeviceKind device, double x, double y, std::uint64_t deviceId = 0,
+                       std::uint64_t pointer = 0)
 {
     input::Sample s;
     s.x = x;
     s.y = y;
     s.device = device;
-    s.phase = input::Phase::Press;
+    s.phase = phase;
     s.deviceId = deviceId;
     s.pointer = pointer;
     return s;
+}
+
+input::Sample press(DeviceKind device, double x, double y, std::uint64_t deviceId = 0,
+                    std::uint64_t pointer = 0)
+{
+    return sampleOf(input::Phase::Press, device, x, y, deviceId, pointer);
+}
+
+input::Sample moved(DeviceKind device, double x, double y, std::uint64_t deviceId = 0,
+                    std::uint64_t pointer = 0)
+{
+    return sampleOf(input::Phase::Move, device, x, y, deviceId, pointer);
+}
+
+input::Sample released(DeviceKind device, double x, double y, std::uint64_t deviceId = 0,
+                       std::uint64_t pointer = 0)
+{
+    return sampleOf(input::Phase::Release, device, x, y, deviceId, pointer);
+}
+
+std::unique_ptr<input::TwoUserPolicy> twoUsers()
+{
+    return std::make_unique<input::TwoUserPolicy>(kLeftHalf);
 }
 
 } // namespace
@@ -91,6 +115,30 @@ private slots:
         QCOMPARE(fresh.firstStylusDevice(), std::uint64_t{0});
         QCOMPARE(fresh.decide(press(DeviceKind::Stylus, 900, 100, 22), RouterState{}).user, UserId{0});
         QCOMPARE(fresh.firstStylusDevice(), std::uint64_t{22});
+
+        // Par le routeur réel : deux stylets posés ensemble sont deux contacts, chacun à son utilisateur.
+        input::PointerRouter router;
+        router.setPolicy(twoUsers());
+        QCOMPARE(router.route(press(DeviceKind::Stylus, 900, 100, 11)).user, UserId{0});
+        QCOMPARE(router.route(press(DeviceKind::Stylus, 100, 100, 22)).user, UserId{1});
+        QCOMPARE(router.route(moved(DeviceKind::Stylus, 905, 105, 11)).user, UserId{0});
+        QCOMPARE(router.route(moved(DeviceKind::Stylus, 105, 105, 22)).user, UserId{1});
+        QCOMPARE(router.route(released(DeviceKind::Stylus, 910, 110, 11)).user, UserId{0});
+        const input::Decision still = router.route(moved(DeviceKind::Stylus, 110, 110, 22));
+        QCOMPARE(still.route, Route::Tool); // le relâché du premier ne termine pas le second
+        QCOMPARE(still.user, UserId{1});
+
+        // Mode à un utilisateur inchangé : le stylet compte pour la paume ; release(0) de la vue l'oublie.
+        input::PointerRouter single;
+        QCOMPARE(single.route(press(DeviceKind::Stylus, 900, 100, 11)).route, Route::Tool);
+        QCOMPARE(single.route(press(DeviceKind::Touch, 300, 300, 0, 1)).route, Route::Ignore);
+        QCOMPARE(single.route(released(DeviceKind::Stylus, 900, 100, 11)).route, Route::Tool);
+        QCOMPARE(single.route(press(DeviceKind::Touch, 300, 300, 0, 2)).route, Route::Tool);
+        single.reset();
+        QCOMPARE(single.route(press(DeviceKind::Stylus, 900, 100, 11)).route, Route::Tool);
+        single.release(0); // contact du stylet ou de la souris non pris par la vue
+        QCOMPARE(single.route(moved(DeviceKind::Stylus, 905, 105, 11)).route, Route::Ignore);
+        QCOMPARE(single.route(press(DeviceKind::Touch, 300, 300, 0, 3)).route, Route::Tool);
     }
 
     // Doigt → 1 dans la moitié de l'utilisateur 1, sinon 0 ; la moitié suit setSecondUserArea.
@@ -177,6 +225,23 @@ private slots:
         d = policy.decide(press(DeviceKind::Touch, 100, 100, 0, 2), other);
         QCOMPARE(d.route, Route::Ignore);
         QCOMPARE(d.user, UserId{1});
+
+        // Par le routeur réel : la paume de l'utilisateur 1 est ignorée pendant que son stylet écrit ;
+        // l'utilisateur 0 garde son doigt.
+        input::PointerRouter router;
+        router.setPolicy(twoUsers());
+        router.route(press(DeviceKind::Stylus, 900, 100, 11)); // l'appareil 11 est l'utilisateur 0
+        router.route(released(DeviceKind::Stylus, 900, 100, 11));
+        QCOMPARE(router.route(press(DeviceKind::Touch, 900, 300, 0, 1)).user, UserId{0});
+        const input::Decision pen = router.route(press(DeviceKind::Stylus, 100, 100, 22));
+        QCOMPARE(pen.route, Route::Tool);
+        QCOMPARE(pen.user, UserId{1});
+        const input::Decision palm = router.route(press(DeviceKind::Touch, 120, 300, 0, 2));
+        QCOMPARE(palm.route, Route::Ignore);
+        QCOMPARE(palm.user, UserId{1});
+        const input::Decision kept = router.route(moved(DeviceKind::Touch, 905, 305, 0, 1));
+        QCOMPARE(kept.route, Route::Tool);
+        QCOMPARE(kept.user, UserId{0});
     }
 
     // Deux UserState : chacun son outil courant et ses réglages ; un utilisateur neuf commence au stylo.
