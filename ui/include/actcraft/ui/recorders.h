@@ -8,10 +8,15 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QPointF>
 #include <QPointer>
+#include <QRect>
 #include <QRectF>
+#include <QSizeF>
 #include <QString>
 #include <QtQml/qqmlregistration.h>
+
+#include <functional>
 
 namespace actcraft::ui {
 
@@ -64,6 +69,19 @@ public:
     // Tests : remplace les enregistreurs par ceux-ci (non possédés).
     void useRecorders(media::SoundRecorder* sound, media::DisplayRecorder* display);
 
+    // Point d'injection : moteurs que les `Recorders` créés ensuite donnent à leurs enregistreurs, à la place
+    // de ceux de la plateforme (micro et écran réels). Le banc et les tests y posent des moteurs simulés ; le
+    // code livré ne regarde jamais la plateforme. Un champ vide garde le moteur de la plateforme ;
+    // `permission` accompagne `sound` (vide : la permission du système).
+    struct Engines
+    {
+        media::SoundRecorder::EngineFactory sound;
+        media::SoundRecorder::PermissionRequest permission;
+        media::DisplayRecorder::EngineFactory display;
+    };
+    static void setDefaultEngines(Engines engines);
+    static void resetDefaultEngines();
+
     bool isRecording() const;
     bool isPaused() const;
     QString kind() const;
@@ -88,6 +106,12 @@ public:
     // Zone d'écran en pixels de l'image capturée : coordonnées logiques de l'écran (QML), origine de l'écran
     // principal soustraite, rapport de pixels appliqué, arrondie vers l'extérieur.
     static QRect pixelArea(const QRectF& logical, qreal pixelRatio, const QPointF& screenOrigin = {});
+
+    // Où poser la fenêtre de l'indicateur d'un enregistrement d'écran : un coin de `screen` (coordonnées
+    // logiques de l'écran capturé) que la zone tracée ne recouvre pas, pour qu'elle n'entre pas dans l'image.
+    // Plein écran, ou zone qui couvre les quatre coins : la fenêtre entre dans l'image (Qt n'offre pas
+    // d'exclusion de la capture), en haut à droite.
+    Q_INVOKABLE QPointF indicatorSpot(const QRectF& screen, const QSizeF& size) const;
 
     Q_INVOKABLE void toggleSound();
     Q_INVOKABLE void toggleScreen(bool area);
@@ -124,14 +148,18 @@ private:
     void wire();
     void bindCommands();
     void unbindCommands();
-    void begin(const char* kind);
+    void begin();
+    bool screenReady();
+    void startScreen();
+    void requestAreaSelection();
+    void setSelectingArea(bool selecting);
+    void syncCommandState();
     void insert(const QString& path);
     void setMessage(const QString& message);
     void onRecordingChanged();
     void onPausedChanged();
     void applyFolders();
     void showNoticeOnce();
-    media::SoundRecorder* activeSound() const;
 
     QPointer<Commands> m_commands;
     QPointer<DocumentController> m_document;
@@ -140,12 +168,14 @@ private:
     QPointer<media::SoundRecorder> m_sound;
     QPointer<media::DisplayRecorder> m_display;
     bool m_ownRecorders = true;
-    QString m_kind;
     QString m_message;
     bool m_paletteVisible = true;
     bool m_noticeVisible = false;
     bool m_noticeShownInSession = false;
-    bool m_wasRecording = false;
+    QString m_defaultSoundFolder; // dossier de chaque enregistreur à son arrivée : le réglage vidé y revient
+    QString m_defaultDisplayFolder;
+    bool m_selectingArea = false;
+    QRectF m_drawnArea; // zone tracée, coordonnées logiques de l'écran ; vide : plein écran
     qint64 m_lastDurationMs = 0;
     bool m_lastDurationOk = false;
     qint64 m_recordedAtStop = 0;

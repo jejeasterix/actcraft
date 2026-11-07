@@ -4,6 +4,7 @@
 #include <actcraft/bench/options.h>
 #include <actcraft/bench/result.h>
 #include <actcraft/bench/runner.h>
+#include <actcraft/bench/simulatedrecorders.h>
 #include <actcraft/bench/testroots.h>
 #include <actcraft/bench/verdict.h>
 #include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
@@ -40,6 +41,8 @@ int main(int argc, char* argv[])
     QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
 #endif
     QGuiApplication app(argc, argv);
+    if (QGuiApplication::platformName() == QLatin1String("offscreen"))
+        actcraft::bench::useSimulatedRecorders(); // hors écran : ni micro ni fenêtre de permission
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Banc"));
     const QStringList args = QGuiApplication::arguments();
 

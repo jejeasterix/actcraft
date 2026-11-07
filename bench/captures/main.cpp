@@ -1,6 +1,7 @@
 #include "renderbackend.h"
 #include "startup.h"
 
+#include <actcraft/bench/simulatedrecorders.h>
 #include <actcraft/bench/testroots.h>
 #include <actcraft/bench/uiscenario.h>
 #include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
@@ -67,6 +68,8 @@ int main(int argc, char* argv[])
     QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
 #endif
     QGuiApplication app(argc, argv);
+    if (QGuiApplication::platformName() == QLatin1String("offscreen"))
+        actcraft::bench::useSimulatedRecorders(); // hors écran : ni micro ni fenêtre de permission
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Captures"));
     const QStringList args = QGuiApplication::arguments();
 

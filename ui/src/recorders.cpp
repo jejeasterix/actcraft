@@ -1,16 +1,12 @@
 #include <actcraft/ui/recorders.h>
 
 #include <QDir>
-#include <QElapsedTimer>
-#include <QFile>
-#include <QGuiApplication>
 #include <QPointer>
-#include <QScreen>
 #include <QStandardPaths>
-#include <QTimer>
 #include <QUrl>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace actcraft::ui {
@@ -18,87 +14,51 @@ namespace actcraft::ui {
 namespace {
 
 constexpr qint64 kDurationToleranceMs = 500;
+// Côté minimal, en pixels logiques, d'une zone tracée : en dessous, c'est un clic, pas une zone.
+constexpr qreal kMinimumAreaSide = 8;
+constexpr qreal kIndicatorMargin = 12;
 
-void putLe(QByteArray& out, quint32 value, int bytes)
+Recorders::Engines& injectedEngines()
 {
-    for (int i = 0; i < bytes; ++i)
-        out.append(static_cast<char>((value >> (8 * i)) & 0xFF));
-}
-
-// Moteur de son simulé (plateforme « offscreen » : aucun micro, aucune fenêtre de permission) : un WAV
-// silencieux de la durée enregistrée, pauses exclues, écrit à la fermeture.
-class SilentEngine final : public media::RecordingEngine
-{
-public:
-    void start(const QString& path) override
-    {
-        m_path = path;
-        m_clock.start();
-    }
-    void pause() override
-    {
-        m_recorded += m_clock.elapsed();
-        m_running = false;
-    }
-    void resume() override
-    {
-        m_clock.restart();
-        m_running = true;
-    }
-    void stop() override
-    {
-        if (m_running)
-            m_recorded += m_clock.elapsed();
-        m_running = false;
-        const QString path = m_path;
-        const quint32 samples = static_cast<quint32>(m_recorded * 8); // 8 kHz
-        QByteArray wav("RIFF");
-        putLe(wav, 36 + samples * 2, 4);
-        wav += "WAVEfmt ";
-        putLe(wav, 16, 4);
-        putLe(wav, 1, 2);
-        putLe(wav, 1, 2);
-        putLe(wav, 8000, 4);
-        putLe(wav, 16000, 4);
-        putLe(wav, 2, 2);
-        putLe(wav, 16, 2);
-        wav += "data";
-        putLe(wav, samples * 2, 4);
-        wav += QByteArray(static_cast<qsizetype>(samples) * 2, '\0');
-        QFile file(path);
-        if (!file.open(QIODevice::WriteOnly) || file.write(wav) != wav.size()) {
-            QTimer::singleShot(0, this, [this] { emit failed(tr("Fichier d'enregistrement illisible.")); });
-            return;
-        }
-        file.close();
-        QTimer::singleShot(0, this, [this, path] { emit stopped(path); });
-    }
-    qint64 duration() const override { return m_recorded + (m_running ? m_clock.elapsed() : 0); }
-
-private:
-    QString m_path;
-    QElapsedTimer m_clock;
-    qint64 m_recorded = 0;
-    bool m_running = true;
-};
-
-bool simulatedPlatform()
-{
-    return QGuiApplication::platformName() == QLatin1String("offscreen");
+    static Recorders::Engines engines;
+    return engines;
 }
 
 media::SoundRecorder* makeSoundRecorder(QObject* parent)
 {
-    if (!simulatedPlatform())
+    const Recorders::Engines& engines = injectedEngines();
+    if (!engines.sound)
         return new media::SoundRecorder(parent);
-    return new media::SoundRecorder([] { return std::unique_ptr<media::RecordingEngine>(new SilentEngine); },
-                                    [](std::function<void(bool)> answer) { answer(true); }, parent);
+    return new media::SoundRecorder(
+        engines.sound,
+        engines.permission
+            ? engines.permission
+            : media::SoundRecorder::PermissionRequest(&media::SoundRecorder::requestMicrophonePermission),
+        parent);
+}
+
+media::DisplayRecorder* makeDisplayRecorder(QObject* parent)
+{
+    const Recorders::Engines& engines = injectedEngines();
+    if (!engines.display)
+        return new media::DisplayRecorder(parent);
+    return new media::DisplayRecorder(engines.display, parent);
 }
 
 } // namespace
 
+void Recorders::setDefaultEngines(Engines engines)
+{
+    injectedEngines() = std::move(engines);
+}
+
+void Recorders::resetDefaultEngines()
+{
+    injectedEngines() = {};
+}
+
 Recorders::Recorders(QObject* parent)
-    : QObject(parent), m_sound(makeSoundRecorder(this)), m_display(new media::DisplayRecorder(this))
+    : QObject(parent), m_sound(makeSoundRecorder(this)), m_display(makeDisplayRecorder(this))
 {
     wire();
 }
@@ -109,8 +69,11 @@ void Recorders::wire()
         connect(m_sound, &media::SoundRecorder::recordingChanged, this, &Recorders::onRecordingChanged);
         connect(m_sound, &media::SoundRecorder::pausedChanged, this, &Recorders::onPausedChanged);
         connect(m_sound, &media::SoundRecorder::failed, this, &Recorders::setMessage);
-        connect(m_sound, &media::SoundRecorder::availabilityChanged, this,
-                [this] { setMessage(m_sound->message()); });
+        // Permission du micro refusée : la commande se désactive (S26), et le message dit pourquoi.
+        connect(m_sound, &media::SoundRecorder::availabilityChanged, this, [this] {
+            setMessage(m_sound->message());
+            syncCommandState();
+        });
         m_sound->setInsertHandler([this](const QString& path) { insert(path); });
     }
     if (m_display) {
@@ -119,7 +82,10 @@ void Recorders::wire()
         connect(m_display, &media::DisplayRecorder::failed, this, &Recorders::setMessage);
         m_display->setInsertHandler([this](const QString& path) { insert(path); });
     }
+    m_defaultSoundFolder = m_sound ? m_sound->folder() : QString();
+    m_defaultDisplayFolder = m_display ? m_display->folder() : QString();
     applyFolders();
+    syncCommandState();
 }
 
 void Recorders::useRecorders(media::SoundRecorder* sound, media::DisplayRecorder* display)
@@ -212,14 +178,21 @@ void Recorders::bindCommands()
                                  [this](const QVariant&) { toggleScreen(false); });
     m_commands->setNativeHandler(QStringLiteral("record.screen-area"), [this](const QVariant& argument) {
         const QVariantMap area = argument.toMap();
-        if (area.contains(QStringLiteral("width"))) {
-            chooseScreenArea(
-                area.value(QStringLiteral("x")).toReal(), area.value(QStringLiteral("y")).toReal(),
-                area.value(QStringLiteral("width")).toReal(), area.value(QStringLiteral("height")).toReal(),
-                area.value(QStringLiteral("ratio"), 1.0).toReal());
+        if (!area.contains(QStringLiteral("width"))) {
+            toggleScreen(true); // sans zone donnée : l'utilisateur la trace
+            return;
         }
-        toggleScreen(true);
+        // Zone donnée par l'appelant (script, essai) : pas de tracé.
+        chooseScreenArea(area.value(QStringLiteral("x")).toReal(), area.value(QStringLiteral("y")).toReal(),
+                         area.value(QStringLiteral("width")).toReal(),
+                         area.value(QStringLiteral("height")).toReal(),
+                         area.value(QStringLiteral("ratio"), 1.0).toReal());
+        if (isRecording())
+            toggleScreen(true); // pause, reprise
+        else if (screenReady())
+            startScreen();
     });
+    syncCommandState();
 }
 
 void Recorders::unbindCommands()
@@ -230,11 +203,15 @@ void Recorders::unbindCommands()
                            "record.screen-full", "record.screen-area"}) {
         m_commands->setNativeHandler(QString::fromLatin1(id), {});
     }
+    m_commands->setEnabled(QStringLiteral("record.sound"), true);
 }
 
-media::SoundRecorder* Recorders::activeSound() const
+// La commande « enregistrer le son » suit l'enregistreur : désactivée tant que la permission du micro est
+// refusée, réactivée si l'enregistreur redevient disponible.
+void Recorders::syncCommandState()
 {
-    return m_kind == QLatin1String("sound") ? m_sound.data() : nullptr;
+    if (m_commands)
+        m_commands->setEnabled(QStringLiteral("record.sound"), !m_sound || m_sound->isAvailable());
 }
 
 bool Recorders::isRecording() const
@@ -260,6 +237,16 @@ QString Recorders::kind() const
 bool Recorders::indicatorVisible() const
 {
     return isRecording();
+}
+
+bool Recorders::separateIndicator() const
+{
+    return m_display && m_display->isRecording();
+}
+
+bool Recorders::isSelectingArea() const
+{
+    return m_selectingArea;
 }
 
 bool Recorders::paletteVisible() const
@@ -335,15 +322,29 @@ QRect Recorders::pixelArea(const QRectF& logical, qreal pixelRatio, const QPoint
     return QRect(QPoint(left, top), QPoint(right - 1, bottom - 1));
 }
 
+QPointF Recorders::indicatorSpot(const QRectF& screen, const QSizeF& size) const
+{
+    const std::array<QPointF, 4> corners = {
+        QPointF(screen.right() - size.width() - kIndicatorMargin, screen.top() + kIndicatorMargin),
+        QPointF(screen.left() + kIndicatorMargin, screen.top() + kIndicatorMargin),
+        QPointF(screen.right() - size.width() - kIndicatorMargin,
+                screen.bottom() - size.height() - kIndicatorMargin),
+        QPointF(screen.left() + kIndicatorMargin, screen.bottom() - size.height() - kIndicatorMargin)};
+    for (const QPointF& corner : corners) {
+        if (!m_drawnArea.intersects(QRectF(corner, size)))
+            return corner;
+    }
+    return corners[0];
+}
+
 void Recorders::applyFolders()
 {
+    // Réglage vidé : chaque enregistreur retrouve son dossier par défaut, pas le dernier dossier choisi.
     const QString chosen = folder();
-    if (chosen.isEmpty())
-        return;
     if (m_sound)
-        m_sound->setFolder(chosen);
+        m_sound->setFolder(chosen.isEmpty() ? m_defaultSoundFolder : chosen);
     if (m_display)
-        m_display->setFolder(chosen);
+        m_display->setFolder(chosen.isEmpty() ? m_defaultDisplayFolder : chosen);
 }
 
 void Recorders::showNoticeOnce()
@@ -367,7 +368,7 @@ void Recorders::dismissNotice()
     emit noticeChanged();
 }
 
-void Recorders::begin(const char* kindName)
+void Recorders::begin()
 {
     const bool wasIdle = !isRecording();
     applyFolders();
@@ -376,7 +377,6 @@ void Recorders::begin(const char* kindName)
         showNoticeOnce();
         m_wall.start();
         m_pausedMs = 0;
-        m_kind = QString::fromLatin1(kindName);
     }
     // V43 : relancer un enregistrement fait réapparaître une palette masquée.
     showPalette();
@@ -387,71 +387,99 @@ void Recorders::toggleSound()
     if (!m_sound || (isRecording() && !m_sound->isRecording()))
         return; // un seul enregistrement à la fois
     if (!isRecording())
-        begin("sound");
+        begin();
     m_sound->toggle();
+}
+
+// Faux, avec le motif en message, quand l'écran n'est pas enregistrable (aucun moteur d'écran hors Windows).
+bool Recorders::screenReady()
+{
+    if (m_display && m_display->isAvailable())
+        return true;
+    setMessage(m_display ? m_display->message() : tr("Enregistrement de l'écran indisponible."));
+    return false;
+}
+
+void Recorders::startScreen()
+{
+    begin();
+    m_display->toggle();
 }
 
 void Recorders::toggleScreen(bool area)
 {
-    Q_UNUSED(area)
-    if (!m_display || !m_display->isAvailable()) {
-        setMessage(m_display ? m_display->message() : tr("Enregistrement de l'écran indisponible."));
+    if (!screenReady())
+        return;
+    if (isRecording()) {
+        if (m_display->isRecording())
+            m_display->toggle(); // pause, reprise
+        return;                  // un seul enregistrement à la fois
+    }
+    if (area) {
+        requestAreaSelection(); // F-292 « zone » : l'utilisateur la trace, aucune zone par défaut
         return;
     }
-    if (isRecording() && !m_display->isRecording())
+    m_drawnArea = {};
+    m_display->setArea({});
+    startScreen();
+}
+
+void Recorders::requestAreaSelection()
+{
+    if (m_selectingArea)
+        return; // le tracé est déjà proposé
+    setSelectingArea(true);
+    emit areaSelectionRequested();
+}
+
+void Recorders::setSelectingArea(bool selecting)
+{
+    if (m_selectingArea == selecting)
         return;
-    if (!isRecording()) {
-        if (area && m_display->area().isEmpty()) {
-            // Sans zone choisie : la moitié centrale de l'écran principal.
-            if (QScreen* screen = QGuiApplication::primaryScreen()) {
-                const QRectF geometry = screen->geometry();
-                chooseScreenArea(geometry.width() / 4, geometry.height() / 4, geometry.width() / 2,
-                                 geometry.height() / 2, screen->devicePixelRatio(), geometry.x(),
-                                 geometry.y());
-            }
-        } else if (!area) {
-            m_display->setArea({});
-        }
-        begin("screen");
+    m_selectingArea = selecting;
+    emit selectingAreaChanged();
+}
+
+void Recorders::finishAreaSelection(qreal x, qreal y, qreal width, qreal height, qreal pixelRatio,
+                                    qreal originX, qreal originY)
+{
+    if (!m_selectingArea)
+        return; // aucun tracé demandé : une réponse perdue ne lance rien
+    setSelectingArea(false);
+    if (width < kMinimumAreaSide || height < kMinimumAreaSide) {
+        // Une zone vide voudrait dire « plein écran » : un clic sans glisser ne lance rien.
+        setMessage(tr("Zone trop petite : tracez un rectangle pour enregistrer une zone de l'écran."));
+        return;
     }
-    m_display->toggle();
+    if (!screenReady() || isRecording())
+        return;
+    chooseScreenArea(x, y, width, height, pixelRatio, originX, originY);
+    startScreen();
+}
+
+void Recorders::cancelAreaSelection()
+{
+    setSelectingArea(false);
 }
 
 void Recorders::chooseScreenArea(qreal x, qreal y, qreal width, qreal height, qreal pixelRatio, qreal originX,
                                  qreal originY)
 {
+    m_drawnArea = QRectF(x, y, width, height);
     if (m_display)
-        m_display->setArea(pixelArea(QRectF(x, y, width, height), pixelRatio, QPointF(originX, originY)));
+        m_display->setArea(pixelArea(m_drawnArea, pixelRatio, QPointF(originX, originY)));
 }
-
-// Souches du test rouge : le comportement vient avec le commit suivant.
-bool Recorders::separateIndicator() const
-{
-    return false;
-}
-
-bool Recorders::isSelectingArea() const
-{
-    return false;
-}
-
-void Recorders::finishAreaSelection(qreal, qreal, qreal, qreal, qreal, qreal, qreal) {}
-
-void Recorders::cancelAreaSelection() {}
 
 void Recorders::pause()
 {
-    if (media::SoundRecorder* sound = activeSound())
-        sound->toggle();
+    if (m_sound && m_sound->isRecording())
+        m_sound->toggle();
     else if (m_display && m_display->isRecording())
         m_display->toggle();
 }
 
 void Recorders::stop()
 {
-    if (!isRecording())
-        return;
-    const bool paused = isPaused();
     if (m_sound && m_sound->isRecording()) {
         m_recordedAtStop = m_sound->duration();
         m_sound->stop();
@@ -459,7 +487,6 @@ void Recorders::stop()
         m_recordedAtStop = m_display->duration();
         m_display->stop();
     }
-    Q_UNUSED(paused)
 }
 
 void Recorders::cancel()
@@ -520,10 +547,6 @@ void Recorders::onPausedChanged()
 
 void Recorders::onRecordingChanged()
 {
-    const bool now = isRecording();
-    if (!now)
-        m_kind.clear();
-    m_wasRecording = now;
     emit stateChanged();
 }
 
