@@ -1,3 +1,5 @@
+#include <actcraft/core/hittest.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/fingermenus.h>
 
 #include <QVariantList>
@@ -87,7 +89,21 @@ void FingerMenus::onTouchHeld(QPointF pagePoint, QPointF windowPoint, int /*user
     if (!m_tools || m_tools->currentTool() != QLatin1String("select")) {
         return; // outil d'encre (ou autre) : l'appui long ne montre aucun menu
     }
-    if (insideSelection(pagePoint)) {
+    // Objet sous le doigt : désigné comme au clic droit (la sélection n'a pas encore suivi l'appui), puis
+    // sélectionné s'il ne l'est pas déjà, pour que le menu agisse sur lui.
+    bool onObject = insideSelection(pagePoint);
+    DocumentController* controller = m_tools->documentController();
+    if (!onObject && m_view && m_view->zoom() > 0 && controller && controller->pageCount() > 0) {
+        const core::Page& page =
+            controller->document().page(static_cast<std::size_t>(controller->currentIndex()));
+        const std::optional<core::ObjectId> hit = core::objectAt(
+            page, core::PointF{pagePoint.x(), pagePoint.y()}, core::kHitToleranceScreen / m_view->zoom());
+        if (hit) {
+            m_tools->selectObjects({*hit});
+            onObject = true;
+        }
+    }
+    if (onObject) {
         setKind(QStringLiteral("object"));
         emit objectMenuRequested(windowPoint);
     } else {
