@@ -406,6 +406,11 @@ void SelectTool::setInteractionPolicy(const InteractionPolicy* policy) noexcept
     m_policy = policy;
 }
 
+void SelectTool::setGrabs(Grabs* grabs) noexcept
+{
+    m_grabs = grabs;
+}
+
 void SelectTool::setContainerAccepted(ContainerAccepted callback)
 {
     m_containerAccepted = std::move(callback);

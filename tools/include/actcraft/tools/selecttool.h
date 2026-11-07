@@ -2,6 +2,7 @@
 
 #include <actcraft/core/containers.h>
 #include <actcraft/core/lift.h>
+#include <actcraft/tools/grabs.h>
 #include <actcraft/tools/interactionpolicy.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/toolcontext.h>
@@ -44,6 +45,12 @@ public:
     // Lot 8 (L8-T16, D8-9) : réglages du mode conception, posés par ui::ToolHost ; nul : tout actif. Non
     // possédée, lue à chaque geste.
     void setInteractionPolicy(const InteractionPolicy* policy) noexcept;
+    // Lot 11 (L11-T8, F-303, H11-13) : registre des objets tenus, commun aux sélecteurs des deux
+    // utilisateurs, posé par ui::ToolHost en mode à deux utilisateurs. Un geste tient les objets qu'il vise,
+    // de l'appui au relâché ou à l'abandon ; la désignation (appui, rectangle, tout sélectionner) et les
+    // commandes de la sélection sautent les objets tenus par un autre utilisateur. Nul : un seul utilisateur,
+    // rien n'est tenu. Non possédé.
+    void setGrabs(Grabs* grabs) noexcept;
     // Dépôt accepté par un conteneur (F-577) : le conteneur gagnant et son son de confirmation (joué par
     // L8-T25). Appelé une fois, après le dépôt.
     using ContainerAccepted = std::function<void(core::ObjectId container, bool chime)>;
@@ -147,6 +154,7 @@ private:
         m_copySources; // leur fermeture (closureForCopy), prise avant le soulèvement
     int m_modifiers = 0;
     const InteractionPolicy* m_policy = nullptr;
+    Grabs* m_grabs = nullptr; // setGrabs
     ContainerAccepted m_containerAccepted;
     // Règles du glisser (L8-T16), prises avant le soulèvement ; rien n'y est recalculé pendant les
     // mouvements.
