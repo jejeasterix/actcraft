@@ -5,6 +5,7 @@ Gabarit : lots (provisoire, à confirmer à l'étage 2)
 Avancement : 7/10 lots clos (lot 9 supprimé, décision 0218) — clos : 1, 2, 10, 3, 4, 5, 6 (restes PC et portes de fin des lots 4 à 6 au PC) · en cours : 7 (B, passe PC à faire), 8 (fini sur le Mac, PR #16 en brouillon, CI Windows à la tâche PC O45), 11 (Mac) · à faire : tâche Qt WebEngine (décision 0217), dernière du chantier · **ordre (Jérôme, 2026-11-07) : 8, puis 11, puis Qt WebEngine**
 Étage : 3 (lot 11, sous-lot 11a, V5-V6 ; 11b avancé) — depuis 2026-11-07
 Lot : 11 « Tablette, toucher, finitions, 1.0 » — 17/32 tâches (11a : 17, 11b : 14, + L11-T29m `.dmg`) ; branche `feat/livraison-complete-l11` (Mac) — depuis 2026-11-07 · lot 8 : fini sur le Mac, PR #16 en brouillon (voir « CI de la PR #16 ») — depuis 2026-11-06
+Tâche : L11-C5 — test du dossier de banc indépendant de /tmp — depuis 2026-11-07
 Tâche : L11-T9 — deux utilisateurs III, deuxième palette, S28 — depuis 2026-11-07
 Tâche : L11-C4 — test instable stylusEndsOnlyItsUsersFinger — depuis 2026-11-07
 Tâche : L11-T21 — recherche de mises à jour I (11b, avancée) — depuis 2026-11-07
