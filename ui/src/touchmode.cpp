@@ -94,7 +94,11 @@ void TouchModeController::setView(PageView* view)
     m_view = view;
     if (m_view) {
         connect(m_view, &PageView::contactActiveChanged, this, &TouchModeController::applyPending);
-        applyPolicy();
+        // Gestion complète : c'est la politique par défaut de la vue, rien à poser (et rien à écraser : le
+        // mode à deux utilisateurs pose la sienne).
+        if (m_mode != QLatin1String("full")) {
+            applyPolicy();
+        }
     }
     emit viewChanged();
 }
