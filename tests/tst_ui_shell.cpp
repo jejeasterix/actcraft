@@ -95,6 +95,11 @@ QQuickItem* item(Shell& s, const char* name)
     return findItem(s.window->contentItem(), QString::fromLatin1(name));
 }
 
+QObject* find(Shell& s, const char* name)
+{
+    return s.window->findChild<QObject*>(QString::fromLatin1(name));
+}
+
 bool run(Shell& s, const QString& id, const QVariant& argument = QVariant())
 {
     QVariant result;
@@ -366,6 +371,29 @@ private slots:
             QStringLiteral("tst-ui-shell-stylus"), 5170, QInputDevice::DeviceType::Stylus,
             QPointingDevice::PointerType::Pen,
             QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
+    }
+
+    // Lot 11 (L11-T3) : instances et emplacements posés une fois pour les tâches suivantes.
+    void lot11SlotsPresent()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name :
+             {"appTouchMode", "appDualMode", "appLayout", "appLifecycle", "appPortal", "appUpdates",
+              "secondPalette", "recoveryBanner", "fingerMenu", "touchModeMenu", "updateDialog"}) {
+            QVERIFY2(find(s, name) != nullptr, name);
+        }
+        QCOMPARE(find(s, "secondPalette")->property("visible").toBool(), false);
+    }
+
+    void lot11ControllersWired()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(find(s, "appTouchMode")->property("commands").value<QObject*>() != nullptr);
+        QVERIFY(find(s, "appTouchMode")->property("view").value<QObject*>() == find(s, "pageView"));
+        QVERIFY(find(s, "appDualMode")->property("view").value<QObject*>() == find(s, "pageView"));
+        QVERIFY(find(s, "appLifecycle")->property("document").value<QObject*>() != nullptr);
     }
 
     void shellShowsTopBarPaletteAndPage()

@@ -129,6 +129,11 @@ qt_add_qml_module(actcraft_ui
         qml/SaveChangesDialog.qml
         qml/PageSizeDialog.qml
         qml/MessageBanner.qml
+        qml/SecondPalette.qml
+        qml/TouchModeMenu.qml
+        qml/FingerMenu.qml
+        qml/RecoveryBanner.qml
+        qml/UpdateDialog.qml
         qml/SelectionOverlay.qml
         qml/ObjectBar.qml
         qml/TranslucencyPopup.qml
