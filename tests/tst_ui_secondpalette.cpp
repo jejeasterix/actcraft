@@ -1,9 +1,24 @@
 // L11-T9 : mode à deux utilisateurs (F-110, F-303, N2-A7) — attribut opensDialog, commandes à boîte refusées
 // au second utilisateur par Commands::trigger (et par lui seul), bascule users.dual, deuxième palette.
+#include "startup.h"
+
 #include <actcraft/actions/commandregistry.h>
+#include <actcraft/input/touchmodes.h>
+#include <actcraft/input/twouserpolicy.h>
+#include <actcraft/tools/tool.h>
+#include <actcraft/tools/userstate.h>
 #include <actcraft/ui/commands.h>
+#include <actcraft/ui/dualmode.h>
+#include <actcraft/ui/pageview.h>
+#include <actcraft/ui/preferences.h>
+#include <actcraft/ui/toolhost.h>
+#include <actcraft/ui/touchmode.h>
 
 #include <QJSEngine>
+#include <QPointingDevice>
+#include <QQmlApplicationEngine>
+#include <QQuickWindow>
+#include <QTabletEvent>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -14,22 +29,100 @@ using namespace actcraft;
 
 namespace {
 
-// Gestionnaire JavaScript qui compte ses appels et retient (argument, user), comme ceux de Main.qml.
+// Gestionnaires JavaScript qui comptent leurs appels et retiennent (argument, user), comme ceux de Main.qml.
+// Commands appelle ses gestionnaires par son moteur (qjsEngine) : il est associé à celui-ci.
 struct HandlerProbe
 {
     QJSEngine engine;
-    QJSValue handler;
 
-    HandlerProbe()
+    explicit HandlerProbe(ui::Commands& commands)
     {
-        engine.globalObject().setProperty(QStringLiteral("calls"), 0);
-        handler = engine.evaluate(QStringLiteral(
-            "(function (argument, user) { calls = calls + 1; lastArgument = argument; lastUser = user; })"));
+        QJSEngine::setObjectOwnership(&commands, QJSEngine::CppOwnership);
+        engine.newQObject(&commands);
+        engine.evaluate(QStringLiteral("var calls = {}; var users = {}; var args = {};"));
     }
-    int calls() { return engine.globalObject().property(QStringLiteral("calls")).toInt(); }
-    QJSValue lastUser() { return engine.globalObject().property(QStringLiteral("lastUser")); }
-    QJSValue lastArgument() { return engine.globalObject().property(QStringLiteral("lastArgument")); }
+    QJSValue handler(const QString& name)
+    {
+        return engine.evaluate(QStringLiteral("(function (argument, user) { calls['%1'] = (calls['%1'] || 0) + "
+                                              "1; args['%1'] = argument; users['%1'] = user; })")
+                                   .arg(name));
+    }
+    int calls(const QString& name)
+    {
+        return engine.evaluate(QStringLiteral("calls['%1'] || 0").arg(name)).toInt();
+    }
+    QJSValue lastUser(const QString& name) { return engine.evaluate(QStringLiteral("users['%1']").arg(name)); }
+    QJSValue lastArgument(const QString& name)
+    {
+        return engine.evaluate(QStringLiteral("args['%1']").arg(name));
+    }
 };
+
+// Main.qml chargé (réglages d'essai d'initTestCase).
+struct App
+{
+    QTemporaryDir profiles;
+    QQmlApplicationEngine engine;
+    QQuickWindow* window = nullptr;
+    ui::PageView* view = nullptr;
+    ui::DualMode* dual = nullptr;
+    ui::Commands* commands = nullptr;
+    ui::ToolHost* tools = nullptr;
+};
+
+bool start(App& app)
+{
+    StartupOptions options;
+    options.cacheEnabled = false;
+    options.generatedPage = false;
+    options.profileRoot = app.profiles.path();
+    app.window = loadMainWindow(app.engine, options);
+    if (!app.window || !QTest::qWaitForWindowExposed(app.window)) {
+        return false;
+    }
+    app.view = app.window->findChild<ui::PageView*>(QStringLiteral("pageView"));
+    app.dual = app.window->findChild<ui::DualMode*>(QStringLiteral("appDualMode"));
+    app.commands = app.dual ? app.dual->commands() : nullptr;
+    app.tools = app.dual ? app.dual->tools() : nullptr;
+    return app.view && app.dual && app.commands && app.tools;
+}
+
+std::unique_ptr<QPointingDevice> makeStylus(qint64 systemId, qint64 uniqueId)
+{
+    return std::make_unique<QPointingDevice>(
+        QStringLiteral("tst-secondpalette-stylus-%1").arg(uniqueId), systemId, QInputDevice::DeviceType::Stylus,
+        QPointingDevice::PointerType::Pen, QInputDevice::Capability::Position | QInputDevice::Capability::Pressure,
+        1, 3, QString(), QPointingDeviceUniqueId::fromNumericId(uniqueId));
+}
+
+void tablet(App& app, const QPointingDevice* device, QEvent::Type type, QPointF page)
+{
+    const bool press = type == QEvent::TabletPress;
+    const bool release = type == QEvent::TabletRelease;
+    const QPointF scene = app.view->pageToScene(page);
+    QTabletEvent event(type, device, scene, app.window->mapToGlobal(scene), release ? 0.0 : 0.7, 0, 0, 0, 0, 0,
+                       Qt::NoModifier, (press || release) ? Qt::LeftButton : Qt::NoButton,
+                       release ? Qt::NoButton : Qt::LeftButton);
+    QCoreApplication::sendEvent(app.window, &event);
+}
+
+void pinch(App& app, QPointingDevice* touch, qreal from, qreal to)
+{
+    const QPointF c = app.view->mapToScene(QPointF(app.view->width() / 2, app.view->height() / 2));
+    const auto at = [&](qreal d, int side) { return (c + QPointF(side * d / 2, 0)).toPoint(); };
+    QTest::touchEvent(app.window, touch).press(0, at(from, -1), app.window).press(1, at(from, 1), app.window);
+    for (int i = 1; i <= 10; ++i) {
+        const qreal d = from + (to - from) * i / 10;
+        QTest::touchEvent(app.window, touch).move(0, at(d, -1), app.window).move(1, at(d, 1), app.window);
+    }
+    QTest::touchEvent(app.window, touch).release(0, at(to, -1), app.window).release(1, at(to, 1), app.window);
+    QCoreApplication::processEvents();
+}
+
+QColor penColor(ui::ToolHost& tools, input::UserId user)
+{
+    return QColor::fromRgba(tools.user(user).settings(QStringLiteral("pen")).color);
+}
 
 } // namespace
 
@@ -50,6 +143,7 @@ private slots:
 private:
     QTemporaryDir m_settings;
     QTemporaryDir m_profile;
+    QPointingDevice* m_touch = nullptr;
 };
 
 void TstUiSecondpalette::initTestCase()
@@ -62,6 +156,7 @@ void TstUiSecondpalette::initTestCase()
     QSettings probe;
     QCOMPARE(probe.format(), QSettings::IniFormat);
     QVERIFY(probe.fileName().startsWith(m_settings.path()));
+    m_touch = QTest::createTouchDevice();
 }
 
 void TstUiSecondpalette::opensDialogParsed()
@@ -79,10 +174,44 @@ void TstUiSecondpalette::opensDialogParsed()
 
 void TstUiSecondpalette::everyDialogCommandMarked()
 {
-    // Liste relevée dans les gestionnaires QML : Dialog, Popup modal, sélecteur de fichier. Exacte dans les deux
-    // sens : une commande marquée hors de la liste rougit aussi.
+    // Liste relevée dans les gestionnaires QML (corps des setHandler et fonctions qu'ils appellent) : Dialog,
+    // Popup modale, sélecteur de fichier (argument d'URL facultatif : boîte sans argument). Non retenus : menus
+    // et surcouches sans boîte (object.menu, object.translucency, color.more, color.pick, view.dashboard,
+    // help.contents). Exacte dans les deux sens : une commande marquée hors de la liste rougit aussi.
     const QStringList dialogs = {
+        QStringLiteral("classroom.lock"),
+        QStringLiteral("classroom.password"),
+        QStringLiteral("color.dialog"),
+        QStringLiteral("file.new-custom"),
         QStringLiteral("file.open"),
+        QStringLiteral("file.save-as"),
+        QStringLiteral("file.quit"),
+        QStringLiteral("file.print"),
+        QStringLiteral("file.publish"),
+        QStringLiteral("help.about"),
+        QStringLiteral("page.background"),
+        QStringLiteral("grid.designer"),
+        QStringLiteral("profile.choose"),
+        QStringLiteral("profile.edit"),
+        QStringLiteral("profile.save-as"),
+        QStringLiteral("profile.import"),
+        QStringLiteral("profile.export"),
+        QStringLiteral("resources.other"),
+        QStringLiteral("resources.delete"),
+        QStringLiteral("resources.new-folder"),
+        QStringLiteral("resources.rename"),
+        QStringLiteral("resources.add"),
+        QStringLiteral("spell.check"),
+        QStringLiteral("insert.web-frame"),
+        QStringLiteral("webframe.unblock"),
+        QStringLiteral("link.file"),
+        QStringLiteral("link.website"),
+        QStringLiteral("insert.image"),
+        QStringLiteral("insert.media"),
+        QStringLiteral("export.page-image"),
+        QStringLiteral("export.pdf"),
+        QStringLiteral("file.import-pdf"),
+        QStringLiteral("file.import-powerpoint-images"),
         QStringLiteral("help.check-updates"), // boîte en L11-T22
     };
     ui::Commands commands;
@@ -93,9 +222,10 @@ void TstUiSecondpalette::everyDialogCommandMarked()
         QVERIFY2(info->opensDialog, qPrintable(id));
     }
     QStringList extra;
-    for (const actions::CommandInfo& info : commands.registry().commands()) {
-        if (info.opensDialog && !dialogs.contains(info.id))
-            extra << info.id;
+    for (const QString& id : commands.registry().ids()) {
+        if (commands.registry().find(id)->opensDialog && !dialogs.contains(id)) {
+            extra << id;
+        }
     }
     QVERIFY2(extra.isEmpty(), qPrintable(extra.join(u' ')));
 }
@@ -104,25 +234,24 @@ void TstUiSecondpalette::secondUserCannotOpenADialog()
 {
     ui::Commands commands;
     commands.setProfileDir(m_profile.path());
-    HandlerProbe open;
-    commands.setHandler(QStringLiteral("file.open"), open.handler);
+    HandlerProbe probe(commands);
+    commands.setHandler(QStringLiteral("file.open"), probe.handler(QStringLiteral("open")));
     QSignalSpy refused(&commands, &ui::Commands::refusedForSecondUser);
     QSignalSpy triggered(&commands, &ui::Commands::triggered);
 
     // Le refus est dans trigger : le gestionnaire n'est jamais appelé, quelle que soit la voie.
     QVERIFY(!commands.trigger(QStringLiteral("file.open"), QVariantMap{}, 1));
-    QCOMPARE(open.calls(), 0);
+    QCOMPARE(probe.calls(QStringLiteral("open")), 0);
     QCOMPARE(refused.count(), 1);
     QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("file.open"));
     QCOMPARE(triggered.count(), 0);
 
     // Une commande sans boîte passe, et l'utilisateur atteint le gestionnaire (argument, user).
-    HandlerProbe color;
-    commands.setHandler(QStringLiteral("pen.color"), color.handler);
+    commands.setHandler(QStringLiteral("pen.color"), probe.handler(QStringLiteral("color")));
     QVERIFY(commands.trigger(QStringLiteral("pen.color"), QStringLiteral("#1E88E5"), 1));
-    QCOMPARE(color.calls(), 1);
-    QCOMPARE(color.lastArgument().toString(), QStringLiteral("#1E88E5"));
-    QCOMPARE(color.lastUser().toInt(), 1);
+    QCOMPARE(probe.calls(QStringLiteral("color")), 1);
+    QCOMPARE(probe.lastArgument(QStringLiteral("color")).toString(), QStringLiteral("#1E88E5"));
+    QCOMPARE(probe.lastUser(QStringLiteral("color")).toInt(), 1);
     QCOMPARE(refused.count(), 1);
 }
 
@@ -130,39 +259,159 @@ void TstUiSecondpalette::firstUserStillCan()
 {
     ui::Commands commands;
     commands.setProfileDir(m_profile.path());
-    HandlerProbe open;
-    commands.setHandler(QStringLiteral("file.open"), open.handler);
+    HandlerProbe probe(commands);
+    commands.setHandler(QStringLiteral("file.open"), probe.handler(QStringLiteral("open")));
     QSignalSpy refused(&commands, &ui::Commands::refusedForSecondUser);
 
     QVERIFY(commands.trigger(QStringLiteral("file.open"), QVariantMap{}, 0));
-    QCOMPARE(open.calls(), 1);
-    QCOMPARE(open.lastUser().toInt(), 0);
+    QCOMPARE(probe.calls(QStringLiteral("open")), 1);
+    QCOMPARE(probe.lastUser(QStringLiteral("open")).toInt(), 0);
     // L'ancienne signature vaut user = 0.
     QVERIFY(commands.trigger(QStringLiteral("file.open")));
-    QCOMPARE(open.calls(), 2);
-    QVERIFY(open.lastUser().isNumber());
-    QCOMPARE(open.lastUser().toInt(), 0);
+    QCOMPARE(probe.calls(QStringLiteral("open")), 2);
+    QVERIFY(probe.lastUser(QStringLiteral("open")).isNumber());
+    QCOMPARE(probe.lastUser(QStringLiteral("open")).toInt(), 0);
     QCOMPARE(refused.count(), 0);
 }
 
 void TstUiSecondpalette::toggleSetsTheTwoUserPolicy()
 {
-    QFAIL("L11-T9 : à écrire (politique posée sur la vue par DualMode).");
+    ui::Commands commands;
+    commands.setProfileDir(m_profile.path());
+    ui::PageView view;
+    ui::ToolHost tools;
+    ui::DualMode dual;
+    dual.setCommands(&commands);
+    dual.setView(&view);
+    dual.setTools(&tools);
+    QSignalSpy changed(&dual, &ui::DualMode::activeChanged);
+
+    QVERIFY(commands.trigger(QStringLiteral("users.dual")));
+    QVERIFY(dual.active());
+    QCOMPARE(changed.count(), 1);
+    QVERIFY(tools.dualUsers());
+    QVERIFY(commands.isChecked(QStringLiteral("users.dual")));
+    QVERIFY(dynamic_cast<input::TwoUserPolicy*>(view.router().policy()));
+
+    QVERIFY(commands.trigger(QStringLiteral("users.dual")));
+    QVERIFY(!dual.active());
+    QCOMPARE(changed.count(), 2);
+    QVERIFY(!tools.dualUsers());
+    QVERIFY(!commands.isChecked(QStringLiteral("users.dual")));
+    QVERIFY(dynamic_cast<input::FullTouchPolicy*>(view.router().policy())); // sans contrôleur du toucher
 }
 
 void TstUiSecondpalette::offRestoresTheTouchMode()
 {
-    QFAIL("L11-T9 : à écrire (politique du mode du toucher rendue à l'extinction).");
+    ui::Commands commands;
+    commands.setProfileDir(m_profile.path());
+    ui::Preferences prefs(m_settings.filePath(QStringLiteral("touch.ini")), nullptr);
+    ui::PageView view;
+    ui::TouchModeController touch;
+    touch.setCommands(&commands);
+    touch.setPreferences(&prefs);
+    touch.setView(&view);
+    QVERIFY(touch.setMode(QStringLiteral("pen")));
+    QVERIFY(dynamic_cast<input::PenTouchPolicy*>(view.router().policy()));
+    ui::DualMode dual;
+    dual.setCommands(&commands);
+    dual.setView(&view);
+    dual.setTouchMode(&touch);
+
+    QVERIFY(commands.trigger(QStringLiteral("users.dual")));
+    QVERIFY(dynamic_cast<input::TwoUserPolicy*>(view.router().policy()));
+    QVERIFY(commands.trigger(QStringLiteral("users.dual")));
+    QVERIFY(dynamic_cast<input::PenTouchPolicy*>(view.router().policy()));
+
+    // L11-T6 : un changement du mode du toucher pendant le mode à deux ne remplace pas sa politique ; il vaut à
+    // l'extinction.
+    QVERIFY(commands.trigger(QStringLiteral("users.dual")));
+    QVERIFY(touch.setMode(QStringLiteral("select")));
+    QVERIFY(dynamic_cast<input::TwoUserPolicy*>(view.router().policy()));
+    QVERIFY(commands.trigger(QStringLiteral("users.dual")));
+    QVERIFY(dynamic_cast<input::SelectTouchPolicy*>(view.router().policy()));
 }
 
 void TstUiSecondpalette::pinchZoomsOnlyWhenOff()
 {
-    QFAIL("L11-T9 : à écrire (pincement suspendu en mode allumé).");
+    App app;
+    QVERIFY(start(app));
+    const qreal z0 = app.view->zoom();
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.dual->active());
+    pinch(app, m_touch, 100, 200);
+    QCOMPARE(app.view->zoom(), z0); // les doigts vont aux outils des deux utilisateurs
+
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(!app.dual->active());
+    pinch(app, m_touch, 100, 200);
+    QVERIFY2(!qFuzzyCompare(app.view->zoom(), z0), qPrintable(QString::number(app.view->zoom())));
 }
 
 void TstUiSecondpalette::secondUserReceivesInDualMode()
 {
-    QFAIL("L11-T9 : à écrire (Main.qml : outil, couleur et stylet du second utilisateur).");
+    App app;
+    QVERIFY(start(app));
+    auto* palette = app.window->findChild<QQuickItem*>(QStringLiteral("secondPalette"));
+    QVERIFY(palette);
+    QVERIFY(!palette->isVisible());
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.dual->active());
+    QVERIFY(app.tools->dualUsers());
+    QVERIFY(dynamic_cast<input::TwoUserPolicy*>(app.view->router().policy()));
+    QVERIFY(palette->isVisible());
+
+    // Gestionnaires (argument, user) de Main.qml : l'outil et les réglages de l'utilisateur 1 changent, jamais
+    // ceux du premier (activate("highlighter", 1) prendrait 1 pour l'argument de l'outil du premier ;
+    // setColor(color) à un argument ignorerait l'utilisateur).
+    ui::ToolHost& tools = *app.tools;
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.highlighter"), QVariant(), 1));
+    QCOMPARE(tools.user(1).currentTool(), QStringLiteral("highlighter"));
+    QCOMPARE(tools.user(0).currentTool(), QStringLiteral("pen"));
+    QCOMPARE(tools.currentTool(), QStringLiteral("pen"));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
+    QCOMPARE(tools.user(1).currentTool(), QStringLiteral("pen"));
+    const QColor first = penColor(tools, 0);
+    const double firstWidth = tools.user(0).settings(QStringLiteral("pen")).width;
+    QVERIFY(app.commands->trigger(QStringLiteral("pen.color"), QStringLiteral("#1E88E5"), 1));
+    QCOMPARE(penColor(tools, 1), QColor(QStringLiteral("#1E88E5")));
+    QCOMPARE(penColor(tools, 0), first);
+    QVERIFY(app.commands->trigger(QStringLiteral("pen.width"), 2, 1));
+    QCOMPARE(tools.user(1).settings(QStringLiteral("pen")).width, 2.0);
+    QCOMPARE(tools.user(0).settings(QStringLiteral("pen")).width, firstWidth);
+
+    // La deuxième palette passe par trigger (signal triggered), pour l'utilisateur 1.
+    QSignalSpy triggered(app.commands, &ui::Commands::triggered);
+    QObject* green = app.window->findChild<QObject*>(QStringLiteral("secondColor_2"));
+    QVERIFY(green);
+    QVariant done;
+    QVERIFY(QMetaObject::invokeMethod(green, "press", Q_RETURN_ARG(QVariant, done)));
+    QVERIFY(done.toBool());
+    QCOMPARE(triggered.count(), 1);
+    QCOMPARE(triggered.at(0).at(0).toString(), QStringLiteral("pen.color"));
+    QCOMPARE(penColor(tools, 1), QColor(QStringLiteral("#43A047")));
+    QCOMPARE(penColor(tools, 0), first);
+
+    // Stylets : l'appareil 11, vu le premier, va à l'utilisateur 0 ; l'appareil 22 à l'utilisateur 1, à son
+    // outil, pas à celui du premier.
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
+    tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+    tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
+    tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
+    tablet(app, stylus22.get(), QEvent::TabletMove, QPointF(140, 410));
+    QCOMPARE(app.view->lastContactUser(), 1);
+    tools::Tool* own = tools.activeTool(0);
+    tools::Tool* other = tools.activeTool(1);
+    QVERIFY(own && other);
+    QVERIFY(own != other);
+    QVERIFY(own->isBusy());
+    QVERIFY(other->isBusy());
+    tablet(app, stylus22.get(), QEvent::TabletRelease, QPointF(140, 410));
+    QVERIFY(own->isBusy()); // le relâché de l'un ne termine pas l'autre
+    QVERIFY(!other->isBusy());
+    tablet(app, stylus11.get(), QEvent::TabletRelease, QPointF(640, 210));
+    QVERIFY(!own->isBusy());
 }
 
 QTEST_MAIN(TstUiSecondpalette)
