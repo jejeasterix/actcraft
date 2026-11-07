@@ -163,7 +163,8 @@ private slots:
         QCOMPARE(changed.count(), 1);
     }
 
-    // La politique posée est celle du mode : un doigt posé est retenu en gestion complète, ignoré en « ignore ».
+    // La politique posée est celle du mode : un doigt posé est retenu en gestion complète, ignoré en « ignore
+    // ».
     void policyApplied()
     {
         App app;

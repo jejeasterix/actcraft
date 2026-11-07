@@ -37,7 +37,8 @@ public:
     void setView(PageView* view);
     QString mode() const;
 
-    // Vrai si l'identifiant est connu (changement fait, ou différé jusqu'au relâché) ; faux sinon, rien ne change.
+    // Vrai si l'identifiant est connu (changement fait, ou différé jusqu'au relâché) ; faux sinon, rien ne
+    // change.
     Q_INVOKABLE bool setMode(const QString& id);
 
 signals:
