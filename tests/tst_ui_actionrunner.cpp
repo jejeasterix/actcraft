@@ -1032,7 +1032,7 @@ void TstUiActionrunner::storedFilesOfUnsavedDocumentsDoNotShareAFolder()
         QVERIFY(m_controllerOwner->fileUrl().isEmpty());
         ask.clear();
         click(kOnRound);
-        QCOMPARE(ask.size(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 1, 10000); // extraction hors du fil (L8-C8)
         m_links->answer(ask.first().at(1).toInt(), true);
     }
     QCOMPARE(opened.size(), 2);

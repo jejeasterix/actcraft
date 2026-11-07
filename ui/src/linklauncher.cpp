@@ -5,13 +5,17 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QStringList>
 #include <QTemporaryDir>
+#include <QThreadPool>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <algorithm>
 #include <atomic>
+#include <mutex>
 #include <utility>
 
 #ifdef Q_OS_MACOS
@@ -245,6 +249,55 @@ void LinkLauncher::request(const QString& target, int kind)
     ask(parsed.scheme().size() > 1 ? parsed : QUrl::fromLocalFile(target), kind);
 }
 
+namespace {
+
+std::mutex g_probeMutex;
+std::function<void()> g_writeProbe;
+
+void runWriteProbe()
+{
+    std::function<void()> probe;
+    {
+        const std::lock_guard<std::mutex> lock(g_probeMutex);
+        probe = g_writeProbe;
+    }
+    if (probe)
+        probe();
+}
+
+} // namespace
+
+void LinkLauncher::setWriteProbe(std::function<void()> probe)
+{
+    const std::lock_guard<std::mutex> lock(g_probeMutex);
+    g_writeProbe = std::move(probe);
+}
+
+namespace {
+
+enum class Extracted
+{
+    Written,
+    WriteFailed,
+    MarkFailed
+};
+
+// Fil d'écriture du lanceur : n'émet rien et ne touche à aucun objet de l'interface.
+Extracted extractFile(const QString& path, const QByteArray& bytes)
+{
+    runWriteProbe();
+    QSaveFile out(path);
+    if (!(out.open(QIODevice::WriteOnly) && out.write(bytes) == bytes.size() && out.commit()))
+        return Extracted::WriteFailed;
+    if (!markAsDownloaded(path)) {
+        QFile::remove(path);
+        return Extracted::MarkFailed;
+    }
+    return Extracted::Written;
+}
+
+} // namespace
+
 QString LinkLauncher::extractionDir(const QString& documentKey)
 {
     std::unique_ptr<QTemporaryDir>& dir = m_extractionDirs[documentKey];
@@ -272,24 +325,38 @@ void LinkLauncher::requestStored(const QByteArray& bytes, const QString& origina
         return;
     }
     const QString dir = extractionDir(documentKey);
-    bool written = !dir.isEmpty();
-    const QString path = dir + u'/' + name;
-    if (written) {
-        QSaveFile out(path);
-        written = out.open(QIODevice::WriteOnly) && out.write(bytes) == bytes.size() && out.commit();
-    }
-    if (!written) {
+    if (dir.isEmpty()) {
         emit refused(tr("Impossible d'extraire le fichier %1 du paperboard.").arg(name));
         return;
     }
-    if (!markAsDownloaded(path)) {
-        QFile::remove(path);
-        emit refused(
-            tr("Le fichier %1 n'a pas pu être marqué comme venu d'un paperboard : il ne s'ouvre pas.")
-                .arg(name));
-        return;
+    const QString path = dir + u'/' + name;
+    if (!m_writers) {
+        m_writers = std::make_unique<QThreadPool>();
+        m_writers->setMaxThreadCount(1); // l'ordre des demandes est celui des confirmations
     }
-    ask(QUrl::fromLocalFile(path), StoredFile);
+    // Écriture et marque « venu d'ailleurs » hors du fil de l'interface (même patron que
+    // DocumentController::saveToUrl) ; le QFutureWatcher, fils de ce lanceur, ne livre plus rien une fois
+    // celui-ci détruit.
+    auto* watcher = new QFutureWatcher<Extracted>(this);
+    connect(watcher, &QFutureWatcher<Extracted>::finished, this, [this, watcher, path, name] {
+        const Extracted result = watcher->result();
+        watcher->deleteLater();
+        switch (result) {
+        case Extracted::WriteFailed:
+            emit refused(tr("Impossible d'extraire le fichier %1 du paperboard.").arg(name));
+            return;
+        case Extracted::MarkFailed:
+            emit refused(
+                tr("Le fichier %1 n'a pas pu être marqué comme venu d'un paperboard : il ne s'ouvre pas.")
+                    .arg(name));
+            return;
+        case Extracted::Written:
+            break;
+        }
+        ask(QUrl::fromLocalFile(path), StoredFile);
+    });
+    watcher->setFuture(
+        QtConcurrent::run(m_writers.get(), [path, bytes] { return extractFile(path, bytes); }));
 }
 
 void LinkLauncher::answer(int token, bool accepted)

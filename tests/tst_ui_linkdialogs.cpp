@@ -232,7 +232,7 @@ void TstUiLinkdialogs::storedFileBecomesAResource()
     const auto* text = std::get_if<core::Text>(&core::body(made));
     QVERIFY(text != nullptr);
     click(QPointF(text->bounds.x + 2, text->bounds.y + 2));
-    QCOMPARE(ask.size(), 1);
+    QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 1, 10000); // extraction hors du fil (L8-C8)
     QVERIFY(m_opened.isEmpty());
 }
 
