@@ -67,8 +67,14 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "configuration $preset en échec" }
         # A24 (amendement 1, M13) : androiddeployqt lance Gradle ; sans démon, rien ne reste après « APK OK » et le
         # script rend la main (rejeu figé 2 h 30 sinon).
-        $env:GRADLE_OPTS = '-Dorg.gradle.daemon=false'
-        cmake --build --preset $preset --target apk
+        # Complété, pas écrasé, et rendu tel quel après la construction.
+        $gradleOptsAvant = $env:GRADLE_OPTS
+        $env:GRADLE_OPTS = (@($env:GRADLE_OPTS, '-Dorg.gradle.daemon=false') | Where-Object { $_ }) -join ' '
+        try {
+            cmake --build --preset $preset --target apk
+        } finally {
+            $env:GRADLE_OPTS = $gradleOptsAvant
+        }
         if ($LASTEXITCODE -ne 0) { throw "construction $preset en échec" }
         $brut = Get-ChildItem -Recurse -Filter '*.apk' "build/$preset" |
             Where-Object { $_.FullName -match 'outputs[\\/]apk' } | Sort-Object LastWriteTime | Select-Object -Last 1

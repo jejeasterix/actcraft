@@ -6,6 +6,7 @@
 #include <actcraft/ui/recentdocuments.h>
 
 #include <QFile>
+#include <QHash>
 #include <QSet>
 #include <QSettings>
 #include <QSignalSpy>
@@ -28,6 +29,11 @@ public:
         return true;
     }
     bool holds(const QUrl& url) const override { return held.contains(url.toString()); }
+    bool reachable(const QUrl& url) const override { return !silent.contains(url.toString()); }
+    QString displayName(const QUrl& url) const override
+    {
+        return silent.contains(url.toString()) ? QString() : names.value(url.toString());
+    }
     void release(const QUrl& url) override
     {
         released << url.toString();
@@ -35,6 +41,8 @@ public:
     }
 
     QSet<QString> held;
+    QSet<QString> silent;          // fournisseur muet (carte démontée, document retiré)
+    QHash<QString, QString> names; // OpenableColumns.DISPLAY_NAME
     QStringList taken;
     QStringList released;
 };
@@ -137,33 +145,43 @@ private slots:
         ui::DocumentPortal portal;
         portal.setBackend(&backend);
         ui::Preferences preferences;
-        const QUrl doc = picked(QStringLiteral("cours.actcraft"));
+        // URL rendue par DocumentsUI sur l'émulateur : son dernier segment (« 13 ») n'est pas le nom.
+        const QUrl doc(QStringLiteral("content://com.android.providers.downloads.documents/document/13"));
+        backend.names.insert(doc.toString(), QStringLiteral("cours.actcraft"));
+        const QUrl card = picked(QStringLiteral("carte.actcraft")); // sur une carte bientôt démontée
         const QUrl here = touch(dir, QStringLiteral("ici.actcraft"));
         {
             ui::RecentDocuments list;
             list.setPortal(&portal);
             list.setPreferences(&preferences);
+            list.note(card);
             list.note(doc);
             list.note(here);
+            QCOMPARE(names(list), (QStringList{"ici.actcraft", "cours.actcraft", "carte.actcraft"}));
         }
-        backend.held.remove(doc.toString()); // document retiré, ou permission rendue par le système
+        // Document retiré : le fournisseur se tait et la permission est perdue. Carte démontée : il se tait,
+        // la permission reste.
+        backend.silent.insert(doc.toString());
+        backend.held.remove(doc.toString());
+        backend.silent.insert(card.toString());
 
-        // Relance : la liste relue retire l'entrée perdue (oubliée, pas cachée) et le dit par son nom
-        // affiché.
+        // Relance : l'entrée perdue est retirée (oubliée) avec le nom gardé ; la carte est cachée, pas
+        // oubliée, sa permission gardée.
         ui::RecentDocuments list;
         list.setPortal(&portal);
         QSignalSpy removed(&list, &ui::RecentDocuments::staleRemoved);
         list.setPreferences(&preferences);
         QCOMPARE(removed.count(), 1);
         QCOMPARE(removed.at(0).at(0).toString(), QStringLiteral("cours.actcraft"));
-        QVERIFY(!removed.at(0).at(0).toString().contains(QStringLiteral("content:")));
         QCOMPARE(names(list), QStringList{QStringLiteral("ici.actcraft")});
-        QCOMPARE(stored(preferences), QStringList{here.toString()});
-        QVERIFY(backend.released.contains(doc.toString()));
+        QCOMPARE(stored(preferences), (QStringList{here.toString(), card.toString()}));
+        QCOMPARE(backend.released, QStringList{doc.toString()});
 
-        // Une fois retirée, l'entrée ne revient pas et le message ne se répète pas.
+        // La carte revient : l'entrée aussi, avec son nom ; le message ne se répète pas.
+        backend.silent.remove(card.toString());
         list.refresh();
         QCOMPARE(removed.count(), 1);
+        QCOMPARE(names(list), (QStringList{"ici.actcraft", "carte.actcraft"}));
     }
 
     void forgetReleases()
@@ -182,8 +200,8 @@ private slots:
         list.setPortal(&portal);
         list.note(doc);
         backend.released.clear();
-        list.clear();
-        QCOMPARE(backend.released, QStringList{doc.toString()});
+        list.clear(); // le document encore ouvert garde sa permission
+        QVERIFY(backend.released.isEmpty());
         backend.released.clear();
         for (int i = 0; i <= ui::RecentDocuments::kMax; ++i) {
             list.note(picked(QStringLiteral("f%1.actcraft").arg(i)));

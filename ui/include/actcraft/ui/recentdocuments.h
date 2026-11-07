@@ -21,11 +21,13 @@ class Preferences;
 
 // Documents récents du poste (F-700, D6-1) : `workstation/recent-documents`, dix au plus, le dernier ouvert
 // ou enregistré en tête. Un fichier local absent est caché (non oublié). Une URL content:// (D11-9) garde sa
-// permission par le portail dès l'ajout ; à la relecture de la liste, une entrée dont la permission est
-// perdue est retirée (oubliée, permission rendue) et `staleRemoved` donne son nom affiché. Une entrée effacée
-// ou poussée au-delà de dix rend sa permission. `portal` nul : celui de la plateforme. `preferences` nul :
-// liste en mémoire seulement. Vignettes (L6-T23, amendement 11) : chaque entrée locale porte la page 1 de
-// l'archive
+// permission par le portail dès l'ajout, et son nom donné par le fournisseur (gardé avec la liste : il reste
+// connu quand le document a disparu). À la relecture de la liste, une entrée dont la permission est perdue
+// est retirée (oubliée) et `staleRemoved` donne son nom affiché ; permise mais sans réponse du fournisseur
+// (carte démontée), elle est cachée, pas oubliée, permission gardée. Une entrée poussée au-delà de dix rend
+// sa permission ; `clear` n'en rend aucune (le document ouvert garde la sienne). `portal` nul : celui de la
+// plateforme. `preferences` nul : liste en mémoire seulement.
+// Vignettes (L6-T23, amendement 11) : chaque entrée locale porte la page 1 de l'archive
 // (`thumbnails/page-1.png`) en URL `data:`, lue hors du fil principal (patron de PageThumbnails::pump : une
 // lecture à la fois, aucune pendant un contact). Fichier absent, illisible ou sans miniature : `thumbnail`
 // reste vide, sans erreur.
@@ -86,7 +88,8 @@ private:
 
     void reload();
     void prune();
-    void forgetDropped(const QStringList& dropped);
+    void trimToMax(); // au-delà de kMax : retirées, permission rendue
+    QString nameOf(const QString& text) const;
     DocumentPortal& activePortal() const;
     void persist();
     void requestThumbnails();
@@ -99,6 +102,8 @@ private:
     QPointer<DocumentPortal> m_portal;
     DocumentPortal* m_platformPortal = nullptr; // enfant, quand `portal` est nul
     QStringList m_urls;                         // les plus récentes d'abord, au plus kMax
+    QHash<QString, QString> m_names;            // URL content:// → nom donné par le fournisseur
+    QStringList m_hidden;                       // URL content:// permises dont le fournisseur se tait
     bool m_contactActive = false;
     bool m_thumbnailInFlight = false;
     QString m_thumbnailLoading; // URL en cours de lecture

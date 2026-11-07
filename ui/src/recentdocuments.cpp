@@ -17,6 +17,9 @@ namespace actcraft::ui {
 
 namespace {
 
+// Noms des documents content:// (URL → nom du fournisseur), à côté de la liste.
+constexpr char kRecentNames[] = "workstation/recent-document-names";
+
 struct ThumbnailJob
 {
     QString url;
@@ -161,33 +164,57 @@ DocumentPortal& RecentDocuments::activePortal() const
     return m_portal ? *m_portal : *m_platformPortal;
 }
 
-// Rend la permission des URL content:// que la liste ne montre plus.
-void RecentDocuments::forgetDropped(const QStringList& dropped)
+void RecentDocuments::trimToMax()
 {
-    for (const QString& text : dropped) {
-        activePortal().forget(QUrl(text));
+    while (m_urls.size() > kMax) {
+        const QString dropped = m_urls.takeLast();
+        m_names.remove(dropped);
+        activePortal().forget(QUrl(dropped));
     }
 }
 
-// Retire les URL content:// dont la permission est perdue : jamais par un chemin tiré de l'URL, seulement par
-// le portail. Pas à chaque changement de réglage (une requête au fournisseur par entrée sous Android) : au
+QString RecentDocuments::nameOf(const QString& text) const
+{
+    const QString name = m_names.value(text);
+    return name.isEmpty() ? DocumentPortal::fallbackName(QUrl(text)) : name;
+}
+
+// Permission perdue : entrée retirée, avec son nom. Permise mais sans réponse du fournisseur : cachée,
+// permission gardée (comme un fichier local absent). Jamais par un chemin tiré de l'URL, seulement par le
+// portail. Pas à chaque changement de réglage (une requête au fournisseur par entrée sous Android) : au
 // lancement et sur `refresh`.
 void RecentDocuments::prune()
 {
     QStringList kept;
     QStringList stale;
+    m_hidden.clear();
     for (const QString& text : std::as_const(m_urls)) {
         const QUrl url(text);
-        (DocumentPortal::isContent(url) && !activePortal().canOpen(url) ? stale : kept) << text;
+        if (!DocumentPortal::isContent(url)) {
+            kept << text;
+        } else if (!activePortal().permitted(url)) {
+            stale << text;
+        } else {
+            kept << text;
+            if (!activePortal().reachable(url)) {
+                m_hidden << text;
+                qInfo("ACTCRAFT RECENT CACHE %s", qUtf8Printable(nameOf(text)));
+            }
+        }
     }
     if (stale.isEmpty()) {
+        emit changed();
         return;
     }
-    m_urls = kept;
-    forgetDropped(stale);
-    persist();
+    QStringList names;
     for (const QString& text : std::as_const(stale)) {
-        const QString name = DocumentPortal::displayName(QUrl(text));
+        names << nameOf(text);
+        m_names.remove(text);
+        activePortal().forget(QUrl(text));
+    }
+    m_urls = kept;
+    persist();
+    for (const QString& name : std::as_const(names)) {
         qInfo("ACTCRAFT RECENT RETIRE %s", qUtf8Printable(name));
         emit staleRemoved(name);
     }
@@ -207,11 +234,15 @@ void RecentDocuments::reload()
         return;
     }
     m_urls = m_preferences->value(QString::fromLatin1(Preferences::kRecent)).toStringList();
-    QStringList dropped;
-    while (m_urls.size() > kMax) {
-        dropped << m_urls.takeLast();
+    const QVariantMap names = m_preferences->value(QString::fromLatin1(kRecentNames)).toMap();
+    m_names.clear();
+    for (const QString& text : std::as_const(m_urls)) {
+        const QString name = names.value(text).toString();
+        if (!name.isEmpty()) {
+            m_names.insert(text, name);
+        }
     }
-    forgetDropped(dropped);
+    trimToMax();
     requestThumbnails();
 }
 
@@ -220,10 +251,22 @@ void RecentDocuments::persist()
     if (!m_preferences) {
         return;
     }
-    if (m_urls.isEmpty()) {
+    // Instantanés : chaque écriture relance reload() (Preferences::changed), qui relit les deux clés ; la
+    // liste, écrite en dernier, laisse l'état final juste.
+    const QStringList urls = m_urls;
+    QVariantMap names;
+    for (auto it = m_names.cbegin(); it != m_names.cend(); ++it) {
+        names.insert(it.key(), it.value());
+    }
+    if (names.isEmpty()) {
+        m_preferences->remove(QString::fromLatin1(kRecentNames));
+    } else {
+        m_preferences->setValue(QString::fromLatin1(kRecentNames), names);
+    }
+    if (urls.isEmpty()) {
         m_preferences->remove(QString::fromLatin1(Preferences::kRecent));
     } else {
-        m_preferences->setValue(QString::fromLatin1(Preferences::kRecent), m_urls);
+        m_preferences->setValue(QString::fromLatin1(Preferences::kRecent), urls);
     }
 }
 
@@ -239,9 +282,11 @@ QVariantList RecentDocuments::entries() const
                 continue;
             }
             when = info.lastModified();
+        } else if (m_hidden.contains(text)) {
+            continue;
         }
         list.append(QVariantMap{{QStringLiteral("url"), url},
-                                {QStringLiteral("name"), url.fileName()},
+                                {QStringLiteral("name"), nameOf(text)},
                                 {QStringLiteral("when"), when},
                                 {QStringLiteral("thumbnail"), m_thumbnails.value(text).dataUrl}});
     }
@@ -258,17 +303,18 @@ void RecentDocuments::note(const QUrl& url)
     if (url.isEmpty()) {
         return;
     }
+    const QString text = url.toString();
     if (DocumentPortal::isContent(url)) {
         activePortal().keep(url); // rouvert sans sélecteur après la relance (D11-9)
+        const QString name = activePortal().displayName(url); // le fournisseur répond : document ouvert
+        if (!name.isEmpty()) {
+            m_names.insert(text, name);
+        }
+        m_hidden.removeAll(text);
     }
-    const QString text = url.toString();
     m_urls.removeAll(text);
     m_urls.prepend(text);
-    QStringList dropped;
-    while (m_urls.size() > kMax) {
-        dropped << m_urls.takeLast();
-    }
-    forgetDropped(dropped);
+    trimToMax();
     persist();
     emit changed();
     requestThumbnails();
@@ -279,8 +325,9 @@ void RecentDocuments::clear()
     if (m_urls.isEmpty()) {
         return;
     }
-    forgetDropped(m_urls);
-    m_urls.clear();
+    m_urls.clear(); // aucune permission rendue : le document encore ouvert garde la sienne
+    m_names.clear();
+    m_hidden.clear();
     persist();
     emit changed();
 }
@@ -302,7 +349,8 @@ QVariantMap RecentDocuments::summary(DocumentController* controller, const QUrl&
     if (url.isLocalFile()) {
         bytes = QFileInfo(url.toLocalFile()).size();
     }
-    return QVariantMap{{QStringLiteral("name"), url.fileName()},
+    const QString name = DocumentPortal::isContent(url) ? activePortal().displayName(url) : url.fileName();
+    return QVariantMap{{QStringLiteral("name"), name},
                        {QStringLiteral("pages"), pages},
                        {QStringLiteral("objects"), objects},
                        {QStringLiteral("resources"), resources},

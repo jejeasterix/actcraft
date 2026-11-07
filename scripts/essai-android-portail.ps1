@@ -425,12 +425,29 @@ function Compare-Empreintes([string]$enregistre, [string]$ouvert) {
     return $null
 }
 
-# Relance de l'application : arrêt de son processus sur l'appareil (am force-stop), puis lancement par le lanceur.
+function Get-PidActCraft { return "$(Invoke-Adb @('shell', 'pidof', $paquet))".Trim() }
+
+# Relance de l'application : arrêt de son processus sur l'appareil (am force-stop), lancement par le lanceur, puis
+# un processus neuf vérifié (pidof changé, attente bornée).
 function Restart-ActCraft {
+    $avant = Get-PidActCraft
     $null = Invoke-Adb @('shell', 'am', 'force-stop', $paquet)
-    $null = Invoke-Adb @('shell', 'monkey', '-p', $paquet, '-c', 'android.intent.category.LAUNCHER', '1')
+    $null = Invoke-Adb @('shell', 'monkey', '-p', $paquet, '-c', 'android.intent.category.LAUNCHER', '1') 60
     if ($LASTEXITCODE -ne 0) { Stop-Essai "relance de $paquet (code $LASTEXITCODE)$(Get-ActCraftAdbErreur)" }
+    $fin = (Get-Date).AddSeconds(30)
+    do {
+        Start-Sleep -Seconds 1
+        $apres = Get-PidActCraft
+    } while ((-not $apres -or $apres -eq $avant) -and (Get-Date) -lt $fin)
+    if (-not $apres -or $apres -eq $avant) {
+        Stop-Essai "relance de $paquet : processus $(if ($apres) { "inchangé ($apres)" } else { 'absent' }) après 30 s"
+    }
     Start-Sleep -Seconds 5
+}
+
+function Assert-SansSelecteur([string]$quand) {
+    $focus = "$(Invoke-Adb @('shell', 'dumpsys', 'window', 'windows') | Select-String -Pattern 'mCurrentFocus' | Select-Object -First 1)"
+    if ($focus -match 'documentsui') { Stop-Essai "sélecteur ouvert $quand : $focus" }
 }
 
 # Entrée récente de ce passage dans l'application (pas dans DocumentsUI), par son texte exact ; $null si absente.
@@ -566,10 +583,24 @@ try {
         Stop-Essai 'aucune ligne ACTCRAFT OUVERT après la relance'
     }
     Write-Output "récent : $rouvert"
-    $focus = "$(Invoke-Adb @('shell', 'dumpsys', 'window', 'windows') | Select-String -Pattern 'mCurrentFocus' | Select-Object -First 1)"
-    if ($focus -match 'documentsui') { Stop-Essai "sélecteur ouvert pendant la réouverture par les récents : $focus" }
+    Assert-SansSelecteur 'pendant la réouverture par les récents'
     $echec = Compare-Empreintes $enregistre $rouvert
     if ($echec) { Stop-Essai "réouverture par les récents : $echec" }
+
+    # Enregistrer (Ctrl+S) le document rouvert par les récents, après un trait qui le modifie : l'écriture passe par
+    # la permission gardée (keep), sans sélecteur.
+    $null = Invoke-Adb @('logcat', '-c')
+    if ($LASTEXITCODE -ne 0) { Stop-Essai "adb logcat -c (code $LASTEXITCODE) : journal non vidé avant Ctrl+S$(Get-ActCraftAdbErreur)" }
+    $null = Invoke-AdbTour @('shell', 'input', 'swipe', '768', '1000', '1408', '1000', '600')
+    Start-Sleep -Seconds 2
+    $null = Invoke-Adb @('shell', 'input', 'keycombination', '113', '47') # Ctrl+S
+    $reenregistre = Wait-Journal 'ACTCRAFT ENREGISTRE [0-9a-f]{16}'
+    if (-not $reenregistre) {
+        Save-Diagnostic 'reenregistre'
+        Stop-Essai 'aucune ligne ACTCRAFT ENREGISTRE après Ctrl+S sur le document rouvert par les récents'
+    }
+    Write-Output "réenregistré : $reenregistre"
+    Assert-SansSelecteur 'par Ctrl+S sur le document rouvert'
 
     # Document retiré par MediaStore (Clear-FichiersEssai, comme au départ de l'essai, état vérifié) ; à la relance, la
     # permission ne vaut plus : l'entrée est retirée et le message porte le nom du fichier, jamais l'URL.
@@ -579,7 +610,12 @@ try {
     Restart-ActCraft
     $retire = Wait-Journal "ACTCRAFT RECENT RETIRE $([regex]::Escape($nomFichier))"
     Invoke-Adb @('logcat', '-d') | Set-Content -Encoding utf8 -LiteralPath (Join-Path $tmp 'portail-logcat-retrait.txt')
-    if (-not $retire) { Stop-Essai "aucune ligne ACTCRAFT RECENT RETIRE $nomFichier après le retrait du document" }
+    if (-not $retire) {
+        # Permission encore tenue après le retrait : l'entrée est cachée (ACTCRAFT RECENT CACHE), pas retirée.
+        $cache = Wait-Journal "ACTCRAFT RECENT CACHE $([regex]::Escape($nomFichier))" 5
+        if ($cache) { Stop-Essai "permission toujours tenue après le retrait du document : entrée cachée, pas retirée ($cache)" }
+        Stop-Essai "aucune ligne ACTCRAFT RECENT RETIRE $nomFichier après le retrait du document"
+    }
     Write-Output $retire
     if (Find-EntreeRecente $nomFichier 6) {
         Save-Diagnostic 'retire'

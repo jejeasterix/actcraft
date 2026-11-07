@@ -15,7 +15,10 @@ class PermissionBackend
 public:
     virtual ~PermissionBackend() = default;
     virtual bool take(const QUrl& url) = 0;        // lecture et écriture gardées au-delà de la session
-    virtual bool holds(const QUrl& url) const = 0; // permission encore valide, document joignable
+    virtual bool holds(const QUrl& url) const = 0; // permission encore valide (le fournisseur peut se taire)
+    virtual bool reachable(const QUrl& url) const = 0; // le fournisseur rend une ligne pour le document
+    virtual QString
+    displayName(const QUrl& url) const = 0; // nom donné par le fournisseur ; vide s'il se tait
     virtual void release(const QUrl& url) = 0;
 };
 
@@ -35,13 +38,20 @@ public:
     void setBackend(PermissionBackend* backend) { m_backend = backend; }
 
     static bool isContent(const QUrl& url);
-    // Nom affiché : nom du fichier local, ou dernier segment décodé du chemin d'une URL content:// (comme le
-    // titre du document, documentio.cpp `targetName`) ; jamais l'URL.
-    static QString displayName(const QUrl& url);
+    // Repli du nom : nom du fichier local, ou dernier segment décodé du chemin d'une URL content:// (comme
+    // documentio.cpp `targetName`) ; « 13 » pour `…downloads.documents/document/13`.
+    static QString fallbackName(const QUrl& url);
+    // Nom affiché : celui du fournisseur (OpenableColumns.DISPLAY_NAME sous Android), sinon `fallbackName` ;
+    // jamais l'URL.
+    QString displayName(const QUrl& url) const;
+    // content:// : permission encore valide ; ailleurs : vrai.
+    bool permitted(const QUrl& url) const;
+    // content:// : le fournisseur répond ; fichier local : il existe ; autre URL : faux.
+    bool reachable(const QUrl& url) const;
 
     // content:// : permission de lecture et d'écriture gardée ; ailleurs : vrai, sans effet.
     Q_INVOKABLE bool keep(const QUrl& url);
-    // content:// : permission encore valide ; fichier local : il existe ; autre URL : faux.
+    // `permitted` et `reachable`.
     Q_INVOKABLE bool canOpen(const QUrl& url) const;
     // content:// : permission rendue ; ailleurs : sans effet.
     Q_INVOKABLE void forget(const QUrl& url);
