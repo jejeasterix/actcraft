@@ -19,7 +19,7 @@
         <translation>Logiciel libre de tableau blanc interactif, sous licence %1.</translation>
     </message>
     <message>
-        <location filename="../qml/AboutDialog.qml" line="65"/>
+        <location filename="../qml/AboutDialog.qml" line="66"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="144"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="153"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="155"/>
@@ -1038,27 +1038,27 @@
         <translation>%1%2 — ActCraft — rendu : %3</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="810"/>
+        <location filename="../qml/Main.qml" line="816"/>
         <source>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</source>
         <translation>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="852"/>
+        <location filename="../qml/Main.qml" line="858"/>
         <source>Ouverture impossible : %1</source>
         <translation>Ouverture impossible : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="854"/>
+        <location filename="../qml/Main.qml" line="860"/>
         <source>1 avertissement de lecture : %1</source>
         <translation>1 avertissement de lecture : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="856"/>
+        <location filename="../qml/Main.qml" line="862"/>
         <source>%1 avertissements de lecture : %2</source>
         <translation>%1 avertissements de lecture : %2</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="863"/>
+        <location filename="../qml/Main.qml" line="869"/>
         <source>Enregistrement impossible : %1</source>
         <translation>Enregistrement impossible : %1</translation>
     </message>
@@ -1884,6 +1884,11 @@
         <source>La langue choisie sera appliquée au prochain démarrage d&apos;ActCraft.</source>
         <translation>La langue choisie sera appliquée au prochain démarrage d&apos;ActCraft.</translation>
     </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="123"/>
+        <source>Rechercher les mises à jour au démarrage</source>
+        <translation>Rechercher les mises à jour au démarrage</translation>
+    </message>
 </context>
 <context>
     <name>SettingsSchema</name>
@@ -2388,6 +2393,44 @@
     </message>
 </context>
 <context>
+    <name>UpdateDialog</name>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="14"/>
+        <source>Mises à jour</source>
+        <translation>Mises à jour</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="36"/>
+        <source>Recherche en cours…</source>
+        <translation>Recherche en cours…</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="38"/>
+        <source>ActCraft est à jour.</source>
+        <translation>ActCraft est à jour.</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="40"/>
+        <source>La version %1 est disponible.</source>
+        <translation>La version %1 est disponible.</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="42"/>
+        <source>Impossible de vérifier pour le moment.</source>
+        <translation>Impossible de vérifier pour le moment.</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="52"/>
+        <source>Voir la version</source>
+        <translation>Voir la version</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="59"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
+    </message>
+</context>
+<context>
     <name>WebFrameDialog</name>
     <message>
         <location filename="../qml/WebFrameDialog.qml" line="34"/>
@@ -2554,27 +2597,27 @@
 <context>
     <name>actcraft::ui::DocumentController</name>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="911"/>
+        <location filename="../src/documentcontroller.cpp" line="966"/>
         <source>Une opération est déjà en cours : ouverture refusée.</source>
         <translation>Une opération est déjà en cours : ouverture refusée.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="944"/>
+        <location filename="../src/documentcontroller.cpp" line="999"/>
         <source>Le paperboard a changé pendant l&apos;ouverture : ouverture annulée, rien n&apos;est perdu.</source>
         <translation>Le paperboard a changé pendant l&apos;ouverture : ouverture annulée, rien n&apos;est perdu.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="975"/>
+        <location filename="../src/documentcontroller.cpp" line="1030"/>
         <source>Une opération est déjà en cours : enregistrement refusé.</source>
         <translation>Une opération est déjà en cours : enregistrement refusé.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1054"/>
+        <location filename="../src/documentcontroller.cpp" line="1109"/>
         <source>Une opération est déjà en cours : diffusion refusée.</source>
         <translation>Une opération est déjà en cours : diffusion refusée.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1062"/>
+        <location filename="../src/documentcontroller.cpp" line="1117"/>
         <source>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</source>
         <translation>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</translation>
     </message>
