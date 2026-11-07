@@ -217,6 +217,7 @@ private:
     std::uint64_t m_generation = 0;
     std::uint64_t m_keys = 0;
     std::uint64_t m_tickets = 0;
+    std::uint64_t m_requests = 0; // numéro de navigation, unique pour toute la vie du modèle (Row::request)
     int m_page = -1;
     // Identifiant stable de la page affichée pour la politique : le plus petit identifiant de ses cadres
     // visibles (unique dans le document), et non son numéro, qui passe à une autre page quand on en retire ou

@@ -1189,6 +1189,22 @@ void WebFrameItems::rebuild()
         prepareRow(row);
         fresh.append(std::move(row));
     }
+    // Réponses en attente d'une ligne recréée ou disparue : abandonnées (le numéro de navigation, unique pour
+    // toute la vie du modèle, les écarterait déjà ; on libère aussi la requête).
+    for (auto it = m_replies.begin(); it != m_replies.end();) {
+        bool kept = false;
+        for (const Row& row : fresh)
+            kept = kept || (row.id == it->id && row.request == it->request);
+        if (kept) {
+            ++it;
+            continue;
+        }
+        QNetworkReply* reply = it.key();
+        it = m_replies.erase(it);
+        reply->disconnect(this);
+        reply->abort();
+        reply->deleteLater();
+    }
     beginResetModel();
     m_rows = std::move(fresh);
     endResetModel();
@@ -1206,7 +1222,7 @@ Verdict WebFrameItems::decide(const QUrl& url) const
 
 void WebFrameItems::prepareRow(Row& row)
 {
-    ++row.request; // une réponse réseau en vol d'une navigation précédente ne vaut plus
+    row.request = ++m_requests; // une réponse réseau en vol d'une navigation précédente ne vaut plus
     row.blocked = false;
     row.refused = false;
     row.loading = false;
@@ -1279,9 +1295,9 @@ void WebFrameItems::navigate(Row& row, const QUrl& url, bool pushHistory)
         row.history.append(url);
         row.historyIndex = static_cast<int>(row.history.size()) - 1;
     }
-    ++row.request;     // une réponse réseau en vol de la navigation précédente ne vaut plus (fichier local
-                       // et about: compris : `serial` n'avance qu'à l'arrivée de leur contenu)
-    row.preparing = 0; // une réécriture en cours ne vaut plus
+    row.request = ++m_requests; // une réponse en vol de la navigation précédente ne vaut plus (fichier local
+                                // et about: compris : `serial` n'avance qu'à l'arrivée de leur contenu)
+    row.preparing = 0;          // une réécriture en cours ne vaut plus
     row.blocked = false;
     row.refused = false;
     row.pendingUrl = QUrl();

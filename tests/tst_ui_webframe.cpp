@@ -202,6 +202,7 @@ private slots:
     void hrefOutsideSvgResourceBecomesALink();
     void navigationToLocalContentDropsTheInFlightReply_data();
     void navigationToLocalContentDropsTheInFlightReply();
+    void replyOfARecreatedRowIsNotTakenForANewNavigation();
     void unblockFollowsThePageNotItsNumber();
     void dialogRefusesEmptyFields();
     void rebuildConvertsOnlyChangedHtml();
@@ -391,6 +392,41 @@ void TstUiWebFrame::navigationToLocalContentDropsTheInFlightReply()
     QVERIFY(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl() != slow);
     if (local)
         QVERIFY2(shown.contains(QStringLiteral("local")), qPrintable(shown));
+}
+
+// L8-C12 essai 2. Le compteur de navigation était propre à chaque ligne et repartait de 0 quand `rebuild` la
+// recréait (changement de page) : après un aller-retour de page, la deuxième navigation de la ligne neuve
+// portait le même numéro que la navigation lente d'avant, dont la réponse tardive était alors acceptée.
+void TstUiWebFrame::replyOfARecreatedRowIsNotTakenForANewNavigation()
+{
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/a"), "<p>depart</p>");
+    server.page(QStringLiteral("/b"), "<p>lente</p>");
+    server.page(QStringLiteral("/c"), "<p>derniere</p>");
+    Fixture f;
+    QVERIFY(f.frames.insertFrame({}, server.url(QStringLiteral("/a")).toString()));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("depart")), 5000);
+    f.document.nextPage();
+    QCOMPARE(f.document.pageCount(), 2);
+    f.document.showPage(0);
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("depart")), 5000);
+    server.hold(QStringLiteral("/b"));
+    server.reset();
+    QVERIFY(f.frames.followLink(0, server.url(QStringLiteral("/b")))); // en vol
+    QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/b")), 5000);
+    f.document.showPage(1);
+    QTRY_COMPARE_WITH_TIMEOUT(f.frames.count(), 0, 5000);
+    f.document.showPage(0);
+    QTRY_COMPARE_WITH_TIMEOUT(f.frames.count(), 1, 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("depart")), 5000);
+    QVERIFY(f.frames.followLink(0, server.url(QStringLiteral("/c"))));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("derniere")), 5000);
+    server.release(); // la réponse lente arrive : elle ne vaut plus
+    QTest::qWait(300);
+    const QString shown = content(f.frames, 0);
+    QVERIFY2(shown.contains(QStringLiteral("derniere")) && !shown.contains(QStringLiteral("lente")),
+             qPrintable(shown));
 }
 
 // L8-C12, constat 7. « OK » avec l'adresse et le code vides appelait insertFrame("", "") : le modèle refuse,
