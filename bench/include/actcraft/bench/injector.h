@@ -5,11 +5,14 @@
 #include <QObject>
 #include <QPointF>
 #include <QPointingDevice>
+#include <QString>
+#include <QStringList>
 #include <QTimer>
 
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 class QWindow;
@@ -30,6 +33,15 @@ enum class GesturePhase : std::uint8_t
     Press,
     Move,
     Release,
+};
+
+// Un contact de l'étape « parallel » : un appareil (son numéro), sa sorte (stylus, touch ou mouse) et ses
+// points, en repère de page ou de fenêtre selon l'appel.
+struct ParallelContact
+{
+    int device = 0;
+    QString kind;
+    std::vector<QPointF> points;
 };
 
 // Entrées synthétiques postées à la fenêtre (DA6), avec rattrapage : à chaque déclenchement, tous les
@@ -81,10 +93,25 @@ public:
     // `to` en `steps` pas, un par image. Appui à `from`, relâché à `to`.
     bool pinch(QPointF center, double from, double to, int steps, const FingerSink& sink,
                PointSpace space = PointSpace::Page);
+    // Un doigt tenu sans bouger : appui, maintien `holdMs` (boucle d'événements en marche), relâché.
+    bool longPress(QPointF point, int holdMs, const FingerSink& sink, PointSpace space = PointSpace::Page);
     // Souris : appui au premier point, 16 déplacements par segment, maintien `holdMs` au dernier point,
     // relâché.
     bool pointerPath(const std::vector<QPointF>& points, const PointerSink& sink, int holdMs,
                      PointSpace space = PointSpace::Page);
+
+    // Plusieurs contacts entrelacés (L11-T2) : tous les appuis, puis les déplacements alternés d'un point à
+    // la fois (un contact plus court garde sa dernière position), puis tous les relâchés. Chaque numéro
+    // d'appareil a son QPointingDevice public (systemId 6000 + n), créé à la première utilisation ; les
+    // événements sont postés à la fenêtre (postEvent), rien n'est enregistré auprès de la plateforme.
+    // Faux, sans rien poster, si la liste est vide, un numéro n'est pas positif ou en double, une sorte est
+    // inconnue ou un contact n'a pas de point.
+    bool postParallel(const std::vector<ParallelContact>& contacts, double pressure,
+                      PointSpace space = PointSpace::Page);
+    // Journal des événements de postParallel : « P1 », « M1 », « R2 » (phase et numéro d'appareil), vidé à
+    // chaque appel de setLogging.
+    void setLogging(bool enabled);
+    QStringList eventLog() const;
 
 signals:
     void planFinished();
@@ -92,11 +119,16 @@ signals:
 private:
     void scheduleNext();
     QEvent* makeEvent(const PlannedInput& input) const;
+    const QPointingDevice* parallelDevice(int number, const QString& kind);
+    void postContact(GesturePhase phase, const ParallelContact& contact, QPointF scene, double pressure);
 
     QWindow* m_target;
     PageToScene m_pageToScene;
     std::unique_ptr<QPointingDevice> m_stylus;
     std::unique_ptr<QPointingDevice> m_wheel;
+    std::vector<std::pair<std::pair<int, QString>, std::unique_ptr<QPointingDevice>>> m_parallelDevices;
+    QStringList m_log;
+    bool m_logging = false;
     QTimer m_timer;
     std::vector<PlannedInput> m_inputs;
     std::vector<std::int64_t> m_planned;

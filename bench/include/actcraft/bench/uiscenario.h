@@ -70,6 +70,21 @@ enum class UiStepKind : std::uint8_t
     FileCheck, // {"file": "<chemin>", "pdfPages": 3} ou {"file": "<chemin>", "imageSize": [1024, 768]}
     // Ajoutée par L6-T18 (S9), à la fin.
     Restart, // {"restart": true} — quitter et relancer : mêmes dossiers de réglages et de profils
+    // Ajoutées par L11-T2, à la fin, dans cet ordre.
+    Parallel,  // {"parallel": [{"device": 1, "kind": "stylus", "points": [[x, y], …]}, …], "pressure": 0.5}
+    Resize,    // {"resize": [largeur, hauteur]} — taille logique de la fenêtre (rotation simulée)
+    AppState,  // {"appState": "suspended"|"hidden"|"inactive"|"active"} — QApplicationStateChangeEvent
+    LongPress, // {"longPress": [x, y], "kind": "touch"|"mouse", "holdMs": 600, "space": "page"}
+    VisibleTexts,  // {"visibleTexts": "pseudo", "marks": ["⟦", "⟧"], "ignore": ["pageIndicator"]}
+    ExpectChanged, // {"expectChanged": "objet.propriété", "from": "${nom}"} — différent de la valeur retenue
+};
+
+// Un contact de l'étape « parallel » : numéro d'appareil (≥ 1), sorte (stylus, touch, mouse), points.
+struct UiContact
+{
+    int device = 0;
+    QString kind;
+    std::vector<QPointF> points;
 };
 
 struct UiStep
@@ -115,6 +130,16 @@ struct UiStep
     // plateformes (QSysInfo::productType) ; la ligne « SAUTE … » écrit le motif.
     QStringList skipOn;
     QString skipReason;
+    // Ajoutés par L11-T2. Resize : `size`. AppState : `appState`. LongPress : point dans `at`, durée dans
+    // `holdMs`, sorte dans `pointerKind`. VisibleTexts : marques et éléments ignorés. ExpectChanged : valeur
+    // retenue dans `value`. `contacts` (Parallel) en dernier.
+    QSize size;
+    Qt::ApplicationState appState = Qt::ApplicationActive;
+    QString pointerKind = QStringLiteral("touch");
+    QString markOpen = QStringLiteral("⟦");
+    QString markClose = QStringLiteral("⟧");
+    QStringList ignore;
+    std::vector<UiContact> contacts;
 };
 
 struct UiScenario
@@ -203,6 +228,12 @@ private:
     bool pointer(const UiStep& step, QStringList& report);
     bool tap(const UiStep& step, QStringList& report);
     bool doubleClick(const UiStep& step, QStringList& report);
+    bool parallel(const UiStep& step, QStringList& report);
+    bool resize(const UiStep& step, QStringList& report);
+    bool appState(const UiStep& step, QStringList& report);
+    bool longPress(const UiStep& step, QStringList& report);
+    bool visibleTexts(const UiStep& step, QStringList& report);
+    bool expectChanged(const UiStep& step, QStringList& report);
     bool typeText(const UiStep& step, QStringList& report);
     Injector& gestures(); // injecteur des gestes directs, créé à la première étape qui en a besoin
     bool fixture(const UiStep& step, QStringList& report);

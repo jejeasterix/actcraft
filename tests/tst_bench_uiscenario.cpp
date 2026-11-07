@@ -1027,10 +1027,10 @@ private slots:
         QVERIFY(!parseSteps("{\"parallel\":[{\"device\":1,\"kind\":\"touch\",\"points\":[[1,1]]},"
                             "{\"device\":1,\"kind\":\"touch\",\"points\":[[2,2]]}]}",
                             bad, error));
-        QVERIFY(!parseSteps("{\"parallel\":[{\"device\":0,\"kind\":\"touch\",\"points\":[[1,1]]}]}", bad,
-                            error));
-        QVERIFY(!parseSteps("{\"parallel\":[{\"device\":1,\"kind\":\"pied\",\"points\":[[1,1]]}]}", bad,
-                            error));
+        QVERIFY(
+            !parseSteps("{\"parallel\":[{\"device\":0,\"kind\":\"touch\",\"points\":[[1,1]]}]}", bad, error));
+        QVERIFY(
+            !parseSteps("{\"parallel\":[{\"device\":1,\"kind\":\"pied\",\"points\":[[1,1]]}]}", bad, error));
         QVERIFY(!parseSteps("{\"parallel\":[{\"device\":1,\"kind\":\"touch\",\"points\":[]}]}", bad, error));
     }
 
@@ -1087,10 +1087,11 @@ private slots:
     {
         UiScenario s;
         QString error;
-        QVERIFY2(parseSteps("{\"visibleTexts\":\"pseudo\"},"
-                            "{\"visibleTexts\":\"pseudo\",\"marks\":[\"<\",\">\"],\"ignore\":[\"pageIndicator\"]}",
-                            s, error),
-                 qPrintable(error));
+        QVERIFY2(
+            parseSteps("{\"visibleTexts\":\"pseudo\"},"
+                       "{\"visibleTexts\":\"pseudo\",\"marks\":[\"<\",\">\"],\"ignore\":[\"pageIndicator\"]}",
+                       s, error),
+            qPrintable(error));
         QVERIFY(s.steps[0].kind == UiStepKind::VisibleTexts);
         QCOMPARE(s.steps[0].markOpen, QStringLiteral("⟦"));
         QCOMPARE(s.steps[0].markClose, QStringLiteral("⟧"));
@@ -1135,7 +1136,8 @@ private slots:
         // Un contact plus court garde sa dernière position ; contacts invalides refusés sans rien poster.
         injector.setLogging(true);
         QVERIFY(!injector.postParallel({}, 0.5, PointSpace::Window));
-        QVERIFY(!injector.postParallel({{1, QStringLiteral("pied"), {QPointF(1, 1)}}}, 0.5, PointSpace::Window));
+        QVERIFY(
+            !injector.postParallel({{1, QStringLiteral("pied"), {QPointF(1, 1)}}}, 0.5, PointSpace::Window));
         QVERIFY(injector.eventLog().isEmpty());
     }
 
@@ -1166,7 +1168,8 @@ private slots:
         QVERIFY(!f.player->play(scenario("fixe", "[{\"remember\":\"window.width\",\"as\":\"w1\"},"
                                                  "{\"expectChanged\":\"window.width\",\"from\":\"${w1}\"}]"),
                                 f.out.path(), report));
-        QVERIFY2(report.last().startsWith(QLatin1String("CHANGE window.width ECART")), qPrintable(report.last()));
+        QVERIFY2(report.last().startsWith(QLatin1String("CHANGE window.width ECART")),
+                 qPrintable(report.last()));
     }
 
     // L'état de l'application part par la voie publique : un filtre posé sur l'application le reçoit.
@@ -1187,14 +1190,15 @@ private slots:
         QVERIFY(load(f));
         QCoreApplication::instance()->installEventFilter(&spy);
         QStringList report;
-        const bool ok = f.player->play(scenario("etat", "[{\"appState\":\"hidden\"},{\"appState\":\"active\"}]"),
-                                       f.out.path(), report);
+        const bool ok = f.player->play(
+            scenario("etat", "[{\"appState\":\"hidden\"},{\"appState\":\"active\"}]"), f.out.path(), report);
         QCoreApplication::instance()->removeEventFilter(&spy);
         QVERIFY2(ok, qPrintable(report.join(QLatin1Char('\n'))));
         QCOMPARE(spy.states, (QList<Qt::ApplicationState>{Qt::ApplicationHidden, Qt::ApplicationActive}));
     }
 
-    // Textes visibles : un texte sans marques est un écart, sauf chiffres seuls, éléments ignorés, invisibles.
+    // Textes visibles : un texte sans marques est un écart, sauf chiffres seuls, éléments ignorés,
+    // invisibles.
     void visibleTextsReportsUnmarkedTexts()
     {
         Fixture f;
@@ -1214,8 +1218,9 @@ Item {
         QVERIFY2(holder, qPrintable(component.errorString()));
         holder->setParentItem(f.window->contentItem());
         QStringList report;
-        QVERIFY(!f.player->play(scenario("textes", "[{\"visibleTexts\":\"pseudo\",\"ignore\":[\"indicateur\"]}]"),
-                                f.out.path(), report));
+        QVERIFY(
+            !f.player->play(scenario("textes", "[{\"visibleTexts\":\"pseudo\",\"ignore\":[\"indicateur\"]}]"),
+                            f.out.path(), report));
         const QString all = report.join(QLatin1Char('\n'));
         QVERIFY2(all.contains(QStringLiteral("TEXTE ECART nu \"Bonjour\"")), qPrintable(all));
         QVERIFY2(all.contains(QLatin1String("TEXTES EN ECART 1")), qPrintable(all));
@@ -1224,9 +1229,10 @@ Item {
                  qPrintable(all));
         // Sans le texte nu : OK.
         holder->childItems().at(1)->setProperty("text", QStringLiteral("⟦Salut⟧"));
-        QVERIFY2(f.player->play(scenario("textes2", "[{\"visibleTexts\":\"pseudo\",\"ignore\":[\"indicateur\"]}]"),
-                                f.out.path(), report),
-                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(
+            f.player->play(scenario("textes2", "[{\"visibleTexts\":\"pseudo\",\"ignore\":[\"indicateur\"]}]"),
+                           f.out.path(), report),
+            qPrintable(report.join(QLatin1Char('\n'))));
         QVERIFY2(report.last().startsWith(QLatin1String("TEXTES OK ")), qPrintable(report.last()));
     }
 
