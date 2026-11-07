@@ -2,13 +2,14 @@
 <head><meta charset="utf-8"><title>Aide d'ActCraft</title></head>
 <body>
 <h1>Aide d'ActCraft</h1>
-<p>Cette aide est embarquée : elle s'affiche sans connexion. La touche F1 l'ouvre ; elle ouvrira la page de l'outil
-courant lorsqu'elle existera, sinon ce sommaire.</p>
+<p>Cette aide est embarquée : elle s'affiche sans connexion. La touche F1 l'ouvre sur la page de l'outil
+courant lorsqu'elle existe, sinon sur ce sommaire.</p>
 
 <h2><a name="sommaire">Sommaire</a></h2>
 <ul>
 <li><a href="#pages">Pages et paquets de ressources</a></li>
 <li><a href="#outils">Outils de dessin, de sélection et de texte</a></li>
+<li><a href="#procedures">Procédures</a></li>
 <li><a href="#profils">Profils et mode conception</a></li>
 <li><a href="#documents">Documents récents et tableau d'accueil</a></li>
 <li><a href="#classe">Mode classe protégé</a></li>
@@ -21,7 +22,30 @@ glissez un élément sur la page pour l'y placer.</p>
 
 <h2><a name="outils">Outils de dessin, de sélection et de texte</a></h2>
 <p>La barre d'outils regroupe le stylo, le surligneur, la gomme, la sélection et le texte. Chaque outil garde ses
-réglages d'une session à l'autre.</p>
+réglages d'une session à l'autre. Une page par outil :</p>
+<ul>
+<li><a href="pen.html">Stylo</a></li>
+<li><a href="highlighter.html">Marqueur</a></li>
+<li><a href="reveal-ink.html">Encre révélatrice</a></li>
+<li><a href="eraser.html">Gomme</a></li>
+<li><a href="select.html">Sélectionner</a></li>
+<li><a href="shape.html">Formes</a></li>
+<li><a href="text.html">Texte</a></li>
+<li><a href="text-vertical.html">Texte de haut en bas</a></li>
+<li><a href="fill.html">Pot de peinture</a></li>
+<li><a href="connector.html">Connecteur</a></li>
+</ul>
+
+<h2><a name="procedures">Procédures</a></h2>
+<ul>
+<li><a href="raccourcis.html">Raccourcis clavier</a></li>
+<li><a href="deux-utilisateurs.html">Mode à deux utilisateurs</a></li>
+<li><a href="modes-toucher.html">Modes du toucher</a></li>
+<li><a href="reprise.html">Reprise après une interruption</a></li>
+<li><a href="mises-a-jour.html">Mises à jour</a></li>
+<li><a href="profils.html">Profils</a></li>
+<li><a href="mot-de-passe-oublie.html">Mot de passe de la classe oublié</a></li>
+</ul>
 
 <h2><a name="profils">Profils et mode conception</a></h2>
 <p>Un profil choisit les commandes et les paramètres proposés. L'éditeur de profils permet d'en créer, d'en importer et
@@ -36,14 +60,7 @@ de créer un mot de passe (deux saisies) ; il n'existe aucun mot de passe par d�
 mot de passe.</p>
 
 <h2><a name="mot-de-passe-oublie">Mot de passe de la classe oublié</a></h2>
-<p>Le mot de passe n'est pas récupérable : seule une empreinte salée en est gardée. Pour retrouver l'accès :</p>
-<ol>
-<li>Fermez ActCraft.</li>
-<li>Dans la configuration de l'application (le fichier de réglages de l'utilisateur), supprimez toutes les clés dont le
-nom commence par <b>classroom/</b> : <b>classroom/hash</b>, <b>classroom/salt</b>, <b>classroom/iterations</b> et
-<b>classroom/locked</b>.</li>
-<li>Relancez ActCraft : la classe est déverrouillée et le prochain verrouillage demande un nouveau mot de passe.</li>
-</ol>
+<p>La procédure est sur la page <a href="mot-de-passe-oublie.html">Mot de passe de la classe oublié</a>.</p>
 <p><a href="#sommaire">Retour au sommaire</a></p>
 </body>
 </html>
