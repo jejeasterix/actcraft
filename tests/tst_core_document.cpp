@@ -84,6 +84,23 @@ private slots:
         QCOMPARE(fingerprint(c), fingerprint(d));
     }
 
+    // L8-C15 : la clé déjà calculée (hors du fil de l'interface) est prise telle quelle, sans nouveau hachage :
+    // une clé choisie par l'appelant, jamais le SHA-256 des octets, le prouve.
+    void resourceWithAKnownKeyIsNotHashedAgain()
+    {
+        Document d;
+        const std::string given = "cle-de-l-appelant";
+        QCOMPARE(d.addResource(QByteArray("abc"), "PNG", given), given);
+        QVERIFY(d.resource(given) != nullptr);
+        QCOMPARE(d.resource(given)->extension, std::string("png")); // extension normalisée comme l'autre forme
+        QCOMPARE(d.resource(given)->data, QByteArray("abc"));
+        QCOMPARE(d.resources().size(), std::size_t{1});
+        const std::string real = sha256Hex(QByteArray("abc"));
+        QCOMPARE(d.addResource(QByteArray("abc"), "png", real), real); // clé juste : même résultat que l'autre
+        QCOMPARE(d.addResource(QByteArray("abc"), "png"), real);
+        QCOMPARE(d.resources().size(), std::size_t{2});
+    }
+
     void resourcesAreKeyedBySha256AndDeduplicated()
     {
         Document d;

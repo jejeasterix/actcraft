@@ -2,6 +2,7 @@
 
 #include <QDesktopServices>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QQmlComponent>
@@ -16,6 +17,7 @@
 
 #include <atomic>
 #include <memory>
+#include <thread>
 
 #ifdef Q_OS_MACOS
 #include <sys/xattr.h>
@@ -354,22 +356,69 @@ private slots:
         QVERIFY(m_opened.isEmpty());
     }
     // Lanceur détruit pendant l'écriture : aucune confirmation, aucun refus, aucun fil laissé derrière.
+    // L8-C15 : l'écriture est bien en cours (sonde entrée, fil bloqué) quand le lanceur est détruit, et ne
+    // se libère que pendant la destruction : le destructeur doit l'attendre (aucun fil laissé derrière) sans
+    // que rien ne soit livré à l'objet détruit.
     void launcherGoneDuringTheWriteDeliversNothing()
     {
         QSemaphore release;
-        LinkLauncher::setWriteProbe([&release] { release.tryAcquire(1, 2000); });
+        std::atomic<bool> entered{false};
+        LinkLauncher::setWriteProbe([&release, &entered] {
+            entered = true;
+            release.tryAcquire(1, 5000);
+        });
         auto l = std::make_unique<LinkLauncher>();
         fake(*l);
         QSignalSpy ask(l.get(), &LinkLauncher::confirmationNeeded);
         QSignalSpy refused(l.get(), &LinkLauncher::refused);
         l->requestStored(QByteArray("%PDF-1.4"), QStringLiteral("cours.pdf"), QStringLiteral("doc1"));
-        release.release();
+        QTRY_VERIFY_WITH_TIMEOUT(entered.load(), 5000); // l'écriture est en cours, pas finie
+        std::thread late([&release] {
+            QThread::msleep(300);
+            release.release(); // libérée pendant la destruction
+        });
+        QElapsedTimer timer;
+        timer.start();
         l.reset();
+        const qint64 waited = timer.elapsed();
+        late.join();
         QTest::qWait(200);
         LinkLauncher::setWriteProbe({});
+        QVERIFY2(waited >= 200, qPrintable(QString::number(waited))); // le destructeur a attendu le fil
         QCOMPARE(ask.size(), 0);
         QCOMPARE(refused.size(), 0);
         QVERIFY(m_opened.isEmpty());
+    }
+    // L8-C15 : une confirmation donnée pendant qu'une écriture remplace le même fichier (à la demande
+    // suivante) est refusée : le fichier remplacé n'a pas encore sa marque « venu d'ailleurs ». La nouvelle
+    // demande se confirme ensuite, une fois le fichier écrit et marqué.
+    void answerRefusedWhileTheSameFileIsBeingWritten()
+    {
+        LinkLauncher l;
+        fake(l);
+        QSignalSpy ask(&l, &LinkLauncher::confirmationNeeded);
+        QSignalSpy refused(&l, &LinkLauncher::refused);
+        l.requestStored(QByteArray("premier"), QStringLiteral("cours.pdf"), QStringLiteral("doc1"));
+        QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 1, 10000);
+        QSemaphore release;
+        std::atomic<bool> entered{false};
+        LinkLauncher::setWriteProbe([&release, &entered] {
+            entered = true;
+            release.tryAcquire(1, 5000);
+        });
+        l.requestStored(QByteArray("second"), QStringLiteral("cours.pdf"), QStringLiteral("doc1"));
+        QTRY_VERIFY_WITH_TIMEOUT(entered.load(), 5000);
+        l.answer(ask[0][1].toInt(), true); // le fichier est en train d'être remplacé
+        QVERIFY(m_opened.isEmpty());
+        QCOMPARE(refused.size(), 1);
+        release.release();
+        QTRY_COMPARE_WITH_TIMEOUT(ask.size(), 2, 10000);
+        LinkLauncher::setWriteProbe({});
+        l.answer(ask[1][1].toInt(), true);
+        QCOMPARE(m_opened.size(), 1);
+        QFile written(m_opened[0].toLocalFile());
+        QVERIFY(written.open(QIODevice::ReadOnly));
+        QCOMPARE(written.readAll(), QByteArray("second"));
     }
     void confirmationShowsTheFullTarget()
     {
