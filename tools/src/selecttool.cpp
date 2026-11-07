@@ -609,6 +609,7 @@ void SelectTool::press(const input::Sample& sample)
     m_pointer = sample.pointer;
     m_start = {sample.x, sample.y};
     m_pendingSelect = 0;
+    m_jumpedAtPress = false;
     m_dragSelection = false;
     m_additive = false;
     m_base.clear();
@@ -785,6 +786,9 @@ void SelectTool::jumpOntoTrackAtPress()
     if (!restrictionsOn()) {
         return;
     }
+    if (m_dragSelection && m_grabbed.size() > 1) {
+        return; // un clic dans une sélection ne déplace pas les autres objets : le saut attend le glisser
+    }
     const core::Page& page = m_context.document.page();
     for (const core::ObjectId id : m_grabbed) {
         const std::size_t index = core::indexOf(page, id);
@@ -793,13 +797,15 @@ void SelectTool::jumpOntoTrackAtPress()
         }
         const core::PageObject& object = page.objects[index];
         const core::Restrictions& r = object.common.restrictions;
-        if (r.travel != core::Travel::AlongTrack || r.track == 0 || !movable(object, m_context.lockIgnored)) {
+        if (r.travel != core::Travel::AlongTrack || r.track == 0 || object.common.dragCopy ||
+            !movable(object, m_context.lockIgnored)) { // dragCopy : un clic ne copie jamais
             continue;
         }
         const core::PointF jump = core::allowedTravel(page, object, {0, 0});
         if (std::hypot(jump.x, jump.y) > kTrackJumpTolerance) {
             beginDrag(false);
             if (m_state == State::Dragging) {
+                m_jumpedAtPress = true;
                 updateDrag(m_start);
             }
             return;
@@ -1078,6 +1084,13 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
         delta = core::translation(allowed.x, allowed.y);
     }
     const bool trash = m_state == State::Dragging && !cancelled && m_context.view.overTrash(point);
+    // Saut à l'appui relâché sans glisser : c'est un clic, l'objet saisi est sélectionné après le dépôt.
+    const core::ObjectId clicked =
+        m_jumpedAtPress && !cancelled && !trash &&
+                std::hypot(point.x - m_start.x, point.y - m_start.y) * m_context.view.zoom() <=
+                    kDragThresholdScreen
+            ? m_pendingSelect
+            : 0;
     core::DropResult verdict;
     if (trash) {
         std::vector<core::ObjectId> removed; // D9 : un objet à dragCopy reste, même sur la corbeille
@@ -1114,6 +1127,9 @@ void SelectTool::endDrag(core::PointF point, bool cancelled)
         m_context.view.setTrashHover(false);
     }
     reset();
+    if (clicked != 0) {
+        m_context.user.setSelection({clicked});
+    }
     showFrame();
     if (verdict.outcome == core::DropOutcome::Contained && m_containerAccepted) {
         m_containerAccepted(verdict.container, verdict.chime);

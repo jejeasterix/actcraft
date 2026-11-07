@@ -124,6 +124,7 @@ private:
     Grab m_grab = Grab::None;
     std::uint64_t m_pointer = 0;
     core::PointF m_start;
+    bool m_jumpedAtPress = false;          // le glisser a commencé à l'appui (saut sur le trait)
     core::ObjectId m_pendingSelect = 0;    // objet saisi non sélectionné : sélectionné si ce n'est qu'un clic
     bool m_dragSelection = false;          // le glissement déplace la sélection (le cadre la suit)
     bool m_additive = false;               // rectangle avec Maj/Ctrl : ajoute
