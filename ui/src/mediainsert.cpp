@@ -25,6 +25,18 @@
 
 namespace actcraft::ui {
 
+bool isSoundExtension(const QString& suffix)
+{
+    static const QStringList sounds{"mp3", "wav", "ogg", "oga", "m4a", "aac", "flac", "opus"};
+    return sounds.contains(suffix.toLower());
+}
+
+bool isVideoExtension(const QString& suffix)
+{
+    static const QStringList videos{"mp4", "m4v", "mov", "avi", "webm", "mkv", "mpg", "mpeg", "wmv"};
+    return videos.contains(suffix.toLower());
+}
+
 namespace {
 
 enum class Kind
@@ -45,15 +57,12 @@ constexpr double kFlashH = 240;
 
 Kind kindOf(const QString& suffix)
 {
-    static const QStringList sounds{"mp3", "wav", "ogg", "oga", "m4a", "aac", "flac", "opus"};
-    static const QStringList videos{"mp4", "m4v", "mov", "avi", "webm", "mkv", "mpg", "mpeg", "wmv"};
     static const QStringList flash{"swf", "flv"};
-    const QString lower = suffix.toLower();
-    if (sounds.contains(lower))
+    if (isSoundExtension(suffix))
         return Kind::Sound;
-    if (videos.contains(lower))
+    if (isVideoExtension(suffix))
         return Kind::Video;
-    if (flash.contains(lower))
+    if (flash.contains(suffix.toLower()))
         return Kind::Flash;
     return Kind::Unknown;
 }

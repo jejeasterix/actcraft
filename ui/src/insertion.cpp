@@ -69,9 +69,7 @@ struct Result
 
 bool isMediaExtension(const QString& suffix)
 {
-    static const QStringList known{"mp3", "wav", "ogg",  "oga", "m4a", "aac",  "flac", "mp4", "m4v",
-                                   "mov", "avi", "webm", "mkv", "mpg", "mpeg", "wmv",  "opus"};
-    return known.contains(suffix.toLower());
+    return isSoundExtension(suffix) || isVideoExtension(suffix);
 }
 
 // Fil secondaire : lecture et décodage. Aucune requête réseau : formats::readUrl n'ouvre que fichier et
