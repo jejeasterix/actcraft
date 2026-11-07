@@ -76,8 +76,9 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   composant « non libre », et les charge comme bibliothèques dynamiques : l'utilisateur peut les remplacer. Le code
   source de la version livrée est publié par le projet Qt (https://code.qt.io/) et par FFmpeg. ActCraft ne modifie
   pas FFmpeg. Versions et options de compilation exactes : à relever sur le poste Windows (rapport
-  `docs/verifications/2026-10-22-lot8-modules.md`). Sous macOS, Qt Multimedia s'appuie sur les composants du système
-  (AVFoundation) et n'embarque pas FFmpeg.
+  `docs/verifications/2026-10-22-lot8-modules.md`). Sous macOS, le Qt de Homebrew s'appuie sur les composants du système
+  (AVFoundation) et n'embarque pas FFmpeg ; le Qt officiel (installateur, aqt) embarque le greffon FFmpeg comme
+  sous Windows, avec les mêmes obligations.
 - **Moteur du cadre web** : Windows, composant WebView2 de Microsoft, installé sur le poste, non livré avec
   ActCraft ; macOS et Android, navigateur du système. ActCraft ne livre **pas** Qt WebEngine (Chromium).
 - Les brevets sur certains codecs vidéo relèvent des utilisateurs et des distributeurs, non de la licence du logiciel.
