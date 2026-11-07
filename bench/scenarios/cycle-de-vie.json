@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "cycle-de-vie",
+  "description": "Talon L11 : rempli par L11-T13.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

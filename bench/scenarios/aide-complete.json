@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "aide-complete",
+  "description": "Talon L11 : rempli par L11-T18.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

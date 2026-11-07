@@ -87,6 +87,26 @@ endif()
 # Hachage et mandataire du lot 6 (Qt6::Network).
 find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
 
+# Lot 11 (L11-T1) : sources réservées (talons marqués), remplies par les tâches nommées dans leurs marqueurs.
+set(ACTCRAFT_UI_LOT11_SOURCES
+    include/actcraft/ui/touchmode.h
+    src/touchmode.cpp
+    include/actcraft/ui/dualmode.h
+    src/dualmode.cpp
+    include/actcraft/ui/layoutmetrics.h
+    src/layoutmetrics.cpp
+    include/actcraft/ui/keyboardinset.h
+    src/keyboardinset.cpp
+    include/actcraft/ui/fingermenus.h
+    src/fingermenus.cpp
+    include/actcraft/ui/lifecycle.h
+    src/lifecycle.cpp
+    include/actcraft/ui/documentportal.h
+    src/documentportal.cpp
+    include/actcraft/ui/updatechecker.h
+    src/updatechecker.cpp
+)
+
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
     VERSION 1.0
@@ -298,6 +318,10 @@ qt_add_qml_module(actcraft_ui
         icons/enregistrer-zone.svg
         icons/cadre-web.svg
         icons/diffuser.svg
+        icons/toucher.svg
+        icons/deux-utilisateurs.svg
+        icons/mises-a-jour.svg
+        icons/reprise.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/linkdialogs.h
@@ -363,7 +387,8 @@ qt_add_qml_module(actcraft_ui
         include/actcraft/ui/printcontroller.h
         src/printcontroller.cpp
         ${ACTCRAFT_UI_LOT7_SOURCES}
-        ${ACTCRAFT_UI_LOT6_SOURCES})
+        ${ACTCRAFT_UI_LOT6_SOURCES}
+        ${ACTCRAFT_UI_LOT11_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
 # MSVC, C4702 (code inatteignable) dans les sources C++ que qmlcachegen produit : le code généré instancie

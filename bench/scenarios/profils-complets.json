@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "profils-complets",
+  "description": "Talon L11 : rempli par L11-T27.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

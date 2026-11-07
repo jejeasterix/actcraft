@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "classe-protegee-complete",
+  "description": "Talon L11 : rempli par L11-T26.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

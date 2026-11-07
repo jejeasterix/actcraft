@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "pseudo-langue",
+  "description": "Talon L11 : rempli par L11-T19.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

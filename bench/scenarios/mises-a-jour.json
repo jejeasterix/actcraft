@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "mises-a-jour",
+  "description": "Talon L11 : rempli par L11-T22.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}

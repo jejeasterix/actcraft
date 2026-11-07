@@ -1,0 +1,8 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "au-doigt",
+  "description": "Talon L11 : rempli par L11-T12.",
+  "steps": [
+    {"waitReady": true}
+  ]
+}
