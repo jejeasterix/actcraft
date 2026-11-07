@@ -7,7 +7,9 @@ import ActCraft.Ui
 // Commands.trigger(id, argument, 1), le chemin des boutons du premier utilisateur avec l'utilisateur en plus :
 // verrou de classe, diffusion protégée et refus des boîtes s'y appliquent ; aucune autre voie vers les outils.
 Rectangle {
-    id: palette
+    // Pas « palette » : tout Item (Qt 6) a une propriété palette, qui masque l'id dans les délégués des Repeater
+    // (le contexte d'un délégué cherche les propriétés du délégué avant les id du document).
+    id: paletteRoot
     objectName: "secondPalette"
     required property Commands commands
     readonly property int secondUser: 1
@@ -49,20 +51,20 @@ Rectangle {
             columns: 2
             spacing: 4
             Repeater {
-                model: palette.toolIds
+                model: paletteRoot.toolIds
                 PaletteButton {
                     required property string modelData
                     objectName: "secondTool_" + modelData
-                    commands: palette.commands
-                    user: palette.secondUser
+                    commands: paletteRoot.commands
+                    user: paletteRoot.secondUser
                     commandId: "tool." + modelData
-                    Accessible.name: palette.commands.label(commandId)
+                    Accessible.name: paletteRoot.commands.label(commandId)
                     Image {
                         anchors.centerIn: parent
                         width: 24
                         height: 24
                         sourceSize: Qt.size(24, 24)
-                        source: palette.commands.iconUrl(parent.commandId)
+                        source: paletteRoot.commands.iconUrl(parent.commandId)
                     }
                 }
             }
@@ -72,13 +74,13 @@ Rectangle {
             columns: 2
             spacing: 4
             Repeater {
-                model: palette.colorValues
+                model: paletteRoot.colorValues
                 PaletteButton {
                     required property string modelData
                     required property int index
                     objectName: "secondColor_" + index
-                    commands: palette.commands
-                    user: palette.secondUser
+                    commands: paletteRoot.commands
+                    user: paletteRoot.secondUser
                     commandId: "pen.color"
                     argument: modelData
                     color: modelData
@@ -90,13 +92,13 @@ Rectangle {
         Column {
             spacing: 4
             Repeater {
-                model: palette.widthValues
+                model: paletteRoot.widthValues
                 PaletteButton {
                     required property int modelData
                     required property int index
                     objectName: "secondWidth_" + index
-                    commands: palette.commands
-                    user: palette.secondUser
+                    commands: paletteRoot.commands
+                    user: paletteRoot.secondUser
                     commandId: "pen.width"
                     argument: modelData
                     width: 92
