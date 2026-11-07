@@ -38,24 +38,36 @@ avant `tous`, L11-T19, L11-T20, L11-T30), **M8** (réglages d'essai des tests de
 sections nommées ; le volet 2 (palette coupée à 1 000 px, L11-T10) est dans l'amendement 3 du plan de 11a.
 
 **Volet 1 — Paquet `.dmg` non signé du Mac** (demande du pilote, 2026-11-06).
+- **Origine (D11-15 et N2-13 du cadrage rouverts).** Le `.dmg` vient de la demande du pilote du 2026-11-06, relayée sous
+  la délégation de Jérôme du 2026-11-02 (« Je te laisse manager les sessions ActCraft »). C'est un **artefact** : sa
+  publication reste soumise au go écrit de la release ; hypothèse **H11-19** « à revoir par Jérôme : `.dmg` dans la
+  release 1.0.0 ».
 - **D11-15 remplacée** : la 1.0.0 livre aussi `ActCraft-<version>-macos-arm64.dmg` (Mac Apple Silicon), **non signé** :
   signature ad hoc (`codesign -s -`), ni certificat Developer ID ni notarisation. Le paragraphe « Paquet macOS » du plan
   de 11a et la ligne « macOS sans paquet » de la relecture ci-dessous sont caducs.
 - **Tâche neuve L11-T29m** (ligne de table, section `#tache-l11-t29m`) : `scripts/paquet-mac.sh` (bash, sans `pwsh`),
   `scripts/verifier-licences-mac.sh`, `scripts/essai-dmg.sh`, nom du bundle `ActCraft` (`app/CMakeLists.txt`),
   bibliothèques non Qt du bundle déclarées dans `packaging/autres-autorises.txt` avec leurs notices, job `macos` de
-  `release.yml`. Dépend de L11-T28 ; **V15 : L11-T29 ‖ L11-T29m** (fichiers disjoints) ; L11-T30 dépend des deux.
+  `release.yml`. Dépend de L11-T28 ; **V15 : L11-T29m seule ; V15b : L11-T29**, qui dépend de L11-T29m (son essai à
+  blanc de `release.yml` doit contenir le job `macos`, relecture tour 1, M1) ; L11-T30 dépend des deux.
 - **Aucune entrée ctest neuve** : N reste **N11 + 32** (L11-T1 en cours avec 32) ; la preuve est par script
   (`DMG OK`, `ESSAI DMG OK`, `LICENCES OK`), plus `tst_app_notices` (L11-T25) toujours vert.
-- **`release.yml`** : job `macos` sur le runner auto-hébergé du Mac mini (gardes de `ci.yml:69-91`), sans secret.
-  `macos-latest` est écarté : le dépôt est **privé** (`gh repo view --json visibility` → `PRIVATE`, 2026-11-07), ses
-  minutes macOS sont payantes (dépense : décision de Jérôme). Le brouillon de release attend alors trois paquets.
+- **`release.yml`** : job `macos`, sans secret ; **exécuteur choisi selon la visibilité du dépôt** (relecture M4),
+  comme `runner_macos` de `ci.yml` : privé → runner auto-hébergé du Mac mini ; public → `macos-latest` (gratuit pour un
+  dépôt public), par `runs-on: ${{ github.event.repository.private && fromJSON('[…]') || 'macos-latest' }}`. Aucun
+  `exit 1` sur « public » : la garde de visibilité de `ci.yml:74-78` n'est pas reprise, seule la garde de mémoire
+  (`ci.yml:79-91`). Le dépôt est privé depuis le 2026-11-06 (décision de Jérôme ; `CLAUDE.md`, qui dit « public », est
+  en retard). Le lancement graphique y est informatif (`continue-on-error`) ; les contrôles `otool` et `dyld` sont
+  bloquants. Le brouillon de release attend trois paquets.
+- **Qt WebEngine** jamais dans le bundle : `paquet-mac.sh` retire le greffon `libqtwebview_webengine.dylib` (Qt WebView
+  passe par le greffon natif `darwin`) puis tout framework que plus rien ne référence ; un `QtWebEngine*` restant =
+  `LICENCES EN ECHEC` (arrêt).
 - **L11-T25** : format des lignes de `packaging/autres-autorises.txt` fixé : `<motif glob> <expression SPDX>` (premier
   blanc = séparateur, `#` = commentaire), lu par `verifier-licences.ps1` et par `verifier-licences-mac.sh`.
 - **L11-T28** : `README.md` (installer sous macOS, Gatekeeper, `xattr -dr com.apple.quarantine`) et section 1.0.0 de
   `CHANGELOG.md` (donc les notes de version) disent « non signé : clic droit > Ouvrir au premier lancement ».
-- **L11-T29** : ses points 6 à 8 (essai à blanc de `release.yml`) se jouent après le merge de L11-T29m, motifs du job
-  `macos` ajoutés. **L11-T30** : DMG dans le rapport de porte, la procédure du go et les mesures du MacBook Air M1.
+- **L11-T29** : dépend de L11-T29m (V15b) ; son essai à blanc relève les motifs du job `macos` (`DMG OK` dans sa
+  preuve). **L11-T30** : DMG dans le rapport de porte, la procédure du go et les mesures du MacBook Air M1.
 - Interdits inchangés et répétés dans L11-T29m : aucun tag, aucune release, aucun `gh workflow run`, aucun push.
 
 **Volet 3 — Lecture Mac des preuves.**
@@ -63,6 +75,9 @@ sections nommées ; le volet 2 (palette coupée à 1 000 px, L11-T10) est dans l
   remplace sur le Mac les commandes PowerShell, `jeton.ps1` et les chemins `C:\…` ; le reste du plan vaut tel quel.
 - Branche du lot : `feat/livraison-complete-l11`. Toute commande qui cite `feat/livraison-complete...HEAD` se lit
   `feat/livraison-complete-l11...HEAD`.
+- Mutations : **la remise prescrite par la section l'emporte sur la règle Mac** (`git checkout -- <fichier>`) quand le
+  fichier porte des ajouts non commités de la tâche (L11-T10, L11-T29m : aller-retour par `sed` ou copie, prouvé par
+  `grep` ou `cmp`).
 - Restes pour le PC : preuves Android (`APK OK`, `ANDROID … OK`), REA et ancien dépôt, corpus vidéo (contrôle des
   titres), `NOMS OK`, captures et banc D3D11 (`captures.ps1`, `bench.ps1`), installateur Windows, preuve MSVC
   `/W4 /WX`. Chaque tâche les liste dans son rapport ; l'orchestrateur les groupe dans la section « Restes pour le PC
@@ -97,14 +112,14 @@ La table des constats N1 à N4 et n1 à n6 est dans l'amendement 2 du plan de 11
 | L11-T26 | S19 rejoué sur toutes les commandes des lots 1 à 11 : attributs déclarés partout, verrou exact, scénario `classe-protegee-complete` | L11-T9, L11-T23 | `actions/data/commands.json`, `tests/tst_ui_lockall.cpp`, `bench/scenarios/classe-protegee-complete.json` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_lockall` 5 fonctions `PASS` ; `tst_captures_classe_protegee_complete` Passed ; `LU commands.lockedCount=<K> OK` (K exact, calculé des données) ; mot de passe absent de l'INI | S19 | #tache-l11-t26 |
 | L11-T27 | S32 : les cinq profils de bout en bout (épinglages des lots 7 et 8, navigateurs et réglages, filtre d'Android) ; scénario `profils-complets` | L11-T9, L11-T20 | `actions/data/profiles/{en-classe,preparation,lecture-ecriture,calcul-geometrie,son-image}.json`, `actions/include/actcraft/actions/profile.h`, `actions/src/profile.cpp`, `tests/tst_ui_profilesall.cpp`, `bench/scenarios/profils-complets.json` | isolé | implementeur-tdd | `TESTS OK` ; `tst_ui_profilesall` 5 fonctions `PASS` ; `tst_captures_profils_complets` Passed ; pour chaque profil `LU appProfile.currentId=<id> OK` ; `tst_ui_profiles` (`namesAreOurs` en `PASS`) toujours `Passed` | S32 | #tache-l11-t27 |
 | L11-T28 | Version 1.0.0 (`versionCode` 10000), section 1.0.0 de `CHANGELOG.md`, guide de démarrage dans `README.md`, notes de version | L11-T17 à L11-T27 | `CMakeLists.txt`, `CHANGELOG.md`, `README.md`, `tests/app.cmake`, `tests/tst_app_versioninfo.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_app_versioninfo` 4 fonctions `PASS`, `tst_app_version` (`--version`) toujours `Passed` ; `Get-ActCraftVersionCode` = `10000` ; `NOTES OK` ; `NOMS OK` ; contrôle des titres du corpus vide | S14 | #tache-l11-t28 |
-| L11-T29 | Paquets 1.0.0 et S14 : installateur et APK locaux, essais, flux de release en essai à blanc sur la CI, mode réel sans tag refusé — release prête | L11-T28 | `scripts/paquet.ps1`, `docs/verifications/2026-10-22-lot11-release-prete.md` | partagé | implementeur-tdd | `PAQUET OK : …ActCraft-1.0.0-setup.exe`, `INSTALLATEUR OK`, `APK OK`, `LICENCES OK` ×2, `ANDROID OK`, `ANDROID FICHIERS OK` ; run d'essai : `APK NON PUBLIABLE`, `NOTES OK`, `SHA256SUMS.txt`, `SECRETS ABSENTS` et `CONTROLE OK` du job `controle-mode-reel`, aucune release ; branche d'essai supprimée ; aucun `gh workflow run release.yml -f mode=reel` | S14 | #tache-l11-t29 |
-| L11-T29m | Paquet macOS : `.app` déployé par `macdeployqt` et `.dmg` non signé, 1.0.0 | L11-T28 | `scripts/paquet-mac.sh`, `scripts/essai-dmg.sh`, `scripts/verifier-licences-mac.sh`, `app/CMakeLists.txt`, `packaging/qt-autorises.txt`, `packaging/autres-autorises.txt`, `THIRD_PARTY_NOTICES.md`, `LICENSES/*.txt` (textes SPDX des bibliothèques du bundle), `.github/workflows/release.yml`, `docs/verifications/2026-11-07-lot11-paquet-macos.md` | isolé | concepteur-critique | `LICENCES OK` sur le bundle ; `DMG OK : …/build/paquet/ActCraft-1.0.0-macos-arm64.dmg` ; `ESSAI DMG OK` (dont `VERSION OK : ActCraft 1.0.0`, `LANCEMENT OK`, aucune bibliothèque hors du bundle) ; mutation de `autres-autorises.txt` → `LICENCES EN ECHEC`, remise ; `tst_app_notices` toujours `Passed` ; `YAML OK` (job `macos`) ; suite `100% tests passed … out of N`, N = N11 + 32 (aucun test neuf) | S14 | #tache-l11-t29m |
+| L11-T29 | Paquets 1.0.0 et S14 : installateur et APK locaux, essais, flux de release en essai à blanc sur la CI, mode réel sans tag refusé — release prête | L11-T28, L11-T29m | `scripts/paquet.ps1`, `docs/verifications/2026-10-22-lot11-release-prete.md` | partagé | implementeur-tdd | `PAQUET OK : …ActCraft-1.0.0-setup.exe`, `INSTALLATEUR OK`, `APK OK`, `LICENCES OK` ×2, `ANDROID OK`, `ANDROID FICHIERS OK` ; run d'essai : `APK NON PUBLIABLE`, `DMG OK` et `ESSAI DMG OK` (job `macos`), `NOTES OK`, `SHA256SUMS.txt`, `SECRETS ABSENTS` et `CONTROLE OK` du job `controle-mode-reel`, aucune release ; branche d'essai supprimée ; aucun `gh workflow run release.yml -f mode=reel` | S14 | #tache-l11-t29 |
+| L11-T29m | Paquet macOS : `.app` déployé par `macdeployqt` et `.dmg` non signé, 1.0.0 | L11-T28 | `scripts/paquet-mac.sh`, `scripts/essai-dmg.sh`, `scripts/verifier-licences-mac.sh`, `app/CMakeLists.txt`, `packaging/qt-autorises.txt`, `packaging/autres-autorises.txt`, `THIRD_PARTY_NOTICES.md`, `LICENSES/*.txt` (textes SPDX des bibliothèques du bundle), `.github/workflows/release.yml`, `docs/verifications/2026-11-07-lot11-paquet-macos.md` | isolé | concepteur-critique | `LICENCES OK` sur le bundle ; `DMG OK : …/build/paquet/ActCraft-1.0.0-macos-arm64.dmg` ; `ESSAI DMG OK` (dont `VERSION OK : ActCraft 1.0.0`, `LANCEMENT OK`, `qt.conf`, aucune bibliothèque chargée hors du bundle à `--version` ni au lancement, `libqcocoa.dylib` du bundle) ; contre-épreuves `otool` et `dyld` ≥ 1 sur le `.app` non déployé ; aucun `QtWebEngine*` ; mutation de `autres-autorises.txt` → `LICENCES EN ECHEC`, remise ; `tst_app_notices` toujours `Passed` ; `YAML OK` (job `macos`) ; suite `100% tests passed … out of N`, N = N11 + 32 (aucun test neuf) | S14 | #tache-l11-t29m |
 | L11-T30 | Clôture du lot et porte de fin : suites, captures et banc à l'écran (jeton `ecran`), S13 rejoué, talons nuls, graphe, mesures et procédures pour Jérôme, go demandé | L11-T29, L11-T29m | `tests/tst_ui_shell.cpp`, `docs/mesures/2026-10-22-lot11-fin.md`, `docs/verifications/2026-10-22-lot11-porte.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N11 + 32 ; `git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` vide ; `captures.ps1 -Scenario tous -Rendu d3d11` `CAPTURES OK` ; banc D3D11 plein écran × 3 : verdict et 0 figement ; rapport de porte commité | S14, S13, S2, S3 | #tache-l11-t30 |
 
 ## Vagues de 11b (largeur 3 au plus ; aucun fichier partagé dans une vague)
 
 V8 : L11-T17 ‖ L11-T19 ‖ L11-T21 · V9 : L11-T18 ‖ L11-T22 ‖ L11-T25 · V10 : L11-T20 (seule) · V11 : L11-T24 (seule) ·
-V12 : L11-T23 ‖ L11-T27 · V13 : L11-T26 · V14 : L11-T28 · V15 : L11-T29 ‖ L11-T29m · V16 : L11-T30.
+V12 : L11-T23 ‖ L11-T27 · V13 : L11-T26 · V14 : L11-T28 · V15 : L11-T29m (seule) · V15b : L11-T29 · V16 : L11-T30.
 
 Vérification des recoupements :
 - V8 : L11-T17 (`ui/help/` H1, `ui/CMakeLists.txt`, `tst_ui_helppages.cpp`) / L11-T19 (`pseudo-langue.py`,
@@ -117,9 +132,10 @@ Vérification des recoupements :
 - V10 et V11 : tâches à fichiers larges (QML), seules dans leur vague, worktree `partagé`.
 - V12 : L11-T23 (`commands.json`, un test) / L11-T27 (profils, `profile.*`, un test, un scénario) — disjoints.
 - V13 : L11-T26 seule (`commands.json` après L11-T23).
-- V15 (amendement 3) : L11-T29 (`scripts/paquet.ps1`, un rapport) / L11-T29m (trois scripts bash,
-  `app/CMakeLists.txt`, `packaging/`, notices, `LICENSES/`, `release.yml`, un rapport) — disjoints. `packaging/`,
-  `THIRD_PARTY_NOTICES.md` et `LICENSES/` : L11-T25 (V9) puis L11-T29m (V15), tenus par « dépend de ».
+- V15 et V15b (amendement 3) : L11-T29m seule (trois scripts bash, `app/CMakeLists.txt`, `packaging/`, notices,
+  `LICENSES/`, `release.yml`, un rapport), puis L11-T29 (`scripts/paquet.ps1`, un rapport), qui en dépend : son essai à
+  blanc doit voir le job `macos`. `packaging/`, `THIRD_PARTY_NOTICES.md` et `LICENSES/` : L11-T25 (V9) puis L11-T29m
+  (V15), tenus par « dépend de ».
 - Fichiers repris d'une vague à l'autre, tenus par « dépend de » : `ui/CMakeLists.txt` (L11-T17 → L11-T18) ;
   `tst_ui_helppages.cpp` (L11-T17 → L11-T18) ; `tests/bench.cmake` (L11-T19 → L11-T22 → L11-T20) ;
   `commands.json` (L11-T9 → L11-T23 → L11-T26).
@@ -837,9 +853,9 @@ Attendu : `1.0.0`, `10000`, `NOTES OK : .tmp/notes-1.0.0.md`.
 alors sans la règle des tags `v*`) ; aucune création du
 fichier go ; aucun secret lu, posé ni affiché ; aucun téléversement de paquet ; aucun paquet distribué hors du poste.
 
-**Points 6 à 8 et L11-T29m (amendement 3).** Le run d'essai doit contenir le job `macos` : les points 6 à 8 se jouent
-depuis la branche du lot **après le merge de L11-T29m** (fin de V15) ; avant, ils attendent. Sur le Mac, aucun push :
-ces points sont des restes pour le PC (ou de l'orchestrateur).
+**L11-T29m (amendement 3).** L11-T29 dépend de L11-T29m (V15b après V15) : le run d'essai contient le job `macos`
+(`DMG OK`, `ESSAI DMG OK`, le nom du `.dmg` ; son lancement de 3 s est informatif). Sur le Mac, aucun push : les points 6
+à 8 sont des restes pour le PC (ou de l'orchestrateur).
 
 **Terminé quand** les huit points sont verts et le rapport `…-release-prete.md` est commité :
 noms, tailles et SHA-256 des deux paquets locaux, numéros des runs, lignes relevées.
@@ -855,14 +871,18 @@ noms, tailles et SHA-256 des deux paquets locaux, numéros des runs, lignes rele
 <a id="tache-l11-t29m"></a>
 ### Tâche L11-T29m — Paquet macOS : `.app` déployé par `macdeployqt` et `.dmg` non signé, 1.0.0
 
-**Objectif.** Amendement 3, volet 1 (demande du pilote, 2026-11-06) ; D11-15 remplacée ; S14. Sur le Mac Apple Silicon,
-une commande bash produit `build/paquet/ActCraft-<version>-macos-arm64.dmg` : construction Release de la cible
+**Objectif.** Amendement 3, volet 1 (demande du pilote, 2026-11-06, sous la délégation de Jérôme du 2026-11-02) ;
+D11-15 et N2-13 rouverts (H11-19 : à revoir par Jérôme ; le `.dmg` est un artefact, sa publication attend le go de
+release) ; S14. Sur le Mac Apple Silicon, une commande bash produit `build/paquet/ActCraft-<version>-macos-arm64.dmg` : construction Release de la cible
 `actcraft` (bundle `MACOSX_BUNDLE`, `app/CMakeLists.txt:1`), copie en `ActCraft.app`, déploiement de Qt par
-`macdeployqt` (Qt Homebrew : `$(brew --prefix qt)/bin/macdeployqt`, ou `$ACTCRAFT_QT_DIR/bin/macdeployqt`), notices
-dans le bundle, contrôle des licences (frameworks Qt **et** bibliothèques non Qt), signature **ad hoc** (obligatoire sur
+`macdeployqt` (Qt Homebrew : `$(brew --prefix qt)/bin/macdeployqt`, ou `$ACTCRAFT_QT_DIR/bin/macdeployqt`), retrait
+de Qt WebEngine (greffon `libqtwebview_webengine.dylib` et frameworks que plus rien ne référence : Qt WebView passe par le
+greffon natif `darwin`), `qt.conf` contrôlé, notices dans le bundle, contrôle des licences (frameworks Qt **et** bibliothèques non Qt), signature **ad hoc** (obligatoire sur
 arm64 : `macdeployqt` réécrit les chemins des binaires, ce qui casse leur signature, et macOS tue un binaire arm64 non
-signé), image disque par `hdiutil create`. Un essai monte l'image, vérifie le bundle et `--version`, lance l'application
-3 s, démonte. Le job `macos` de `release.yml` fait la même chose sur le runner du Mac mini.
+signé), image disque par `hdiutil create`. Construction refusée si `ACTCRAFT_MEDIA` ou `ACTCRAFT_WEBFRAME` vaut `OFF`.
+Un essai monte l'image, vérifie le bundle, `qt.conf` et `--version`, lance l'application 3 s sous
+`DYLD_PRINT_LIBRARIES=1` (greffons compris), démonte. Le job `macos` de `release.yml` fait la même chose sur le runner du
+Mac mini si le dépôt est privé, sur `macos-latest` s'il est public ; le lancement y est informatif.
 
 **Fichiers.** Ceux de la ligne de la table :
 - neufs : `scripts/paquet-mac.sh`, `scripts/essai-dmg.sh`, `scripts/verifier-licences-mac.sh` (exécutables, mode
@@ -892,11 +912,15 @@ signé), image disque par `hdiutil create`. Un essai monte l'image, vérifie le 
    essai) : Homebrew est installé ici, donc une dépendance que `macdeployqt` n'a pas copiée (chemin absolu
    `/opt/homebrew/…` resté dans un binaire) se charge quand même, et `--version` passe sur un bundle incomplet. La preuve
    est double : aucun chemin `/opt/homebrew` ni `/usr/local` dans `otool -L` de tout binaire du bundle, et aucune
-   bibliothèque chargée hors du bundle au lancement (`DYLD_PRINT_LIBRARIES=1`).
+   bibliothèque chargée hors du bundle monté et du système (`DYLD_PRINT_LIBRARIES=1`), à `--version` **et au
+   lancement** : `--version` sort avant `QGuiApplication` (`app/main.cpp:30-36`), les greffons (cocoa, images, webview,
+   QML) ne se chargent qu'au lancement. Contre-épreuves : `otool` voit les chemins Homebrew du `.app` non déployé, `dyld`
+   les voit au lancement du `.app` non déployé (étape 6) ; l'essai exige `libqcocoa.dylib` chargé depuis le bundle.
 Chemins de référence : `scripts/paquet.ps1:28-58` (ordre : déploiement, notices `:46-48`, licences `:50-51`, paquet,
 verdict `:58`), `scripts/verifier-licences.ps1:21-37`, `.github/workflows/ci.yml:69-91` (gardes du runner du Mac) et
 `:138-174` (Qt, Ninja et ccache du Mac), `.github/workflows/release.yml:159-224` (job `windows`), `:331-387` (job
-`release`, liste `$attendus` à la ligne 352), `:389-391` (job `nettoyer`).
+`release`, liste `$attendus` à la ligne 352), `:389-391` (job `nettoyer`) ; règle d'exécuteur de `ci.yml:10-14,61`
+(`runner_macos`) ; installation hébergée de Qt `ci.yml:117-136`.
 
 **Test et commande bornée.** Aucune entrée ctest neuve (N reste N11 + 32). Preuve par script, chaque commande sous le
 jeton `tests` (forme unique des règles du Mac, `<id>` = `L11-T29m`), au premier plan, `timeout: 600000` :
@@ -911,11 +935,13 @@ jeton `tests` (forme unique des règles du Mac, `<id>` = `L11-T29m`), au premier
   → `VERSION OK : ActCraft 1.0.0`, `LANCEMENT OK`, `ESSAI DMG OK` ;
 - notices : `<commande>` = `cmake --build build-mac -j2 > .tmp/build.txt 2>&1 && QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac -R '^tst_app_notices$' --output-on-failure --timeout 120 > .tmp/ctest.txt 2>&1`,
   puis `tail -5 .tmp/ctest.txt` → `100% tests passed, 0 tests failed out of 1` ;
-- YAML : `cd <wt> && ruby -ryaml -e 'j = YAML.load_file(".github/workflows/release.yml")["jobs"]; abort "macos absent" unless j["macos"]; %w[release nettoyer].each { |n| abort "#{n} sans macos" unless j[n]["needs"].include?("macos") }; puts "YAML OK"'`
+- YAML (job `macos`, `release` et `nettoyer` qui l'attendent, `runs-on` selon la visibilité, téléversement sous un
+  `if` du mode `reel`, `.dmg` attendu par `release`) :
+  `cd <wt> && ruby -ryaml -e 'j = YAML.load_file(".github/workflows/release.yml")["jobs"]; m = j["macos"] or abort "macos absent"; %w[release nettoyer].each { |n| abort "#{n} sans macos" unless j[n]["needs"].include?("macos") }; r = m["runs-on"].to_s; abort "runs-on hors règle (visibilité)" unless r.include?("github.event.repository.private") && r.include?("self-hosted") && r.include?("macos-latest"); u = m["steps"].find { |s| s["uses"].to_s.start_with?("actions/upload-artifact@") } or abort "upload-artifact absent"; abort "upload-artifact hors mode reel" unless u["if"].to_s.include?("reel"); abort "release n'attend pas le .dmg" unless j["release"]["steps"].any? { |s| s["run"].to_s.include?("macos-arm64.dmg") }; puts "YAML OK"'`
   → `YAML OK`.
 
-**Preuve visuelle.** Aucune capture : la fenêtre de `--lancer` (3 s, annoncée d'une ligne à l'orchestrateur avant) ne
-sert qu'au code de sortie 0. L'apparence du premier lancement sous Gatekeeper est une mesure de Jérôme (L11-T30,
+**Preuve visuelle.** Aucune capture : la fenêtre de `--lancer` (3 s, annoncée d'une ligne à l'orchestrateur avant) sert
+au code de sortie 0 et au journal `.tmp/essai-dmg-dyld-lancement.txt`. L'apparence du premier lancement sous Gatekeeper est une mesure de Jérôme (L11-T30,
 MacBook Air M1).
 
 **Contraintes (recopiées de l'en-tête et des amendements).**
@@ -930,17 +956,21 @@ MacBook Air M1).
 - Commit : fichiers nommés (`git add <chemins>`, jamais `-A`, `.`, `commit -a`), message en français terminé par
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ; pas de push.
 - Restes pour le PC (au rapport) : `NOMS OK`, contrôle des titres du corpus, essai à blanc de `release.yml` (points 6 à 8
-  de L11-T29, après le merge de cette tâche).
+  de L11-T29, qui dépend de cette tâche).
+- Mutation : la remise prescrite ici (copie prouvée par `cmp`) l'emporte sur la règle Mac (`git checkout`), qui
+  effacerait les ajouts non commités de l'étape 7.
 
 **Interdits.** **Aucun tag** (`git tag`, `--tags`, `--follow-tags`) ; aucune commande `gh release` ni `gh workflow run` ;
 aucun push (pas même d'une branche `essai-ci/…`) ; aucun fichier go ; aucun secret lu, posé ni affiché ; aucun
 téléversement ni distribution du `.dmg` hors du poste. Aucun certificat Developer ID, aucune notarisation
 (`notarytool`, `altool`), aucun `spctl --master-disable`. Aucune bibliothèque sous GPL seule dans le bundle : si
-`verifier-licences-mac.sh` en trouve une, arrêt, rapport et main rendue (décision de Jérôme, comme H6-6b). Aucun job
-sur `macos-latest` (dépôt privé : minutes payantes). Aucune modification de `scripts/paquet.ps1` (L11-T29, même vague).
+`verifier-licences-mac.sh` en trouve une, arrêt, rapport et main rendue (décision de Jérôme, comme H6-6b) ; de même pour
+un `QtWebEngine*` resté dans le bundle. `runs-on` du job `macos` : la règle de visibilité seule (privé → Mac mini, public
+→ `macos-latest`), jamais `macos-latest` sur un dépôt privé (minutes payantes), jamais d'arrêt sur « public ». Aucune
+modification de `scripts/paquet.ps1` (L11-T29, vague suivante).
 
-**Terminé quand** `LICENCES OK`, `DMG OK`, `ESSAI DMG OK` (avec `VERSION OK` et `LANCEMENT OK`), la mutation rouge
-puis remise, `tst_app_notices` vert, `YAML OK`, la suite complète `100% tests passed … out of N` (N = N11 + 32) et le
+**Terminé quand** `LICENCES OK`, `DMG OK`, `ESSAI DMG OK` (avec `VERSION OK` et `LANCEMENT OK`, journaux `dyld` sans
+chemin hors du bundle), les deux contre-épreuves de l'étape 6, la mutation rouge puis remise, `tst_app_notices` vert, `YAML OK`, la suite complète `100% tests passed … out of N` (N = N11 + 32) et le
 rapport `docs/verifications/2026-11-07-lot11-paquet-macos.md` commité : nom, taille et SHA-256 du `.dmg`, liste des
 frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, version, licence SPDX), lignes relevées.
 
@@ -956,7 +986,8 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   #!/usr/bin/env bash
   # Licences d'un ActCraft.app déployé (décision 34 ; amendement 3 du plan du lot 11). Chaque framework Qt
   # (QtCore.framework → Qt6Core) est dans packaging/qt-autorises.txt ; chaque autre bibliothèque de Contents/Frameworks a
-  # sa ligne « <motif glob> <expression SPDX> » dans packaging/autres-autorises.txt ; aucune sous GPL seule. Les greffons
+  # sa ligne « <motif glob> <expression SPDX> » dans packaging/autres-autorises.txt ; aucune sous GPL seule, aucun
+  # Qt WebEngine. Les greffons
   # (Contents/PlugIns) suivent leur module et ne sont pas comptés ; leurs dépendances sont dans Contents/Frameworks.
   # Usage : scripts/verifier-licences-mac.sh <ActCraft.app>
   # Dernière ligne et code : « LICENCES OK » (0) ou « LICENCES EN ECHEC : <noms> » (1).
@@ -1001,6 +1032,10 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
     [ -d "$fw" ] || continue
     nom="$(basename "$fw" .framework)"
     case "$nom" in
+      QtWebEngine*)
+        # Jamais Qt WebEngine (qt-autorises.txt, lot 8) : arrêt, quelle que soit la liste.
+        refuses="$refuses $nom.framework(WebEngine)"
+        ;;
       Qt*)
         module="Qt6${nom#Qt}"
         modules="$modules $module"
@@ -1021,6 +1056,7 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   for lib in "$app"/Contents/Frameworks/*.dylib; do
     [ -f "$lib" ] || continue
     nom="$(basename "$lib")"
+    case "$nom" in *WebEngine*) refuses="$refuses $nom(WebEngine)"; continue ;; esac
     licence="$(licence_de "$nom")" || { refuses="$refuses $nom"; continue; }
     sans_gpl_seule "$licence" || refuses="$refuses $nom(GPL)"
     echo "  $nom : $licence"
@@ -1075,6 +1111,11 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
       echec "configuration CMake"
     cmake --build "$build" --target actcraft --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-2}" || echec "compilation Release"
   fi
+  # Lecteur, enregistreurs et cadre web sont livrés : une construction qui les a perdus (module Qt manquant) est refusée.
+  for option_cmake in ACTCRAFT_MEDIA ACTCRAFT_WEBFRAME; do
+    grep -qx "$option_cmake:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null ||
+      echec "$option_cmake n'est pas ON dans $build/CMakeCache.txt (Qt Multimedia ou Qt WebView manquant)"
+  done
   source_app="$(find "$build" -maxdepth 2 -name actcraft.app -type d | head -1)"
   [ -n "$source_app" ] || echec "actcraft.app absent de $build (construire d'abord, sans --sans-construire)"
 
@@ -1092,12 +1133,35 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   erreur="$(grep '^ERROR' "$journal" | grep -v 'ActCraft\.Ui' | head -1)"
   [ -z "$erreur" ] || echec "macdeployqt : $erreur"
 
+  # Qt WebView passe par le moteur natif de macOS (greffon darwin), jamais par Qt WebEngine (qt-autorises.txt, lot 8) :
+  # macdeployqt copie pourtant les deux greffons et, avec celui de WebEngine, ses frameworks. Le greffon est retiré, puis
+  # tout framework et toute bibliothèque que plus rien ne référence, jusqu'à point fixe. Il ne doit rester aucun
+  # QtWebEngine* : sinon verifier-licences-mac.sh refuse le bundle (arrêt).
+  rm -f "$app/Contents/PlugIns/webview/libqtwebview_webengine.dylib"
+  [ -f "$app/Contents/PlugIns/webview/libqtwebview_darwin.dylib" ] || echec "greffon Qt WebView natif (darwin) absent"
+  liens="$paquet/liens.txt"
+  while :; do
+    find "$app" -type f \( -perm -u+x -o -name '*.dylib' \) -exec otool -L {} + 2>/dev/null |
+      awk '/^[^[:space:]].*:$/ { f = substr($0, 1, length($0) - 1); next } /^[[:space:]]/ { print f "\t" $1 }' > "$liens"
+    retire=0
+    for cible in "$app"/Contents/Frameworks/*.framework "$app"/Contents/Frameworks/*.dylib; do
+      [ -e "$cible" ] || continue
+      nom="$(basename "$cible")"
+      if ! awk -F'\t' -v c="$cible" -v n="/$nom" 'index($1, c) != 1 && index($2, n) { trouve = 1; exit } END { exit !trouve }' "$liens"; then
+        rm -rf "$cible"
+        echo "Retiré, plus référencé : $nom"
+        retire=1
+      fi
+    done
+    [ "$retire" = 1 ] || break
+  done
+
   restes="$(find "$app" -type f \( -perm -u+x -o -name '*.dylib' \) -exec otool -L {} + 2>/dev/null |
     grep -E '^[[:space:]]+(/opt/homebrew|/usr/local)/' | sort -u)"
   [ -z "$restes" ] || echec "dépendances hors du bundle : $(echo "$restes" | head -3 | tr -s '[:space:]' ' ')"
   [ "$(lipo -archs "$app/Contents/MacOS/actcraft")" = arm64 ] || echec "binaire autre que arm64"
 
-  mkdir -p "$app/Contents/Resources"
+  grep -q 'PlugIns' "$app/Contents/Resources/qt.conf" 2>/dev/null || echec "qt.conf absent ou sans chemin des greffons"
   cp LICENSE "$app/Contents/Resources/LICENSE.txt"
   cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/"
   cp -R LICENSES "$app/Contents/Resources/LICENSES"
@@ -1142,7 +1206,9 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   ```bash
   #!/usr/bin/env bash
   # Essai de l'image disque macOS (amendement 3 du plan du lot 11) : montée sans Finder, bundle complet, signature ad hoc
-  # valide, aucune dépendance hors du bundle, `actcraft --version`, lancement de 3 s si --lancer, démontée.
+  # valide, qt.conf, aucune dépendance hors du bundle (otool), `actcraft --version`, lancement de 3 s si --lancer, démontée.
+  # Bibliothèques réellement chargées (DYLD_PRINT_LIBRARIES) : toutes dans le bundle ou le système, à --version (cadres
+  # liés) et au lancement (greffons cocoa, images, webview, QML, chargés après QGuiApplication). Journaux sous .tmp/.
   # Usage : scripts/essai-dmg.sh [<image.dmg>] [--lancer]   (--lancer : fenêtre ouverte 3 s sur l'écran du Mac)
   # Dernière ligne et code : « ESSAI DMG OK » (0) ou « ESSAI DMG EN ECHEC : <raison> » (1).
   set -u
@@ -1165,7 +1231,9 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   [ -n "$dmg" ] || dmg="build/paquet/ActCraft-$version-macos-arm64.dmg"
   [ -f "$dmg" ] || echec "image absente : $dmg"
 
-  point="$(mktemp -d /tmp/actcraft-dmg.XXXXXX)"
+  mkdir -p .tmp
+  # Chemin réel (/private/tmp) : c'est celui qu'écrit dyld.
+  point="$(cd "$(mktemp -d /tmp/actcraft-dmg.XXXXXX)" && pwd -P)"
   monte=0
   fin() {
     if [ "$monte" = 1 ]; then
@@ -1174,6 +1242,11 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
     rmdir "$point" 2>/dev/null
   }
   trap fin EXIT
+
+  # Chemins chargés (journal de DYLD_PRINT_LIBRARIES) hors du bundle monté et du système ; trois au plus.
+  hors_systeme() {
+    awk -v b="$point/" '/^dyld\[[0-9]+\]: / { p = $NF; if (index(p, b) != 1 && index(p, "/System/") != 1 && index(p, "/usr/lib/") != 1) print p }' "$1" | head -3
+  }
   hdiutil attach -nobrowse -readonly -noautoopen -mountpoint "$point" "$dmg" > /dev/null || echec "hdiutil attach"
   monte=1
 
@@ -1184,6 +1257,7 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   [ -f "$app/Contents/Resources/THIRD_PARTY_NOTICES.md" ] || echec "notices absentes du bundle"
   nom="$(plutil -extract CFBundleName raw "$app/Contents/Info.plist" 2>/dev/null)"
   [ "$nom" = ActCraft ] || echec "CFBundleName = « $nom », attendu « ActCraft »"
+  grep -q 'PlugIns' "$app/Contents/Resources/qt.conf" 2>/dev/null || echec "qt.conf absent ou sans chemin des greffons"
   codesign --verify --deep --strict "$app" 2> /dev/null || echec "signature ad hoc invalide"
 
   restes="$(find "$app" -type f \( -perm -u+x -o -name '*.dylib' \) -exec otool -L {} + 2>/dev/null |
@@ -1192,13 +1266,21 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
 
   sortie="$("$exe" --version)" || echec "--version : code $?"
   [ "$sortie" = "ActCraft $version" ] || echec "--version a rendu « $sortie », attendu « ActCraft $version »"
-  dehors="$(DYLD_PRINT_LIBRARIES=1 "$exe" --version 2>&1 >/dev/null | grep -E '(/opt/homebrew|/usr/local)/' | head -3)"
+  DYLD_PRINT_LIBRARIES=1 "$exe" --version > /dev/null 2> .tmp/essai-dmg-dyld-version.txt
+  grep -qF "$app/Contents/Frameworks/QtCore.framework/" .tmp/essai-dmg-dyld-version.txt ||
+    echec "journal de dyld muet ou QtCore chargé hors du bundle (.tmp/essai-dmg-dyld-version.txt)"
+  dehors="$(hors_systeme .tmp/essai-dmg-dyld-version.txt)"
   [ -z "$dehors" ] || echec "bibliothèques chargées hors du bundle : $(echo "$dehors" | tr -s '[:space:]' ' ')"
   echo "VERSION OK : $sortie"
 
   if [ "$lancer" = 1 ]; then
     echo "Fenêtre d'ActCraft ouverte 3 s sur l'écran du Mac."
-    "$exe" --quitter-apres 3000 > /dev/null 2>&1 || echec "lancement : code $?"
+    DYLD_PRINT_LIBRARIES=1 "$exe" --quitter-apres 3000 > /dev/null 2> .tmp/essai-dmg-dyld-lancement.txt ||
+      echec "lancement : code $? (.tmp/essai-dmg-dyld-lancement.txt)"
+    grep -qF "$app/Contents/PlugIns/platforms/libqcocoa.dylib" .tmp/essai-dmg-dyld-lancement.txt ||
+      echec "greffon cocoa non chargé depuis le bundle (.tmp/essai-dmg-dyld-lancement.txt)"
+    dehors="$(hors_systeme .tmp/essai-dmg-dyld-lancement.txt)"
+    [ -z "$dehors" ] || echec "greffons ou bibliothèques chargés hors du bundle : $(echo "$dehors" | tr -s '[:space:]' ' ')"
     echo "LANCEMENT OK"
   fi
   echo "ESSAI DMG OK"
@@ -1208,7 +1290,13 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   `ESSAI DMG EN ECHEC : image absente : build/paquet/ActCraft-<version>-macos-arm64.dmg`.
 - [ ] **Étape 6 : construction Release.** Sous le jeton : `<commande>` =
   `cmake -S . -B build/macos-paquet -G Ninja -DCMAKE_PREFIX_PATH=$(brew --prefix qt) -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache > .tmp/paquet-mac-cfg.txt 2>&1`,
-  puis les trois passages de construction de « Test et commande bornée ».
+  puis les trois passages de construction de « Test et commande bornée ». **Contre-épreuves** (les contrôles ne sont
+  pas aveugles), sur le `.app` non déployé :
+  ```bash
+  cd <wt> && find build/macos-paquet/actcraft.app -type f \( -perm -u+x -o -name '*.dylib' \) -exec otool -L {} + | grep -cE '^[[:space:]]+(/opt/homebrew|/usr/local)/'
+  cd <wt> && DYLD_PRINT_LIBRARIES=1 build/macos-paquet/actcraft.app/Contents/MacOS/actcraft --version 2>&1 >/dev/null | awk '/^dyld\[[0-9]+\]: / { print $NF }' | grep -c '^/opt/homebrew/'
+  ```
+  → deux nombres ≥ 1, écrits au rapport.
 - [ ] **Étape 7 : relevé des bibliothèques.** `scripts/paquet-mac.sh --sans-construire` (sous le jeton) : le premier
   passage finit attendu par `LICENCES EN ECHEC : <noms>` (bibliothèques Homebrew de Qt : glib, gettext, ICU, OpenSSL,
   pcre2, freetype, harfbuzz, libpng, brotli, zstd, md4c, libb2, double-conversion, et celles des greffons d'images ;
@@ -1225,7 +1313,9 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
     version, licence SPDX, URL du projet, en nos mots) ; `LICENSES/<SPDX>.txt` pour chaque identifiant neuf ;
   - un framework Qt absent de `qt-autorises.txt` (styles macOS et iOS de Qt Quick Controls, par exemple) : licence lue
     dans la ligne SPDX d'un de ses en-têtes sous `$(brew --prefix qt)/lib/<Framework>.framework/Headers/`, ligne
-    ajoutée avec un commentaire de la forme des commentaires existants ; un module sous GPL seule → arrêt (interdits).
+    ajoutée avec un commentaire de la forme des commentaires existants ; un module sous GPL seule → arrêt (interdits) ;
+  - lignes `Retiré, plus référencé : …` de la sortie (frameworks de Qt WebEngine et leurs dépendances seules) : recopiées
+    au rapport ; un `QtWebEngine*` refusé (`(WebEngine)`) → arrêt (interdits).
   Rejouer jusqu'à `LICENCES OK` puis `DMG OK : …`.
 - [ ] **Étape 8 : mutation.** Le fichier porte les ajouts non commités de l'étape 7 : `git checkout` les effacerait, la
   remise se fait donc par une copie, prouvée identique :
@@ -1236,29 +1326,25 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   `cd <wt> && cp .tmp/autres-autorises.sauve packaging/autres-autorises.txt && cmp packaging/autres-autorises.txt .tmp/autres-autorises.sauve && scripts/verifier-licences-mac.sh build/paquet/macos/ActCraft.app | tail -1`
   → aucune sortie de `cmp`, puis `LICENCES OK`.
 - [ ] **Étape 9 : essai vert.** Annoncer d'une ligne la fenêtre de 3 s ; `scripts/essai-dmg.sh --lancer` (commande de
-  « Test et commande bornée ») → `VERSION OK : ActCraft 1.0.0`, `LANCEMENT OK`, `ESSAI DMG OK`. Puis `tst_app_notices`
+  « Test et commande bornée ») → `VERSION OK : ActCraft 1.0.0`, `LANCEMENT OK`, `ESSAI DMG OK` ; nombre de lignes de
+  `.tmp/essai-dmg-dyld-lancement.txt` chargées depuis le bundle (`grep -c '/ActCraft.app/'`) au rapport. Puis `tst_app_notices`
   (commande ciblée) → `Passed` (les lignes ajoutées ont leur notice et leur texte).
 - [ ] **Étape 10 : job `macos` de `release.yml`**, inséré entre les jobs `windows` et `android` :
   ```yaml
-    # Paquet macOS non signé (amendement 3 du plan du lot 11) : runner auto-hébergé du Mac mini (dépôt privé : macos-latest
-    # coûterait des minutes payantes), aucun secret. Image téléversée en mode réel seulement.
+    # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret. Exécuteur choisi selon la visibilité du dépôt,
+    # comme runner_macos de ci.yml : privé → runner auto-hébergé du Mac mini (macos-latest y coûterait des minutes
+    # payantes) ; public → macos-latest (gratuit ; un runner auto-hébergé est exclu d'un dépôt public). Aucun arrêt sur
+    # « public ». Image téléversée en mode réel seulement.
     macos:
       needs: [mode, secrets]
       if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
-      runs-on: ["self-hosted", "macOS", "ARM64", "actcraft"]
+      runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || 'macos-latest' }}
       timeout-minutes: 60
       steps:
-        # Gardes et Qt : copies de ci.yml:69-91 et ci.yml:138-174, sans leur ligne « if: » (ce job ne tourne que sur le
-        # Mac), « matrix.qt_arch » remplacé par clang_64.
-        - name: Gardes du runner auto-hébergé (visibilité, mémoire)
-          env:
-            GH_TOKEN: ${{ github.token }}
+        # Mac mini : garde de mémoire de ci.yml:79-91 (sa garde de visibilité n'a plus d'objet ici : runs-on la tient).
+        - name: Garde du runner auto-hébergé (mémoire)
+          if: runner.environment != 'github-hosted'
           run: |
-            visibilite=$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility)
-            if [ "$visibilite" != "private" ]; then
-              echo "::error::Dépôt $visibilite : runner auto-hébergé interdit. Arrêter et désenregistrer le runner du Mac (~/actions-runner-actcraft)."
-              exit 1
-            fi
             dispo_go() {
               # Part libre selon macOS (mémoire compressible comprise), en Go entiers.
               memory_pressure | awk -v t="$(sysctl -n hw.memsize)" '/free percentage/ {sub("%","",$NF); printf "%d", $NF*t/100/1073741824}'
@@ -1275,9 +1361,32 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
 
         - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+        # macos-latest : Qt par aqtinstall, comme ci.yml:117-136, avec Qt Multimedia et Qt WebView (requis).
+        - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+          if: runner.environment == 'github-hosted'
+          with:
+            python-version: "3.12"
+
+        # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) : version de développement,
+        # épinglée sur le commit vérifié par les runs du 2026-10-15 (même commit dans les trois jobs).
+        - name: Installer Ninja et aqtinstall
+          if: runner.environment == 'github-hosted'
+          run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+        - name: Installer Qt
+          if: runner.environment == 'github-hosted'
+          shell: bash
+          run: |
+            python -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+            dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
+            echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
+            echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+        # Mac mini : copie de ci.yml:138-174, sans « matrix » ; le repli aqt prend aussi qtmultimedia et qtwebview.
         # Mac mini : Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une fois dans le cache du
         # runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à l'autre.
         - name: Qt, Ninja et ccache du Mac
+          if: runner.environment != 'github-hosted' && runner.os == 'macOS'
           shell: bash
           run: |
             cache="$HOME/actions-runner-actcraft/_cache"
@@ -1294,7 +1403,7 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
                 rm -rf "$cache/Qt/$QT_VERSION"
                 python3 -m venv "$cache/venv-aqt"
                 "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-                "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtimageformats qtpdf --outputdir "$cache/Qt"
+                "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$cache/Qt"
                 touch "$cache/Qt/$QT_VERSION/.complet"
               fi
             fi
@@ -1312,6 +1421,7 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
               echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
             fi
 
+        # paquet-mac.sh refuse une construction où ACTCRAFT_MEDIA ou ACTCRAFT_WEBFRAME vaut OFF (module Qt manquant).
         - name: Construire l'image disque
           shell: bash
           run: |
@@ -1319,13 +1429,21 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
             cat "$RUNNER_TEMP/paquet-mac.txt"
             if [ "$code" != 0 ] || ! tail -1 "$RUNNER_TEMP/paquet-mac.txt" | grep -q '^DMG OK : '; then exit 1; fi
 
-        # Fenêtre de 3 s sur l'écran du Mac mini, comme le banc de ci.yml.
+        # Bloquant : bundle, signature, qt.conf, otool, bibliothèques chargées à --version.
         - name: Essai de l'image disque
           shell: bash
           run: |
-            if ./scripts/essai-dmg.sh --lancer > "$RUNNER_TEMP/essai-dmg.txt" 2>&1; then code=0; else code=$?; fi
+            if ./scripts/essai-dmg.sh > "$RUNNER_TEMP/essai-dmg.txt" 2>&1; then code=0; else code=$?; fi
             cat "$RUNNER_TEMP/essai-dmg.txt"
             if [ "$code" != 0 ] || [ "$(tail -1 "$RUNNER_TEMP/essai-dmg.txt")" != "ESSAI DMG OK" ]; then exit 1; fi
+
+        # Informatif : une fenêtre ne s'ouvre pas sûrement sur l'exécuteur ; le lancement est prouvé par L11-T29m sur le Mac.
+        - name: Lancement de 3 s (informatif)
+          continue-on-error: true
+          shell: bash
+          run: |
+            ./scripts/essai-dmg.sh --lancer 2>&1 | tail -4
+            test "${PIPESTATUS[0]}" = 0
 
         - name: Somme SHA-256
           shell: bash
@@ -1352,6 +1470,9 @@ frameworks Qt et des bibliothèques non Qt du bundle (nom, formule Homebrew, ver
   - job `nettoyer` : `needs: [mode, windows, android, macos, release]` ;
   - commentaire d'en-tête (lignes 4-6) : « installateur + APK arm64-v8a signé par la clé de release + image disque macOS
     non signée ».
+  Exécuteur : `runs-on` selon la visibilité (`github.event.repository.private`, présent dans les événements `push` et
+  `workflow_dispatch`) ; sur le Mac mini, seule la garde de mémoire ; le lancement de 3 s est une étape
+  `continue-on-error: true` (une fenêtre ne s'ouvre pas sûrement sur l'exécuteur ; L11-T29m le prouve sur le Mac).
   Contrôle : commande YAML de « Test et commande bornée » → `YAML OK`.
 - [ ] **Étape 11 : rapport et commit.** `docs/verifications/2026-11-07-lot11-paquet-macos.md` (contenu de « Terminé
   quand », restes pour le PC) ; preuve de tâche (suite complète sous le jeton, règles du Mac) → `100% tests passed, 0
@@ -1386,7 +1507,7 @@ pour que le test ne se compte pas lui-même), `docs/mesures/2026-10-22-lot11-fin
    encore, sinon une tâche de correction `L11-C<n>` précède la PR (porte de non-régression du profil).
 4. `graphify update .` ; commit de `graphify-out/`.
 5. Rapport de mesure `docs/mesures/2026-10-22-lot11-fin.md` (JSON cités, jamais commités).
-6. Rapport de porte `docs/verifications/2026-10-22-lot11-porte.md` : ce qui est livré ; hypothèses H11-1 à H11-11 ;
+6. Rapport de porte `docs/verifications/2026-10-22-lot11-porte.md` : ce qui est livré ; hypothèses H11-1 à H11-18 et H11-19 (amendement 3 ; H11-12 à H11-17 : rapport de L11-T0) ;
    tailles des paquets (N1-A10 ; le `.dmg` de L11-T29m compris) ; les deux `SKIP` de `tst_tools_twousers` attendus tant
    que le lot 7 est absent (amendement 3 du plan de 11a ; ce ne sont pas des talons) ; manières modernes choisies (coffre 0100) ; **mesures qui reviennent à Jérôme** et
    leurs procédures ; **procédure du go** (ci-dessous), écrite pour être suivie telle quelle **après** le go.
@@ -1450,11 +1571,15 @@ l'orchestrateur : « release 1.0.0 prête, go écrit demandé ».
 - **H11-9 — Mesures sur les machines de référence** (Dell 3510, M1, tablette) : procédures de L11-T30 ; décision go /
   no-go de l'étape 2 du BRIEF.
 - **H11-10 — Taille des paquets 1.0.0** (N1-A10), rapportée par L11-T29 (et L11-T29m pour le `.dmg`).
-- **H11-12 — Paquet macOS non signé** (amendement 3). Signature ad hoc seulement : Gatekeeper bloque le premier
+- **H11-18 — Paquet macOS non signé** (amendement 3 ; H11-12 à H11-17 sont prises par le rapport de L11-T0). Signature ad hoc seulement : Gatekeeper bloque le premier
   lancement d'un `.dmg` téléchargé (clic droit > Ouvrir, ou « Ouvrir quand même » dès macOS 15). Signer et notariser
   demande un compte Apple Developer payant (décision de Jérôme). Le job `macos` de `release.yml` tourne sur le runner
-  du Mac mini (dépôt privé) : une release attend que le Mac soit allumé et libre ; `macos-latest` = minutes payantes.
+  du Mac mini tant que le dépôt est privé : une release attend que le Mac soit allumé et libre ; dépôt public →
+  `macos-latest`.
   Bibliothèques Homebrew embarquées (glib et gettext sous LGPL, OpenSSL, ICU…) : notices sans avis de juriste (N1-8).
+- **H11-19 — À revoir par Jérôme : `.dmg` dans la release 1.0.0** (amendement 3). Demandé par le pilote le 2026-11-06,
+  sous la délégation du 2026-11-02 ; D11-15 et N2-13 (« pas de paquet macOS ») rouverts. Artefact construit et essayé ;
+  sa présence dans la release publiée se tranche au go.
 
 ### Niveau 2
 - **H11-11** Variables et options d'essai (`ACTCRAFT_UPDATES_URL` limitée à `file:` et à l'hôte local ;

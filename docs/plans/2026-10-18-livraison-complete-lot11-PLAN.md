@@ -28,7 +28,7 @@ et une seule version (1.0.0) pour les deux sous-lots, comme les lots 2 et 6.
 | L11-T13 | Tablette IV : cycle de vie — copie de reprise à la mise en arrière-plan, reprise sans perte au retour ou au relancement ; essai sur l'émulateur | L11-T2, L11-T3, L11-T5, L11-T9, L11-T14 | `ui/include/actcraft/ui/lifecycle.h`, `ui/src/lifecycle.cpp`, `ui/qml/RecoveryBanner.qml`, `ui/qml/Main.qml`, `app/startup.h`, `app/startup.cpp`, `app/main.cpp`, `bench/captures/main.cpp`, `tests/tst_ui_lifecycle.cpp`, `bench/scenarios/cycle-de-vie.json`, `scripts/essai-android-cycle.ps1` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_lifecycle` 7 fonctions `PASS` (dont `processKilledInBackgroundLosesNothing`) ; `tst_captures_cycle_de_vie` Passed ; `ANDROID CYCLE OK` | S3.4 | #tache-l11-t13 |
 | L11-T14 | Tablette V : portail de documents — permissions gardées des `content://`, documents récents, image et PDF par le portail ; essai sur l'émulateur ; démon Gradle coupé dans `paquet-android.ps1` | L11-T0, L11-T1, L11-T3 | `ui/include/actcraft/ui/documentportal.h`, `ui/src/documentportal.cpp`, `ui/src/recentdocuments.cpp`, `tests/tst_ui_documentportal.cpp`, `scripts/essai-android-portail.ps1`, `scripts/paquet-android.ps1` | isolé | concepteur-critique | `TESTS OK` ; `tst_ui_documentportal` 6 fonctions `PASS` ; `tst_ui_recents` toujours `Passed` ; `paquet-android.ps1 > .tmp/apk.txt 2>&1` rend la main moins de 60 s après `APK OK` ; `ANDROID PORTAIL OK` | S5.1 | #tache-l11-t14 |
 | L11-T15 | Mesure sur la tablette : APK de banc séparé, lancement et relevé par adb, procédure exacte pour Jérôme | L11-T1, L11-T14 | `bench/app/CMakeLists.txt`, `bench/app/main.cpp`, `bench/app/android/AndroidManifest.xml`, `scripts/paquet-banc-android.ps1`, `scripts/banc-android.ps1`, `docs/banc-tablette.md`, `tests/tst_bench_resultsdir.cpp` | isolé | implementeur-tdd | `TESTS OK` ; `tst_bench_resultsdir` 4 fonctions `PASS` ; `APK BANC OK` ; sur l'émulateur `MESURE INDICATIVE` puis `BUDGET TENU` ou `BUDGET DEPASSE` | S3.5 | #tache-l11-t15 |
-| L11-T16 | Point d'étape 11a : suites debug et release, scénarios de 11a, APK et essais Android (S3, S5, tablette, cycle, portail), talons restants comptés, graphe | L11-T2 à L11-T15 | `tests/tst_ui_shell.cpp`, `docs/verifications/2026-10-21-lot11a-etape.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N11 + 32 ; `git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` = fichiers de 11b seulement ; `APK OK`, `ANDROID OK`, `ANDROID FICHIERS OK`, `ANDROID TABLETTE OK`, `ANDROID CYCLE OK`, `ANDROID PORTAIL OK` | S28, S3, S5, S3.1 à S3.5 | #tache-l11-t16 |
+| L11-T16 | Point d'étape 11a : suites debug et release, scénarios de 11a, APK et essais Android (S3, S5, tablette, cycle, portail), talons restants comptés, graphe | L11-T2 à L11-T15 | `tests/tst_ui_shell.cpp`, `docs/verifications/2026-10-21-lot11a-etape.md`, `graphify-out/` | partagé | implementeur-tdd | debug et release `TESTS OK`, N = N11 + 32 ; `git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` = fichiers de 11b seulement ; `SKIP` hors talons : les deux « lot 7 absent » de `tst_tools_twousers` (amendement 3) ; `APK OK`, `ANDROID OK`, `ANDROID FICHIERS OK`, `ANDROID TABLETTE OK`, `ANDROID CYCLE OK`, `ANDROID PORTAIL OK` | S28, S3, S5, S3.1 à S3.5 | #tache-l11-t16 |
 
 ## Amendement 1 (relecture tour 1)
 
@@ -76,8 +76,10 @@ place dans les sections nommées.
 
 **Volet 1 — Paquet `.dmg` non signé du Mac** (demande du pilote, 2026-11-06). Le paragraphe « Paquet macOS » de ce plan
 et D11-15 sont remplacés : la 1.0.0 livre aussi `ActCraft-1.0.0-macos-arm64.dmg`, signé ad hoc, sans Developer ID ni
-notarisation. Tâche neuve **L11-T29m** du plan de 11b (ligne de table et section), en V15 avec L11-T29 ; rien ne change
-dans les tâches de 11a.
+notarisation. Origine : demande du pilote du 2026-11-06, relayée sous la délégation de Jérôme du 2026-11-02 (« Je te
+laisse manager les sessions ActCraft ») ; D11-15 et N2-13 du cadrage rouverts ; c'est un artefact, sa publication reste
+soumise au go de release (H11-19, à revoir par Jérôme). Tâche neuve **L11-T29m** du plan de 11b (ligne de table et
+section), seule en V15, avant L11-T29 (V15b), qui en dépend ; rien ne change dans les tâches de 11a.
 
 **Volet 2 — Palette d'outils coupée à 1 000 px de haut** (constat du pilote), rattaché à **L11-T10**.
 - Cause, lue dans le code : la palette est un `Flickable` vertical (`clip: true`, `StopAtBounds`) **sans barre ni
@@ -105,6 +107,8 @@ dans les tâches de 11a.
   remplace sur le Mac les commandes PowerShell, `jeton.ps1` et les chemins `C:\…` ; le reste du plan vaut tel quel.
 - Branche du lot : `feat/livraison-complete-l11`. Toute commande qui cite `feat/livraison-complete...HEAD` (contrôle N4
   des API privées compris) se lit `feat/livraison-complete-l11...HEAD` ; les worktrees de tâche en sont issus.
+- Mutations : **la remise prescrite par la section l'emporte sur la règle Mac** (`git checkout -- <fichier>`) quand le
+  fichier porte des ajouts non commités de la tâche (L11-T10 : aller-retour par `sed`, prouvé par `grep`).
 - Restes pour le PC : preuves Android (`APK OK`, `ANDROID OK`, `ANDROID FICHIERS OK`, `ANDROID TABLETTE OK`,
   `ANDROID CYCLE OK`, `ANDROID PORTAIL OK`, `APK BANC OK`, mesure sur l'émulateur), REA et ancien dépôt, corpus vidéo
   (contrôle des titres), `NOMS OK`, captures et banc D3D11 (`captures.ps1`, `bench.ps1`), preuve MSVC `/W4 /WX`. Chaque
@@ -1624,7 +1628,9 @@ QStringLiteral("L11")`, pour que le test ne se compte pas lui-même), `docs/veri
 - Suites : `pwsh -NoProfile -File ./scripts/test.ps1 -Preset release` puis `pwsh -NoProfile -File ./scripts/test.ps1`
   (formes bornées, sous le jeton) : `TESTS OK` deux fois, N = N11 + 32, `SKIP` restants = talons de 11b seulement
   (`git -C <wt> grep -l "Talon L11" -- . ':!docs/' ':!graphify-out/' ':!tests/tst_ui_shell.cpp'` : seulement des
-  fichiers de 11b : `ui/include/actcraft/ui/updatechecker.h`, `ui/src/updatechecker.cpp` et les tests de 11b).
+  fichiers de 11b : `ui/include/actcraft/ui/updatechecker.h`, `ui/src/updatechecker.cpp` et les tests de 11b), plus les
+  deux `SKIP` « lot 7 absent » de `tst_tools_twousers` (`rulerBelongsToItsUser`, `inkOfTheOtherNotGuided`,
+  amendement 3 ; ce ne sont pas des talons).
 - Captures de 11a, chacune dans **son** dossier : `modes-toucher`, `deux-utilisateurs`, `tablette-etroite`, `rotation-clavier`, `au-doigt`, `cycle-de-vie`, et `premiers-pas` (S2, non-régression) : `CAPTURES OK`.
 - Paquets et Android : `paquet-android.ps1` (`APK OK`), `verifier-licences.ps1 -Apk …` (`LICENCES OK`),
   `essai-android.ps1` (S3, `ANDROID OK`), `essai-android-fichiers.ps1` (S5, `ANDROID FICHIERS OK`),
