@@ -216,6 +216,8 @@ private:
     // UserState, surface d'encre et de sélection à lui) ; nullptr tant que le branchement manque.
     bool isSecond(input::UserId user) const noexcept;
     ToolAdapters* secondAdapters() const;
+    // L11-C7 (E) : couche soulevée du second, juste au-dessus de liftLayer, créée à la première demande.
+    render::LiftLayerItem* secondLiftLayer() const;
     tools::Tool* secondToolFor(const QString& id) const;
     tools::Tool* secondExistingTool(const QString& id) const;
     void adopt(tools::Tool* tool) const; // registre des objets tenus posé sur un sélecteur neuf (L11-T8)
@@ -248,6 +250,7 @@ private:
     QPointer<DocumentController> m_controller;
     QPointer<PageView> m_view;
     QPointer<render::LiftLayerItem> m_liftLayer;
+    mutable QPointer<render::LiftLayerItem> m_secondLiftLayer; // enfant QObject de m_liftLayer
     QRectF m_trashArea;
     bool m_trashHover = false;
     QString m_settingsFile;

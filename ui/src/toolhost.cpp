@@ -438,9 +438,10 @@ void ToolHost::setLiftLayer(render::LiftLayerItem* layer)
         return;
     }
     cancelAllGestures();
-    m_liftLayer = layer;
     m_adapters.reset();
     m_secondAdapters.reset();
+    delete m_secondLiftLayer.data();
+    m_liftLayer = layer;
     emit wiringChanged();
 }
 
@@ -1153,22 +1154,42 @@ void ToolHost::adopt(tools::Tool* tool) const
     }
 }
 
+render::LiftLayerItem* ToolHost::secondLiftLayer() const
+{
+    if (!m_liftLayer || !m_liftLayer->parentItem()) {
+        return nullptr;
+    }
+    if (!m_secondLiftLayer) {
+        auto* second = new render::LiftLayerItem;
+        second->setObjectName(QStringLiteral("secondLiftLayer"));
+        second->setFixedPage(m_liftLayer->fixedPage());
+        stackAbove(*m_liftLayer, *second);
+        QObject::connect(m_liftLayer, &render::LiftLayerItem::fixedPageChanged, second,
+                         [first = m_liftLayer.data(), second] { second->setFixedPage(first->fixedPage()); });
+        m_secondLiftLayer = second;
+    }
+    return m_secondLiftLayer.data();
+}
+
+// L11-C7 (D, E) : l'encre vive et la couche soulevée du second sont les siennes ; partagées, l'appui de l'un
+// viderait le trait vif de l'autre, et son soulèvement remplacerait les copies de l'autre.
 ToolAdapters* ToolHost::secondAdapters() const
 {
-    render::InkItem* ink = m_view ? m_view->ink() : nullptr;
-    if (!m_secondUser || !m_controller || !m_view || !m_liftLayer || !ink) {
+    render::InkItem* ink = m_view ? m_view->secondInk() : nullptr;
+    render::LiftLayerItem* layer = secondLiftLayer();
+    if (!m_secondUser || !m_controller || !m_view || !layer || !ink) {
         discardToolAdapters(m_secondAdapters);
         return nullptr;
     }
-    if (m_secondAdapters && m_secondAdapters->matches(m_controller.data(), m_view.data(), ink,
-                                                      m_liftLayer.data(), m_commands.data())) {
+    if (m_secondAdapters &&
+        m_secondAdapters->matches(m_controller.data(), m_view.data(), ink, layer, m_commands.data())) {
         return m_secondAdapters.get();
     }
     discardToolAdapters(m_secondAdapters);
     auto* self = const_cast<ToolHost*>(this);
     // Cadre du second utilisateur non montré : la surcouche n'en dessine qu'un, celui du premier (consigné).
     m_secondAdapters = std::make_unique<ToolAdapters>(
-        *m_controller, *m_view, *ink, *m_liftLayer, m_commands.data(), *m_secondUser,
+        *m_controller, *m_view, *ink, *layer, m_commands.data(), *m_secondUser,
         [](const QVariantMap&, bool) {}, [self] { return self->m_trashArea; }, [](bool) {});
     m_secondAdapters->context.lockIgnored = m_lockIgnored;
     m_secondAdapters->context.snapDisabled = m_snapDisabled;

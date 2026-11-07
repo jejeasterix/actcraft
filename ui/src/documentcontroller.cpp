@@ -274,7 +274,8 @@ int DocumentController::shownObjectCount() const noexcept
 // soulevés (la gomme soulève chaque trait à son premier contact). Les objets déjà soulevés restent hors de la
 // page et du cache. Les remettre à chaque appel (L3-C5) rendait au cache les traits que la gomme recoupait ;
 // elle les soulevait de nouveau au contact suivant (au banc : 792 traits soulevés pour 24 touchés).
-std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<core::ObjectId>& ids)
+std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<core::ObjectId>& ids,
+                                                              int owner)
 {
     forgetStaleLift();
     core::Page& page = m_document.page(m_current);
@@ -308,6 +309,7 @@ std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<
         if (std::find(fresh.begin(), fresh.end(), l.object.common.id) != fresh.end()) {
             added.push_back(l);
             copies.push_back(l.object);
+            m_liftOwners.emplace_back(l.object.common.id, owner);
         }
     }
     // Le cache n'a plus que ceux-là à retirer.
@@ -327,11 +329,53 @@ std::vector<core::PageObject> DocumentController::liftObjects(const std::vector<
 // bruts de la commande (ObjectChanged d'un objet qu'il n'a plus) ne vont jamais au cache.
 void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
 {
+    dropLiftedOf(std::move(command), std::nullopt);
+}
+
+void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command, int owner)
+{
+    dropLiftedOf(std::move(command), owner);
+}
+
+int DocumentController::liftOwnerOf(core::ObjectId id) const noexcept
+{
+    for (const auto& [lifted, owner] : m_liftOwners) {
+        if (lifted == id) {
+            return owner;
+        }
+    }
+    return 0;
+}
+
+// L11-C7 (E) : tous les objets soulevés reviennent à leurs rangs (une seule liste aux rangs de la page
+// entière, comme liftObjects), la commande s'exécute sur la page entière, puis ceux des autres propriétaires
+// sont repris à leurs rangs nouveaux, sans changement pour le cache, qui ne les a toujours pas. Seuls ceux de
+// `owner` lui reviennent (changesAfterLift).
+void DocumentController::dropLiftedOf(std::unique_ptr<core::UndoCommand> command, std::optional<int> owner)
+{
     forgetStaleLift();
-    const std::vector<core::LiftedObject> lifted = std::exchange(m_lifted, {});
-    core::restoreObjects(m_document.page(m_current), lifted);
+    const bool wasLifting = !m_lifted.empty();
+    const std::vector<core::LiftedObject> all = std::exchange(m_lifted, {});
+    std::vector<core::LiftedObject> lifted; // ceux qui reviennent
+    std::vector<core::ObjectId> kept;       // ceux des autres, repris après la commande
+    for (const core::LiftedObject& l : all) {
+        if (!owner || liftOwnerOf(l.object.common.id) == *owner) {
+            lifted.push_back(l);
+        } else {
+            kept.push_back(l.object.common.id);
+        }
+    }
+    core::restoreObjects(m_document.page(m_current), all);
     const std::vector<FlaggedObject> flags = flaggedObjects(); // objets soulevés revenus
     const core::Changes commandChanges = run(std::move(command));
+    if (!kept.empty() && m_current < m_document.pageCount()) {
+        m_lifted = core::takeObjects(m_document.page(m_current), kept);
+    }
+    std::erase_if(m_liftOwners, [this](const std::pair<core::ObjectId, int>& entry) {
+        return std::none_of(m_lifted.begin(), m_lifted.end(), [&entry](const core::LiftedObject& l) {
+            return l.object.common.id == entry.first;
+        });
+    });
     if (lifted.empty() && commandChanges.empty()) {
         notifyFlags(flags);
         return; // rien soulevé, commande sans effet
@@ -350,7 +394,7 @@ void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
     } else {
         notifyState(pages);
     }
-    if (!lifted.empty()) {
+    if (wasLifting && m_lifted.empty()) {
         emit liftingChanged();
     }
     notifyFlags(flags);
@@ -359,6 +403,14 @@ void DocumentController::dropLifted(std::unique_ptr<core::UndoCommand> command)
 bool DocumentController::isLifting() const noexcept
 {
     return !m_lifted.empty() && m_liftGeneration == m_generation;
+}
+
+bool DocumentController::isLifting(int owner) const noexcept
+{
+    return isLifting() && std::any_of(m_liftOwners.begin(), m_liftOwners.end(),
+                                      [owner](const std::pair<core::ObjectId, int>& entry) {
+                                          return entry.second == owner;
+                                      });
 }
 
 // L5-T20 : la session affichée part avec tout ce qui appartient au document (pile, URL, titre, état
@@ -392,7 +444,8 @@ std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSessi
     session->reference = m_referenceGeneration == m_generation ? m_reference : nullptr;
     m_reference.reset();
     m_lifted.clear(); // déjà déposé ; rien de l'ancien document ne reste soulevé
-    ++m_generation;   // une écriture finie après le garage ne rattache pas son fichier à un autre document
+    m_liftOwners.clear();
+    ++m_generation; // une écriture finie après le garage ne rattache pas son fichier à un autre document
     ++m_revision;
     return session;
 }
@@ -405,6 +458,7 @@ void DocumentController::resumeSession(std::unique_ptr<ParkedSession> session)
         return;
     }
     m_lifted.clear();
+    m_liftOwners.clear();
     m_document = std::move(session->document);
     m_undo = std::move(session->undo);
     m_current = std::min(session->current, m_document.pageCount() - 1);
@@ -450,6 +504,7 @@ void DocumentController::forgetStaleLift()
 {
     if (!m_lifted.empty() && m_liftGeneration != m_generation) {
         m_lifted.clear();
+        m_liftOwners.clear();
         emit liftingChanged();
     }
 }
