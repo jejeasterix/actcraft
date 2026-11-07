@@ -240,42 +240,26 @@ void TstUiSecondpalette::everyDialogCommandMarked()
 {
     // Liste relevée dans les gestionnaires QML (corps des setHandler et fonctions qu'ils appellent) : Dialog,
     // Popup modale, sélecteur de fichier (argument d'URL facultatif : boîte sans argument). Non retenus :
-    // menus et surcouches sans boîte (resources.add, L11-C6 : ajout direct à la bibliothèque ; object.menu, object.translucency, color.more, color.pick,
-    // view.dashboard, help.contents). Exacte dans les deux sens : une commande marquée hors de la liste
-    // rougit aussi.
+    // menus et surcouches sans boîte (resources.add, L11-C6 : ajout direct à la bibliothèque ; object.menu,
+    // object.translucency, color.more, color.pick, view.dashboard, help.contents). Exacte dans les deux sens
+    // : une commande marquée hors de la liste rougit aussi.
     const QStringList dialogs = {
-        QStringLiteral("classroom.lock"),
-        QStringLiteral("classroom.password"),
-        QStringLiteral("color.dialog"),
-        QStringLiteral("file.new-custom"),
-        QStringLiteral("file.open"),
-        QStringLiteral("file.save-as"),
-        QStringLiteral("file.quit"),
-        QStringLiteral("file.print"),
-        QStringLiteral("file.publish"),
-        QStringLiteral("help.about"),
-        QStringLiteral("page.background"),
-        QStringLiteral("grid.designer"),
-        QStringLiteral("profile.choose"),
-        QStringLiteral("profile.edit"),
-        QStringLiteral("profile.save-as"),
-        QStringLiteral("profile.import"),
-        QStringLiteral("profile.export"),
-        QStringLiteral("resources.other"),
-        QStringLiteral("resources.delete"),
-        QStringLiteral("resources.new-folder"),
-        QStringLiteral("resources.rename"),
-        QStringLiteral("spell.check"),
-        QStringLiteral("insert.web-frame"),
-        QStringLiteral("webframe.unblock"),
-        QStringLiteral("link.file"),
-        QStringLiteral("link.website"),
-        QStringLiteral("insert.image"),
-        QStringLiteral("insert.media"),
-        QStringLiteral("export.page-image"),
-        QStringLiteral("export.pdf"),
-        QStringLiteral("file.import-pdf"),
-        QStringLiteral("file.import-powerpoint-images"),
+        QStringLiteral("classroom.lock"),     QStringLiteral("classroom.password"),
+        QStringLiteral("color.dialog"),       QStringLiteral("file.new-custom"),
+        QStringLiteral("file.open"),          QStringLiteral("file.save-as"),
+        QStringLiteral("file.quit"),          QStringLiteral("file.print"),
+        QStringLiteral("file.publish"),       QStringLiteral("help.about"),
+        QStringLiteral("page.background"),    QStringLiteral("grid.designer"),
+        QStringLiteral("profile.choose"),     QStringLiteral("profile.edit"),
+        QStringLiteral("profile.save-as"),    QStringLiteral("profile.import"),
+        QStringLiteral("profile.export"),     QStringLiteral("resources.other"),
+        QStringLiteral("resources.delete"),   QStringLiteral("resources.new-folder"),
+        QStringLiteral("resources.rename"),   QStringLiteral("spell.check"),
+        QStringLiteral("insert.web-frame"),   QStringLiteral("webframe.unblock"),
+        QStringLiteral("link.file"),          QStringLiteral("link.website"),
+        QStringLiteral("insert.image"),       QStringLiteral("insert.media"),
+        QStringLiteral("export.page-image"),  QStringLiteral("export.pdf"),
+        QStringLiteral("file.import-pdf"),    QStringLiteral("file.import-powerpoint-images"),
         QStringLiteral("help.check-updates"), // boîte en L11-T22
     };
     ui::Commands commands;
@@ -546,8 +530,8 @@ void TstUiSecondpalette::touchModeChangeKeepsTheUsers()
     const std::uint64_t first = policy->firstStylusDevice();
     QVERIFY(first != 0);
 
-    const QString next = touch->mode() == QStringLiteral("select") ? QStringLiteral("pen")
-                                                                    : QStringLiteral("select");
+    const QString next =
+        touch->mode() == QStringLiteral("select") ? QStringLiteral("pen") : QStringLiteral("select");
     QVERIFY(touch->setMode(next));
     policy = dynamic_cast<const input::TwoUserPolicy*>(app.view->router().policy());
     QVERIFY(policy);

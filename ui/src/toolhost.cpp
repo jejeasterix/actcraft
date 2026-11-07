@@ -44,7 +44,6 @@
 
 namespace actcraft::ui {
 
-
 namespace {
 
 constexpr int kRelayedModifiers = Qt::ShiftModifier | Qt::ControlModifier;
@@ -1011,6 +1010,9 @@ void ToolHost::setLockIgnored(bool ignored)
     if (m_adapters) {
         m_adapters->context.lockIgnored = ignored;
     }
+    if (m_secondAdapters) { // L11-C6 : les outils du second suivent
+        m_secondAdapters->context.lockIgnored = ignored;
+    }
     refreshSelection();
     emit designFlagsChanged();
 }
@@ -1028,6 +1030,9 @@ void ToolHost::setSnapDisabled(bool disabled)
     m_snapDisabled = disabled;
     if (m_adapters) {
         m_adapters->context.snapDisabled = disabled;
+    }
+    if (m_secondAdapters) {
+        m_secondAdapters->context.snapDisabled = disabled;
     }
     emit designFlagsChanged();
 }

@@ -305,7 +305,7 @@ const actions::CommandRegistry& Commands::registry() const noexcept
 
 bool Commands::trigger(const QString& id, const QVariant& argument)
 {
-    return trigger(id, argument, 0);
+    return trigger(id, argument, m_triggerUser); // L11-C6 : imbriqué, l'utilisateur en cours ; sinon 0
 }
 
 bool Commands::trigger(const QString& id, const QVariant& argument, int user)
