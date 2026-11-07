@@ -1011,7 +1011,8 @@ Window {
         appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
         appCommands.setChecked("view.pen-modifiers", penModifierBar.visible)
         appCommands.setHandler("insert.image", root.argumentOrDialog(
-            function (url) { appInsertion.insertImage(url) }, function () { fileExchangeActions.chooseImage() }))
+            function (arg) { appInsertion.insertImage(appDocument.urlFromArgument(arg)) },
+            function () { fileExchangeActions.chooseImage() }))
         appCommands.setHandler("insert.media", root.argumentOrDialog(
             function (url) { appMediaInsert.insertFile(url) }, function () { fileExchangeActions.chooseMedia() }))
         appCommands.setHandler("tab.next", function () { appTabs.next() })

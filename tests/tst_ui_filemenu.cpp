@@ -783,6 +783,23 @@ private slots:
         }
     }
 
+    // L8-PC-CI : l'argument texte d'« insert.image » est un chemin nu, comme pour « insert.media » (décision 20,
+    // urlFromArgument). Sous Windows, « C:/… » se lisait comme une URL de schéma « c » : aucune image insérée.
+    void insertImageTakesABarePathArgument()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        auto* doc = controller(s);
+        QTemporaryDir dir;
+        const QString png = dir.filePath(QStringLiteral("nu.png"));
+        QImage image(200, 100, QImage::Format_RGB32);
+        image.fill(Qt::red);
+        QVERIFY(image.save(png, "PNG"));
+        const std::size_t before = doc->document().page(0).objects.size();
+        QVERIFY(run(s, QStringLiteral("insert.image"), png));
+        QTRY_COMPARE(doc->document().page(0).objects.size(), before + 1);
+    }
+
     // L5-C19 (M17) : « Quitter » pendant l'ouverture d'un second onglet, avec un premier modifié : la bascule
     // vers lui est refusée pendant la lecture ; la sortie attend la fin de la lecture, puis reprend (elle
     // demande l'enregistrement de l'onglet modifié). Avant : rien ne se passait, sans message.

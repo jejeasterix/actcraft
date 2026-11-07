@@ -835,6 +835,13 @@ void TstUiWebFrame::viewFetchesOnlyDecidedSubResources()
     const QString html =
         content(f.frames, 0) +
         QStringLiteral("<img src=\"%1\">").arg(other.url(QStringLiteral("/missed.png")).toString());
+#ifdef Q_OS_WIN
+    // L8-PC-CI : sous Windows, Qt WebView passe par WebView2, qui exige une vraie fenêtre ; hors écran, il plante
+    // (0xC0000005 dans CreateWebViewEnvironmentWithOptionsInternal) au lieu d'échouer. Sans WebView2 installé
+    // (serveur GitHub), le composant échoue et le test se sautait déjà.
+    if (QGuiApplication::platformName() == QLatin1String("offscreen"))
+        QSKIP("WebView2 sans fenêtre native hors écran");
+#endif
     QQmlEngine engine;
     QQmlComponent component(&engine);
     component.setData("import QtQuick\nimport QtWebView\nWebView { width: 400; height: 300; "
