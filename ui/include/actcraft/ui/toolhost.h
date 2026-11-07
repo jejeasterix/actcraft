@@ -75,6 +75,8 @@ class ToolHost : public QObject
     // Lot 8 (L8-T16) : le DesignMode de l'application ; ses effets (restrictions, objets bloquants, actions)
     // sont lus par l'outil de sélection à chaque geste (tools::InteractionPolicy). nullptr : tout actif.
     Q_PROPERTY(QObject* designMode READ designMode WRITE setDesignMode NOTIFY designFlagsChanged)
+    // Lot 11 (L11-T7, D11-2) : mode à deux utilisateurs ; DualMode l'écrit (L11-T9).
+    Q_PROPERTY(bool dualUsers READ dualUsers WRITE setDualUsers NOTIFY dualUsersChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -141,7 +143,13 @@ public:
     // branchés. Pendant un appui sur un objet d'action sous la sélection (L8-T9) : la sélection précédée de
     // l'exécuteur.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
-    tools::UserState& user(input::UserId id = input::kFirstUser); // un utilisateur jusqu'au lot 11 (D-S10)
+    // État de l'utilisateur. Mode à deux utilisateurs allumé : tout id autre que kFirstUser rend le second
+    // état (identifiant kSecondUser) ; éteint : l'utilisateur 0, comme le socle (D-S10).
+    tools::UserState& user(input::UserId id = input::kFirstUser);
+    bool dualUsers() const noexcept;
+    // Allumé, le second UserState est créé à la première fois (un état neuf commence au stylo, H11-16) puis
+    // gardé : éteindre puis rallumer rend le même état, avec son outil et ses réglages.
+    Q_INVOKABLE void setDualUsers(bool on);
     bool lockIgnored() const noexcept;
     void setLockIgnored(bool ignored); // republie la sélection (poignées d'un verrouillé)
     bool snapDisabled() const noexcept;
@@ -176,6 +184,7 @@ signals:
     // L8-T16 : un dépôt accepté par un conteneur (F-577) ; `chime` : le son de confirmation est à jouer
     // (L8-T25).
     void containerAccepted(quint64 container, bool chime);
+    void dualUsersChanged();
 
 private:
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
@@ -217,6 +226,8 @@ private:
     bool m_trashHover = false;
     QString m_settingsFile;
     std::unique_ptr<tools::UserState> m_user;
+    std::unique_ptr<tools::UserState> m_secondUser; // L11-T7 : créé au premier allumage du mode
+    bool m_dualUsers = false;
     mutable std::unique_ptr<ToolAdapters> m_adapters;
     QPointer<ActionRunner> m_actionRunner;
     mutable std::unique_ptr<ActionGate> m_gate; // refait quand l'outil de sélection change

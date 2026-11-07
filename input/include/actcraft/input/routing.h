@@ -13,6 +13,7 @@ namespace actcraft::input {
 
 using UserId = std::uint8_t;
 inline constexpr UserId kFirstUser = 0;
+inline constexpr UserId kSecondUser = 1; // mode à deux utilisateurs (D11-2, L11-T7)
 
 enum class Route : std::uint8_t
 {
@@ -36,6 +37,10 @@ struct RouterState
     int toolTouches = 0;     // doigts en cours routés vers l'outil
     int gestureTouches = 0;  // doigts en cours routés vers le geste
     int pressesInEvent = 1;  // appuis de doigt non couverts du même événement (H3-16), posé par routePresses
+    // Deux utilisateurs (L11-T7, TwoUserPolicy), rangés par Decision::user : contact de stylet ou de souris
+    // en cours, doigts en cours routés vers l'outil. Les autres politiques lisent stylusDown et toolTouches.
+    bool stylusDownByUser[2] = {false, false};
+    int toolTouchesByUser[2] = {0, 0};
 };
 
 struct Decision
