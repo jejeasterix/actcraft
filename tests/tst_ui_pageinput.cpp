@@ -8,8 +8,10 @@
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/tools/userstate.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/propertymodel.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QPointingDevice>
@@ -130,6 +132,25 @@ private:
         tablet(app, device, QEvent::TabletPress, from);
         tablet(app, device, QEvent::TabletMove, from + QPointF(20, 5));
         tablet(app, device, QEvent::TabletMove, from + QPointF(40, 10));
+    }
+
+    // L11-C10 : trait épais du premier utilisateur (stylet 11, le premier vu par TwoUserPolicy), de (300,
+    // 300) à (500, 300) ; vrai s'il est versé.
+    bool drawFirstStroke(App& app)
+    {
+        app.tools->setWidth(20);
+        const int before = app.fixed->objectCount();
+        tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(300, 300));
+        for (int i = 1; i <= 4; ++i) {
+            tablet(app, m_stylus11.get(), QEvent::TabletMove, QPointF(300 + 50 * i, 300));
+        }
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(500, 300));
+        return QTest::qWaitFor([&] { return app.fixed->objectCount() == before + 1; }, 3000);
+    }
+
+    static bool secondFrameVisible(const App& app)
+    {
+        return app.tools->property("secondSelectionFrame").toMap().value(QStringLiteral("visible")).toBool();
     }
 
     void fingerStroke(App& app, QPointF from, QPointF to)
@@ -648,6 +669,91 @@ private slots:
         tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(340, 310));
         QTest::qWait(50);
         QCOMPARE(app.fixed->objectCount(), before + 1);
+    }
+    // L11-C10 (F) : le cadre du second utilisateur est publié (secondSelectionFrame) et dessiné par un second
+    // cadre de PageArea. Ancien patron (fonction d'affichage vide dans secondAdapters) : rien n'est publié,
+    // le second sélectionne sans rien voir.
+    void secondSelectionFrameShown()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(0, 0, 500, 5000)));
+        QVERIFY(drawFirstStroke(app));
+        app.tools->activateFor(QStringLiteral("select"), 1);
+        QVERIFY(!secondFrameVisible(app));
+        tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(400, 300));
+        QTRY_VERIFY_WITH_TIMEOUT(secondFrameVisible(app), 3000);
+        auto* overlay = app.window->findChild<QQuickItem*>(QStringLiteral("secondSelectionOverlay"));
+        QVERIFY(overlay);
+        QTRY_VERIFY_WITH_TIMEOUT(overlay->isVisible(), 3000);
+        // Le premier est au stylo : son cadre reste masqué, le second ne le remplace pas.
+        QVERIFY(!app.tools->selectionFrame().value(QStringLiteral("visible")).toBool());
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
+        QVERIFY(secondFrameVisible(app)); // la sélection du second reste après le relâché
+    }
+
+    // L11-C10 (G, H11-13) : le second pose son stylet sur un objet que le premier a sélectionné, sans bouger
+    // (tenu dès l'appui) ; un panneau des propriétés ouvert ensuite par le premier ne voit plus que la page.
+    // Ancien patron (sélection brute du premier) : il affiche « Trait » et éditerait un objet tenu par
+    // l'autre.
+    void heldObjectLeavesTheOthersSelection()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(0, 0, 500, 5000)));
+        QVERIFY(drawFirstStroke(app));
+        app.tools->selectAll();
+        QCOMPARE(app.tools->selectionCount(), 1);
+        auto* document = app.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(document);
+        {
+            ui::PropertyModel free;
+            free.setDocument(document);
+            free.setTools(app.tools);
+            free.setCommands(app.tools->commands());
+            QTRY_COMPARE_WITH_TIMEOUT(free.title(), QStringLiteral("Trait"), 3000); // l'objet est libre
+        }
+        app.tools->activateFor(QStringLiteral("select"), 1);
+        tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(400, 300));
+        ui::PropertyModel held;
+        held.setDocument(document);
+        held.setTools(app.tools);
+        held.setCommands(app.tools->commands());
+        QTRY_COMPARE_WITH_TIMEOUT(held.title(), QStringLiteral("Page"), 3000);
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
+    }
+
+    // L11-C10 (J3) : une commande lancée par un outil du second utilisateur part en son nom ; un gestionnaire
+    // C++ qui en relance une autre la relance pour lui, et une commande à boîte est refusée (F-303). Ancien
+    // patron (CommandSinkAdapter sans utilisateur) : text.edit-at part au nom du premier, file.open s'ouvre.
+    void secondToolCommandsRunAsSecond()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<SecondUserPolicy>());
+        ui::Commands* commands = app.tools->commands();
+        QVERIFY(commands);
+        int opened = 0;
+        int editAt = 0;
+        commands->setNativeHandler(QStringLiteral("file.open"), [&opened](const QVariant&) { ++opened; });
+        commands->setNativeHandler(QStringLiteral("text.edit-at"), [&editAt, commands](const QVariant&) {
+            ++editAt;
+            commands->trigger(QStringLiteral("file.open"));
+        });
+        QSignalSpy refused(commands, &ui::Commands::refusedForSecondUser);
+        app.tools->activateFor(QStringLiteral("text"), 1);
+        tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(300, 300));
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(300, 300));
+        QTRY_VERIFY_WITH_TIMEOUT(editAt >= 1, 3000);
+        const int calls = editAt;
+        commands->setNativeHandler(QStringLiteral("text.edit-at"), {}); // avant la fin des compteurs
+        commands->setNativeHandler(QStringLiteral("file.open"), {});
+        QCOMPARE(opened, 0);
+        QCOMPARE(refused.count(), calls);
+        QCOMPARE(refused.first().first().toString(), QStringLiteral("file.open"));
     }
 };
 
