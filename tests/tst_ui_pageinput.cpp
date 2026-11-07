@@ -4,6 +4,7 @@
 #include <actcraft/input/routing.h>
 #include <actcraft/input/sample.h>
 #include <actcraft/input/touchmodes.h>
+#include <actcraft/input/twouserpolicy.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/tools/userstate.h>
@@ -13,6 +14,7 @@
 
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QSignalSpy>
@@ -153,6 +155,135 @@ private slots:
         QSettings probe;
         QCOMPARE(probe.format(), QSettings::IniFormat);
         QVERIFY(probe.fileName().startsWith(m_settings.path()));
+    }
+
+    // L11-C1 (revue T7, M1) : mode à deux, le stylet 11 écrit, le stylet 22 appuie sur une couverture
+    // déclarée. La vue ne rend au routeur que le contact du stylet 22 : le trait du stylet 11 continue et
+    // se termine à son relâché. Ancien patron (release(0) et un seul m_stylusDrawing) : la suite du stylet
+    // 11 n'atteint plus l'outil et son trait n'est jamais versé.
+    void coverPressOfOneStylusKeepsTheOther()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF()));
+        QQuickItem cover(app.window->contentItem());
+        cover.setPosition(app.view->pageToScene(QPointF(600, 500)) - QPointF(40, 40));
+        cover.setSize(QSizeF(80, 80));
+        app.view->addInputCover(&cover);
+        bool covered = false;
+        int afterCover = 0;
+        app.view->setSampleFilter([&](const input::Sample& sample) {
+            if (covered && sample.deviceId == 11) {
+                ++afterCover;
+            }
+            return sample;
+        });
+        const int before = app.fixed->objectCount();
+        stylusDown(app, m_stylus11.get(), QPointF(300, 300));
+        QVERIFY(app.view->contactActive());
+        covered = true;
+        tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(600, 500));
+        QVERIFY(app.view->contactActive()); // le stylet 11 écrit toujours
+        tablet(app, m_stylus11.get(), QEvent::TabletMove, QPointF(360, 315));
+        tablet(app, m_stylus11.get(), QEvent::TabletMove, QPointF(380, 320));
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(380, 320));
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(600, 500));
+        app.view->setSampleFilter({});
+        QCOMPARE(afterCover, 3); // deux mouvements et le relâché du stylet 11, versés à son outil
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 1, 3000);
+        QVERIFY(!app.view->contactActive());
+    }
+
+    // L11-C1 (revue T7, M4) : mode à deux ; un doigt de l'utilisateur 1 et un de l'utilisateur 0 écrivent ;
+    // le stylet de l'utilisateur 0 se pose : le trait de son doigt se termine (gardé), le doigt de
+    // l'utilisateur 1 continue d'écrire. Aire en coordonnées de page (échantillons routés).
+    void stylusEndsOnlyItsUsersFinger()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(0, 0, 500, 5000)));
+        bool stylusDown = false;
+        int ownMoves = 0;
+        int otherMoves = 0;
+        app.view->setSampleFilter([&](const input::Sample& sample) {
+            if (stylusDown && sample.device == input::DeviceKind::Touch && sample.phase == input::Phase::Move) {
+                ++(sample.user == input::kFirstUser ? ownMoves : otherMoves);
+            }
+            return sample;
+        });
+        const int before = app.fixed->objectCount();
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(300, 300)));
+        QTest::touchEvent(app.window, m_touch).stationary(0).press(1, scenePoint(app, QPointF(700, 300)));
+        QTest::touchEvent(app.window, m_touch)
+            .move(0, scenePoint(app, QPointF(320, 300)))
+            .move(1, scenePoint(app, QPointF(720, 300)));
+        QCOMPARE(app.view->lastContactUser(), 0);
+        stylusDown = true;
+        tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(700, 500));
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 1, 3000); // trait du doigt gardé
+        for (int i = 1; i <= 2; ++i) {
+            QTest::touchEvent(app.window, m_touch)
+                .move(0, scenePoint(app, QPointF(320 + 20 * i, 300)))
+                .move(1, scenePoint(app, QPointF(720 + 20 * i, 300)));
+        }
+        app.view->setSampleFilter({});
+        QCOMPARE(ownMoves, 0);
+        QCOMPARE(otherMoves, 2);
+        QTest::touchEvent(app.window, m_touch)
+            .release(0, scenePoint(app, QPointF(360, 300)))
+            .release(1, scenePoint(app, QPointF(760, 300)));
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(700, 500));
+        QTRY_VERIFY_WITH_TIMEOUT(!app.view->contactActive(), 3000);
+    }
+
+    // L11-C1 (revue T5, M2, D11-4) : mode select, outil courant le stylo ; un appui au doigt sur un objet le
+    // sélectionne par le sélecteur que fournit ToolHost, sans changer l'outil courant. Sans fournisseur, le
+    // doigt n'atteint aucun outil.
+    void imposedSelectorSelectsWhilePenIsCurrent()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->activate(QStringLiteral("pen"));
+        const int before = app.fixed->objectCount();
+        fingerStroke(app, QPointF(300, 400), QPointF(500, 400));
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 1, 3000);
+        QCOMPARE(app.tools->selectionCount(), 0);
+        app.view->setRoutingPolicy(input::makeTouchPolicy(input::TouchMode::Select));
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(400, 400)));
+        QTest::touchEvent(app.window, m_touch).release(0, scenePoint(app, QPointF(400, 400)));
+        QTRY_COMPARE_WITH_TIMEOUT(app.tools->selectionCount(), 1, 3000);
+        QCOMPARE(app.tools->user(input::kFirstUser).currentTool(), QStringLiteral("pen"));
+        QCOMPARE(app.fixed->objectCount(), before + 1); // aucun trait au doigt
+    }
+
+    // L11-C1 (revue T5, hors périmètre) : un événement [A relâché, B appuyé] ; l'appui de B n'est décidé et
+    // versé à l'outil qu'une fois, même si Qt Quick livre l'événement deux fois à la vue.
+    void releaseAndPressInOneEventDecidedOnce()
+    {
+        App app;
+        QVERIFY(start(app));
+        int presses = 0;
+        app.view->setSampleFilter([&presses](const input::Sample& sample) {
+            if (sample.device == input::DeviceKind::Touch && sample.phase == input::Phase::Press) {
+                ++presses;
+            }
+            return sample;
+        });
+        const int before = app.fixed->objectCount();
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(300, 300)));
+        QTest::touchEvent(app.window, m_touch).move(0, scenePoint(app, QPointF(340, 300)));
+        QCOMPARE(presses, 1);
+        QTest::touchEvent(app.window, m_touch)
+            .release(0, scenePoint(app, QPointF(340, 300)))
+            .press(1, scenePoint(app, QPointF(300, 450)));
+        QCOMPARE(presses, 2); // B : une décision, un appui versé
+        QTest::touchEvent(app.window, m_touch).move(1, scenePoint(app, QPointF(340, 450)));
+        QTest::touchEvent(app.window, m_touch).release(1, scenePoint(app, QPointF(340, 450)));
+        app.view->setSampleFilter({});
+        QCOMPARE(presses, 2);
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 2, 3000);
     }
 
     // Point 1 : la politique du routeur se remplace ; le témoin (politique complète remise) écrit.
