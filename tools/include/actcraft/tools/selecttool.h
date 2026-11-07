@@ -1,10 +1,14 @@
 #pragma once
 
+#include <actcraft/core/containers.h>
+#include <actcraft/core/lift.h>
+#include <actcraft/tools/interactionpolicy.h>
 #include <actcraft/tools/tool.h>
 #include <actcraft/tools/toolcontext.h>
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -37,6 +41,16 @@ public:
     // le mode.
     void setShapePointsMode(bool on);
     bool shapePointsMode() const noexcept;
+    // Lot 8 (L8-T16, D8-9) : réglages du mode conception, posés par ui::ToolHost ; nul : tout actif. Non
+    // possédée, lue à chaque geste.
+    void setInteractionPolicy(const InteractionPolicy* policy) noexcept;
+    // Dépôt accepté par un conteneur (F-577) : le conteneur gagnant et son son de confirmation (joué par
+    // L8-T25). Appelé une fois, après le dépôt.
+    using ContainerAccepted = std::function<void(core::ObjectId container, bool chime)>;
+    void setContainerAccepted(ContainerAccepted callback);
+    // Mesure (tests, banc) : pages d'essai construites depuis la création de l'outil. Au plus une par geste,
+    // au relâché d'un glisser soumis à une règle ; aucune pendant les mouvements (fluidité).
+    std::size_t probePagesBuilt() const noexcept;
 
 private:
     enum class State : std::uint8_t
@@ -67,6 +81,8 @@ private:
     void move(const input::Sample& sample);
     void release(const input::Sample& sample);
     void beginDrag(bool force);
+    // À l'appui sur un objet à chemin hors de son trait : le glisser commence, l'objet saute sur son trait.
+    void jumpOntoTrackAtPress();
     void beginTransform(State kind);
     void beginSmartPoint();
     void updateSmartPoint(core::PointF point);
@@ -80,7 +96,22 @@ private:
     void liftForGesture(std::vector<core::ObjectId> ids, State state);
     // Agrandir et Réduire : la sélection redimensionnable, × factor autour du centre du cadre.
     void scaleSelection(double factor);
-    core::Transform gestureTransform(core::PointF point) const;
+    // Non constante : la rotation à pas retient le dernier angle permis (allowedTurn, L8-T15).
+    core::Transform gestureTransform(core::PointF point);
+    bool restrictionsOn() const noexcept;
+    bool blockersOn() const noexcept;
+    // Revue L8-T16 : hors mode conception, une sélection de plusieurs objets dont l'un a une rotation réglée
+    // (bloquée, à sens, à pas, à pivot) ne tourne pas ; le bouton de rotation quitte la barre.
+    bool turnRefused(const core::Page& page, const std::vector<core::ObjectId>& selection) const;
+    QStringList barCommands(const core::Page& page, const std::vector<core::ObjectId>& selection) const;
+    // Règles du glisser (L8-T16), prises avant le soulèvement : limiteurs, boîtes des bloquants, rangs des
+    // soulevés s'il faudra une page d'essai. Sans règle, rien n'est copié.
+    void prepareRules(const core::Page& page, const std::vector<core::ObjectId>& ids);
+    // Déplacement permis (limiteurs puis objets bloquants) pour le déplacement voulu, depuis le départ.
+    core::PointF allowedDelta(core::PointF wanted) const;
+    // Verdict du dépôt sur la page d'essai, construite ici (resolveDrop) ; accrochage ajouté à `delta` s'il
+    // passe les limiteurs et les bloquants et ne change pas le verdict.
+    core::DropResult settle(core::Transform& delta);
     void updateDrag(core::PointF point);
     void endDrag(core::PointF point, bool cancelled);
     void showBand(core::PointF point);
@@ -93,6 +124,7 @@ private:
     Grab m_grab = Grab::None;
     std::uint64_t m_pointer = 0;
     core::PointF m_start;
+    bool m_jumpedAtPress = false;          // le glisser a commencé à l'appui (saut sur le trait)
     core::ObjectId m_pendingSelect = 0;    // objet saisi non sélectionné : sélectionné si ce n'est qu'un clic
     bool m_dragSelection = false;          // le glissement déplace la sélection (le cadre la suit)
     bool m_additive = false;               // rectangle avec Maj/Ctrl : ajoute
@@ -114,6 +146,23 @@ private:
     std::vector<core::PageObject>
         m_copySources; // leur fermeture (closureForCopy), prise avant le soulèvement
     int m_modifiers = 0;
+    const InteractionPolicy* m_policy = nullptr;
+    ContainerAccepted m_containerAccepted;
+    // Règles du glisser (L8-T16), prises avant le soulèvement ; rien n'y est recalculé pendant les
+    // mouvements.
+    core::Page m_travelPage;                 // soulevés limités, leurs chemins et membres (closureForCopy)
+    std::vector<std::size_t> m_limited;      // index dans m_travelPage des soulevés à déplacement limité
+    std::vector<core::RectF> m_movingBoxes;  // boîtes de départ des soulevés (s'il y a un bloquant)
+    std::vector<core::RectF> m_blockerBoxes; // boîtes des objets bloquants non soulevés
+    bool m_settle = false;                   // conteneur ou aimant : page d'essai au relâché
+    std::vector<std::size_t> m_liftRanks;    // rangs d'origine des soulevés (m_settle)
+    std::vector<core::LiftedObject> m_liftedAll; // copies des soulevés à leur rang, pour la page d'essai
+    bool m_force = false;                        // « déplacer librement » : limiteurs de déplacement ignorés
+    bool m_turning = false;                      // rotation à règle (pas, sens, pivot) d'un objet seul
+    double m_turnBase = 0;                       // angle de l'objet au départ (degrés)
+    double m_turnFrom = 0;                       // dernier angle permis (allowedTurn)
+    core::PointF m_pivot;                        // pivot de la rotation à règle (page)
+    std::size_t m_probePagesBuilt = 0;           // probePagesBuilt()
 };
 
 } // namespace actcraft::tools

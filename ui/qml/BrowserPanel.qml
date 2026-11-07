@@ -19,6 +19,7 @@ Rectangle {
     property PageView view: null
     property var profile: null
     property var preferences: null
+    property BroadcastGate broadcast: null // diffusion protégée des notes (L8-T32)
     property string current: "pages" // identifiant de `navigators` (A8)
     readonly property bool hasNotes: notesBrowser.hasNotes
     // L6-T18 (S9) : le navigateur courant vient du profil et y retourne à chaque changement.
@@ -35,6 +36,8 @@ Rectangle {
         target: root.profile
         function onProfileChanged() { root.syncFromProfile() }
     }
+    // Modèle de l'onglet « actions » (ActionBrowserModel), posé par Main.qml.
+    property var actionModel: null
     function showNavigator(id) {
         root.visible = true
         root.current = id
@@ -91,6 +94,7 @@ Rectangle {
         root.commands.setHandler("browser.properties", function () { root.showNavigator("proprietes") })
         root.commands.setHandler("browser.notes", function () { root.showNavigator("notes") })
         root.commands.setHandler("browser.resources", function () { root.showNavigator("ressources") })
+        root.commands.setHandler("browser.actions", function () { root.showNavigator("actions") })
     }
 
     // Les cinq icônes à nous (nav-*) et celle des pages (page-copier, déjà à nous).
@@ -100,7 +104,7 @@ Rectangle {
         { id: "objets", label: qsTr("Objets"), icon: "nav-objets", enabled: true },
         { id: "notes", label: qsTr("Notes"), icon: "nav-notes", enabled: true },
         { id: "proprietes", label: qsTr("Propriétés"), icon: "nav-proprietes", enabled: true },
-        { id: "actions", label: qsTr("Actions"), icon: "nav-actions", enabled: false }
+        { id: "actions", label: qsTr("Actions"), icon: "nav-actions", enabled: true }
     ]
 
     Flow {
@@ -182,6 +186,7 @@ Rectangle {
             tools: root.tools
             view: root.view
             profile: root.profile
+            broadcast: root.broadcast
         }
         PropertyBrowser {
             id: propertyBrowser
@@ -192,7 +197,11 @@ Rectangle {
             profile: root.profile
             preferences: root.preferences
         }
-        Item {} // actions (lot 8)
+        ActionBrowser {
+            commands: root.commands
+            model: root.actionModel
+            enabled: true
+        }
     }
 
     // Bord intérieur : glissé, il règle la largeur (160 à 480).

@@ -8,6 +8,8 @@ actcraft_add_module(actions
         src/profile.cpp
         include/actcraft/actions/profilestore.h
         src/profilestore.cpp
+        include/actcraft/actions/objectactions.h
+        src/objectactions.cpp
     DEPENDS
         ActCraft::core)
 
@@ -18,6 +20,7 @@ qt_add_resources(actcraft_actions "actions_data"
     FILES
         data/commands.json
         data/layout.json
+        data/object-actions.json
         data/profiles/en-classe.json
         data/profiles/preparation.json
         data/profiles/lecture-ecriture.json

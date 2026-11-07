@@ -20,6 +20,13 @@ Item {
     // « Enregistrer sous » abandonné : ce qui attendait l'enregistrement (fermer un onglet) est oublié.
     signal saveAbandoned()
     property var preferences: null // lié par L6-T23 (Main.qml) à appPreferences
+    // Diffusion protégée (L8-T32) : porte qui refuse l'enregistrement d'un document protégé, aussi par les
+    // chemins hors commande (save et saveAs appelés en direct, « Enregistrer les modifications ? » de Quitter) ;
+    // celle de Fermer et de la croix d'un onglet est dans DocumentTabBar (file.save, par le registre). null : rien.
+    property var broadcast: null
+    // Registre des commandes (L8-C7) : « Enregistrer » de Quitter passe par file.save, comme la croix d'un onglet
+    // (verrou de classe et diffusion protégée refusent par le registre). null : save() en direct.
+    property var commands: null
     readonly property alias recents: recentList
     signal saved(url url) // enregistrement réussi ; Main.qml décide du résumé (L6-T23)
     property var pending: null    // action à reprendre après « enregistrer ? »
@@ -90,12 +97,25 @@ Item {
             actions.openUrl(url)
         }
     }
+    // Vrai (et le refus affiché) si les règles du document ouvert interdisent l'enregistrement.
+    function saveRefused(id) {
+        return actions.broadcast !== null && actions.broadcast.refuse(id)
+    }
+    // Enregistrement refusé : ce qui l'attendait (fermer un onglet) est oublié, comme un « Enregistrer sous »
+    // abandonné ; une sortie en attente (quitResume) est gardée.
+    function abandonRefusedSave() {
+        actions.afterSave = null
+        actions.saveWaiting = false
+        actions.saveAbandoned()
+    }
     function save() {
+        if (actions.saveRefused("file.save")) { actions.abandonRefusedSave(); return }
         if (actions.document.busy) { actions.saveWaiting = true; return }
         if (actions.document.fileUrl.toString() === "") saveAs(undefined)
         else actions.document.saveToUrl(actions.document.fileUrl)
     }
     function saveAs(argument) {
+        if (actions.saveRefused("file.save-as")) { actions.abandonRefusedSave(); return }
         const url = actions.document.urlFromArgument(argument)
         if (url.toString() !== "") { actions.document.saveToUrl(url); return }
         const folder = actions.document.defaultFolderUrl(true)
@@ -162,7 +182,22 @@ Item {
         id: saveChanges
         onOpened: actions.popupOpened()
         onClosed: actions.popupClosed()
-        onSaveRequested: { actions.afterSave = actions.pending; actions.pending = null; actions.save() }
+        // Document protégé : refusé et affiché ; la question reste posée (« Ne pas enregistrer » ou « Annuler »),
+        // l'action en attente et une sortie en attente (quitResume) sont gardées.
+        onSaveRequested: {
+            if (actions.saveRefused("file.save")) { Qt.callLater(saveChanges.open); return }
+            const keep = actions.pending
+            actions.afterSave = keep; actions.pending = null
+            if (actions.commands) {
+                // Refusé par le registre (verrou de classe) : rien n'est enregistré, la question reste posée.
+                if (!actions.commands.trigger("file.save")) {
+                    actions.afterSave = null; actions.pending = keep
+                    Qt.callLater(saveChanges.open)
+                }
+            } else {
+                actions.save()
+            }
+        }
         onDiscardRequested: { const a = actions.pending; actions.pending = null; if (a) a(); actions.resumeWhenIdle() }
         onRejected: { actions.pending = null; actions.quitResume = -1 }
     }
@@ -197,6 +232,16 @@ Item {
                 const a = actions.afterSave
                 actions.afterSave = null
                 if (a) actions.guard(a)
+            }
+            actions.resumeWhenIdle()
+        }
+        // Diffusion protégée (L8-T31) : le document ouvert est le même ; l'enregistrement demandé pendant
+        // l'écriture de la copie part, puis l'action en attente (« Quitter ») reprend à sa fin à lui.
+        function onPublishFinished(ok, message) {
+            if (actions.saveWaiting) {
+                actions.saveWaiting = false
+                actions.save()
+                return
             }
             actions.resumeWhenIdle()
         }

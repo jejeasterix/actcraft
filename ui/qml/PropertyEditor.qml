@@ -7,7 +7,10 @@ import ActCraft.Ui
 // de PropertyBrowser : les propriétés requises viennent des rôles du PropertyModel. L'éditeur n'écrit jamais
 // dans le document : il appelle setValue (et endEdit au relâcher de la réglette) ; la valeur affichée est
 // relue du modèle après sa remise à jour, jamais liée dans l'autre sens. Une valeur refusée (hors bornes) laisse
-// le modèle intact : l'éditeur reprend alors la valeur du modèle (resync).
+// le modèle intact : l'éditeur reprend alors la valeur du modèle (resync). Interactivité (L8-T17, L8-C2) : le
+// rôle `enabled` faux grise la ligne entière (désactivée, atténuée) ; « object » propose les objets de la page
+// par leur nom (rôle `choices` : {id, name}, « Aucun » d'abord) ; « actions » ouvre l'onglet « actions » du
+// navigateur (showNavigator de BrowserPanel, trouvé en remontant les parents) ; « point » : deux nombres x, y.
 FocusScope {
     id: root
     objectName: "prop-" + root.key
@@ -27,6 +30,7 @@ FocusScope {
     required property var choices
     required property var minimum
     required property var maximum
+    required enabled // rôle « enabled » : faux quand l'éditeur est grisé (interactivityprops.h, kEnabledRole)
     property PropertyModel properties: null
     property bool folded: false
 
@@ -44,7 +48,21 @@ FocusScope {
         root.resync()
     }
 
+    // Onglet « actions » du navigateur : le premier parent qui sait l'ouvrir (BrowserPanel).
+    function openActions() {
+        for (let p = root.parent; p; p = p.parent) {
+            if (typeof p.showNavigator === "function") {
+                p.showNavigator("actions")
+                return
+            }
+        }
+    }
+    function decimal(v) {
+        return Number(v).toFixed(2).replace(/\.?0+$/, "")
+    }
+
     visible: !root.folded
+    opacity: root.enabled ? 1 : 0.5
     implicitHeight: root.folded ? 0 : Math.max(Theme.tailleBouton - 8, loader.implicitHeight) + Theme.espace1
     height: implicitHeight
 
@@ -75,6 +93,9 @@ FocusScope {
             case "slider": return sliderEditor
             case "choice": return choiceEditor
             case "bool": return boolEditor
+            case "object": return objectEditor
+            case "actions": return actionsEditor
+            case "point": return pointEditor
             default: return textEditor // text, keywords
             }
         }
@@ -240,6 +261,119 @@ FocusScope {
             Connections {
                 target: root
                 function onResync() { combo.currentIndex = Qt.binding(() => combo.shown) }
+            }
+        }
+    }
+
+    // Objet choisi sur la page : identifiant (0 : aucun), proposé par son nom.
+    Component {
+        id: objectEditor
+        ComboBox {
+            id: objects
+            objectName: "object-editor"
+            readonly property int shown: objects.count >= 0 && root.hasValue ? objects.indexOfValue(root.value) : -1
+            model: root.choices
+            textRole: "name"
+            valueRole: "id"
+            enabled: root.editable
+            currentIndex: objects.shown
+            font.pixelSize: Theme.taillePolice
+            displayText: objects.currentIndex < 0 ? "" : objects.currentText
+            onActivated: index => root.commit(objects.valueAt(index))
+            Connections {
+                target: root
+                function onResync() { objects.currentIndex = Qt.binding(() => objects.shown) }
+            }
+        }
+    }
+
+    // Actions de l'objet : liste en lecture (libellés du catalogue), modifiée dans le navigateur d'actions.
+    Component {
+        id: actionsEditor
+        Item {
+            implicitHeight: open.implicitHeight
+            Text {
+                anchors.left: parent.left
+                anchors.right: open.left
+                anchors.rightMargin: Theme.espace1
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.hasValue && root.value.length > 0 ? root.value.join(", ") : qsTr("Aucune action")
+                color: Theme.texte
+                font.pixelSize: Theme.taillePolice
+                elide: Text.ElideRight
+            }
+            Button {
+                id: open
+                objectName: "actions-open"
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Modifier…")
+                font.pixelSize: Theme.taillePolice
+                onClicked: root.openActions()
+            }
+        }
+    }
+
+    // Point choisi : x et y dans la convention du champ (le libellé la dit) ; validé quand les deux sont lus.
+    Component {
+        id: pointEditor
+        Row {
+            id: point
+            spacing: Theme.espace1
+            readonly property string shownX: root.hasValue ? root.decimal(root.value.x) : ""
+            readonly property string shownY: root.hasValue ? root.decimal(root.value.y) : ""
+            function validate() {
+                const x = Number.parseFloat(fieldX.text)
+                const y = Number.parseFloat(fieldY.text)
+                if (Number.isFinite(x) && Number.isFinite(y)
+                        && (!root.hasValue || x !== Number.parseFloat(point.shownX)
+                                         || y !== Number.parseFloat(point.shownY)))   // arrondi contre arrondi
+                    root.commit(Qt.point(x, y))
+                else if (fieldX.text !== "" && fieldY.text !== "")
+                    root.resync()
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "x"
+                color: Theme.texte
+                font.pixelSize: Theme.taillePolice
+            }
+            TextField {
+                id: fieldX
+                objectName: "point-x"
+                width: Math.max(40, (loader.width - 3 * Theme.espace1) / 2 - 12)
+                text: point.shownX
+                readOnly: !root.editable
+                color: Theme.texte
+                selectByMouse: true
+                font.pixelSize: Theme.taillePolice
+                validator: DoubleValidator { notation: DoubleValidator.StandardNotation; locale: "C" }
+                onEditingFinished: point.validate()
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "y"
+                color: Theme.texte
+                font.pixelSize: Theme.taillePolice
+            }
+            TextField {
+                id: fieldY
+                objectName: "point-y"
+                width: fieldX.width
+                text: point.shownY
+                readOnly: !root.editable
+                color: Theme.texte
+                selectByMouse: true
+                font.pixelSize: Theme.taillePolice
+                validator: DoubleValidator { notation: DoubleValidator.StandardNotation; locale: "C" }
+                onEditingFinished: point.validate()
+            }
+            Connections {
+                target: root
+                function onResync() {
+                    fieldX.text = Qt.binding(() => point.shownX)
+                    fieldY.text = Qt.binding(() => point.shownY)
+                }
             }
         }
     }

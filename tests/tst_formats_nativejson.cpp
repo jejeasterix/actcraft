@@ -197,6 +197,30 @@ private slots:
         }
     }
 
+    // Amendement 3 du lot 8, R-T3a : les champs du lot 8, hors défaut, traversent document.json sans perte,
+    // et aucune de leurs clés ne va aux clés inconnues (gabarits KnownKeys complets).
+    void richInteractiveDocumentRoundTrips()
+    {
+        const core::Document rich = richdoc::richInteractiveDocument();
+        QVERIFY(core::hasUniqueIds(rich));
+        QVERIFY(core::fingerprint(rich) != core::fingerprint(richdoc::richDocument()));
+        core::Document back;
+        const formats::JsonReadResult r =
+            formats::documentFromJson(formats::documentToJson(rich), loaderFrom(rich), back);
+        QVERIFY2(r.ok, qPrintable(r.error));
+        QVERIFY2(r.warnings.isEmpty(), qPrintable(r.warnings.join(u'\n')));
+        QCOMPARE(core::fingerprint(back), core::fingerprint(rich));
+        QVERIFY(back.unknownKeys().empty());
+        for (std::size_t i = 0; i < back.pageCount(); ++i) {
+            for (const core::PageObject& o : back.page(i).objects) {
+                QVERIFY2(o.unknownKeys.empty(), o.unknownKeys.c_str());
+                for (const core::Action& a : o.common.actions) {
+                    QVERIFY2(a.unknownKeys.empty(), a.unknownKeys.c_str());
+                }
+            }
+        }
+    }
+
     // −0 revient +0 de QJsonValue ; l'empreinte hache −0 comme +0, donc l'aller-retour la conserve.
     void roundTripKeepsTheFingerprintWithNegativeZeros()
     {
@@ -338,20 +362,78 @@ private slots:
             // labelStyle, keywords (L6-T10) : de même ; leur aller-retour : labelStyleRoundTrip,
             // keywordsRoundTrip (tst_formats_lot6).
             const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform,
-                         label, labelStyle, keywords, actions] = p1.objects[0].common;
+                         label, labelStyle, keywords, actions, container] = p1.objects[0].common;
             QVERIFY(!dragCopy);
             QVERIFY(labelStyle == LabelStyle{} && keywords.empty());
             QVERIFY(id != 0 && !name.empty() && layer != Layer::Middle && !visible && locked &&
                     translucency != 0);
-            const auto& [movable, resizable, rotatable] = restrictions;
+            const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
+                         pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = restrictions;
             QVERIFY(!movable && !resizable && rotatable && !p1.objects[1].common.restrictions.rotatable);
             const auto& [m11, m12, m21, m22, dx, dy] = transform;
             QVERIFY(m11 != 1 && m12 != 0 && m21 != 0 && m22 != 1 && dx != 0 && dy != 0);
             QVERIFY(!label.empty() && actions.size() == 1);
-            const auto& [kind, sourceType, command, target, resource, actionKeys] = actions[0];
+            const auto& [kind, sourceType, command, target, resource, actionKeys, catalogId, parameters,
+                         dragDrop] = actions[0];
             QVERIFY(kind != ActionKind::Other && sourceType != 0 && command != 0 && target != 0 &&
                     !resource.empty());
             QVERIFY(actionKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
+            // Lot 8 : jamais dans le document riche, dont les clés et les empreintes sont figées (référence)
+            // ; remplis hors défaut dans richInteractiveDocument (bloc suivant), dont l'aller-retour est
+            // richInteractiveDocumentRoundTrips.
+            QVERIFY(isDefault(restrictions) && isDefault(container) && d.broadcast().isDefault());
+            QVERIFY(catalogId.empty() && parameters.empty() && !dragDrop);
+            QVERIFY(travel == Travel::Free &&
+                    turning == Turning::Free); // o1 bloqué par son booléen du lot 2 seul
+            static_cast<void>(track);
+            static_cast<void>(turnStep);
+            static_cast<void>(pivot);
+            static_cast<void>(pivotPoint);
+            static_cast<void>(pivotObject);
+            static_cast<void>(blocksOthers);
+            static_cast<void>(magnet);
+            static_cast<void>(magnetMark);
+            static_cast<void>(magnetPoint);
+        }
+        {
+            // Lot 8 (amendement 3, R-T3a) : chaque champ de l'interactivité hors défaut, dans la copie
+            // complétée du document riche.
+            const Document e = richdoc::richInteractiveDocument();
+            const ObjectCommon& c = e.page(0).objects[0].common;
+            const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
+                         pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = c.restrictions;
+            QVERIFY(movable && rotatable && !resizable);
+            QVERIFY(travel != Travel::Free && travel != Travel::Fixed && track != 0 &&
+                    turning != Turning::Free && turning != Turning::Fixed && turnStep != 0 &&
+                    pivot != Mark::Center && pivotPoint.x != 0 && pivotPoint.y != 0 && pivotObject != 0 &&
+                    blocksOthers && magnet && magnetMark != Mark::Center && magnetPoint.x != 0 &&
+                    magnetPoint.y != 0);
+            const auto& [accepts, object, keywords, fit, tolerance, bounceBack, chime, chimeSound] =
+                c.container;
+            QVERIFY(accepts != Accepts::Nothing && object != 0 && !keywords.empty() &&
+                    fit != FitRule::CentresMatch && tolerance != ContainerRule{}.tolerance && bounceBack &&
+                    chime && !chimeSound.empty());
+            const auto& [kind, sourceType, command, target, resource, actionKeys, catalogId, parameters,
+                         dragDrop] = c.actions.at(0);
+            QVERIFY(!catalogId.empty() && !parameters.empty() && dragDrop && actionKeys.empty());
+            static_cast<void>(kind);
+            static_cast<void>(sourceType);
+            static_cast<void>(command);
+            static_cast<void>(target);
+            static_cast<void>(resource);
+            const auto& [mBounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden,
+                         aspectLocked, clearBackground, wrapText] = std::get<Media>(e.page(0).objects[6]);
+            QVERIFY(controlsHidden && aspectLocked && clearBackground && wrapText);
+            static_cast<void>(mBounds);
+            static_cast<void>(placeholder);
+            static_cast<void>(media);
+            static_cast<void>(fileName);
+            static_cast<void>(playOnOpen);
+            static_cast<void>(loop);
+            const auto& [fBounds, html, address] = std::get<WebFrame>(e.page(2).objects.back());
+            QVERIFY(fBounds.width != 0 && !html.empty() && !address.empty());
+            const auto& [noCopy, noSave, noPrint, noCamera, author] = e.broadcast();
+            QVERIFY(noCopy && noSave && noPrint && noCamera && !author.empty());
         }
         {
             const auto& [x, y, width, height] = std::get<Shape>(p1.objects[0]).bounds;
@@ -404,10 +486,13 @@ private slots:
             QVERIFY(runKeys.empty()); // clés inconnues : unknownKeysOfArrayElementsAreKept (L2-C8)
         }
         {
-            const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] =
-                std::get<Media>(p1.objects[6]);
+            const auto& [bounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden, aspectLocked,
+                         clearBackground, wrapText] = std::get<Media>(p1.objects[6]);
             QVERIFY(bounds.width != 0 && !placeholder.empty() && !media.empty() && !fileName.empty() &&
                     playOnOpen && !loop && std::get<Media>(d.page(2).objects[0]).loop);
+            // Options du lot 8 : défauts dans le document riche (référence figée) ; hors défaut dans
+            // richInteractiveDocument.
+            QVERIFY(!controlsHidden && !aspectLocked && !clearBackground && !wrapText);
         }
         {
             const auto& [members] = std::get<Group>(p1.objects[7]);
@@ -1210,6 +1295,29 @@ private slots:
         QVERIFY(line);
         QCOMPARE(line->points.size(), std::size_t{1});
         QCOMPARE(line->pen.color, core::Outline{}.color);
+    }
+
+    // L8-C15 : un identifiant en double (fichier édité à la main, ancien logiciel) est renuméroté à la
+    // lecture : le premier objet le garde, le second en reçoit un neuf ; l'avertissement reste.
+    void duplicateObjectIdsAreRenumberedOnRead()
+    {
+        core::Document rich = richdoc::richDocument();
+        auto& objects = rich.page(0).objects;
+        QVERIFY(!objects.empty());
+        const core::ObjectId shared = objects.front().common.id;
+        core::PageObject twin = objects.front();
+        objects.push_back(twin); // même identifiant deux fois
+        core::Document back;
+        const auto r = formats::documentFromJson(formats::documentToJson(rich), loaderFrom(rich), back);
+        QVERIFY(r.ok);
+        QVERIFY(core::hasUniqueIds(back));
+        QVERIFY(!r.warnings.isEmpty()); // l'avertissement est gardé
+        const auto& read = back.page(0).objects;
+        QCOMPARE(read.size(), objects.size());
+        QCOMPARE(read.front().common.id, shared);
+        QVERIFY(read.back().common.id != shared);
+        QVERIFY(read.back().common.id != 0);
+        QVERIFY(back.nextId() > read.back().common.id);
     }
 
     void noPageGivesOneBlankPage()

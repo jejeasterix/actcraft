@@ -181,6 +181,25 @@ struct Fixture
     }
 };
 
+// Élément de l'arbre visuel nommé `name` sous `from` (les délégués d'une vue n'ont pas toujours `from` pour
+// parent QObject).
+QQuickItem* findItem(QQuickItem* from, const QString& name)
+{
+    if (from == nullptr) {
+        return nullptr;
+    }
+    if (from->objectName() == name) {
+        return from;
+    }
+    const QList<QQuickItem*> children = from->childItems();
+    for (QQuickItem* child : children) {
+        if (QQuickItem* found = findItem(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
 // Le montage ci-dessus, plus la zone de page réelle (PageArea : vue unique et son cache) dans une fenêtre
 // hors écran, rendu logiciel, comme tst_ui_tabs.
 struct ViewFixture
@@ -251,6 +270,7 @@ class TstUiPropertymodel : public QObject
     Q_OBJECT
 
 private slots:
+    void interactivityDelegatesLoad();
     void pageWhenNothingSelected()
     {
         Fixture f;
@@ -715,6 +735,75 @@ private slots:
         QCOMPARE(f.model.refreshCount(), before);
     }
 };
+
+// L8-C2 : délégués de l'interactivité dans PropertyEditor, chargés par une vue comme PropertyBrowser. Ligne
+// grisée (rôle « enabled » faux) : désactivée et visiblement atténuée. « object » : liste des objets de la
+// page par leur nom, « Aucun » d'abord. « actions » : bouton qui ouvre l'onglet « actions » du navigateur
+// (showNavigator de BrowserPanel, trouvé en remontant les parents). « point » : deux nombres x et y.
+void TstUiPropertymodel::interactivityDelegatesLoad()
+{
+    Fixture f;
+    f.select({f.stroke});
+    QVERIFY(f.model.setValue(f.model.rowOf(QStringLiteral("name")), QStringLiteral("chemin")));
+    QCoreApplication::processEvents();
+    f.select({f.shape1});
+    QCoreApplication::processEvents();
+
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData("import QtQuick\nimport QtQuick.Window\nimport ActCraft.Ui\n"
+                      "Window { id: win; width: 480; height: 800; visible: true\n"
+                      "  property PropertyModel properties: null\n"
+                      "  property string opened: \"\"\n"
+                      "  Item { anchors.fill: parent\n"
+                      "    function showNavigator(id) { win.opened = id }\n"
+                      "    ListView { anchors.fill: parent; cacheBuffer: 100000; model: win.properties\n"
+                      "      delegate: PropertyEditor { width: 480; properties: win.properties } } } }",
+                      QUrl(QStringLiteral("qrc:/tst_ui_propertymodel/Delegates.qml")));
+    std::unique_ptr<QObject> root(component.create());
+    QVERIFY2(root != nullptr, qPrintable(component.errorString()));
+    root->setProperty("properties", QVariant::fromValue(&f.model));
+    auto* window = qobject_cast<QQuickWindow*>(root.get());
+    QVERIFY(window != nullptr);
+    const auto item = [window](const char* name) {
+        return findItem(window->contentItem(), QString::fromLatin1(name));
+    };
+    QVERIFY(QTest::qWaitFor(
+        [&item] { return item("prop-track") && item("prop-pivot-point") && item("prop-actions"); }, 5000));
+
+    // Ligne grisée : désactivée et atténuée ; une ligne du lot 6 ne l'est jamais.
+    QQuickItem* track = item("prop-track");
+    QVERIFY(!track->isEnabled());
+    QVERIFY(track->opacity() < 1);
+    QVERIFY(item("prop-name")->isEnabled());
+    QCOMPARE(item("prop-name")->opacity(), 1.0);
+
+    // Objet choisi sur la page : « Aucun », puis les objets par leur nom (le chemin : traits et lignes).
+    QQuickItem* objects = findItem(track, QStringLiteral("object-editor"));
+    QVERIFY(objects != nullptr);
+    QStringList texts;
+    const int count = objects->property("count").toInt();
+    for (int i = 0; i < count; ++i) {
+        QString shown;
+        QVERIFY(QMetaObject::invokeMethod(objects, "textAt", Q_RETURN_ARG(QString, shown), Q_ARG(int, i)));
+        texts.append(shown);
+    }
+    QVERIFY2(!texts.isEmpty() && texts.first() == QStringLiteral("Aucun"), qPrintable(texts.join(u'|')));
+    QVERIFY2(texts.contains(QStringLiteral("chemin")), qPrintable(texts.join(u'|')));
+
+    // Actions : un bouton qui ouvre l'onglet « actions » du navigateur.
+    QQuickItem* open = findItem(item("prop-actions"), QStringLiteral("actions-open"));
+    QVERIFY(open != nullptr);
+    QVERIFY(open->isEnabled());
+    QVERIFY(QMetaObject::invokeMethod(open, "clicked"));
+    QCOMPARE(root->property("opened").toString(), QStringLiteral("actions"));
+
+    // Point : deux nombres, grisés tant que le pivot n'est pas « Point choisi ».
+    QQuickItem* pivot = item("prop-pivot-point");
+    QVERIFY(!pivot->isEnabled());
+    QVERIFY(findItem(pivot, QStringLiteral("point-x")) != nullptr);
+    QVERIFY(findItem(pivot, QStringLiteral("point-y")) != nullptr);
+}
 
 QTEST_MAIN(TstUiPropertymodel)
 #include "tst_ui_propertymodel.moc"

@@ -70,7 +70,7 @@ core::ObjectId addObject(ui::DocumentController& controller, core::PageObject ob
 }
 
 // Groupe `ids` par la pile (core::makeGroupCommand, comme object.group) ; rend l'identifiant du groupe.
-core::ObjectId groupObjects(ui::DocumentController& controller, const std::vector<core::ObjectId>& ids)
+core::ObjectId makeGroup(ui::DocumentController& controller, const std::vector<core::ObjectId>& ids)
 {
     const std::vector<core::ObjectId> before = idsOnPage(controller);
     std::unique_ptr<core::UndoCommand> command =
@@ -538,7 +538,7 @@ private slots:
     void hideAndLockAGroupActOnItsMembers()
     {
         Fixture f;
-        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId g = makeGroup(f.controller, {f.shape1, f.shape2});
         QVERIFY(g != 0);
         QCoreApplication::processEvents();
         QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::KindRole).toString(), QStringLiteral("group"));
@@ -571,7 +571,7 @@ private slots:
     void groupRowReflectsItsMembers()
     {
         Fixture f;
-        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId g = makeGroup(f.controller, {f.shape1, f.shape2});
         QVERIFY(g != 0);
         // Drapeau posé sur l'objet Group seul (chemin sans dépliage) : les membres restent dessinés.
         f.controller.execute(
@@ -611,7 +611,7 @@ private slots:
         const core::ObjectId m1 = addObject(f.controller, shapeAt(450), core::Layer::Middle);
         const core::ObjectId m2 = addObject(f.controller, shapeAt(500), core::Layer::Middle);
         const core::ObjectId b = addObject(f.controller, shapeAt(550), core::Layer::Middle);
-        const core::ObjectId g = groupObjects(f.controller, {m1, m2});
+        const core::ObjectId g = makeGroup(f.controller, {m1, m2});
         QVERIFY(g != 0);
         const std::vector<core::ObjectId> all{f.shape1, f.shape2, a, m1, m2, b, g};
         QCOMPARE(drawOrderOf(f.controller, all),
@@ -665,7 +665,7 @@ private slots:
         const core::ObjectId b = addObject(f.controller, shapeAt(450), core::Layer::Middle);
         const core::ObjectId c = addObject(f.controller, shapeAt(500), core::Layer::Middle);
         const core::ObjectId d = addObject(f.controller, shapeAt(550), core::Layer::Middle);
-        const core::ObjectId g = groupObjects(f.controller, {a, c});
+        const core::ObjectId g = makeGroup(f.controller, {a, c});
         QVERIFY(g != 0);
         const std::vector<core::ObjectId> all{f.shape1, f.shape2, a, b, c, d, g};
         QCOMPARE(drawOrderOf(f.controller, all),
@@ -700,7 +700,7 @@ private slots:
     {
         Fixture f;
         const core::ObjectId x = addObject(f.controller, shapeAt(400), core::Layer::Middle);
-        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.stroke});
+        const core::ObjectId g = makeGroup(f.controller, {f.shape1, f.stroke});
         QVERIFY(g != 0);
         QVERIFY(layersSorted(f.controller));
         QCoreApplication::processEvents();
@@ -738,8 +738,8 @@ private slots:
     {
         Fixture f;
         const core::ObjectId extra = addObject(f.controller, shapeAt(400), core::Layer::Middle);
-        const core::ObjectId inner = groupObjects(f.controller, {f.shape1, f.shape2});
-        const core::ObjectId outer = groupObjects(f.controller, {inner, extra});
+        const core::ObjectId inner = makeGroup(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId outer = makeGroup(f.controller, {inner, extra});
         QVERIFY(inner != 0 && outer != 0);
         QCoreApplication::processEvents();
         const int middle = layerRow(f.tree, QStringLiteral("middle"));
@@ -784,7 +784,7 @@ private slots:
         Fixture f;
         f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape1},
                                                                           core::ObjectFlag::Hidden, true));
-        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId g = makeGroup(f.controller, {f.shape1, f.shape2});
         QVERIFY(g != 0);
         QCoreApplication::processEvents();
         QCOMPARE(roleOf(f.tree, g, ui::ObjectTreeModel::HiddenRole).toBool(), false); // pas tous
@@ -802,7 +802,7 @@ private slots:
     void groupRowSelectedWithItsMembers()
     {
         Fixture f;
-        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId g = makeGroup(f.controller, {f.shape1, f.shape2});
         QVERIFY(g != 0);
         f.tools.selectObjects({f.shape1});
         QCoreApplication::processEvents();
@@ -821,7 +821,7 @@ private slots:
     void ctrlClickTogglesAGroupLitByItsMembers()
     {
         Fixture f;
-        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId g = makeGroup(f.controller, {f.shape1, f.shape2});
         QVERIFY(g != 0);
         f.tools.selectObjects({f.shape1, f.shape2}); // comme le canevas : les membres, jamais l'objet Group
         QCoreApplication::processEvents();
@@ -856,7 +856,7 @@ private slots:
     void groupRowSelectedIgnoresHiddenMembers()
     {
         Fixture f;
-        const core::ObjectId g = groupObjects(f.controller, {f.shape1, f.shape2});
+        const core::ObjectId g = makeGroup(f.controller, {f.shape1, f.shape2});
         QVERIFY(g != 0);
         f.controller.execute(std::make_unique<core::SetObjectFlagCommand>(0, std::vector{f.shape2},
                                                                           core::ObjectFlag::Hidden, true));

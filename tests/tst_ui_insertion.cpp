@@ -1,9 +1,11 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/pageedits.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/insertion.h>
+#include <actcraft/ui/mediainsert.h>
 
 #include <QFile>
 #include <QImage>
@@ -226,6 +228,65 @@ private slots:
         QVERIFY(resource != nullptr);
         QCOMPARE(resource->extension, std::string("mp3"));
         QCOMPARE(firstPage(controller).objects.back().common.layer, core::Layer::Middle);
+    }
+
+    // Un son déposé sur la page passe par MediaInsert : action « jouer un son » et espace réservé (ressource
+    // d'image), au point de dépôt. Sous l'ancien chemin, Insertion posait un core::Media nu : ni action, ni
+    // espace réservé.
+    void droppedSoundGoesThroughMediaInsert()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath("cloche.wav");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("RIFF-pas-vraiment-du-son");
+        file.close();
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::MediaInsert mediaInsert;
+        mediaInsert.setDocument(&controller);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        insertion.setProperty("mediaInsert", QVariant::fromValue(&mediaInsert));
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptDrop({QUrl::fromLocalFile(path)}, QString(), {300, 200}));
+        QTRY_COMPARE(inserted.count(), 1);
+        const auto* media = lastAs<core::Media>(controller);
+        QVERIFY(media != nullptr);
+        const core::PageObject& object = firstPage(controller).objects.back();
+        QCOMPARE(object.common.actions.size(), std::size_t{1});
+        QCOMPARE(object.common.actions[0].catalogId, std::string("document.play-sound"));
+        QVERIFY2(controller.document().resource(media->placeholder) != nullptr,
+                 "le média déposé doit porter un espace réservé");
+        QCOMPARE(media->bounds.center().x, 300.0);
+        QCOMPARE(media->bounds.center().y, 200.0);
+    }
+
+    // Le verrou de classe « insert.media » vaut aussi pour le dépôt : seul MediaInsert le connaît.
+    void droppedSoundIsRefusedWhileLocked()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath("verrou.wav");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("RIFF-pas-vraiment-du-son");
+        file.close();
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Commands commands;
+        commands.setLocked(true);
+        ui::MediaInsert mediaInsert;
+        mediaInsert.setDocument(&controller);
+        mediaInsert.setCommands(&commands);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        insertion.setProperty("mediaInsert", QVariant::fromValue(&mediaInsert));
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        insertion.acceptDrop({QUrl::fromLocalFile(path)}, QString(), {300, 200});
+        QTest::qWait(150);
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(!controller.canUndo());
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
     }
 
     void droppedTextBecomesText()

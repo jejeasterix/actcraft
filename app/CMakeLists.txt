@@ -21,7 +21,9 @@ target_compile_definitions(actcraft PRIVATE ACTCRAFT_VERSION="${PROJECT_VERSION}
 set_target_properties(actcraft PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER org.actcraft.ActCraft
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    # Modèle à nous : raison de l'accès au micro (enregistreur de son, F-293), sans quoi macOS le refuse.
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/macos/Info.plist.in)
 
 # APK Android (décisions 28 et 31) : identifiant, nom affiché, version. versionCode = majeur × 10000 + mineur × 100
 # + correctif.

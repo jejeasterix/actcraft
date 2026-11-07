@@ -137,6 +137,12 @@ void Document::setUnknownKeys(std::string keys)
 
 std::string Document::addResource(QByteArray data, std::string extension)
 {
+    std::string key = sha256Hex(data);
+    return addResource(std::move(data), std::move(extension), std::move(key));
+}
+
+std::string Document::addResource(QByteArray data, std::string extension, std::string key)
+{
     // Minuscules ASCII à la main : std::tolower suit la locale du processus (Qt appelle setlocale(LC_ALL, "")
     // sous Unix ; en locale turque mono-octet, « I » ne devient pas « i »).
     std::transform(extension.begin(), extension.end(), extension.begin(),
@@ -149,7 +155,6 @@ std::string Document::addResource(QByteArray data, std::string extension)
     if (!safe) {
         extension = "bin";
     }
-    std::string key = sha256Hex(data);
     Resource resource;
     resource.data = std::move(data);
     resource.extension = std::move(extension);
@@ -229,6 +234,16 @@ bool hasUniqueIds(const Document& document)
     return true;
 }
 
+const BroadcastRules& Document::broadcast() const noexcept
+{
+    return m_broadcast;
+}
+
+void Document::setBroadcast(BroadcastRules rules)
+{
+    m_broadcast = std::move(rules);
+}
+
 std::uint64_t fingerprint(const Document& document) noexcept
 {
     std::uint64_t hash = 0xCBF29CE484222325ull;
@@ -253,6 +268,16 @@ std::uint64_t fingerprint(const Document& document) noexcept
             hash = mixText(hash, name);
             hash = mixText(hash, entry.sha256);
         }
+    }
+    // Lot 8 (L8-T3) : règles de diffusion en toute fin, seulement hors défaut (même patron que les réglages
+    // de présentation d'une page) : un document sans elles garde son empreinte d'avant.
+    const BroadcastRules& rules = document.broadcast();
+    if (!rules.isDefault()) {
+        const auto& [noCopy, noSave, noPrint, noCamera, author] = rules;
+        hash = mix(hash, 0xB9u);
+        hash =
+            mix(hash, (noCopy ? 1u : 0u) | (noSave ? 2u : 0u) | (noPrint ? 4u : 0u) | (noCamera ? 8u : 0u));
+        hash = mixText(hash, author);
     }
     return hash;
 }

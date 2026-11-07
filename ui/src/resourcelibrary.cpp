@@ -1,3 +1,4 @@
+#include <actcraft/core/broadcast.h>
 #include <actcraft/core/clipboardedits.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/formats/fragment.h>
@@ -811,6 +812,12 @@ QString ResourceLibrary::addSelection()
 {
     if (!mayEdit() || m_contactActive || m_tools == nullptr || m_folder.isEmpty())
         return {};
+    // Diffusion protégée (L8-T32, V58) : glisser vers les ressources copie le contenu, hors registre ; refusé
+    // et signalé comme la commande resources.add.
+    if (core::forbids(m_document->document().broadcast(), core::Restriction::Copy)) {
+        m_commands->reportRestrictionRefusal(QStringLiteral("resources.add"));
+        return {};
+    }
     const std::vector<core::ObjectId>& selected = m_tools->user().selection();
     if (selected.empty())
         return {};

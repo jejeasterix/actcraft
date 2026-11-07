@@ -1,0 +1,22 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "encre-revelatrice",
+  "description": "L8-T18 (F-255), fixture L8-C6 : un rectangle rouge (couche du dessus) recouvre un rectangle vert (couche intermédiaire) ; depuis l'outil Sélection, l'encre révélatrice en travers du rouge laisse voir le vert sous elle, sans découper la couche intermédiaire, et hors d'elle le rouge reste ; versement immédiat.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.select"},
+    {"expect": "appTools.currentTool", "value": "select"},
+    {"fixture": "encre-revelatrice", "path": "${SORTIE}/encre-revelatrice.actcraft"},
+    {"command": "file.open", "argument": "${SORTIE}/encre-revelatrice.actcraft"},
+    {"waitFor": "documentController.busy", "value": false, "timeoutMs": 10000},
+    {"waitReady": true},
+    {"checkPixel": "dessus-avant", "at": [500, 400], "color": "#FF0000", "tolerance": 30},
+    {"command": "tool.reveal-ink"},
+    {"expect": "appTools.currentTool", "value": "reveal-ink"},
+    {"stroke": [[500, 300], [500, 500]], "pressure": 0.5},
+    {"waitReady": true},
+    {"checkPixel": "fond-revele", "at": [500, 400], "color": "#00A000", "tolerance": 30},
+    {"checkPixel": "dessus-garde", "at": [300, 400], "color": "#FF0000", "tolerance": 30},
+    {"capture": "revelation"}
+  ]
+}

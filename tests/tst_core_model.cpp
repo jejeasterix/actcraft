@@ -1,4 +1,5 @@
 #include <actcraft/core/clock.h>
+#include <actcraft/core/document.h>
 #include <actcraft/core/generator.h>
 #include <actcraft/core/model.h>
 
@@ -115,8 +116,8 @@ private slots:
     void equationKindIsBeforeUnknown()
     {
         QCOMPARE(static_cast<int>(ObjectKind::Equation), 8);
-        QCOMPARE(static_cast<int>(ObjectKind::Unknown), 9);
-        QCOMPARE(kObjectKindCount, std::size_t{10});
+        QCOMPARE(static_cast<int>(ObjectKind::Unknown), 10); // lot 8 : le cadre web prend le rang 9 (L8-T3)
+        QCOMPARE(kObjectKindCount, std::size_t{11});
         PageObject o{Equation{RectF{0, 0, 100, 40}, "<math><mn>1</mn></math>", 24, 0xFF000000u}};
         QCOMPARE(kindOf(o), ObjectKind::Equation);
     }
@@ -294,6 +295,7 @@ private slots:
         const PageObject o = UnknownObject{};
         QCOMPARE(kindOf(o), ObjectKind::Unknown);
         QCOMPARE(static_cast<std::size_t>(ObjectKind::Unknown) + 1, kObjectKindCount);
+        QCOMPARE(kObjectKindCount, std::size_t{11}); // lot 8 : cadre web (L8-T3)
     }
 
     // L2-C8 : ce que la page garde pour une version plus récente (objet inconnu, clés inconnues) est écrit à
@@ -416,6 +418,137 @@ private slots:
     // les valeurs figées restent. Présents, ils entrent en toute fin de flux derrière l'octet 0x6A :
     // l'empreinte est alors la suite FNV-1a de celle de la même page sans eux. Un champ glissé au milieu du
     // flux, même seulement hors défaut (comme dragCopy), donnerait une autre valeur.
+    // Lot 8 (L8-T3) : les champs de l'interactivité à leur défaut n'entrent pas dans l'empreinte. Valeurs
+    // figées à la tête avant L8-T3 (c61013da) : la page riche, son document, la page riche avec une action
+    // par objet.
+    void lot8FieldsKeepOldFingerprints()
+    {
+        static constexpr std::uint64_t kRichPage = 0x98D4A66CE413F16Dull;
+        static constexpr std::uint64_t kRichDocument = 0x3E73AE77B3BB378Full;
+        static constexpr std::uint64_t kRichActed = 0x6E89DB6AA5FC4D04ull;
+        const auto toDefaults = [](Page& page) {
+            for (PageObject& object : page.objects) {
+                Restrictions& r = object.common.restrictions;
+                r.travel = Travel::Free;
+                r.track = 0;
+                r.turning = Turning::Free;
+                r.turnStep = 0;
+                r.pivot = Mark::Center;
+                r.pivotPoint = PointF{};
+                r.pivotObject = 0;
+                r.blocksOthers = false;
+                r.magnet = false;
+                r.magnetMark = Mark::Center;
+                r.magnetPoint = PointF{};
+                object.common.container = ContainerRule{};
+                for (Action& a : object.common.actions) {
+                    a.catalogId.clear();
+                    a.parameters.clear();
+                    a.dragDrop = false;
+                }
+                if (Media* m = std::get_if<Media>(&body(object))) {
+                    m->controlsHidden = false;
+                    m->aspectLocked = false;
+                    m->clearBackground = false;
+                    m->wrapText = false;
+                }
+            }
+        };
+        QCOMPARE(fingerprint(richPage()), kRichPage);
+        Page page = richPage();
+        toDefaults(page);
+        QCOMPARE(fingerprint(page), kRichPage);
+
+        Page acted = richPage();
+        Action action;
+        action.kind = ActionKind::OnObject;
+        action.sourceType = 28;
+        action.command = 184;
+        action.target = 9;
+        for (PageObject& object : acted.objects) {
+            object.common.actions.push_back(action);
+        }
+        QCOMPARE(fingerprint(acted), kRichActed);
+        toDefaults(acted);
+        QCOMPARE(fingerprint(acted), kRichActed);
+
+        Document document(std::vector<Page>{richPage()});
+        QCOMPARE(fingerprint(document), kRichDocument);
+        document.setBroadcast(BroadcastRules{});
+        QCOMPARE(fingerprint(document), kRichDocument);
+
+        // Chaque champ hors défaut compte, sur l'objet qui le porte.
+        const auto differs = [&acted](auto mutate) {
+            Page p = acted;
+            mutate(p);
+            return fingerprint(p) != kRichActed;
+        };
+        constexpr std::size_t kMedia = 5;
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.travel = Travel::Vertical; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.track = 4; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.turning = Turning::Clockwise; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.turnStep = 15; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.pivot = Mark::TopLeft; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.pivotPoint = PointF{3, 4}; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.pivotObject = 2; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.blocksOthers = true; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.magnet = true; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.magnetMark = Mark::Bottom; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.restrictions.magnetPoint = PointF{1, 2}; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.accepts = Accepts::Keywords; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.object = 3; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.keywords = {"lune"}; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.fit = FitRule::FullyInside; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.tolerance = 20; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.bounceBack = true; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.chime = true; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.container.chimeSound = "son"; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.actions[0].catalogId = "object.toggle-hidden"; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.actions[0].parameters = "{}"; }));
+        QVERIFY(differs([](Page& p) { p.objects[0].common.actions[0].dragDrop = true; }));
+        QVERIFY(differs([](Page& p) { std::get<Media>(p.objects[kMedia]).controlsHidden = true; }));
+        QVERIFY(differs([](Page& p) { std::get<Media>(p.objects[kMedia]).aspectLocked = true; }));
+        QVERIFY(differs([](Page& p) { std::get<Media>(p.objects[kMedia]).clearBackground = true; }));
+        QVERIFY(differs([](Page& p) { std::get<Media>(p.objects[kMedia]).wrapText = true; }));
+        Page onFirst = acted;
+        onFirst.objects[0].common.container.accepts = Accepts::Anything;
+        Page onSecond = acted;
+        onSecond.objects[1].common.container.accepts = Accepts::Anything;
+        QVERIFY(fingerprint(onFirst) != fingerprint(onSecond));
+        Page joined = acted;
+        joined.objects[0].common.container.keywords = {"ab"};
+        Page split = acted;
+        split.objects[0].common.container.keywords = {"a", "b"};
+        QVERIFY(fingerprint(joined) != fingerprint(split));
+
+        // Le cadre web est haché par ses trois champs.
+        Page framed = richPage();
+        framed.objects.push_back(PageObject{WebFrame{}});
+        const auto framedPrint = fingerprint(framed);
+        std::get<WebFrame>(framed.objects.back()).html = "<p>a</p>";
+        QVERIFY(fingerprint(framed) != framedPrint);
+        std::get<WebFrame>(framed.objects.back()).html.clear();
+        std::get<WebFrame>(framed.objects.back()).address = "https://exemple.org";
+        QVERIFY(fingerprint(framed) != framedPrint);
+        std::get<WebFrame>(framed.objects.back()).address.clear();
+        std::get<WebFrame>(framed.objects.back()).bounds = RectF{0, 0, 10, 10};
+        QVERIFY(fingerprint(framed) != framedPrint);
+
+        // Règles de diffusion : chacune hors défaut compte, au niveau du document.
+        const auto documentDiffers = [](auto mutate) {
+            Document d(std::vector<Page>{richPage()});
+            BroadcastRules rules;
+            mutate(rules);
+            d.setBroadcast(rules);
+            return fingerprint(d) != kRichDocument;
+        };
+        QVERIFY(documentDiffers([](BroadcastRules& b) { b.noCopy = true; }));
+        QVERIFY(documentDiffers([](BroadcastRules& b) { b.noSave = true; }));
+        QVERIFY(documentDiffers([](BroadcastRules& b) { b.noPrint = true; }));
+        QVERIFY(documentDiffers([](BroadcastRules& b) { b.noCamera = true; }));
+        QVERIFY(documentDiffers([](BroadcastRules& b) { b.author = "Jeanne"; }));
+    }
+
     void lot6FieldsKeepOldFingerprints()
     {
         QCOMPARE(fingerprint(samplePage()), std::uint64_t{0x29E4AA55B1A00D2Eull}); // figée avant L6-T10

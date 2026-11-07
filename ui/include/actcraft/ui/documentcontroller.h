@@ -127,6 +127,11 @@ public:
     // document).
     Q_INVOKABLE void openUrl(const QUrl& url);
     Q_INVOKABLE void saveToUrl(const QUrl& url);
+    // Diffusion protégée (L8-T31) : écrit dans un nouveau fichier une copie du document qui porte les règles
+    // (core::published), sur un fil secondaire comme saveToUrl ; publishFinished à la fin. Le document
+    // ouvert, son fichier et « modifié » ne changent pas.
+    Q_INVOKABLE void publishToUrl(const QUrl& url, bool noCopy, bool noSave, bool noPrint, bool noCamera,
+                                  const QString& author);
     // Argument d'une commande de fichier → URL (formats::urlFromArgument) ; vide si absent.
     Q_INVOKABLE QUrl urlFromArgument(const QVariant& argument) const;
     // `create` : le dossier est créé s'il manque — le dialogue d'ouverture ou d'enregistrement le demande en
@@ -148,6 +153,9 @@ public:
     // Change à chaque remplacement du document affiché (ouverture, « Nouveau », garage ou reprise d'un
     // onglet) : une tâche de fond y reconnaît le document devant lequel elle a été lancée (L5-C21).
     std::uint64_t generation() const noexcept { return m_generation; }
+    // Identité du document affiché : change à chaque remplacement (ouverture, « Nouveau »), mais le suit dans
+    // son onglet (garé puis repris, la même) ; jamais 0. Clé du dossier d'extraction des fichiers rangés.
+    std::uint64_t documentKey() const noexcept { return m_documentKey; }
 
     // Document garé par un onglet (L5-T20) : document, pile d'annulation, URL, état modifié, avertissements,
     // page affichée.
@@ -222,6 +230,7 @@ signals:
     void lastIoChanged();
     void loadFinished(bool ok, const QString& message);
     void saveFinished(bool ok, const QString& message);
+    void publishFinished(bool ok, const QString& message);
     // Avant Annuler, Rétablir, Effacer, Rétablir la page, Supprimer : la vue termine le trait en cours et les
     // outils leur geste (L2-T15).
     void editAboutToApply();
@@ -291,6 +300,7 @@ private:
     // Change à chaque replaceDocument : un enregistrement fini après « Nouveau » ne rattache pas le fichier
     // au document neuf, même d'empreinte égale.
     std::uint64_t m_generation = 0;
+    std::uint64_t m_documentKey = 1; // voir documentKey() ; 0 : « aucune » (session garée sans clé)
     // Change à chaque modification du document (commande de la pile, annuler, rétablir, page du banc,
     // replaceDocument) : « a-t-il changé pendant la lecture ou l'écriture ? » sans parcourir le document sur
     // le fil principal (L2-C9). Un changement puis son annulation la font bouger deux fois : jamais «

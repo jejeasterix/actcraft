@@ -5,9 +5,12 @@
 #include <QByteArray>
 #include <QImage>
 
+#include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 class QPainter;
 class QTextDocument;
@@ -37,6 +40,31 @@ public:
 private:
     std::unordered_map<std::string, QImage> m_images;
 };
+
+// F-255 : encre révélatrice, et encre révélatrice qui découpe (visible, sur la couche du dessus, D8-8). Une
+// seule définition pour le peintre, la page fixe et la couche soulevée.
+inline bool isRevealer(const core::PageObject& object)
+{
+    const auto* stroke = std::get_if<core::Stroke>(&object);
+    return stroke && stroke->kind == core::StrokeKind::Revealer;
+}
+
+inline bool cutsTopLayer(const core::PageObject& object)
+{
+    return isRevealer(object) && object.common.visible && object.common.layer == core::Layer::Top;
+}
+
+// Indice de la dernière encre révélatrice qui découpe parmi les `limit` premiers objets de la page (ordre du
+// vecteur : couche, profondeur) ; `page.objects.size()` s'il n'y en a aucune.
+inline std::size_t lastCuttingRevealer(const core::Page& page, std::size_t limit)
+{
+    for (std::size_t i = std::min(limit, page.objects.size()); i-- > 0;) {
+        if (cutsTopLayer(page.objects[i])) {
+            return i;
+        }
+    }
+    return page.objects.size();
+}
 
 // Décode toutes les ressources que QImage sait lire (la signature fait foi, pas l'extension) ; à appeler sur
 // un fil secondaire pour un gros document. `maxSide` > 0 : chaque image est décodée réduite pour que son plus

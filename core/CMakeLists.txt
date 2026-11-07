@@ -59,6 +59,20 @@ actcraft_add_module(core
         include/actcraft/core/spellcheck.h
         src/spellcheck.cpp
         src/hunspellengine.cpp
+        include/actcraft/core/interactivity.h
+        src/interactivity.cpp
+        include/actcraft/core/objectactions.h
+        src/objectactions_geometry.cpp
+        src/objectactions_edit.cpp
+        include/actcraft/core/actionedits.h
+        src/actionedits.cpp
+        include/actcraft/core/containers.h
+        src/containers.cpp
+        include/actcraft/core/restrictors.h
+        src/restrictors.cpp
+        include/actcraft/core/broadcast.h
+        include/actcraft/core/networkpath.h
+        src/broadcast.cpp
     DEPENDS
         Qt6::Core)
 

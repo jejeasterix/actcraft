@@ -146,6 +146,30 @@ class TestTabs : public QObject
 private slots:
     void initTestCase() { QQuickWindow::setGraphicsApi(QSGRendererInterface::Software); }
 
+    // L8-C15 : l'identité du document (clé du dossier d'extraction des fichiers rangés) le suit dans son
+    // onglet : la même au retour (generation(), elle, monte à chaque garage), une autre pour un autre onglet
+    // et pour un document remplacé.
+    void documentKeyFollowsTheDocumentAcrossTabs()
+    {
+        Fixture f;
+        const std::uint64_t first = f.document.documentKey();
+        QVERIFY(first != 0);
+        const std::uint64_t generation = f.document.generation();
+        f.tabs.newTab();
+        const std::uint64_t second = f.document.documentKey();
+        QVERIFY(second != 0 && second != first);
+        f.tabs.activate(0);
+        QCOMPARE(f.document.documentKey(), first);      // retour d'onglet : le même dossier
+        QVERIFY(f.document.generation() != generation); // alors que generation() a changé
+        f.tabs.activate(1);
+        QCOMPARE(f.document.documentKey(), second);
+        f.tabs.newTab();
+        const std::uint64_t third = f.document.documentKey();
+        QVERIFY(third != first && third != second);
+        f.document.newDocument(800, 600); // remplacé : un autre document
+        QVERIFY(f.document.documentKey() != third);
+    }
+
     // Tout ce qui appartient au document part avec lui : la pile d'annulation est garée, puis rendue.
     void parkResumeKeepsUndoHistory()
     {

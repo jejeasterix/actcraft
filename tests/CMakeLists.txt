@@ -19,6 +19,10 @@ actcraft_add_test(tst_modules
     SOURCES tst_modules.cpp
     LIBS ActCraft::core ActCraft::formats ActCraft::actions ActCraft::input
          ActCraft::render ActCraft::tools ActCraft::features ActCraft::bench)
+# Lot 8 (L8-T21) : le module media se lie avec les autres quand il est construit.
+if(ACTCRAFT_MEDIA)
+    target_link_libraries(tst_modules PRIVATE ActCraft::media)
+endif()
 
 actcraft_add_test(tst_renderbackend
     SOURCES tst_renderbackend.cpp ${PROJECT_SOURCE_DIR}/app/renderbackend.cpp
@@ -33,6 +37,9 @@ actcraft_add_test(tst_ui
 # Chaque test y est déclaré par actcraft_add_test (fonction ci-dessus).
 include(${CMAKE_CURRENT_SOURCE_DIR}/verifications.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/core.cmake)
+if(ACTCRAFT_MEDIA)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/media.cmake)
+endif()
 include(${CMAKE_CURRENT_SOURCE_DIR}/actions.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/formats.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/flipchart.cmake)

@@ -185,6 +185,17 @@ Item {
                     pageView: view
                     commands: area.commands
                 }
+                // Lot 8 (L8-T2) : surcouches du lot, vides (coquille). Il n'y a ni rideau ni projecteur sur cette tête
+                // (H8-7) : elles se placent par rapport à ce qui existe, au-dessus des zones.
+                WebFrameLayer {
+                    z: 3
+                    commands: area.commands
+                }
+                MediaLayer { z: 4 }
+                ActionOverlays {
+                    z: 5
+                    commands: area.commands
+                }
             }
         }
     }

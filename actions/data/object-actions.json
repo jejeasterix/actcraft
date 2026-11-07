@@ -1,0 +1,1724 @@
+{
+ "format": "actcraft-object-actions/1",
+ "actions": [
+  {
+   "id": "command.tool.select",
+   "category": "command",
+   "label": "Outil de sélection",
+   "icon": "action-objet",
+   "command": "tool.select",
+   "drag-drop": true
+  },
+  {
+   "id": "command.tool.pen",
+   "category": "command",
+   "label": "Outil stylo",
+   "icon": "action-objet",
+   "command": "tool.pen",
+   "drag-drop": true
+  },
+  {
+   "id": "command.tool.highlighter",
+   "category": "command",
+   "label": "Outil marqueur",
+   "icon": "action-objet",
+   "command": "tool.highlighter",
+   "drag-drop": true
+  },
+  {
+   "id": "command.tool.eraser",
+   "category": "command",
+   "label": "Outil gomme",
+   "icon": "action-objet",
+   "command": "tool.eraser",
+   "drag-drop": true
+  },
+  {
+   "id": "command.tool.text",
+   "category": "command",
+   "label": "Outil texte",
+   "icon": "action-objet",
+   "command": "tool.text",
+   "drag-drop": true
+  },
+  {
+   "id": "command.tool.text-vertical",
+   "category": "command",
+   "label": "Outil texte vertical",
+   "icon": "action-objet",
+   "command": "tool.text-vertical"
+  },
+  {
+   "id": "command.tool.shape",
+   "category": "command",
+   "label": "Formes",
+   "icon": "action-objet",
+   "command": "tool.shape",
+   "drag-drop": true
+  },
+  {
+   "id": "command.tool.fill",
+   "category": "command",
+   "label": "Outil pot de peinture",
+   "icon": "action-objet",
+   "command": "tool.fill",
+   "drag-drop": true
+  },
+  {
+   "id": "command.tool.connector",
+   "category": "command",
+   "label": "Outil connecteur",
+   "icon": "action-objet",
+   "command": "tool.connector"
+  },
+  {
+   "id": "command.tool.dice",
+   "category": "command",
+   "label": "Dé",
+   "icon": "action-objet",
+   "command": "tool.dice"
+  },
+  {
+   "id": "command.tool.calculator",
+   "category": "command",
+   "label": "Calculatrice",
+   "icon": "action-objet",
+   "command": "tool.calculator"
+  },
+  {
+   "id": "command.tool.clock",
+   "category": "command",
+   "label": "Horloge",
+   "icon": "action-objet",
+   "command": "tool.clock"
+  },
+  {
+   "id": "command.tool.ticker",
+   "category": "command",
+   "label": "Bandeau défilant",
+   "icon": "action-objet",
+   "command": "tool.ticker"
+  },
+  {
+   "id": "command.tool.web-browser",
+   "category": "command",
+   "label": "Navigateur web",
+   "icon": "action-objet",
+   "command": "tool.web-browser"
+  },
+  {
+   "id": "command.tool.camera-area",
+   "category": "command",
+   "label": "Capture d'une zone",
+   "icon": "action-objet",
+   "command": "tool.camera-area"
+  },
+  {
+   "id": "command.tool.camera-polygon",
+   "category": "command",
+   "label": "Capture polygonale",
+   "icon": "action-objet",
+   "command": "tool.camera-polygon"
+  },
+  {
+   "id": "command.tool.camera-freehand",
+   "category": "command",
+   "label": "Capture à main levée",
+   "icon": "action-objet",
+   "command": "tool.camera-freehand"
+  },
+  {
+   "id": "command.tool.camera-window",
+   "category": "command",
+   "label": "Capture d'une fenêtre",
+   "icon": "action-objet",
+   "command": "tool.camera-window"
+  },
+  {
+   "id": "command.tool.camera-screen",
+   "category": "command",
+   "label": "Capture de l'écran",
+   "icon": "action-objet",
+   "command": "tool.camera-screen"
+  },
+  {
+   "id": "command.tool.keyboard",
+   "category": "command",
+   "label": "Clavier à l'écran",
+   "icon": "action-objet",
+   "command": "tool.keyboard"
+  },
+  {
+   "id": "command.tool.shape-recognition",
+   "category": "command",
+   "label": "Reconnaissance des formes",
+   "icon": "action-objet",
+   "command": "tool.shape-recognition"
+  },
+  {
+   "id": "command.tool.handwriting",
+   "category": "command",
+   "label": "Reconnaissance de l'écriture",
+   "icon": "action-objet",
+   "command": "tool.handwriting"
+  },
+  {
+   "id": "command.tool.reveal-ink",
+   "category": "command",
+   "label": "Encre révélatrice",
+   "icon": "action-objet",
+   "command": "tool.reveal-ink"
+  },
+  {
+   "id": "command.present.curtain",
+   "category": "command",
+   "label": "Rideau",
+   "icon": "action-objet",
+   "command": "present.curtain",
+   "drag-drop": true
+  },
+  {
+   "id": "command.present.spotlight-circle",
+   "category": "command",
+   "label": "Projecteur rond",
+   "icon": "action-objet",
+   "command": "present.spotlight-circle"
+  },
+  {
+   "id": "command.math.ruler",
+   "category": "command",
+   "label": "Règle",
+   "icon": "action-objet",
+   "command": "math.ruler",
+   "drag-drop": true
+  },
+  {
+   "id": "command.math.set-square",
+   "category": "command",
+   "label": "Équerre",
+   "icon": "action-objet",
+   "command": "math.set-square"
+  },
+  {
+   "id": "command.math.protractor",
+   "category": "command",
+   "label": "Rapporteur",
+   "icon": "action-objet",
+   "command": "math.protractor",
+   "drag-drop": true
+  },
+  {
+   "id": "command.math.compass",
+   "category": "command",
+   "label": "Compas",
+   "icon": "action-objet",
+   "command": "math.compass",
+   "drag-drop": true
+  },
+  {
+   "id": "command.file.new",
+   "category": "command",
+   "label": "Créer un paperboard",
+   "icon": "action-objet",
+   "command": "file.new"
+  },
+  {
+   "id": "command.file.new-screen",
+   "category": "command",
+   "label": "Paperboard à la taille de l'écran",
+   "icon": "action-objet",
+   "command": "file.new-screen"
+  },
+  {
+   "id": "command.file.open",
+   "category": "command",
+   "label": "Ouvrir un paperboard",
+   "icon": "action-objet",
+   "command": "file.open"
+  },
+  {
+   "id": "command.file.save",
+   "category": "command",
+   "label": "Enregistrer",
+   "icon": "action-objet",
+   "command": "file.save"
+  },
+  {
+   "id": "command.file.print",
+   "category": "command",
+   "label": "Imprimer",
+   "icon": "action-objet",
+   "command": "file.print"
+  },
+  {
+   "id": "command.export.pdf",
+   "category": "command",
+   "label": "Exporter en PDF",
+   "icon": "action-objet",
+   "command": "export.pdf"
+  },
+  {
+   "id": "command.file.quit",
+   "category": "command",
+   "label": "Quitter l'application",
+   "icon": "action-objet",
+   "command": "file.quit"
+  },
+  {
+   "id": "command.view.fullscreen",
+   "category": "command",
+   "label": "Plein écran",
+   "icon": "action-objet",
+   "command": "view.fullscreen"
+  },
+  {
+   "id": "command.edit.undo",
+   "category": "command",
+   "label": "Annuler",
+   "icon": "action-objet",
+   "command": "edit.undo"
+  },
+  {
+   "id": "command.edit.redo",
+   "category": "command",
+   "label": "Rétablir",
+   "icon": "action-objet",
+   "command": "edit.redo"
+  },
+  {
+   "id": "command.mode.design",
+   "category": "command",
+   "label": "Mode conception",
+   "icon": "action-objet",
+   "command": "mode.design"
+  },
+  {
+   "id": "command.record.sound",
+   "category": "command",
+   "label": "Enregistrer le son",
+   "icon": "action-objet",
+   "command": "record.sound"
+  },
+  {
+   "id": "command.record.screen-full",
+   "category": "command",
+   "label": "Enregistrer l'écran entier",
+   "icon": "action-objet",
+   "command": "record.screen-full"
+  },
+  {
+   "id": "command.record.screen-area",
+   "category": "command",
+   "label": "Enregistrer une zone de l'écran",
+   "icon": "action-objet",
+   "command": "record.screen-area"
+  },
+  {
+   "id": "command.record.pause",
+   "category": "command",
+   "label": "Mettre l'enregistrement en pause",
+   "icon": "action-objet",
+   "command": "record.pause"
+  },
+  {
+   "id": "command.record.stop",
+   "category": "command",
+   "label": "Arrêter l'enregistrement",
+   "icon": "action-objet",
+   "command": "record.stop"
+  },
+  {
+   "id": "command.media.sound-controller",
+   "category": "command",
+   "label": "Lecteur de sons",
+   "icon": "action-objet",
+   "command": "media.sound-controller"
+  },
+  {
+   "id": "command.grid.snap",
+   "category": "command",
+   "label": "Accrochage à la grille",
+   "icon": "action-objet",
+   "command": "grid.snap",
+   "drag-drop": true
+  },
+  {
+   "id": "command.grid.hide",
+   "category": "command",
+   "label": "Masquer la grille",
+   "icon": "action-objet",
+   "command": "grid.hide"
+  },
+  {
+   "id": "command.browser.notes",
+   "category": "command",
+   "label": "Navigateur de notes",
+   "icon": "action-objet",
+   "command": "browser.notes",
+   "drag-drop": true
+  },
+  {
+   "id": "command.browser.objects",
+   "category": "command",
+   "label": "Navigateur d'objets",
+   "icon": "action-objet",
+   "command": "browser.objects"
+  },
+  {
+   "id": "command.browser.properties",
+   "category": "command",
+   "label": "Navigateur de propriétés",
+   "icon": "action-objet",
+   "command": "browser.properties"
+  },
+  {
+   "id": "command.browser.resources",
+   "category": "command",
+   "label": "Navigateur de ressources",
+   "icon": "action-objet",
+   "command": "browser.resources"
+  },
+  {
+   "id": "command.browser.actions",
+   "category": "command",
+   "label": "Navigateur d'actions",
+   "icon": "action-objet",
+   "command": "browser.actions"
+  },
+  {
+   "id": "command.view.browsers",
+   "category": "command",
+   "label": "Afficher les navigateurs",
+   "icon": "action-objet",
+   "command": "view.browsers"
+  },
+  {
+   "id": "command.desktop.annotate",
+   "category": "command",
+   "label": "Annoter le bureau",
+   "icon": "action-objet",
+   "command": "desktop.annotate"
+  },
+  {
+   "id": "command.desktop.restore",
+   "category": "command",
+   "label": "Revenir au paperboard",
+   "icon": "action-objet",
+   "command": "desktop.restore"
+  },
+  {
+   "id": "command.insert.web-frame",
+   "category": "command",
+   "label": "Insérer un cadre web",
+   "icon": "action-objet",
+   "command": "insert.web-frame"
+  },
+  {
+   "id": "page.goto",
+   "category": "page",
+   "label": "Aller à la page",
+   "icon": "action-objet",
+   "command": "page.goto",
+   "parameters": [
+    {
+     "name": "page",
+     "type": "page",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "clear.page",
+   "category": "page",
+   "label": "Effacer la page",
+   "icon": "action-objet",
+   "command": "clear.page"
+  },
+  {
+   "id": "page.copy",
+   "category": "page",
+   "label": "Copier la page",
+   "icon": "action-objet",
+   "command": "page.copy"
+  },
+  {
+   "id": "page.cut",
+   "category": "page",
+   "label": "Couper la page",
+   "icon": "action-objet",
+   "command": "page.cut"
+  },
+  {
+   "id": "page.first",
+   "category": "page",
+   "label": "Première page",
+   "icon": "action-objet",
+   "command": "page.first",
+   "drag-drop": true
+  },
+  {
+   "id": "page.last",
+   "category": "page",
+   "label": "Dernière page",
+   "icon": "action-objet",
+   "command": "page.last",
+   "drag-drop": true
+  },
+  {
+   "id": "page.insert-after",
+   "category": "page",
+   "label": "Insérer une page après",
+   "icon": "action-objet",
+   "command": "page.insert-after"
+  },
+  {
+   "id": "page.insert-before",
+   "category": "page",
+   "label": "Insérer une page avant",
+   "icon": "action-objet",
+   "command": "page.insert-before"
+  },
+  {
+   "id": "page.next",
+   "category": "page",
+   "label": "Page suivante",
+   "icon": "action-objet",
+   "command": "page.next",
+   "drag-drop": true
+  },
+  {
+   "id": "page.previous",
+   "category": "page",
+   "label": "Page précédente",
+   "icon": "action-objet",
+   "command": "page.previous",
+   "drag-drop": true
+  },
+  {
+   "id": "page.history-back",
+   "category": "page",
+   "label": "Page vue précédemment",
+   "icon": "action-objet",
+   "command": "page.history-back"
+  },
+  {
+   "id": "page.history-forward",
+   "category": "page",
+   "label": "Page vue ensuite",
+   "icon": "action-objet",
+   "command": "page.history-forward"
+  },
+  {
+   "id": "page.revert",
+   "category": "page",
+   "label": "Rétablir la page",
+   "icon": "action-objet",
+   "command": "page.revert",
+   "drag-drop": true
+  },
+  {
+   "id": "page.background",
+   "category": "page",
+   "label": "Fond de la page",
+   "icon": "action-objet",
+   "command": "page.background"
+  },
+  {
+   "id": "object.angle",
+   "category": "object",
+   "label": "Fixer l'angle",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "angle",
+     "type": "angle"
+    }
+   ]
+  },
+  {
+   "id": "object.angle-step",
+   "category": "object",
+   "label": "Tourner d'un angle",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "angle",
+     "type": "angle"
+    }
+   ]
+  },
+  {
+   "id": "object.place-top-left",
+   "category": "object",
+   "label": "Placer en haut à gauche",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-top",
+   "category": "object",
+   "label": "Placer en haut",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-top-right",
+   "category": "object",
+   "label": "Placer en haut à droite",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-left",
+   "category": "object",
+   "label": "Placer à gauche",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-center",
+   "category": "object",
+   "label": "Placer au centre",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-right",
+   "category": "object",
+   "label": "Placer à droite",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-bottom-left",
+   "category": "object",
+   "label": "Placer en bas à gauche",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-bottom",
+   "category": "object",
+   "label": "Placer en bas",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.place-bottom-right",
+   "category": "object",
+   "label": "Placer en bas à droite",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.size-top-left",
+   "category": "object",
+   "label": "Redimensionner depuis le point du haut à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-top",
+   "category": "object",
+   "label": "Redimensionner depuis le point du haut",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-top-right",
+   "category": "object",
+   "label": "Redimensionner depuis le point du haut à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-left",
+   "category": "object",
+   "label": "Redimensionner depuis le point à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-center",
+   "category": "object",
+   "label": "Redimensionner depuis le point au centre",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-right",
+   "category": "object",
+   "label": "Redimensionner depuis le point à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-bottom-left",
+   "category": "object",
+   "label": "Redimensionner depuis le point du bas à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-bottom",
+   "category": "object",
+   "label": "Redimensionner depuis le point du bas",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-bottom-right",
+   "category": "object",
+   "label": "Redimensionner depuis le point du bas à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-top-left",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point en haut à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-top",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point en haut",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-top-right",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point en haut à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-left",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-center",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point au centre",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-right",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-bottom-left",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point en bas à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-bottom",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point en bas",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.size-step-bottom-right",
+   "category": "object",
+   "label": "Agrandir ou réduire depuis le point en bas à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "factor",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-top-left",
+   "category": "object",
+   "label": "Étirer depuis le point en haut à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-top",
+   "category": "object",
+   "label": "Étirer depuis le point en haut",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-top-right",
+   "category": "object",
+   "label": "Étirer depuis le point en haut à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-left",
+   "category": "object",
+   "label": "Étirer depuis le point à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-center",
+   "category": "object",
+   "label": "Étirer depuis le point au centre",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-right",
+   "category": "object",
+   "label": "Étirer depuis le point à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-bottom-left",
+   "category": "object",
+   "label": "Étirer depuis le point en bas à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-bottom",
+   "category": "object",
+   "label": "Étirer depuis le point en bas",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-bottom-right",
+   "category": "object",
+   "label": "Étirer depuis le point en bas à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "width",
+     "type": "number",
+     "minimum": 1
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "minimum": 1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-top-left",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point en haut à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-top",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point en haut",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-top-right",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point en haut à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-left",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-center",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point au centre",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-right",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-bottom-left",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point en bas à gauche",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-bottom",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point en bas",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.stretch-step-bottom-right",
+   "category": "object",
+   "label": "Étirer d'un facteur depuis le point en bas à droite",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "ratioX",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    },
+    {
+     "name": "ratioY",
+     "type": "number",
+     "minimum": 0,
+     "exclusive-minimum": true,
+     "default": 1,
+     "decimals": 2,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "object.place-step",
+   "category": "object",
+   "label": "Déplacer d'un décalage",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "dx",
+     "type": "number"
+    },
+    {
+     "name": "dy",
+     "type": "number"
+    }
+   ]
+  },
+  {
+   "id": "object.mirror-x",
+   "category": "object",
+   "label": "Copie miroir verticale",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.mirror-y",
+   "category": "object",
+   "label": "Copie miroir horizontale",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.flip-x",
+   "category": "object",
+   "label": "Retourner de haut en bas",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.flip-y",
+   "category": "object",
+   "label": "Retourner de gauche à droite",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.original-size",
+   "category": "object",
+   "label": "Taille d'origine",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.fit-height",
+   "category": "object",
+   "label": "Ajuster à la hauteur",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.fit-page",
+   "category": "object",
+   "label": "Ajuster à la page",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.fit-width",
+   "category": "object",
+   "label": "Ajuster à la largeur",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-left",
+   "category": "object",
+   "label": "Aligner à gauche",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-center-x",
+   "category": "object",
+   "label": "Aligner au centre horizontalement",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-right",
+   "category": "object",
+   "label": "Aligner à droite",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-top",
+   "category": "object",
+   "label": "Aligner en haut",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-center-y",
+   "category": "object",
+   "label": "Aligner au centre verticalement",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-bottom",
+   "category": "object",
+   "label": "Aligner en bas",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-width",
+   "category": "object",
+   "label": "Aligner à la largeur de la page",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-height",
+   "category": "object",
+   "label": "Aligner à la hauteur de la page",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-angle",
+   "category": "object",
+   "label": "Aligner sur l'angle",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.align-all",
+   "category": "object",
+   "label": "Aligner sur tous les côtés",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.forward",
+   "category": "object",
+   "label": "Avancer d'un plan",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.backward",
+   "category": "object",
+   "label": "Reculer d'un plan",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.front",
+   "category": "object",
+   "label": "Mettre au premier plan",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.back",
+   "category": "object",
+   "label": "Mettre à l'arrière-plan",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.layer-top",
+   "category": "object",
+   "label": "Couche du dessus",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.layer-middle",
+   "category": "object",
+   "label": "Couche du milieu",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.layer-bottom",
+   "category": "object",
+   "label": "Couche du dessous",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.toggle-hidden",
+   "category": "object",
+   "label": "Masquer ou afficher",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.toggle-locked",
+   "category": "object",
+   "label": "Verrouiller ou déverrouiller",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.toggle-group",
+   "category": "object",
+   "label": "Grouper ou dégrouper",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.translucency",
+   "category": "object",
+   "label": "Fixer la translucidité",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "value",
+     "type": "translucency",
+     "maximum": 255
+    }
+   ]
+  },
+  {
+   "id": "object.more-translucent",
+   "category": "object",
+   "label": "Plus translucide",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.less-translucent",
+   "category": "object",
+   "label": "Moins translucide",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.add-text",
+   "category": "object",
+   "label": "Ajouter du texte",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "text",
+     "type": "text"
+    }
+   ]
+  },
+  {
+   "id": "object.set-text",
+   "category": "object",
+   "label": "Remplacer le texte",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "text",
+     "type": "text"
+    }
+   ]
+  },
+  {
+   "id": "object.text-value",
+   "category": "object",
+   "label": "Ajouter une valeur au texte",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "value",
+     "type": "number"
+    }
+   ]
+  },
+  {
+   "id": "object.new-text",
+   "category": "object",
+   "label": "Nouveau texte",
+   "icon": "action-objet",
+   "target": true,
+   "parameters": [
+    {
+     "name": "text",
+     "type": "text"
+    }
+   ]
+  },
+  {
+   "id": "object.extract-text",
+   "category": "object",
+   "label": "Extraire les mots",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.clear-annotations",
+   "category": "object",
+   "label": "Effacer les annotations",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.clear-background",
+   "category": "object",
+   "label": "Effacer le fond",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.clear-grid",
+   "category": "object",
+   "label": "Effacer la grille",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.clear-objects",
+   "category": "object",
+   "label": "Effacer les objets",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.copy",
+   "category": "object",
+   "label": "Copier",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.cut",
+   "category": "object",
+   "label": "Couper",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.paste",
+   "category": "object",
+   "label": "Coller",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.delete",
+   "category": "object",
+   "label": "Supprimer",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.duplicate",
+   "category": "object",
+   "label": "Dupliquer",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "object.select-all",
+   "category": "object",
+   "label": "Tout sélectionner",
+   "icon": "action-objet",
+   "target": true
+  },
+  {
+   "id": "document.open-file",
+   "category": "document",
+   "label": "Ouvrir un fichier",
+   "icon": "action-objet",
+   "parameters": [
+    {
+     "name": "file",
+     "type": "file"
+    }
+   ]
+  },
+  {
+   "id": "document.open-website",
+   "category": "document",
+   "label": "Ouvrir un site web",
+   "icon": "action-objet",
+   "parameters": [
+    {
+     "name": "url",
+     "type": "url"
+    }
+   ]
+  },
+  {
+   "id": "document.play-sound",
+   "category": "document",
+   "label": "Jouer un son",
+   "icon": "action-objet",
+   "parameters": [
+    {
+     "name": "file",
+     "type": "file"
+    }
+   ]
+  }
+ ]
+}

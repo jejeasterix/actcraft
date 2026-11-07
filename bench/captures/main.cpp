@@ -1,8 +1,10 @@
 #include "renderbackend.h"
 #include "startup.h"
 
+#include <actcraft/bench/simulatedrecorders.h>
+#include <actcraft/bench/testroots.h>
 #include <actcraft/bench/uiscenario.h>
-#include <actcraft/ui/resourcelibrary.h>
+#include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
 
 #include <QDir>
 #include <QFile>
@@ -19,6 +21,9 @@
 #include <QTest>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
+#if ACTCRAFT_WEBFRAME
+#include <QtWebView/QtWebView>
+#endif
 
 #include <cstdio>
 #include <memory>
@@ -59,7 +64,12 @@ int main(int argc, char* argv[])
 {
     // DA8 : dialogues Qt Quick non natifs forcés (un dialogue natif ne reçoit pas d'événements postés).
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+#if ACTCRAFT_WEBFRAME
+    QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
+#endif
     QGuiApplication app(argc, argv);
+    if (QGuiApplication::platformName() == QLatin1String("offscreen"))
+        actcraft::bench::useSimulatedRecorders(); // hors écran : ni micro ni fenêtre de permission
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Captures"));
     const QStringList args = QGuiApplication::arguments();
 
@@ -123,16 +133,9 @@ int main(int argc, char* argv[])
     QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
-    // Racines « Mes ressources » et ressources partagées d'essai, sous `<sortie>`, vidées à
-    // chaque lancement : le scénario `ressources` se rejoue sans nettoyage à la main.
-    // Le mode test ne déplace pas DocumentsLocation : sans ce réglage, chaque capture
-    // viderait le vrai Documents\ActCraft\Ressources du poste, et les captures lancées
-    // en parallèle par ctest s'effaceraient leurs ressources entre elles.
-    const QString mineResources = outputDir.filePath(QStringLiteral("mes-ressources"));
-    const QString sharedResources = outputDir.filePath(QStringLiteral("ressources-partagees"));
-    QDir(mineResources).removeRecursively();
-    QDir(sharedResources).removeRecursively();
-    actcraft::ui::ResourceLibrary::setRootPathsForTests(mineResources, sharedResources);
+    // Racines « Mes ressources » et partagées d'essai sous `<sortie>`, vidées à chaque lancement (le mode
+    // test ne déplace pas DocumentsLocation : jamais le vrai Documents/ActCraft/Ressources du poste).
+    actcraft::bench::useIsolatedResourceRoots(output);
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
@@ -193,7 +196,13 @@ int main(int argc, char* argv[])
         for (const UiStep& read : reads) {
             ok = player->expect(read, report) && ok;
         }
-        printLine(ok ? QStringLiteral("SCENARIO OK") : QStringLiteral("SCENARIO EN ECHEC"));
+        // Les étapes sautées (skipOn) ne passent pas inaperçues dans le verdict final.
+        const qsizetype skipped = report.filter(QStringLiteral("SAUTE étape"), Qt::CaseSensitive).size();
+        QString verdict = QStringLiteral("SCENARIO OK");
+        if (skipped > 0) {
+            verdict += QStringLiteral(" (%1 étape(s) sautée(s))").arg(skipped);
+        }
+        printLine(ok ? verdict : QStringLiteral("SCENARIO EN ECHEC"));
         code = ok ? 0 : 1;
         QCoreApplication::exit(code);
     });

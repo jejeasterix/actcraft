@@ -1,11 +1,14 @@
 #include "objectnodes.h"
 
+#include <actcraft/render/imagestore.h>
 #include <actcraft/render/pagepainter.h>
 
 #include <QMatrix4x4>
 #include <QSGOpacityNode>
 #include <QSGTransformNode>
 #include <QTransform>
+
+#include <variant>
 
 namespace actcraft::render {
 
@@ -63,6 +66,12 @@ ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
     if ((!object.common.visible && !contexts.showHidden) || std::get_if<core::Group>(&object)) {
         return out;
     }
+    // F-255 : une encre révélatrice ne se dessine jamais comme un trait ; sa découpe est le fait du peintre
+    // partagé (page fixe) ou de la fenêtre de la couche soulevée.
+    if (const auto* stroke = std::get_if<core::Stroke>(&object);
+        stroke && stroke->kind == core::StrokeKind::Revealer) {
+        return out;
+    }
     QSGNode* node = nullptr;
     bool viaPainter = usesPaintedRenderer(object);
     if (viaPainter) {
@@ -81,6 +90,15 @@ ObjectNode createObjectNode(const core::PageObject& object, std::size_t index,
     out.viaPainter = viaPainter;
     out.root = wrapped(node, object.common);
     return out;
+}
+
+void addObjectImages(DecodedImages& images, const core::PageObject& object, const ImageStore& store)
+{
+    if (const auto* im = std::get_if<core::ImageObject>(&object); im && !im->resource.empty()) {
+        images.insert(im->resource, store.resourceImage(im->resource));
+    } else if (const auto* m = std::get_if<core::Media>(&object); m && !m->placeholder.empty()) {
+        images.insert(m->placeholder, store.resourceImage(m->placeholder));
+    }
 }
 
 } // namespace actcraft::render

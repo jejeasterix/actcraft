@@ -1,10 +1,13 @@
 #include "penadapters.h"
 
 #include <actcraft/core/clock.h>
+#include <actcraft/core/hittest.h>
 #include <actcraft/input/pipeline.h>
 #include <actcraft/input/qtevents.h>
 #include <actcraft/tools/pentool.h>
 #include <actcraft/tools/tool.h>
+#include <actcraft/tools/userstate.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
@@ -16,6 +19,8 @@
 #include <QWheelEvent>
 
 #include <algorithm>
+#include <optional>
+#include <vector>
 
 namespace actcraft::ui {
 
@@ -45,6 +50,32 @@ bool isPressHandler(const QObject* object)
 }
 
 // Types qui prennent eux-mêmes le bouton gauche qu'ils acceptent, qu'ils portent des gestionnaires ou non.
+// Revue L8-C3 (L8-T9, « le clic droit sélectionne ») : sous l'outil de sélection, l'objet désigné par la
+// règle de l'outil (core::objectAt, kHitToleranceScreen / zoom, tools/src/selecttool.cpp) est sélectionné
+// sans que rien ne s'exécute (l'exécuteur ne reçoit pas le bouton droit) ; un objet déjà sélectionné garde
+// toute la sélection, sur laquelle le menu contextuel agit.
+void selectForContextMenu(ToolHost* tools, QPointF pagePoint, qreal zoom)
+{
+    if (tools == nullptr || tools->currentTool() != QLatin1String("select") || !(zoom > 0)) {
+        return;
+    }
+    DocumentController* controller = tools->documentController();
+    if (controller == nullptr || controller->pageCount() <= 0) {
+        return;
+    }
+    const core::Page& page =
+        controller->document().page(static_cast<std::size_t>(controller->currentIndex()));
+    const std::optional<core::ObjectId> hit =
+        core::objectAt(page, core::PointF{pagePoint.x(), pagePoint.y()}, core::kHitToleranceScreen / zoom);
+    if (!hit) {
+        return;
+    }
+    const std::vector<core::ObjectId> selected = tools->user().selection();
+    if (std::find(selected.begin(), selected.end(), *hit) == selected.end()) {
+        tools->selectObjects({*hit});
+    }
+}
+
 bool takesLeftButtonItself(const QQuickItem* item)
 {
     return item->inherits("QQuickMouseArea") || item->inherits("QQuickControl") ||
@@ -686,6 +717,7 @@ void PageView::mousePressEvent(QMouseEvent* event)
             return;
         }
         event->accept();
+        selectForContextMenu(m_tools.data(), m_transform.viewToPage(event->position()), zoom());
         emit contextMenuRequested(event->position());
         return;
     }
@@ -745,6 +777,8 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
         // Rapport de pixels connu à l'attache : sans ceci, une taille calculée avant garde l'ancienne
         // jusqu'au prochain zoom (H10-9).
         updateCacheTextureSize();
+    } else if (change == ItemDevicePixelRatioHasChanged) {
+        updateCacheTextureSize(); // écran à autre rapport de pixels : la taille du cache suit
     }
 }
 

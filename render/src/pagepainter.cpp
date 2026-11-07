@@ -14,6 +14,7 @@
 #include <QImageReader>
 #include <QLineF>
 #include <QLinearGradient>
+#include <QPaintEngine>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPolygonF>
@@ -658,6 +659,18 @@ void paintUnknown(QPainter& p, const core::UnknownObject& unknown)
     p.drawRect(QRectF(b.x, b.y, b.width, b.height));
 }
 
+// Cadre web (lot 8, F-302) : repère neutre, comme un objet inconnu, sur sa boîte ; son contenu n'est jamais
+// chargé par le peintre.
+void paintWebFrame(QPainter& p, const core::WebFrame& frame)
+{
+    QPen pen(QColor(0x80, 0x80, 0x80), 0, Qt::DashLine);
+    pen.setCosmetic(true);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+    const core::RectF& b = frame.bounds;
+    p.drawRect(QRectF(b.x, b.y, b.width, b.height));
+}
+
 } // namespace
 
 void layOutVerticalColumn(QTextDocument& document)
@@ -840,6 +853,8 @@ void paintObjectLocal(QPainter& p, const core::PageObject& object, const ImageLo
         paintConnector(p, *c);
     } else if (const auto* e = std::get_if<core::Equation>(&object)) {
         paintEquation(p, *e);
+    } else if (const auto* w = std::get_if<core::WebFrame>(&object)) {
+        paintWebFrame(p, *w);
     } else if (const auto* u = std::get_if<core::UnknownObject>(&object)) {
         paintUnknown(p, *u);
     }
@@ -857,6 +872,90 @@ void paintPlaced(QPainter& p, const core::PageObject& object, const ImageLookup&
         p.setOpacity(p.opacity() * (1.0 - object.common.translucency / 255.0));
     }
     paintObjectLocal(p, object, images);
+    p.restore();
+}
+
+// Un objet tel que paintPage le dessine (masqué : rien, ou translucide en mode conception) ; une encre
+// révélatrice ne se dessine jamais (F-255 : seule sa découpe se voit).
+void paintListed(QPainter& p, const core::PageObject& object, const ImageLookup& images,
+                 const PaintOptions& options)
+{
+    if (isRevealer(object)) {
+        return;
+    }
+    if (object.common.visible || !options.showHiddenTranslucent) {
+        paintObject(p, object, images);
+    } else if (!std::get_if<core::Group>(&object)) {
+        p.save();
+        p.setOpacity(p.opacity() * kHiddenShownOpacity);
+        paintPlaced(p, object, images);
+        p.restore();
+    }
+}
+
+// Calque de la couche du dessus borné (une cible d'impression peut être immense) : 16 Mpx au plus.
+constexpr double kMaxRevealLayerPixels = 16.0 * 1024 * 1024;
+constexpr double kPrintedRevealDpi = 300;
+
+// Objets [first, last] (couche du dessus) dans un calque transparent ; chaque encre révélatrice visible y
+// retire sa forme (trait opaque, en CompositionMode_DestinationOut) de ce qui la précède, jamais de ce qui
+// la suit ni des couches dessous ; puis le calque est composé sur la cible, à sa résolution.
+void paintRevealedLayer(QPainter& p, const core::Page& page, const ImageLookup& images,
+                        const PaintOptions& options, std::size_t first, std::size_t last)
+{
+    const QTransform world = p.worldTransform();
+    QRectF area = world.mapRect(QRectF(0, 0, page.width, page.height));
+    if (p.hasClipping()) {
+        area &= world.mapRect(p.clipBoundingRect()).adjusted(-1, -1, 1, 1);
+    }
+    const QPaintDevice* device = p.device();
+    if (device) {
+        area &= QRectF(0, 0, device->width(), device->height());
+    }
+    const QRect target = area.toAlignedRect();
+    if (target.isEmpty()) {
+        return;
+    }
+    double k = device ? device->devicePixelRatio() : 1.0;
+    // Export et impression (PDF, aperçu, imprimante) : 300 ppp au moins, quelle que soit la résolution
+    // annoncée du périphérique ; l'écran garde sa densité (revue de L8-T18).
+    const QPaintEngine* engine = p.paintEngine();
+    const bool printed =
+        (device && (device->devType() == QInternal::Printer || device->devType() == QInternal::Picture)) ||
+        (engine && (engine->type() == QPaintEngine::Pdf || engine->type() == QPaintEngine::Picture ||
+                    engine->type() == QPaintEngine::SVG));
+    if (printed && device && device->logicalDpiX() > 0) {
+        k = std::max(k, kPrintedRevealDpi / device->logicalDpiX());
+    }
+    const double pixels = target.width() * k * target.height() * k;
+    if (pixels > kMaxRevealLayerPixels) {
+        k *= std::sqrt(kMaxRevealLayerPixels / pixels);
+    }
+    QImage layer(std::max(1, static_cast<int>(std::ceil(target.width() * k))),
+                 std::max(1, static_cast<int>(std::ceil(target.height() * k))),
+                 QImage::Format_ARGB32_Premultiplied);
+    layer.setDevicePixelRatio(k);
+    layer.fill(Qt::transparent);
+    QPainter lp(&layer);
+    lp.setRenderHints(p.renderHints());
+    lp.setTransform(world * QTransform::fromTranslate(-target.left(), -target.top()));
+    for (std::size_t i = first; i <= last; ++i) {
+        const core::PageObject& object = page.objects[i];
+        if (cutsTopLayer(object)) {
+            core::PageObject shape = object;
+            std::get<core::Stroke>(shape).color = 0xFF000000u; // la couleur du trait ne compte pas
+            lp.save();
+            lp.setCompositionMode(QPainter::CompositionMode_DestinationOut);
+            paintPlaced(lp, shape, images);
+            lp.restore();
+        } else {
+            paintListed(lp, object, images, options);
+        }
+    }
+    lp.end();
+    p.save();
+    p.setWorldTransform(QTransform());
+    p.drawImage(QRectF(target), layer);
     p.restore();
 }
 } // namespace
@@ -916,15 +1015,21 @@ void paintPage(QPainter& p, const core::Page& page, const ImageLookup& images, c
     if (options.grid && !page.grid.drawnAbove) {
         paintGrid(p, page, options.thumbnail);
     }
-    for (const core::PageObject& object : page.objects) {
-        if (object.common.visible || !options.showHiddenTranslucent) {
-            paintObject(p, object, images);
-        } else if (!std::get_if<core::Group>(&object)) {
-            p.save();
-            p.setOpacity(p.opacity() * kHiddenShownOpacity);
-            paintPlaced(p, object, images);
-            p.restore();
+    // F-255 : dernière encre révélatrice visible de la couche du dessus. Aucune : la boucle d'origine, sans
+    // calque ni coût ajouté (une encre révélatrice ne se dessine jamais elle-même).
+    const std::size_t last = lastCuttingRevealer(page, page.objects.size());
+    std::size_t i = 0;
+    if (last < page.objects.size()) {
+        // Ordre du vecteur : couche, puis profondeur. Les couches inférieure et intermédiaire, puis la couche
+        // du dessus jusqu'à la dernière encre dans un calque transparent, découpé, composé sur la cible.
+        for (; i < last && page.objects[i].common.layer != core::Layer::Top; ++i) {
+            paintListed(p, page.objects[i], images, options);
         }
+        paintRevealedLayer(p, page, images, options, i, last);
+        i = last + 1;
+    }
+    for (; i < page.objects.size(); ++i) {
+        paintListed(p, page.objects[i], images, options);
     }
     if (options.grid && page.grid.drawnAbove) {
         paintGrid(p, page, options.thumbnail);

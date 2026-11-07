@@ -63,6 +63,26 @@ livrés. Selon la plateforme, certains ne sont pas présents dans le paquet.
 Les textes complets de ces licences accompagnent le code source de Qt (fichiers `LICENSES/` et
 `qt_attribution.json` de chaque module).
 
+## Qt Multimedia, FFmpeg et Qt WebView (Qt 6.12)
+
+Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré, à partir du lot 8.
+
+- **Qt Multimedia** (modules `Qt6Multimedia` et `Qt6MultimediaQuick`) et **Qt WebView** (`Qt6WebView` et
+  `Qt6WebViewQuick`) : même éditeur, même version et même licence que Qt ci-dessus (**LGPL-3.0-only**), liés
+  dynamiquement ; mêmes obligations (bibliothèques remplaçables, texte de la licence dans `LICENSES/`).
+- **FFmpeg** : sous Windows et Android, Qt Multimedia lit et écrit les médias par son greffon `ffmpeg`, qui embarque
+  des bibliothèques FFmpeg (Les développeurs de FFmpeg, https://ffmpeg.org/). Qt les livre compilées sous la
+  **GNU Lesser General Public License version 2.1 ou ultérieure** (LGPL-2.1-or-later), sans l'option GPL et sans
+  composant « non libre », et les charge comme bibliothèques dynamiques : l'utilisateur peut les remplacer. Le code
+  source de la version livrée est publié par le projet Qt (https://code.qt.io/) et par FFmpeg. ActCraft ne modifie
+  pas FFmpeg. Versions et options de compilation exactes : à relever sur le poste Windows (rapport
+  `docs/verifications/2026-10-22-lot8-modules.md`). Sous macOS, le Qt de Homebrew s'appuie sur les composants du système
+  (AVFoundation) et n'embarque pas FFmpeg ; le Qt officiel (installateur, aqt) embarque le greffon FFmpeg comme
+  sous Windows, avec les mêmes obligations.
+- **Moteur du cadre web** : Windows, composant WebView2 de Microsoft, installé sur le poste, non livré avec
+  ActCraft ; macOS et Android, navigateur du système. ActCraft ne livre **pas** Qt WebEngine (Chromium).
+- Les brevets sur certains codecs vidéo relèvent des utilisateurs et des distributeurs, non de la licence du logiciel.
+
 ## Bibliothèques d'exécution de Microsoft Visual C++ (Windows)
 
 `vcruntime140.dll`, `vcruntime140_1.dll` et `msvcp140.dll` sont redistribués à côté de l'exécutable selon les

@@ -339,6 +339,42 @@ private slots:
         QCOMPARE(fingerprint(doc.page(0)), before);
     }
 
+    // L8-C15 : après un déplacement ou une insertion de page, l'indice de la page enregistrée vise une autre
+    // page : ses identifiants peuvent exister ailleurs. Les objets en collision en tirent de neufs (une seule
+    // fois : rétablir après annuler redonne les mêmes), les autres gardent les leurs.
+    void revertPageDrawsFreshIdsForCollidingObjects()
+    {
+        ObjectId a = 0, b = 0;
+        Document doc = twoStrokes(a, b); // page 0 : a, b
+        doc.appendPage();                // page 1 : vide
+        Page saved = doc.page(0);        // la page enregistrée portait a et b
+        PageObject extra{strokeAt(300)};
+        extra.common.layer = Layer::Top;
+        extra.common.id = doc.nextId() + 5; // inconnu des autres pages : garde son identifiant
+        saved.objects.push_back(extra);
+
+        UndoStack stack;
+        stack.push(doc, std::make_unique<ReplacePageCommand>(1, saved));
+        QVERIFY(hasUniqueIds(doc));
+        QCOMPARE(doc.page(0).objects.size(), std::size_t{2}); // la page 0 n'a pas bougé
+        QCOMPARE(doc.page(0).objects[0].common.id, a);
+        QCOMPARE(doc.page(0).objects[1].common.id, b);
+        QCOMPARE(doc.page(1).objects.size(), std::size_t{3});
+        QVERIFY(doc.page(1).objects[0].common.id != a && doc.page(1).objects[0].common.id != b);
+        QVERIFY(doc.page(1).objects[1].common.id != a && doc.page(1).objects[1].common.id != b);
+        QCOMPARE(doc.page(1).objects[2].common.id, extra.common.id);
+        std::vector<ObjectId> ids;
+        for (const PageObject& o : doc.page(1).objects)
+            ids.push_back(o.common.id);
+
+        stack.undo(doc);
+        QVERIFY(doc.page(1).objects.empty());
+        stack.redo(doc);
+        QVERIFY(hasUniqueIds(doc));
+        for (std::size_t i = 0; i < ids.size(); ++i)
+            QCOMPARE(doc.page(1).objects[i].common.id, ids[i]);
+    }
+
     void revertPageIsOneStep()
     {
         ObjectId a = 0, b = 0;

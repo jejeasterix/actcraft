@@ -4,6 +4,25 @@ Les versions d'ActCraft, de la plus récente à la plus ancienne. Une section pa
 chaque lot (décision 31 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`) ; la section sert de notes
 à la release correspondante.
 
+## 0.9.0 — non publiée
+
+Actions, conteneurs, liens, encre révélatrice, médias, enregistreurs, cadre web et diffusion protégée. Les versions 0.6.0
+et 0.7.0 ne sont pas encore publiées : leurs nouveautés viennent avec celle-ci.
+
+- Actions : un objet porte une action (masquer ou afficher, aller à une page, ouvrir un fichier, jouer un son…). Un
+  navigateur d'actions les liste, les glisser-déposer en posent, et un badge signale l'objet qui en porte une.
+- Conteneurs et limiteurs : un objet reçoit d'autres objets selon ses règles ; un son de confirmation accompagne le
+  dépôt. Les limiteurs bornent le déplacement, la rotation ou la taille.
+- Liens : un lien vers une page, un fichier ou une adresse web se pose depuis une boîte de dialogue ; rien ne s'ouvre
+  sans confirmation.
+- Encre révélatrice : un trait qui laisse apparaître, sous lui, une couche cachée de la page.
+- Médias : lecteur intégré pour le son et la vidéo, deux pistes, lecteur de sons, choix de lecture en boucle.
+- Enregistreurs : enregistrer le son, ou l'écran entier ou une zone de l'écran, et placer le résultat sur la page.
+- Cadre web : une page web dans un cadre du paperboard, sans JavaScript, avec des sous-ressources décidées une à une.
+  Glisser du texte ou une image du cadre vers la page n'est pas possible : le composant web ne l'offre pas.
+- Diffusion protégée : un paperboard peut interdire la copie, la coupe et la modification ; la bannière dit pourquoi.
+- Profil « Son et image » : les commandes de médias et d'enregistrement regroupées.
+
 ## 0.6.0 — 2026-11-04
 
 Édition des objets et fichiers : couper, copier, coller, grouper, organiser et aligner ; les connecteurs ; le pot de

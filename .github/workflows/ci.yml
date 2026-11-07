@@ -130,7 +130,7 @@ jobs:
         shell: bash
         run: |
           host=$([ "${{ runner.os }}" = "Windows" ] && echo windows || echo mac)
-          python -m aqt install-qt "$host" desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt "$host" desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
@@ -190,6 +190,8 @@ jobs:
           # (Core Ultra 5 125U, run 42268652493). Chacun tourne hors écran, avec réglages et ressources dans des
           # dossiers jetables ; les plus gros (banc, captures) montent à ~270 Mo privés, d'où 4 et non 6.
           "CTEST_PARALLEL_LEVEL=4" >> $env:GITHUB_ENV
+          # Micro du PC à 64 % de la durée (L8-PC-CI) : tst_media_soundrecorder saute ses cas « micro » ici seulement.
+          "ACTCRAFT_CI_SANS_MICRO=1" >> $env:GITHUB_ENV
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         if: runner.os == 'Windows'
@@ -216,7 +218,7 @@ jobs:
         run: cmake --build --preset debug
 
       - name: Tester
-        run: ctest --preset debug
+        run: ctest --preset debug --output-on-failure
 
       # N1-8 : premier contact avec Metal ; informatif, ne bloque jamais la CI.
       - name: Banc sur la plateforme native (informatif)
@@ -238,8 +240,9 @@ jobs:
   paquet-windows:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: windows-latest
-    # Lot 5 : compilation release coupée à 693/808 à 15 min (run 41715403316, PR #9).
-    timeout-minutes: 25
+    # Lot 5 : compilation release coupée à 693/808 à 15 min (run 41715403316, PR #9). Lot 8 : coupée à 25 min avec
+    # Qt Multimedia et Qt WebView (run 42337666352, PR #16).
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -253,7 +256,7 @@ jobs:
       - name: Installer Qt
         shell: bash
         run: |
-          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
@@ -286,8 +289,9 @@ jobs:
   android:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    # 30 min : la libération du disque ajoute environ une minute à un job qui en prenait déjà 22.
-    timeout-minutes: 30
+    # 30 min : la libération du disque ajoute environ une minute à un job qui en prenait déjà 22. Lot 8 : essai sur
+    # l'émulateur coupé à 30 min (run 42337666352, PR #16).
+    timeout-minutes: 45
     env:
       # Un démon Gradle resté vivant verrouille le dossier de construction (piège L1-T17).
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -323,9 +327,9 @@ jobs:
 
       - name: Installer Qt (hôte et Android)
         run: |
-          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
-          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
-          python -m aqt install-qt all_os android "$QT_VERSION" android_x86_64 -m qtshadertools qtimageformats qtpdf --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_x86_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           echo "ACTCRAFT_QT_HOST_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_ARM64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_X86_64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_x86_64" >> "$GITHUB_ENV"

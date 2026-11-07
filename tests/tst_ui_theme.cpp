@@ -37,7 +37,11 @@ const char* const kIcons[] = {
     "palette-reduire-tout", "palette-epingler", "couleurs-plus", "pipette", "nav-objets-masque",
     "nav-objets-verrou", "notes-page", "profil", "profils", "conception", "accueil", "recents",
     "ressources-miennes", "ressources-partagees", "ressources-autre", "tampon", "classe-verrou",
-    "orthographe", "aide-sommaire", "programme"};
+    "orthographe", "aide-sommaire", "programme",
+    // Lot 8 (L8-T1) : 18 icônes à nous (« rotation » existe depuis le lot 1).
+    "actions", "encre-revelatrice", "lien-fichier", "lien-site", "action-objet", "action-glisser",
+    "conteneur", "limiteur", "historique-precedent", "historique-suivant", "son", "video", "lecteur-sons",
+    "enregistrer-son", "enregistrer-ecran", "enregistrer-zone", "cadre-web", "diffuser"};
 
 // Luminance relative de WCAG 2.1 (composantes sRGB linéarisées).
 double relativeLuminance(const QColor& color)

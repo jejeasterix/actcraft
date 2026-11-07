@@ -629,6 +629,20 @@ bool parseUiScenario(const QByteArray& json, UiScenario& out, QString& error)
             error = QStringLiteral("étape %1 : %2").arg(i + 1).arg(why);
             return false;
         }
+        const QJsonObject object = steps.at(i).toObject();
+        const QJsonValue skipOn = object.value(QStringLiteral("skipOn"));
+        if (!skipOn.isUndefined() && !skipOn.isArray()) {
+            error = QStringLiteral("étape %1 : skipOn doit être un tableau de plateformes").arg(i + 1);
+            return false;
+        }
+        for (const QJsonValue& platform : skipOn.toArray()) {
+            step.skipOn << platform.toString();
+        }
+        step.skipReason = object.value(QStringLiteral("skipReason")).toString().trimmed();
+        if (!step.skipOn.isEmpty() && step.skipReason.isEmpty()) {
+            error = QStringLiteral("étape %1 : skipOn exige skipReason (le motif du saut)").arg(i + 1);
+            return false;
+        }
         scenario.steps.push_back(std::move(step));
     }
     out = std::move(scenario);
@@ -1744,7 +1758,14 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         m_loopRetryAvailable = window.has_value() && !retried;
         m_loopRetryAsked = false;
         const qsizetype before = report.size();
-        const bool stepOk = runStep(step, report);
+        bool stepOk = true;
+        if (step.skipOn.contains(QSysInfo::productType())) {
+            report << QStringLiteral("SAUTE étape %1 (%2) : %3")
+                          .arg(i + 1)
+                          .arg(QSysInfo::productType(), step.skipReason);
+        } else {
+            stepOk = runStep(step, report);
+        }
         emitFrom(report, before); // au fil de l'eau : la ligne sort avant l'étape suivante
         if (m_loopRetryAsked) {
             retried = true;

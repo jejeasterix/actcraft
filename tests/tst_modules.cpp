@@ -4,6 +4,7 @@
 #include <actcraft/features/features.h>
 #include <actcraft/formats/formats.h>
 #include <actcraft/input/input.h>
+#include <actcraft/media/media.h>
 #include <actcraft/render/render.h>
 #include <actcraft/tools/tools.h>
 
@@ -25,6 +26,7 @@ private slots:
         QCOMPARE(QString::fromLatin1(actcraft::formats::moduleId()), QStringLiteral("formats"));
         QCOMPARE(QString::fromLatin1(actcraft::actions::moduleId()), QStringLiteral("actions"));
         QCOMPARE(QString::fromLatin1(actcraft::input::moduleId()), QStringLiteral("input"));
+        QCOMPARE(QString::fromLatin1(actcraft::media::moduleId()), QStringLiteral("media"));
         QCOMPARE(QString::fromLatin1(actcraft::render::moduleId()), QStringLiteral("render"));
         QCOMPARE(QString::fromLatin1(actcraft::tools::moduleId()), QStringLiteral("tools"));
         QCOMPARE(QString::fromLatin1(actcraft::features::moduleId()), QStringLiteral("features"));

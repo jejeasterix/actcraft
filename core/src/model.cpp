@@ -1,3 +1,4 @@
+#include <actcraft/core/interactivity.h>
 #include <actcraft/core/model.h>
 
 #include <bit>
@@ -135,11 +136,22 @@ void hashLabelStyle(Fnv1a& h, const LabelStyle& style) noexcept
     hashUnknownKeys(h, unknownKeys); // vide : le flux d'avant les sous-clés gardées
 }
 
+// Restrictions sous leur forme normalisée (interactivity.h) : un objet bloqué par son booléen (lot 2) ou par
+// son mode Fixed (lot 8) est un seul état, haché pareil : fingerprint(normalize(d)) == fingerprint(d) (revue
+// de L8-T3, normalizeKeepsFingerprint).
+Restrictions normalized(Restrictions r) noexcept
+{
+    normalize(r);
+    return r;
+}
+
 void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
 {
     // labelStyle, keywords : fin du flux (fingerprint, L6-T10), jamais ici.
+    // container, champs du lot 8 des restrictions et des actions : bloc 0xB8 de l'objet (hashLot8), jamais
+    // ici.
     const auto& [id, name, layer, visible, locked, dragCopy, translucency, restrictions, transform, label,
-                 labelStyle, keywords, actions] = c;
+                 labelStyle, keywords, actions, container] = c;
     h.u64(id);
     h.text(name);
     h.tag(layer);
@@ -149,7 +161,8 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
         h.byte(0xD7);
     }
     h.byte(translucency);
-    const auto& [movable, resizable, rotatable] = restrictions;
+    const auto& [movable, resizable, rotatable, travel, track, turning, turnStep, pivot, pivotPoint,
+                 pivotObject, blocksOthers, magnet, magnetMark, magnetPoint] = normalized(restrictions);
     h.boolean(movable);
     h.boolean(resizable);
     h.boolean(rotatable);
@@ -157,7 +170,8 @@ void hashCommon(Fnv1a& h, const ObjectCommon& c) noexcept
     h.text(label);
     h.u64(static_cast<std::uint64_t>(actions.size()));
     for (const Action& a : actions) {
-        const auto& [kind, sourceType, command, target, resource, unknownKeys] = a;
+        const auto& [kind, sourceType, command, target, resource, unknownKeys, catalogId, parameters,
+                     dragDrop] = a;
         h.tag(kind);
         h.u32(sourceType);
         h.i32(command);
@@ -263,7 +277,9 @@ void hashType(Fnv1a& h, const Text& textObject) noexcept
 
 void hashType(Fnv1a& h, const Media& mediaObject) noexcept
 {
-    const auto& [bounds, placeholder, media, fileName, playOnOpen, loop] = mediaObject;
+    // Options du lot 8 : bloc 0xB8 de l'objet (hashLot8), jamais ici.
+    const auto& [bounds, placeholder, media, fileName, playOnOpen, loop, controlsHidden, aspectLocked,
+                 clearBackground, wrapText] = mediaObject;
     h.rect(bounds);
     h.text(placeholder);
     h.text(media);
@@ -306,6 +322,14 @@ void hashType(Fnv1a& h, const Equation& equation) noexcept
     h.u32(color);
 }
 
+void hashType(Fnv1a& h, const WebFrame& frame) noexcept
+{
+    const auto& [bounds, html, address] = frame;
+    h.rect(bounds);
+    h.text(html);
+    h.text(address);
+}
+
 void hashType(Fnv1a& h, const UnknownObject& unknown) noexcept
 {
     const auto& [type, json, bounds, hasBounds] = unknown;
@@ -313,6 +337,91 @@ void hashType(Fnv1a& h, const UnknownObject& unknown) noexcept
     h.text(json);
     h.rect(bounds);
     h.boolean(hasBounds);
+}
+
+// Code de type haché : le rang dans ObjectKind, sauf pour les deux types du lot 8 (m6). L'objet inconnu garde
+// son code d'avant le cadre web (9), pour que son empreinte ne change pas ; le cadre web prend 10.
+constexpr std::uint8_t kUnknownKindTag = 9;
+constexpr std::uint8_t kWebFrameKindTag = 10;
+
+std::uint8_t kindTag(ObjectKind kind) noexcept
+{
+    switch (kind) {
+    case ObjectKind::Shape:
+    case ObjectKind::Image:
+    case ObjectKind::Stroke:
+    case ObjectKind::Line:
+    case ObjectKind::Text:
+    case ObjectKind::Media:
+    case ObjectKind::Group:
+    case ObjectKind::Connector:
+    case ObjectKind::Equation:
+        return static_cast<std::uint8_t>(kind);
+    case ObjectKind::WebFrame:
+        return kWebFrameKindTag;
+    case ObjectKind::Unknown:
+        return kUnknownKindTag;
+    }
+    return kUnknownKindTag;
+}
+
+bool hasLot8Data(const PageObject& object) noexcept
+{
+    const ObjectCommon& c = object.common;
+    if (!isDefault(normalized(c.restrictions)) || !isDefault(c.container)) {
+        return true;
+    }
+    for (const Action& a : c.actions) {
+        if (!a.catalogId.empty() || !a.parameters.empty() || a.dragDrop) {
+            return true;
+        }
+    }
+    const Media* m = std::get_if<Media>(&body(object));
+    return m && (m->controlsHidden || m->aspectLocked || m->clearBackground || m->wrapText);
+}
+
+// Données du lot 8 d'un objet (L8-T3) : en fin de flux de l'objet, derrière l'octet 0xB8, et seulement s'il
+// en porte une hors défaut : un objet sans elles garde son empreinte d'avant (lot8FieldsKeepOldFingerprints).
+void hashLot8(Fnv1a& h, const PageObject& object) noexcept
+{
+    if (!hasLot8Data(object)) {
+        return;
+    }
+    const ObjectCommon& c = object.common;
+    h.byte(0xB8);
+    const Restrictions r = normalized(c.restrictions);
+    h.tag(r.travel);
+    h.u64(r.track);
+    h.tag(r.turning);
+    h.f64(r.turnStep);
+    h.tag(r.pivot);
+    h.point(r.pivotPoint);
+    h.u64(r.pivotObject);
+    h.boolean(r.blocksOthers);
+    h.boolean(r.magnet);
+    h.tag(r.magnetMark);
+    h.point(r.magnetPoint);
+    const auto& [accepts, target, words, fit, tolerance, bounceBack, chime, chimeSound] = c.container;
+    h.tag(accepts);
+    h.u64(target);
+    hashKeywords(h, words);
+    h.tag(fit);
+    h.f64(tolerance);
+    h.boolean(bounceBack);
+    h.boolean(chime);
+    h.text(chimeSound);
+    h.u64(static_cast<std::uint64_t>(c.actions.size()));
+    for (const Action& a : c.actions) {
+        h.text(a.catalogId);
+        h.text(a.parameters);
+        h.boolean(a.dragDrop);
+    }
+    if (const Media* m = std::get_if<Media>(&body(object))) {
+        h.boolean(m->controlsHidden);
+        h.boolean(m->aspectLocked);
+        h.boolean(m->clearBackground);
+        h.boolean(m->wrapText);
+    }
 }
 
 // std::visit sur le variant de base (body), jamais sur PageObject : il couvre chaque type par construction.
@@ -436,9 +545,10 @@ std::uint64_t fingerprint(const Page& page) noexcept
     h.f64(height);
     h.u64(static_cast<std::uint64_t>(objects.size()));
     for (const PageObject& object : objects) {
-        h.tag(kindOf(object));
+        h.byte(kindTag(kindOf(object)));
         hashCommon(h, object.common);
         hashBody(h, object);
+        hashLot8(h, object);
     }
     const auto& [fill, image] = background;
     h.fill(fill);

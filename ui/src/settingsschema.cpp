@@ -211,6 +211,15 @@ const QList<Entry>& entryTable()
                 QT_TRANSLATE_NOOP("SettingsSchema", "Ignorer les adresses web et de courriel"), false),
         boolean("spelling", "flag-repeated", QT_TRANSLATE_NOOP("SettingsSchema", "Signaler les mots répétés"),
                 true),
+        // Enregistrements (F-292, F-293, L8-T28) : lus par ui::Recorders. Dossier vide : le dossier
+        // temporaire du document ; formats : ceux que les moteurs écrivent aujourd'hui.
+        text("recordings", "recordings/folder",
+             QT_TRANSLATE_NOOP("SettingsSchema", "Dossier des enregistrements"), kWorkstation),
+        choice("recordings", "recordings/sound-format", QT_TRANSLATE_NOOP("SettingsSchema", "Format du son"),
+               {{"wav", QT_TRANSLATE_NOOP("SettingsSchema", "WAV")}}, kWorkstation),
+        choice("recordings", "recordings/screen-format",
+               QT_TRANSLATE_NOOP("SettingsSchema", "Format de la vidéo"),
+               {{"mp4", QT_TRANSLATE_NOOP("SettingsSchema", "MP4")}}, kWorkstation),
         // Profils et bibliothèque : `ressources/partagees` du profil, que ResourceLibrary lit (vide : le
         // dossier partagé du système).
         text("profile", "partagees", QT_TRANSLATE_NOOP("SettingsSchema", "Dossier des ressources partagées"),

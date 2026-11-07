@@ -14,6 +14,10 @@ actcraft_add_test(tst_bench_stats
     SOURCES tst_bench_stats.cpp
     LIBS ActCraft::bench)
 
+actcraft_add_test(tst_bench_isolation
+    SOURCES tst_bench_isolation.cpp
+    LIBS ActCraft::bench ActCraft::ui)
+
 actcraft_add_test(tst_bench_json
     SOURCES tst_bench_json.cpp
     LIBS ActCraft::bench)
@@ -508,3 +512,39 @@ endforeach()
 # L6-T31 : le mot de passe d'essai du scénario n'apparaît jamais dans sa sortie.
 set_tests_properties(tst_captures_classe_protegee PROPERTIES
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE|essai-1234")
+
+# Lot 8 (L8-T1) : cinq scénarios de 8a. Tant que la description du scénario porte le marqueur « Talon L8 : rempli par
+# L8-Tn. », le test n'exécute rien et se saute en nommant sa tâche ; la tâche propriétaire remplit le scénario et le
+# test devient la commande habituelle, sans toucher à ce fichier (le scénario est une dépendance de configuration).
+function(actcraft_add_lot8_capture name scenario)
+    set(file ${PROJECT_SOURCE_DIR}/bench/scenarios/${scenario}.json)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${file})
+    file(READ ${file} content)
+    string(REGEX MATCH "Talon L8 : rempli par (L8-T[0-9]+)\\." talon "${content}")
+    if(talon)
+        add_test(NAME ${name} COMMAND ${CMAKE_COMMAND} -E echo "${talon}")
+        set_tests_properties(${name} PROPERTIES SKIP_REGULAR_EXPRESSION "Talon L8")
+    else()
+        add_test(NAME ${name}
+            COMMAND $<TARGET_FILE:actcraft-captures>
+                --scenario ${file}
+                --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${scenario})
+        set_tests_properties(${name} PROPERTIES
+            TIMEOUT 300
+            ENVIRONMENT "${_bench_env_offscreen}"
+            PASS_REGULAR_EXPRESSION "SCENARIO OK"
+            FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+    endif()
+endfunction()
+actcraft_add_lot8_capture(tst_captures_navigateur_actions navigateur-actions)
+actcraft_add_lot8_capture(tst_captures_glisser_deposer glisser-deposer)
+actcraft_add_lot8_capture(tst_captures_conteneurs conteneurs)
+actcraft_add_lot8_capture(tst_captures_encre_revelatrice encre-revelatrice)
+actcraft_add_lot8_capture(tst_captures_interactivite interactivite)
+
+# Lot 8 (L8-T21) : cinq scénarios de 8b, même mécanisme de talon.
+actcraft_add_lot8_capture(tst_captures_liens liens)
+actcraft_add_lot8_capture(tst_captures_medias medias)
+actcraft_add_lot8_capture(tst_captures_enregistreurs enregistreurs)
+actcraft_add_lot8_capture(tst_captures_cadre_web cadre-web)
+actcraft_add_lot8_capture(tst_captures_diffusion_protegee diffusion-protegee)

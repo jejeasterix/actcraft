@@ -64,6 +64,9 @@ public:
     // Clé = SHA-256 des octets en hexadécimal minuscule (64 caractères) ; même contenu, même clé, une seule
     // copie.
     std::string addResource(QByteArray data, std::string extension);
+    // Idem avec la clé déjà calculée (SHA-256 des mêmes octets, par exemple sur un fil de fond) : prise telle
+    // quelle, sans nouveau hachage sur le fil de l'interface. L'appelant répond de l'exactitude de la clé.
+    std::string addResource(QByteArray data, std::string extension, std::string key);
     // nullptr si la clé est inconnue.
     const Resource* resource(const std::string& key) const noexcept;
     const std::map<std::string, Resource>& resources() const noexcept;
@@ -80,6 +83,10 @@ public:
     const std::map<std::string, ArchiveEntry>& unknownEntries() const noexcept;
     void setUnknownEntry(std::string name, QByteArray data);
 
+    // Diffusion protégée (lot 8, F-680) ; défaut : tout permis, rien dans l'empreinte.
+    const BroadcastRules& broadcast() const noexcept;
+    void setBroadcast(BroadcastRules rules);
+
 private:
     std::vector<Page> m_pages;
     std::map<std::string, Resource> m_resources;
@@ -87,6 +94,7 @@ private:
     std::string m_title;
     std::string m_unknownKeys;
     std::map<std::string, ArchiveEntry> m_unknownEntries;
+    BroadcastRules m_broadcast;
 };
 
 // « Page suivante » (F-125) : indice suivant ; sur la dernière page, ajoute d'abord une page vierge.
@@ -101,7 +109,8 @@ bool hasUniqueIds(const Document& document);
 
 // Empreinte FNV-1a 64 bits : nombre de pages, empreinte de chaque page, titre, ressources (clé et extension ;
 // la clé résume les octets ; clés inconnues de leur déclaration), puis, s'il y en a, les clés inconnues du
-// document et les entrées d'archive inconnues (nom et SHA-256). Le prochain identifiant n'y entre pas : un
+// document et les entrées d'archive inconnues (nom et SHA-256), puis, hors défaut, les règles de diffusion
+// (lot 8). Le prochain identifiant n'y entre pas : un
 // document relu a la même empreinte.
 std::uint64_t fingerprint(const Document& document) noexcept;
 

@@ -36,3 +36,9 @@ actcraft_add_test(tst_formats_oracle_synth
 # Un oracle sauté sort 77 (son main) : ctest le compte « Skipped » (« Not Run »), pas « Passed ». QSKIP seul sort 0,
 # et la sortie de QtTest n'arrive pas toujours à ctest : un motif (SKIP_REGULAR_EXPRESSION) ne suffirait pas.
 set_tests_properties(tst_formats_oracle tst_formats_oracle_synth PROPERTIES SKIP_RETURN_CODE 77)
+
+# Lot 8 (L8-T1) : talon ; ACTCRAFT_SOURCE_DIR sur le patron d'ACTCRAFT_TESTS_DIR.
+actcraft_add_test(tst_formats_flipchart_interactivity
+    SOURCES tst_formats_flipchart_interactivity.cpp
+    LIBS ActCraft::formats Qt6::Gui)
+target_compile_definitions(tst_formats_flipchart_interactivity PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

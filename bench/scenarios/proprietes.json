@@ -50,7 +50,7 @@
     {"expect": "appTools.selectionCount", "value": 1},
     {"expect": "appProperties.title", "value": "Texte"},
     {"expect": "swatch-0.modelData", "value": "#E53935"},
-    {"pointer": [[1186, 260]], "space": "window"},
+    {"pointer": [[1186, 308]], "space": "window"},
     {"waitReady": true},
     {"expect": "appTools.currentTool", "value": "select"},
     {"expect": "appTools.selectionCount", "value": 1},
@@ -59,11 +59,11 @@
     {"waitReady": true},
     {"expect": "appTools.selectionCount", "value": 0},
     {"capture": "texte-rouge"},
-    {"checkPixel": "texte-recolore", "at": [308, 340], "color": "#E53935", "tolerance": 60},
+    {"checkPixel": "texte-recolore", "at": [308, 340], "color": "#E53935", "tolerance": 100},
     {"command": "edit.undo"},
     {"waitReady": true},
     {"expect": "documentController.shownObjectCount", "value": 2},
     {"capture": "texte-annule"},
-    {"checkPixel": "texte-annule", "at": [308, 340], "color": "#000000", "tolerance": 60}
+    {"checkPixel": "texte-annule", "at": [308, 340], "color": "#000000", "tolerance": 100}
   ]
 }

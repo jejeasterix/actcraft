@@ -5,13 +5,17 @@
 // (le format ne les décode pas). tst_formats_nativejson vérifie que chaque champ est rempli
 // (richDocumentFillsEveryField) et que deux champs frères de même type diffèrent dans une instance au moins
 // (richDocumentSeparatesSiblings) : sinon, les échanger dans l'écrivain ou le lecteur garderait l'empreinte.
+// Les champs du lot 8 n'y sont pas (ses clés et ses empreintes sont figées) : richInteractiveDocument, sa
+// copie complétée, les remplit hors défaut (amendement 3 du plan du lot 8, R-T3a).
 
 #include <actcraft/core/document.h>
+#include <actcraft/core/interactivity.h>
 
 #include <QByteArray>
 
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace richdoc {
@@ -250,6 +254,63 @@ inline actcraft::core::Document richDocument()
     document.addResource(pngBytes(), "png");
     document.addResource(mp3Bytes(), "MP3");
     document.reserveIdsBelow(20);
+    return document;
+}
+
+// richDocument complété des champs du lot 8, chacun hors défaut. Une copie plutôt qu'un ajout à richDocument
+// : celui-ci a son document.json de référence (tests/data/nativejson/richdocument.json) et des empreintes
+// figées par d'autres tests, qui ne changent pas. Contrôles : richDocumentFillsEveryField, aller-retour :
+// richInteractiveDocumentRoundTrips (tst_formats_nativejson).
+inline actcraft::core::Document richInteractiveDocument()
+{
+    using namespace actcraft::core;
+    Document document = richDocument();
+    Page& p1 = document.page(0);
+    ObjectCommon& c1 = p1.objects[0].common;
+    Restrictions& r = c1.restrictions;
+    setTravel(r, Travel::AlongTrack); // o1 est bloqué au lot 2 : la copie le rend mobile le long d'un trait
+    r.track = 5;
+    setTurning(r, Turning::CounterClockwise);
+    r.turnStep = 15;
+    r.pivot = Mark::OtherObject;
+    r.pivotPoint = {2, 3};
+    r.pivotObject = 9;
+    r.blocksOthers = true;
+    r.magnet = true;
+    r.magnetMark = Mark::BottomRight;
+    r.magnetPoint = {7, 11};
+    ContainerRule& box = c1.container;
+    box.accepts = Accepts::Keywords;
+    box.object = 3;
+    box.keywords = {"fruit", "légume"};
+    box.fit = FitRule::FullyInside;
+    box.tolerance = 4;
+    box.bounceBack = true;
+    box.chime = true;
+    box.chimeSound = sha256Hex(mp3Bytes());
+    Action& action = c1.actions[0];
+    action.catalogId = "page.goto";
+    action.parameters = R"({"page":2})";
+    action.dragDrop = true;
+    Media& clip = std::get<Media>(p1.objects[6]);
+    clip.controlsHidden = true;
+    clip.aspectLocked = true;
+    clip.clearBackground = true;
+    clip.wrapText = true;
+    WebFrame frame;
+    frame.bounds = {40, 60, 320, 200};
+    frame.html = "<p>Cadre</p>";
+    frame.address = "https://exemple.org/";
+    PageObject o12 = frame;
+    o12.common.id = 12;
+    document.page(2).objects.push_back(o12);
+    BroadcastRules rules;
+    rules.noCopy = true;
+    rules.noSave = true;
+    rules.noPrint = true;
+    rules.noCamera = true;
+    rules.author = "Auteur";
+    document.setBroadcast(rules);
     return document;
 }
 

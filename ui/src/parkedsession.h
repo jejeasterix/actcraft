@@ -24,6 +24,7 @@ struct DocumentController::ParkedSession
     QUrl fileUrl;
     QString title; // vide : « Sans titre » à la reprise
     bool modifiedOutsideStack = false;
+    std::uint64_t documentKey = 0; // 0 : session neuve, la reprise lui en donne une
     QStringList warnings;
     // Document tel qu'ouvert ou enregistré en dernier (page de référence de « Rétablir la page ») ; nullptr :
     // aucune.

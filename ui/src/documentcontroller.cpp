@@ -1,5 +1,6 @@
 #include "parkedsession.h"
 
+#include <actcraft/core/broadcast.h>
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/generator.h>
@@ -366,6 +367,15 @@ bool DocumentController::isLifting() const noexcept
 // soulèvement : le document garé est entier. Aucune demande de redessin, aucun rattachement : la page fixe
 // garde son ancienne scène jusqu'à resumeSession, qui la reconstruit une fois (amendement 3, M1). L'appelant
 // reprend une session avant de rendre la main à la boucle d'événements.
+namespace {
+// Identité d'un document affiché (documentKey) : jamais réutilisée dans le processus.
+std::uint64_t freshDocumentKey()
+{
+    static std::uint64_t last = 1; // 1 : celle du premier document de chaque contrôleur
+    return ++last;
+}
+} // namespace
+
 std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSession()
 {
     announceEdit();
@@ -377,6 +387,7 @@ std::unique_ptr<DocumentController::ParkedSession> DocumentController::parkSessi
     session->fileUrl = std::exchange(m_fileUrl, QUrl());
     session->title = std::exchange(m_title, untitled());
     session->modifiedOutsideStack = std::exchange(m_modifiedOutsideStack, false);
+    session->documentKey = std::exchange(m_documentKey, freshDocumentKey());
     session->warnings = m_warnings;
     session->reference = m_referenceGeneration == m_generation ? m_reference : nullptr;
     m_reference.reset();
@@ -400,6 +411,7 @@ void DocumentController::resumeSession(std::unique_ptr<ParkedSession> session)
     m_fileUrl = session->fileUrl;
     m_title = session->title.isEmpty() ? untitled() : session->title;
     m_modifiedOutsideStack = session->modifiedOutsideStack;
+    m_documentKey = session->documentKey != 0 ? session->documentKey : freshDocumentKey();
     ++m_generation;
     ++m_revision;
     m_reference = std::move(session->reference);
@@ -647,6 +659,7 @@ void DocumentController::replaceDocument(core::Document document, const QUrl& fi
     m_fileUrl = fileUrl;
     m_title = title.isEmpty() ? untitled() : title;
     m_modifiedOutsideStack = false;
+    m_documentKey = freshDocumentKey();
     ++m_generation;
     ++m_revision;
     show(0);
@@ -1030,6 +1043,56 @@ void DocumentController::saveToUrl(const QUrl& url)
             }
             qCInfo(lcDocument, "ACTCRAFT ENREGISTRE %s", qPrintable(fingerprintHex(outcome.fingerprint)));
             emit self.saveFinished(true, QString());
+        });
+    });
+}
+
+void DocumentController::publishToUrl(const QUrl& url, bool noCopy, bool noSave, bool noPrint, bool noCamera,
+                                      const QString& author)
+{
+    if (m_busy) {
+        refuseWhileBusy(tr("Une opération est déjà en cours : diffusion refusée."),
+                        &DocumentController::publishFinished);
+        return;
+    }
+    QString refusal;
+    QUrl target = actcraftTarget(url, &refusal);
+    if (!target.isEmpty() && target == m_fileUrl) {
+        // La copie protégée est un nouveau fichier : jamais celui du document ouvert, qui reste sans règles.
+        refusal = tr("La copie protégée doit être un nouveau fichier : choisissez un autre nom.");
+        target.clear();
+    }
+    if (target.isEmpty()) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, refusal] {
+                setLastError(refusal);
+                emit publishFinished(false, refusal);
+            },
+            Qt::QueuedConnection);
+        return;
+    }
+    // Comme saveToUrl : la vue termine son trait, qui entre dans la copie. Copie prise sur le fil principal,
+    // qui porte les règles (core::published) ; le document ouvert ne les reçoit jamais.
+    announceEdit();
+    setBusy(true);
+    const core::BroadcastRules rules{.noCopy = noCopy,
+                                     .noSave = noSave,
+                                     .noPrint = noPrint,
+                                     .noCamera = noCamera,
+                                     .author = author.toStdString()};
+    auto snapshot = std::make_shared<const core::Document>(core::published(m_document, rules));
+    std::shared_ptr<IoRelay> relay = m_relay;
+    QThreadPool::globalInstance()->start([relay, file = target, snapshot] {
+        const SaveOutcome outcome = saveDocument(*snapshot, file);
+        relay->post([relay, outcome] {
+            DocumentController& self = *relay->target; // livré au contrôleur vivant (IoRelay)
+            self.setBusy(false);
+            self.setLastIo(outcome.offMainThread);
+            // Ni fileUrl, ni « modifié », ni la référence de Rétablir la page : le fichier diffusé n'est pas
+            // celui du document ouvert.
+            self.setLastError(outcome.ok ? QString() : outcome.error);
+            emit self.publishFinished(outcome.ok, outcome.ok ? QString() : outcome.error);
         });
     });
 }

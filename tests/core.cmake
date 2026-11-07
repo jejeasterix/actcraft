@@ -119,3 +119,26 @@ actcraft_add_test(tst_core_notesedits
 actcraft_add_test(tst_core_spellcheck
     SOURCES tst_core_spellcheck.cpp
     LIBS ActCraft::core)
+
+# Lot 8 (L8-T1) : talons.
+actcraft_add_test(tst_core_interactivity
+    SOURCES tst_core_interactivity.cpp
+    LIBS ActCraft::core)
+actcraft_add_test(tst_core_objectactions
+    SOURCES tst_core_objectactions.cpp
+    LIBS ActCraft::core)
+actcraft_add_test(tst_core_objectactions_edit
+    SOURCES tst_core_objectactions_edit.cpp
+    LIBS ActCraft::core)
+actcraft_add_test(tst_core_containers
+    SOURCES tst_core_containers.cpp
+    LIBS ActCraft::core)
+actcraft_add_test(tst_core_restrictors
+    SOURCES tst_core_restrictors.cpp
+    LIBS ActCraft::core)
+
+# Lot 8 (L8-T21) : talon ; ACTCRAFT_SOURCE_DIR sur le patron d'ACTCRAFT_TESTS_DIR.
+actcraft_add_test(tst_core_broadcast
+    SOURCES tst_core_broadcast.cpp
+    LIBS ActCraft::core)
+target_compile_definitions(tst_core_broadcast PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
