@@ -1,10 +1,13 @@
 #include <actcraft/media/displayrecorder.h>
 #include <actcraft/media/soundrecorder.h>
 #include <actcraft/ui/commands.h>
+#include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/mediainsert.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/recorders.h>
 #include <actcraft/ui/settingsschema.h>
 
+#include <QDir>
 #include <QFile>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -377,6 +380,59 @@ private slots:
         rig.recorders.stop();
         QTRY_COMPARE(duration.count(), 1);
         QVERIFY(!rig.recorders.isRecording());
+    }
+    // L8-C10, essai 2, constat 4 : le dossier par défaut est propre à la session ; le fichier, copié dans le
+    // document par l'insertion, y est effacé une fois l'insertion réussie.
+    void defaultFolderIsPerSessionAndCleanedAfterInsertion()
+    {
+        struct Reset
+        {
+            ~Reset() { ui::Recorders::resetDefaultEngines(); }
+        } reset;
+        ui::Recorders::setDefaultEngines({&makeSound, [](std::function<void(bool)> answer) { answer(true); }, {}});
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::MediaInsert insert;
+        insert.setDocument(&controller);
+        ui::Recorders recorders;
+        recorders.setMediaInsert(&insert);
+        const QString session = recorders.sessionFolder();
+        QVERIFY(!session.isEmpty());
+        QVERIFY(session.contains(QStringLiteral("actcraft-recordings")));
+        QVERIFY(session != QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
+                               QStringLiteral("/actcraft-recordings"));
+        QSignalSpy inserted(&insert, &ui::MediaInsert::inserted);
+        recorders.toggleSound();
+        recorders.stop();
+        QTRY_COMPARE(inserted.count(), 1);
+        QTRY_VERIFY(QDir(session).isEmpty());
+    }
+
+    // L8-C10, essai 2, constat 6 : insertion refusée après l'arrêt (verrou) ; le message dit où est le fichier.
+    void refusedInsertionTellsWhereTheFileIs()
+    {
+        struct Reset
+        {
+            ~Reset() { ui::Recorders::resetDefaultEngines(); }
+        } reset;
+        ui::Recorders::setDefaultEngines({&makeSound, [](std::function<void(bool)> answer) { answer(true); }, {}});
+        ui::Commands commands;
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::MediaInsert insert;
+        insert.setDocument(&controller);
+        insert.setCommands(&commands);
+        ui::Recorders recorders;
+        recorders.setCommands(&commands);
+        recorders.setMediaInsert(&insert);
+        QVERIFY(commands.trigger(QStringLiteral("record.sound")));
+        commands.setLocked(true);
+        QVERIFY(commands.trigger(QStringLiteral("record.stop")));
+        QTRY_VERIFY(!recorders.isRecording());
+        const QStringList files = QDir(recorders.sessionFolder()).entryList(QDir::Files);
+        QCOMPARE(files.size(), 1); // le fichier reste
+        QVERIFY2(recorders.message().contains(QDir(recorders.sessionFolder()).filePath(files.first())),
+                 qPrintable(recorders.message()));
     }
 };
 

@@ -291,6 +291,11 @@ bool Recorders::lastDurationOk() const
     return m_lastDurationOk;
 }
 
+QString Recorders::sessionFolder() const
+{
+    return {};
+}
+
 QString Recorders::folder() const
 {
     return m_preferences ? m_preferences->value(QString::fromLatin1(kFolderKey)).toString() : QString();

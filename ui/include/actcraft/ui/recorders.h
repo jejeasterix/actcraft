@@ -100,6 +100,8 @@ public:
     bool lastDurationOk() const;
     // Réglages de la section « Enregistrements » (vide : dossier temporaire du document).
     QString folder() const;
+    // Dossier temporaire de la session (enregistreurs propres) ; vide si les enregistreurs viennent de l'extérieur.
+    QString sessionFolder() const;
     QString soundFormat() const;
     QString screenFormat() const;
 
