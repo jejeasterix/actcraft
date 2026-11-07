@@ -59,8 +59,8 @@ sections nommées ; le volet 2 (palette coupée à 1 000 px, L11-T10) est dans l
   (`ci.yml:79-91`). Le dépôt est privé depuis le 2026-11-06 (décision de Jérôme ; `CLAUDE.md`, qui dit « public », est
   en retard). Le lancement graphique y est informatif (`continue-on-error`) ; les contrôles `otool` et `dyld` sont
   bloquants. Le brouillon de release attend trois paquets.
-- **Chemin aqt** (`macos-latest`, ou repli si Homebrew n'a plus Qt 6.12.0) : non prouvé ; essai à blanc sur
-  `macos-latest` obligatoire avant tout tag qui le prend (H11-18).
+- **Chemin aqt** (`macos-latest`, ou repli si Homebrew n'a plus Qt 6.12.0) : non prouvé ;
+  essai à blanc de `release.yml` sur l'exécuteur que prendra le tag : `macos-latest` si le dépôt est public, Mac mini (repli aqt) s'il est privé, obligatoire avant tout tag qui le prend (H11-18).
 - **Qt WebEngine** jamais dans le bundle : `paquet-mac.sh` retire le greffon `libqtwebview_webengine.dylib` (Qt WebView
   passe par le greffon natif `darwin`) puis tout framework que plus rien ne référence ; un `QtWebEngine*` restant =
   `LICENCES EN ECHEC` (arrêt).
@@ -1558,7 +1558,7 @@ Ces mesures fondent la décision go / no-go de l'étape 2 du BRIEF ; elles ne bl
    `ACTCRAFT_KEY_PASSWORD` par `gh secret set <nom> --env release` (saisis par Jérôme).
 3. Fichier go `<git-common-dir>/chantiers/go-action-finale` écrit par l'orchestrateur au go (limite de 6 h).
 4. Si le job `macos` passera par aqtinstall (dépôt public → `macos-latest`, ou Homebrew sans Qt 6.12.0) : d'abord
-   l'essai à blanc sur `macos-latest` de H11-18, `autres-autorises.txt` complété et mergé. Puis
+   l'essai à blanc de `release.yml` sur l'exécuteur que prendra le tag : `macos-latest` si le dépôt est public, Mac mini (repli aqt) s'il est privé (H11-18) ; `autres-autorises.txt` complété et mergé. Puis
    `git tag -a v1.0.0 -m "ActCraft 1.0.0"` sur le commit mergé dans `main`, puis `git push origin v1.0.0`.
 5. Fin du workflow `release.yml` : brouillon avec installateur, APK signé, `.dmg` non signé (job `macos`, amendement 3),
    `SHA256SUMS.txt`, notes ; l'empreinte
@@ -1603,7 +1603,7 @@ l'orchestrateur : « release 1.0.0 prête, go écrit demandé ».
   **Chemin aqt non prouvé** : seul le Qt de Homebrew est essayé (L11-T29m) ; le chemin par aqtinstall (`macos-latest` si
   le dépôt devient public, ou repli du Mac mini si Homebrew n'a plus Qt 6.12.0) n'a jamais tourné, et ses bibliothèques
   non Qt (FFmpeg de Qt Multimedia, entre autres) ne sont pas dans `packaging/autres-autorises.txt`. **Avant tout tag qui
-  passe par ce chemin, un essai à blanc de `release.yml` sur `macos-latest` est obligatoire** ; il complète
+  passe par ce chemin, un essai à blanc de `release.yml` sur l'exécuteur que prendra le tag : `macos-latest` si le dépôt est public, Mac mini (repli aqt) s'il est privé, est obligatoire** ; il complète
   `autres-autorises.txt`, les notices et `LICENSES/` (relevé de `LICENCES EN ECHEC`, forme de l'étape 7 de L11-T29m). Signature ad hoc seulement : Gatekeeper bloque le premier
   lancement d'un `.dmg` téléchargé (clic droit > Ouvrir, ou « Ouvrir quand même » dès macOS 15). Signer et notariser
   demande un compte Apple Developer payant (décision de Jérôme). Le job `macos` de `release.yml` tourne sur le runner
