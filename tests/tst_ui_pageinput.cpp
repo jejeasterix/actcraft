@@ -1,10 +1,13 @@
 #include "startup.h"
 
+#include <actcraft/core/model.h>
 #include <actcraft/input/routing.h>
 #include <actcraft/input/sample.h>
 #include <actcraft/input/touchmodes.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/tools/userstate.h>
+#include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
@@ -19,6 +22,8 @@
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -194,10 +199,12 @@ private slots:
     void sameEventPressesGrouped()
     {
         int toolSamples = 0;
+        std::vector<input::Sample> seen;
         App app;
         QVERIFY(start(app));
-        app.view->setSampleFilter([&toolSamples](const input::Sample& sample) {
+        app.view->setSampleFilter([&toolSamples, &seen](const input::Sample& sample) {
             ++toolSamples;
+            seen.push_back(sample);
             return sample;
         });
         const int before = app.fixed->objectCount();
@@ -232,6 +239,35 @@ private slots:
             .release(2, scenePoint(app, QPointF(500, 200)));
         QTRY_VERIFY_WITH_TIMEOUT(!app.view->contactActive(), 3000);
         QCOMPARE(app.fixed->objectCount(), before + 1);
+
+        // Revue M1 : le doigt qui écrit se relève dans l'événement où un autre se pose ([A Released,
+        // B Pressed]) : le relâché passe au routeur avant les appuis ; A garde son trait, B est un premier
+        // doigt (outil), pas un deuxième (geste).
+        const std::size_t markA = seen.size();
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(300, 550)));
+        QTest::touchEvent(app.window, m_touch).move(0, scenePoint(app, QPointF(360, 550)));
+        QTRY_VERIFY_WITH_TIMEOUT(app.ink->pointCount() >= 2, 3000);
+        QVERIFY(seen.size() > markA);
+        const std::uint64_t pointerA = seen[markA].pointer;
+        const std::size_t markHandover = seen.size();
+        QTest::touchEvent(app.window, m_touch)
+            .release(0, scenePoint(app, QPointF(360, 550)))
+            .press(1, scenePoint(app, QPointF(300, 600)));
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 2, 3000);
+        const auto handover = [&](input::Phase phase, bool isA) {
+            return std::any_of(seen.cbegin() + static_cast<std::ptrdiff_t>(markHandover), seen.cend(),
+                               [&](const input::Sample& sample) {
+                                   return sample.phase == phase && (sample.pointer == pointerA) == isA;
+                               });
+        };
+        QVERIFY2(handover(input::Phase::Release, true), "le relâché de A n'a pas atteint l'outil");
+        QVERIFY2(handover(input::Phase::Press, false), "l'appui de B n'a pas atteint l'outil");
+        QCOMPARE(app.view->router().gestureTouches(), 0);
+        QVERIFY(app.view->contactActive());
+        QTest::touchEvent(app.window, m_touch).move(1, scenePoint(app, QPointF(360, 600)));
+        QTest::touchEvent(app.window, m_touch).release(1, scenePoint(app, QPointF(360, 600)));
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 3, 3000);
+        QVERIFY(!app.view->contactActive());
         app.view->setSampleFilter({});
     }
 
@@ -270,6 +306,10 @@ private slots:
         app.tools->activate(QStringLiteral("select"));
         QCOMPARE(app.tools->currentTool(), QStringLiteral("select"));
         app.view->setRoutingPolicy(input::makeTouchPolicy(input::TouchMode::Pen));
+        // Revue M3 : la translucidité du stylo de l'utilisateur suit le trait imposé.
+        tools::InkSettings pen = app.tools->user().settings(QStringLiteral("pen"));
+        pen.translucency = 100;
+        app.tools->user().setSettings(QStringLiteral("pen"), pen);
         QSignalSpy toolChanged(app.tools, &ui::ToolHost::currentToolChanged);
         const int before = app.fixed->objectCount();
         QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(300, 300)));
@@ -280,6 +320,12 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), before + 1, 3000);
         QCOMPARE(app.tools->currentTool(), QStringLiteral("select"));
         QCOMPARE(toolChanged.count(), 0);
+        auto* document = app.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(document);
+        const core::Page& page =
+            document->document().page(static_cast<std::size_t>(document->currentIndex()));
+        QVERIFY(!page.objects.empty());
+        QCOMPARE(int(page.objects.back().common.translucency), 100);
     }
 
     // Point 5 : finishContacts termine le contact comme un relâché (trait gardé) et le rend : contactActive
@@ -316,18 +362,40 @@ private slots:
         QVERIFY(QLineF(held.at(0).at(1).toPointF(), app.view->pageToScene(page)).length() <= 2.0);
         QCOMPARE(held.at(0).at(2).toInt(), 0);
         QTest::touchEvent(app.window, m_touch).release(0, scenePoint(app, page));
+        QVERIFY(!app.view->touchHoldTimerActive());
 
+        // Relâché avant 500 ms : rien, minuteur arrêté au relâché.
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(400, 300)));
+        QTest::qWait(200);
+        QVERIFY(app.view->touchHoldTimerActive());
+        QTest::touchEvent(app.window, m_touch).release(0, scenePoint(app, QPointF(400, 300)));
+        QVERIFY(!app.view->touchHoldTimerActive());
+        QTest::qWait(400);
+        QCOMPARE(held.count(), 1);
+
+        // Tremblement de 5 dp, dans la tolérance : le signal part quand même.
+        const QPoint still = scenePoint(app, QPointF(300, 400));
+        QTest::touchEvent(app.window, m_touch).press(0, still);
+        QTest::touchEvent(app.window, m_touch).move(0, still + QPoint(5, 0));
+        QTest::qWait(600);
+        QCOMPARE(held.count(), 2);
+        QTest::touchEvent(app.window, m_touch).release(0, still + QPoint(5, 0));
+
+        // Mouvement de 20 dp : minuteur arrêté, aucun signal.
         const QPoint at = scenePoint(app, QPointF(300, 500));
         QTest::touchEvent(app.window, m_touch).press(0, at);
         QTest::touchEvent(app.window, m_touch).move(0, at + QPoint(20, 0));
+        // Avant l'échéance de 500 ms : arrêté par le mouvement (Qt Quick livre les mouvements à l'image).
+        QTRY_VERIFY_WITH_TIMEOUT(!app.view->touchHoldTimerActive(), 200);
         QTest::qWait(600);
         QTest::touchEvent(app.window, m_touch).release(0, at + QPoint(20, 0));
-        QCOMPARE(held.count(), 1);
+        QCOMPARE(held.count(), 2);
 
+        // Stylet : aucun minuteur armé hors d'un contact de doigt.
         tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(500, 300));
-        QTest::qWait(600);
+        QVERIFY(!app.view->touchHoldTimerActive());
         tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(500, 300));
-        QCOMPARE(held.count(), 1);
+        QCOMPARE(held.count(), 2);
     }
 
     // Point 7 (D11-10) : hors « Ajuster », le point de page au centre de la vue y reste à la rotation.

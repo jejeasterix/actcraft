@@ -754,9 +754,11 @@ void PageView::configureImposedPen(input::UserId user)
         const tools::InkSettings pen = m_tools->user(user).settings(QStringLiteral("pen"));
         m_imposedPen->setColor(pen.color);
         m_imposedPen->setBaseWidth(pen.width);
+        m_imposedPen->setTranslucency(pen.translucency); // revue M3
     } else {
         m_imposedPen->setColor(m_inkColor.rgba());
         m_imposedPen->setBaseWidth(m_inkWidth);
+        m_imposedPen->setTranslucency(0);
     }
 }
 
@@ -1000,7 +1002,17 @@ void PageView::touchEvent(QTouchEvent* event)
     std::vector<qsizetype> pressPoints;
     std::vector<input::Decision> decisions;
     int pressesInEvent = 0;
-    if (event->touchPointStates().testFlag(QEventPoint::State::Pressed)) {
+    const bool hasPresses = event->touchPointStates().testFlag(QEventPoint::State::Pressed);
+    if (hasPresses) {
+        // Revue M1 : les relâchés de l'événement passent au routeur (et leur trait à l'outil) avant les
+        // appuis : un doigt qui se relève quand un autre se pose ne fait pas du nouveau un deuxième doigt.
+        for (const QEventPoint& point : points) {
+            if (point.state() == QEventPoint::State::Released) {
+                const QTouchEvent single(QEvent::TouchEnd, event->pointingDevice(), event->modifiers(),
+                                         {point});
+                taken = handlePointer(single, point.position()) || taken;
+            }
+        }
         for (qsizetype i = 0; i < points.size(); ++i) {
             const QEventPoint& point = points.at(i);
             if (point.state() != QEventPoint::State::Pressed || !canStartStroke(point.position())) {
@@ -1036,6 +1048,9 @@ void PageView::touchEvent(QTouchEvent* event)
         } else if (point.state() == QEventPoint::State::Updated) {
             type = QEvent::TouchUpdate;
         } else if (point.state() == QEventPoint::State::Released) {
+            if (hasPresses) {
+                continue; // déjà passé, avant les appuis
+            }
             type = QEvent::TouchEnd;
         } else {
             continue; // immobile : rien de neuf pour le routeur
