@@ -175,7 +175,8 @@ private slots:
                              qPrintable(command));
                 }
             // Sous Windows, tout ce qui est déclaré pour Windows reste (et rien d'indisponible n'y figure).
-            const QStringList windows = actions::layoutForPlatform(*p, registry(), actions::Platform::Windows);
+            const QStringList windows =
+                actions::layoutForPlatform(*p, registry(), actions::Platform::Windows);
             for (const QString& command : windows)
                 QVERIFY2(registry().isAvailable(command, actions::Platform::Windows), qPrintable(command));
             for (const QString& command : p->pinned)

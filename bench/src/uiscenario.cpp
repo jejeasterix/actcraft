@@ -243,7 +243,8 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             why = QStringLiteral("contrôle de pixel invalide (checkPixel, at, color)");
             return false;
         }
-        return readSpace(o, step.windowSpace, why); // « space » : « window » lit le pixel là où un doigt a posé
+        return readSpace(o, step.windowSpace,
+                         why); // « space » : « window » lit le pixel là où un doigt a posé
     }
     if (o.contains(QStringLiteral("checkEdge"))) {
         step.kind = UiStepKind::CheckEdge;

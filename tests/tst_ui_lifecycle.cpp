@@ -516,7 +516,8 @@ private slots:
         {
             QFile aged(copy);
             QVERIFY(aged.open(QIODevice::ReadWrite));
-            QVERIFY(aged.setFileTime(QDateTime::currentDateTime().addSecs(-10), QFileDevice::FileModificationTime));
+            QVERIFY(aged.setFileTime(QDateTime::currentDateTime().addSecs(-10),
+                                     QFileDevice::FileModificationTime));
         }
         {
             ui::DocumentController other; // enregistré après la copie, sans gardien
