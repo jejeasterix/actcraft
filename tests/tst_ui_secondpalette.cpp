@@ -8,6 +8,7 @@
 #include <actcraft/core/lift.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/shapegeometry.h>
+#include <actcraft/input/routing.h>
 #include <actcraft/input/touchmodes.h>
 #include <actcraft/input/twouserpolicy.h>
 #include <actcraft/render/inkitem.h>
@@ -186,6 +187,38 @@ const core::PageObject* objectOf(const ui::DocumentController& controller, core:
     return index == page.objects.size() ? nullptr : &page.objects[index];
 }
 
+// Politique d'essai : le mode du toucher « pen » à deux utilisateurs, un par moitié de la page (x < split :
+// le second). La politique à deux de l'application laisse l'outil courant au doigt (TwoUserPolicy::decide) :
+// seule une politique qui impose le stylo au doigt atteint les stylos imposés de la vue.
+class HalvesPenPolicy final : public input::RoutingPolicy
+{
+public:
+    explicit HalvesPenPolicy(double split) : m_split(split) {}
+
+    input::Decision decide(const input::Sample& press, const input::RouterState& state) const override
+    {
+        input::Decision decision;
+        decision.route = input::Route::Tool;
+        if (press.device != input::DeviceKind::Touch) {
+            return decision;
+        }
+        decision.user = press.x < m_split ? input::kSecondUser : input::kFirstUser;
+        decision.fingerTool = input::FingerTool::Pen;
+        if (state.toolTouchesByUser[decision.user] > 0) {
+            decision.route = input::Route::Ignore;
+        }
+        return decision;
+    }
+
+private:
+    double m_split;
+};
+
+QPoint touchPoint(App& app, QPointF page)
+{
+    return app.view->pageToScene(page).toPoint();
+}
+
 } // namespace
 
 class TstUiSecondpalette : public QObject
@@ -214,6 +247,8 @@ private slots:
     // L11-C9 : derniers restes du mode à deux.
     void secondUsersToolKeepsItsSettings();
     void undoAbandonsTheSecondUsersStroke();
+    // L11-C11 : correctifs de la revue du mode à deux.
+    void twoFingersInPenModeStayApart();
 
 private:
     QTemporaryDir m_settings;
@@ -825,6 +860,64 @@ void TstUiSecondpalette::undoAbandonsTheSecondUsersStroke()
     QCOMPARE(controller->shownObjectCount(), before);
     controller->redo(); // le trait du premier revient, seul
     QCOMPARE(controller->shownObjectCount(), before + 1);
+}
+
+void TstUiSecondpalette::twoFingersInPenModeStayApart()
+{
+    // L11-C11 (J1) : deux doigts en mode du toucher « pen », un par utilisateur. Un stylo imposé unique, sur
+    // l'encre du premier, prend à l'appui du second les réglages du second : le trait vif du premier change
+    // de couleur ou repart de zéro, et l'encre du second reste vide.
+    App app;
+    QVERIFY(start(app));
+    ui::DocumentController* controller = app.tools->documentController();
+    QVERIFY(controller);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen")));
+    QVERIFY(app.commands->trigger(QStringLiteral("pen.color"), QStringLiteral("#E53935")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
+    QVERIFY(app.commands->trigger(QStringLiteral("pen.color"), QStringLiteral("#1E88E5"), 1));
+    // Outil courant de chacun : le sélecteur. Seuls les stylos imposés au doigt peuvent dessiner.
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.select")));
+    QVERIFY(app.commands->trigger(QStringLiteral("tool.select"), QVariant(), 1));
+    QCOMPARE(penColor(*app.tools, 0), QColor(QStringLiteral("#E53935")));
+    QCOMPARE(penColor(*app.tools, 1), QColor(QStringLiteral("#1E88E5")));
+    app.view->setRoutingPolicy(std::make_unique<HalvesPenPolicy>(400.0));
+    const int before = controller->shownObjectCount();
+    render::InkItem* first = app.view->ink();
+    QVERIFY(first);
+    QPointingDevice* touch = QTest::createTouchDevice();
+
+    QTest::touchEvent(app.window, touch).press(0, touchPoint(app, QPointF(600, 200)));
+    QTest::touchEvent(app.window, touch).move(0, touchPoint(app, QPointF(640, 210)));
+    QTest::touchEvent(app.window, touch).move(0, touchPoint(app, QPointF(680, 220)));
+    QCOMPARE(app.view->lastContactUser(), 0);
+    const std::size_t n0 = first->pointCount();
+    QVERIFY(n0 >= 2);
+    QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
+
+    QTest::touchEvent(app.window, touch).stationary(0).press(1, touchPoint(app, QPointF(100, 400)));
+    for (int i = 1; i <= 5; ++i) { // plus long que celui du premier : une encre partagée changerait de compte
+        QTest::touchEvent(app.window, touch)
+            .stationary(0)
+            .move(1, touchPoint(app, QPointF(100 + 40 * i, 400 + 10 * i)));
+    }
+    QCOMPARE(app.view->lastContactUser(), 1);
+    QCOMPARE(first->pointCount(), n0); // le trait vif du premier n'a pas bougé
+    QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
+    render::InkItem* second = app.view->secondInk();
+    QVERIFY(second && second != first);
+    QVERIFY2(second->pointCount() > n0, qPrintable(QString::number(second->pointCount())));
+    QCOMPARE(QColor::fromRgba(second->drawnColor()), QColor(QStringLiteral("#1E88E5")));
+
+    QTest::touchEvent(app.window, touch).move(0, touchPoint(app, QPointF(720, 230))).stationary(1);
+    QVERIFY(first->pointCount() > n0);
+    QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
+    QTest::touchEvent(app.window, touch).stationary(0).release(1, touchPoint(app, QPointF(300, 450)));
+    QCOMPARE(second->pointCount(), std::size_t(0));
+    QVERIFY(first->pointCount() > n0); // le versement du second n'interrompt pas le premier
+    QTest::touchEvent(app.window, touch).release(0, touchPoint(app, QPointF(760, 240)));
+    QCOMPARE(first->pointCount(), std::size_t(0));
+    QCOMPARE(controller->shownObjectCount(), before + 2);
 }
 
 QTEST_MAIN(TstUiSecondpalette)
