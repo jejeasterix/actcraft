@@ -1879,6 +1879,76 @@ private slots:
         }
     }
 
+    void lot11StubsGone()
+    {
+        // Clôture du lot 11 (L11-T30) : aucun talon du lot ne reste, ni dans les sources de la liste R2, ni
+        // dans les 21 tests unitaires de R1, ni dans les 11 scénarios de R3. Le marqueur est construit ici
+        // pour que ce test ne se compte pas lui-même.
+        const QString marker = QStringLiteral("Talon ") + QStringLiteral("L11");
+        const QStringList files = {
+            "input/include/actcraft/input/touchmodes.h",
+            "input/include/actcraft/input/twouserpolicy.h",
+            "input/src/touchmodes.cpp",
+            "input/src/twouserpolicy.cpp",
+            "tools/include/actcraft/tools/grabs.h",
+            "tools/src/grabs.cpp",
+            "ui/include/actcraft/ui/documentportal.h",
+            "ui/include/actcraft/ui/dualmode.h",
+            "ui/include/actcraft/ui/fingermenus.h",
+            "ui/include/actcraft/ui/keyboardinset.h",
+            "ui/include/actcraft/ui/layoutmetrics.h",
+            "ui/include/actcraft/ui/lifecycle.h",
+            "ui/include/actcraft/ui/touchmode.h",
+            "ui/include/actcraft/ui/updatechecker.h",
+            "ui/src/documentportal.cpp",
+            "ui/src/dualmode.cpp",
+            "ui/src/fingermenus.cpp",
+            "ui/src/keyboardinset.cpp",
+            "ui/src/layoutmetrics.cpp",
+            "ui/src/lifecycle.cpp",
+            "ui/src/touchmode.cpp",
+            "ui/src/updatechecker.cpp",
+            "tests/tst_input_touchmodes.cpp",
+            "tests/tst_ui_pageinput.cpp",
+            "tests/tst_ui_touchmode.cpp",
+            "tests/tst_input_twousers.cpp",
+            "tests/tst_tools_twousers.cpp",
+            "tests/tst_ui_secondpalette.cpp",
+            "tests/tst_ui_narrowlayout.cpp",
+            "tests/tst_ui_orientation.cpp",
+            "tests/tst_ui_fingermenus.cpp",
+            "tests/tst_ui_lifecycle.cpp",
+            "tests/tst_ui_documentportal.cpp",
+            "tests/tst_bench_resultsdir.cpp",
+            "tests/tst_ui_pseudolocale.cpp",
+            "tests/tst_ui_updatechecker.cpp",
+            "tests/tst_ui_shortcuts.cpp",
+            "tests/tst_ui_accessibility.cpp",
+            "tests/tst_app_notices.cpp",
+            "tests/tst_ui_lockall.cpp",
+            "tests/tst_ui_profilesall.cpp",
+            "tests/tst_app_versioninfo.cpp",
+            "tests/tst_ui_helppages.cpp",
+            "bench/scenarios/modes-toucher.json",
+            "bench/scenarios/deux-utilisateurs.json",
+            "bench/scenarios/tablette-etroite.json",
+            "bench/scenarios/rotation-clavier.json",
+            "bench/scenarios/au-doigt.json",
+            "bench/scenarios/cycle-de-vie.json",
+            "bench/scenarios/aide-complete.json",
+            "bench/scenarios/mises-a-jour.json",
+            "bench/scenarios/classe-protegee-complete.json",
+            "bench/scenarios/profils-complets.json",
+            "bench/scenarios/controle/pseudo-langue.json",
+        };
+        for (const QString& rel : files) {
+            QFile file(QStringLiteral(ACTCRAFT_SOURCE_DIR) + u'/' + rel);
+            QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(rel + QStringLiteral(" : illisible")));
+            QVERIFY2(!QString::fromUtf8(file.readAll()).contains(marker),
+                     qPrintable(rel + QStringLiteral(" : talon du lot 11 resté")));
+        }
+    }
+
     void shellLoadsWithoutQmlWarning()
     {
         QTest::failOnWarning(QRegularExpression(QStringLiteral("qrc:.*\\.qml")));

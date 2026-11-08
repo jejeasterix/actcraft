@@ -549,7 +549,8 @@ actcraft_add_lot8_capture(tst_captures_enregistreurs enregistreurs)
 actcraft_add_lot8_capture(tst_captures_cadre_web cadre-web)
 actcraft_add_lot8_capture(tst_captures_diffusion_protegee diffusion-protegee)
 
-# Lot 11 (L11-T1) : onze scénarios de captures. Tant que la description du scénario porte le marqueur « Talon L11 :
+# Lot 11 (L11-T1) : onze scénarios de captures. Tant que la description du scénario porte le marqueur « Talon L1[1] » (écrit ainsi pour que
+# la recherche du marqueur dans les sources, L11-T30, ne trouve pas ce fichier) :
 # rempli par L11-Tn. », le test n'exécute rien et se saute en nommant sa tâche ; la tâche propriétaire remplit le
 # scénario et le test devient la commande habituelle, sans toucher à ce fichier (même mécanisme qu'au lot 8).
 # Arguments supplémentaires du joueur : ceux qui suivent le chemin du scénario (ex. --traduction, L11-T19).
@@ -558,10 +559,10 @@ function(actcraft_add_lot11_capture name scenario)
     get_filename_component(_base ${scenario} NAME_WE)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${file})
     file(READ ${file} content)
-    string(REGEX MATCH "Talon L11 : rempli par (L11-T[0-9]+)\\." talon "${content}")
+    string(REGEX MATCH "Talon L1[1] : rempli par (L11-T[0-9]+)\\." talon "${content}")
     if(talon)
         add_test(NAME ${name} COMMAND ${CMAKE_COMMAND} -E echo "${talon}")
-        set_tests_properties(${name} PROPERTIES SKIP_REGULAR_EXPRESSION "Talon L11")
+        set_tests_properties(${name} PROPERTIES SKIP_REGULAR_EXPRESSION "Talon L1[1]")
     else()
         add_test(NAME ${name}
             COMMAND $<TARGET_FILE:actcraft-captures>
