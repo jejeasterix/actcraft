@@ -85,7 +85,9 @@ private slots:
             const QString html = page(id);
             QVERIFY2(QRegularExpression(QStringLiteral("<title>[^<]{3,}</title>")).match(html).hasMatch(),
                      qPrintable(id));
-            QVERIFY2(html.contains(QStringLiteral("href=\"index.html\"")), qPrintable(id));
+            // L'index est la page d'arrivée : il ne se renvoie pas à lui-même.
+            if (id != QLatin1String("index"))
+                QVERIFY2(html.contains(QStringLiteral("href=\"index.html\"")), qPrintable(id));
         }
     }
     void internalLinksResolve()
