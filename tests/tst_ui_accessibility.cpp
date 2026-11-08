@@ -5,7 +5,6 @@
 
 #include <QAccessible>
 #include <QImage>
-#include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -111,8 +110,8 @@ QRect pixelRect(const QQuickItem* item, const QImage& image, qreal dpr)
 }
 
 // Tout texte visible et actif sous `root` : couleur du texte contre le fond relevé sur l'image rendue.
-void collectTexts(QQuickItem* item, const QImage& image, qreal dpr, QStringList& failures, const QString& scope,
-                  int& checked)
+void collectTexts(QQuickItem* item, const QImage& image, qreal dpr, QStringList& failures,
+                  const QString& scope, int& checked)
 {
     if (!item || !item->isVisible() || effectiveOpacity(item) < 0.01) {
         return;
@@ -193,14 +192,16 @@ QStringList dialogCommands()
     for (const QString& id : registry.ids()) {
         const actions::CommandInfo* info = registry.find(id);
         if (info && info->opensDialog && registry.isAvailable(id, platform) &&
-            info->argument != actions::ArgumentKind::Url && id != QLatin1String("file.quit") && id != QLatin1String("color.dialog")) {
+            info->argument != actions::ArgumentKind::Url && id != QLatin1String("file.quit") &&
+            id != QLatin1String("color.dialog")) {
             ids << id;
         }
     }
     return ids;
 }
 
-// Ouvre la boîte d'une commande ; vrai si une boîte QML est apparue (les autres restent ouvertes pour l'appelant).
+// Ouvre la boîte d'une commande ; vrai si une boîte QML est apparue (les autres restent ouvertes pour
+// l'appelant).
 bool openDialog(Shell& s, const QString& id)
 {
     closeAll(s);
@@ -225,18 +226,38 @@ void collectFocusable(QQuickItem* item, QList<QQuickItem*>& out)
     }
 }
 
-int changedBy3(const QImage& before, const QImage& after, const QRect& zone)
+// Zone d'un élément sur l'image, élargie de `margin` points de chaque côté (place de l'anneau de focus).
+QRect pixelZone(const QQuickItem* item, qreal dpr, qreal margin)
+{
+    const QRectF scene =
+        item->mapRectToScene(item->boundingRect()).adjusted(-margin, -margin, margin, margin);
+    return QRectF(scene.topLeft() * dpr, scene.size() * dpr).toAlignedRect();
+}
+
+// Pixels de `zone`, hors de `skip`, dont la couleur change d'au moins 3:1 entre les deux images.
+int changedBy3(const QImage& before, const QImage& after, const QRect& zone, const QRect& skip)
 {
     int count = 0;
     const QRect area = zone.intersected(before.rect());
     for (int y = area.top(); y <= area.bottom(); ++y) {
         for (int x = area.left(); x <= area.right(); ++x) {
-            if (wcag::contrastRatio(before.pixelColor(x, y), after.pixelColor(x, y)) >= wcag::kUi) {
+            if (!skip.contains(x, y) &&
+                wcag::contrastRatio(before.pixelColor(x, y), after.pixelColor(x, y)) >= wcag::kUi) {
                 ++count;
             }
         }
     }
     return count;
+}
+
+bool insideAny(QQuickItem* item, const QList<QQuickItem*>& roots)
+{
+    for (QQuickItem* it = item; it; it = it->parentItem()) {
+        if (roots.contains(it)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 QQuickItem* findItem(QQuickItem* root, const QString& name)
@@ -337,7 +358,11 @@ private slots:
         QVERIFY2(failures.isEmpty(), qPrintable(failures.join(QLatin1Char('\n'))));
     }
 
-    // Tab parcourt chaque contrôle d'une boîte, et l'élément focalisé se voit (30 pixels changent de 3:1).
+    // Tab parcourt chaque contrôle d'une boîte, comme au clavier, et chaque contrôle atteint se voit : forme
+    // de keyboardFocusIsVisible (tst_ui_shell), focus visuel de Qt Quick Controls vrai, puis 30 pixels de sa
+    // zone changent de 3:1. Le focus vient d'une vraie touche Tab, jamais de forceActiveFocus : posé par
+    // programme sur un contrôle qui avait déjà le focus de sa boîte, il laisse visualFocus faux (essai 1 de
+    // L11-T24), et il ne prouve pas que Tab atteint le contrôle.
     void focusVisibleInEveryDialog()
     {
         Shell s;
@@ -350,43 +375,91 @@ private slots:
                 continue;
             }
             QTest::qWait(300);
+            QList<QQuickItem*> roots;
             QList<QQuickItem*> focusable;
             for (QObject* popup : openPopups(s)) {
-                collectFocusable(popupRoot(popup), focusable);
+                roots << popupRoot(popup);
+                collectFocusable(roots.last(), focusable);
             }
-            for (QQuickItem* control : std::as_const(focusable)) {
-                QPointer<QQuickItem> guard(control);
-                // Un contrôle déjà focalisé à l'ouverture (premier de la boîte) : on le quitte d'abord, sinon
-                // rien ne change entre les deux images.
-                if (control->hasActiveFocus()) {
-                    s.window->contentItem()->forceActiveFocus(Qt::OtherFocusReason);
-                    QTest::qWait(60);
-                }
+            // Le contrôle focalisé à l'ouverture n'est pas compté atteint : il ne l'est qu'au tour complet.
+            QList<QQuickItem*> reached;
+            QList<QQuickItem*> checkedStops;
+            QQuickItem* previous = nullptr;
+            const int maxTabs = 2 * static_cast<int>(focusable.size()) + 2;
+            for (int tab = 0; tab < maxTabs && reached.size() < focusable.size(); ++tab) {
+                QQuickItem* const was = s.window->activeFocusItem();
                 const QImage before = s.window->grabWindow();
-                control->forceActiveFocus(Qt::TabFocusReason);
-                (void)QTest::qWaitFor([&] { return !guard || guard->hasActiveFocus(); }, 300);
+                QTest::keyClick(s.window, Qt::Key_Tab);
                 QTest::qWait(60);
-                if (!guard) {
+                QQuickItem* const now = s.window->activeFocusItem();
+                if (!now || !insideAny(now, roots)) {
+                    failures << QStringLiteral("%1 : Tab sort de la boîte depuis %2").arg(id, describe(was));
+                    break;
+                }
+                if (now == was) {
+                    failures << QStringLiteral("%1 : Tab ne déplace pas le focus (piège clavier) sur %2")
+                                    .arg(id, describe(now));
+                    break;
+                }
+                // L'arrêt de Tab : le contrôle focalisable le plus extérieur qui contient l'élément focalisé.
+                QQuickItem* stop = nullptr;
+                bool hasVisualFocus = false; // un contrôle de Qt Quick Controls dans la chaîne
+                bool visualFocus = false;
+                for (QQuickItem* it = now; it && !roots.contains(it); it = it->parentItem()) {
+                    if (focusable.contains(it)) {
+                        stop = it;
+                        if (!reached.contains(it)) {
+                            reached << it;
+                        }
+                    }
+                    // Le focus visuel ne se lit que sur la chaîne du focus actif.
+                    const QVariant visual = it->hasActiveFocus() ? it->property("visualFocus") : QVariant();
+                    hasVisualFocus = hasVisualFocus || visual.isValid();
+                    visualFocus = visualFocus || visual.toBool();
+                }
+                if (!stop) {
+                    stop = now;
+                }
+                if (checkedStops.contains(stop)) {
+                    previous = stop;
                     continue;
                 }
+                checkedStops << stop;
                 const QImage after = s.window->grabWindow();
-                const QRectF scene = control->mapRectToScene(control->boundingRect()).adjusted(-6, -6, 6, 6);
-                const QRect zone = QRectF(scene.topLeft() * dpr, scene.size() * dpr).toAlignedRect();
+                const QRect zone = pixelZone(stop, dpr, 6);
+                // L'anneau du contrôle quitté ne compte pas pour celui qui reçoit le focus.
+                QRect skip = previous ? pixelZone(previous, dpr, 6) : QRect();
+                if (skip.contains(zone) || zone.contains(skip)) {
+                    skip = QRect();
+                }
                 ++controls;
-                const int changed = changedBy3(before, after, zone);
+                const int changed = changedBy3(before, after, zone, skip);
+                if (hasVisualFocus && !visualFocus) {
+                    failures << QStringLiteral(
+                                    "%1 : focus clavier sans focus visuel (visualFocus faux) sur %2")
+                                    .arg(id, describe(stop));
+                }
                 if (changed < 30) {
-                    failures << QStringLiteral("%1 : focus invisible (%2 pixels, focus reçu %3, visuel %4) sur %5")
+                    failures << QStringLiteral("%1 : focus invisible (%2 pixels) sur %3")
                                     .arg(id)
                                     .arg(changed)
-                                    .arg(control->hasActiveFocus())
-                                    .arg(control->property("visualFocus").toBool())
-                                    .arg(describe(control));
+                                    .arg(describe(stop));
+                }
+                previous = stop;
+            }
+            for (QQuickItem* control : std::as_const(focusable)) {
+                if (!reached.contains(control)) {
+                    failures << QStringLiteral("%1 : Tab n'atteint pas %2").arg(id, describe(control));
                 }
             }
         }
         closeAll(s);
-        QVERIFY(controls > 20);
-        QVERIFY2(failures.isEmpty(), qPrintable(failures.join(QLatin1Char('\n'))));
+        QVERIFY2(controls > 20, qPrintable(QStringLiteral("%1 contrôles atteints par Tab").arg(controls)));
+        for (const QString& failure : std::as_const(failures)) {
+            qInfo().noquote() << failure; // une ligne par échec : le message de QVERIFY2 est tronqué
+        }
+        QVERIFY2(failures.isEmpty(),
+                 qPrintable(QStringLiteral("%1 échecs (lignes QINFO)").arg(failures.size())));
     }
 
     // Chaque bouton visible de la fenêtre, de ses boîtes et du tiroir a un nom accessible.
