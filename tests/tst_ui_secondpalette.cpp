@@ -217,6 +217,8 @@ private slots:
     void undoAbandonsTheSecondUsersStroke();
     // L11-C11 (K) : aide du mode à deux depuis la deuxième palette.
     void helpButtonOpensTheTwoUsersPage();
+    // L11-C14 : cibles au doigt de la deuxième palette (D11-5).
+    void touchUiTargetsAndGaps();
 
 private:
     QTemporaryDir m_settings;
@@ -857,6 +859,54 @@ void TstUiSecondpalette::helpButtonOpensTheTwoUsersPage()
     QVERIFY(app.commands->trigger(QStringLiteral("help.contents")));
     QVERIFY(viewer->isVisible());
     QVERIFY(model->source().fileName() != QStringLiteral("deux-utilisateurs.html"));
+}
+
+void TstUiSecondpalette::touchUiTargetsAndGaps()
+{
+    {
+        QSettings seed;
+        seed.setValue(QStringLiteral("workstation/touch-ui"), true);
+    }
+    App app;
+    const bool started = start(app);
+    QSettings().remove(QStringLiteral("workstation/touch-ui"));
+    QVERIFY(started);
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    auto* palette = app.window->findChild<QQuickItem*>(QStringLiteral("secondPalette"));
+    QVERIFY(palette);
+    QTRY_VERIFY(palette->isVisible());
+    QList<QQuickItem*> buttons;
+    for (int i = 0; i < 4; ++i) {
+        buttons << findItem(palette, QStringLiteral("secondTool_") + QString(QStringList{"pen", "highlighter", "eraser", "select"}.at(i)));
+    }
+    for (int i = 0; i < 4; ++i) {
+        buttons << findItem(palette, QStringLiteral("secondColor_%1").arg(i));
+    }
+    for (int i = 0; i < 3; ++i) {
+        buttons << findItem(palette, QStringLiteral("secondWidth_%1").arg(i));
+    }
+    QCOMPARE(buttons.size(), 11);
+    for (QQuickItem* b : std::as_const(buttons)) {
+        QVERIFY(b);
+        QVERIFY2(b->width() >= 48 && b->height() >= 48,
+                 qPrintable(b->objectName() + QStringLiteral(" %1 x %2").arg(b->width()).arg(b->height())));
+    }
+    // Écart entre voisins : colonne de gauche et de droite d'une même rangée, rangées voisines.
+    auto gapX = [&](int left, int right) {
+        return buttons[right]->mapToItem(palette, QPointF(0, 0)).x() -
+               (buttons[left]->mapToItem(palette, QPointF(0, 0)).x() + buttons[left]->width());
+    };
+    auto gapY = [&](int top, int bottom) {
+        return buttons[bottom]->mapToItem(palette, QPointF(0, 0)).y() -
+               (buttons[top]->mapToItem(palette, QPointF(0, 0)).y() + buttons[top]->height());
+    };
+    QVERIFY(gapX(0, 1) >= 8);
+    QVERIFY(gapX(4, 5) >= 8);
+    QVERIFY(gapY(0, 2) >= 8);
+    QVERIFY(gapY(4, 6) >= 8);
+    QVERIFY(gapY(8, 9) >= 8);
+    QVERIFY(gapY(9, 10) >= 8);
+    QVERIFY(buttons[8]->width() <= palette->width());
 }
 
 QTEST_MAIN(TstUiSecondpalette)
