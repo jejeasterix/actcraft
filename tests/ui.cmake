@@ -292,7 +292,7 @@ actcraft_add_test(tst_ui_broadcast
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_compile_definitions(tst_ui_webpolicy PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
-# Lot 11 (L11-T1) : talons QSKIP, remplis par les tâches nommées dans leur message.
+# Lot 11 (L11-T1) : tests réservés à l'origine par des talons QSKIP, remplis par les tâches nommées (plus aucun talon).
 actcraft_add_test(tst_ui_pageinput
     SOURCES tst_ui_pageinput.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
