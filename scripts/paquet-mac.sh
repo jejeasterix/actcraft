@@ -148,7 +148,16 @@ manquants="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |
 [ -z "$manquants" ] || echec "@rpath sans cible dans le bundle : $(echo "$manquants" | head -3 | tr '\n' ' ')"
 [ "$(lipo -archs "$app/Contents/MacOS/actcraft")" = arm64 ] || echec "binaire autre que arm64"
 
-grep -q 'PlugIns' "$app/Contents/Resources/qt.conf" 2>/dev/null || echec "qt.conf absent ou sans chemin des greffons"
+# macdeployqt de Qt 6.12 Homebrew n'écrit pas qt.conf (relevé du 2026-11-08 : Contents/Resources ne contient que qml/,
+# son journal ne le nomme pas) ; sans lui, Qt ne trouve pas les modules QML du bundle. Écrit s'il manque, avec les clés
+# de Qt 6 (QmlImports ; Qml2Imports et Imports ne figurent pas parmi les chaînes de QtCore 6.12), puis contrôlé.
+conf="$app/Contents/Resources/qt.conf"
+if [ ! -f "$conf" ]; then
+  printf '[Paths]\nPlugins = PlugIns\nQmlImports = Resources/qml\n' > "$conf"
+  echo "qt.conf écrit (absent après macdeployqt)"
+fi
+grep -q '^Plugins = PlugIns$' "$conf" && grep -q '^QmlImports = Resources/qml$' "$conf" ||
+  echec "qt.conf sans chemin des greffons ou des modules QML ($conf)"
 cp LICENSE "$app/Contents/Resources/LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/"
 cp -R LICENSES "$app/Contents/Resources/LICENSES"

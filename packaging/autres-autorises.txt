@@ -41,3 +41,32 @@ libqml_*.so LGPL-3.0-only
 # Android : bibliothèque C++ du NDK (libc++ de LLVM) et ActCraft lui-même (licence MIT, fichier LICENSE).
 libc++_shared.so Apache-2.0 WITH LLVM-exception
 libactcraft_*.so MIT
+
+# Paquet macOS (L11-T29m) : bibliothèques Homebrew copiées par macdeployqt (Contents/Frameworks), lues par
+# scripts/verifier-licences-mac.sh. Licence : champ « license » de la formule (brew info --json=v2), celle de la
+# bibliothèque seule quand la formule couvre aussi des outils (gettext, xz) ; versions relevées le 2026-11-08.
+libb2.*.dylib CC0-1.0
+libbrotli*.dylib MIT
+libcrypto.*.dylib Apache-2.0
+libssl.*.dylib Apache-2.0
+libdbus-1.*.dylib AFL-2.1 OR GPL-2.0-or-later
+libdouble-conversion.*.dylib BSD-3-Clause
+libfreetype.*.dylib FTL
+libglib-2.0.*.dylib LGPL-2.1-or-later
+libgio-2.0.*.dylib LGPL-2.1-or-later
+libgmodule-2.0.*.dylib LGPL-2.1-or-later
+libgobject-2.0.*.dylib LGPL-2.1-or-later
+libgthread-2.0.*.dylib LGPL-2.1-or-later
+libgraphite2.*.dylib MIT OR MPL-2.0 OR LGPL-2.1-or-later OR GPL-2.0-or-later
+libharfbuzz.*.dylib MIT
+libicu*.dylib Unicode-3.0
+libintl.*.dylib LGPL-2.1-or-later
+libjpeg.*.dylib IJG AND Zlib AND BSD-3-Clause
+liblzma.*.dylib 0BSD
+libmd4c.*.dylib MIT
+libpcre2-*.dylib BSD-3-Clause
+libpng16.*.dylib libpng-2.0
+libsharpyuv.*.dylib BSD-3-Clause
+libwebp*.dylib BSD-3-Clause
+libtiff.*.dylib libtiff
+libzstd.*.dylib BSD-3-Clause OR GPL-2.0-only
