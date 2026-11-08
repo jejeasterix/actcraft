@@ -485,9 +485,12 @@ int Commands::lockedCount() const
     if (!m_registry.isLocked()) {
         return 0;
     }
+    // L11-T26 : disponibilité de la plateforme seule. Une commande cachée faute de convertisseur
+    // (setHidden) reste grisée par le verrou : la compter garde K fonction des seules données, quel que
+    // soit le poste.
     int count = 0;
     for (const QString& id : m_registry.ids()) {
-        if (isAvailable(id) && m_registry.find(id)->lockable) {
+        if (m_registry.isAvailable(id, m_platform) && m_registry.find(id)->lockable) {
             ++count;
         }
     }
