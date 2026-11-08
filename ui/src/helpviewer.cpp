@@ -20,25 +20,12 @@ bool pageExists(const QUrl& url)
     return url.scheme() == QLatin1String("qrc") && QFile::exists(resourcePath(url));
 }
 
-QString& requestedPage()
-{
-    static QString page; // fil de l'interface seulement
-    return page;
-}
 } // namespace
 
 HelpViewer::HelpViewer(QObject* parent) : QObject(parent) {}
 
-void HelpViewer::requestNextPage(const QString& name)
-{
-    requestedPage() = name;
-}
-
 void HelpViewer::openFor(QString toolId)
 {
-    if (!requestedPage().isEmpty()) {
-        toolId = std::exchange(requestedPage(), QString()); // même contrôle qu'un identifiant d'outil
-    }
     if (toolId.startsWith(QLatin1String("tool.")))
         toolId.remove(0, 5);
     // Un identifiant d'outil ne contient ni séparateur ni point : pas d'échappement hors du dossier d'aide.
