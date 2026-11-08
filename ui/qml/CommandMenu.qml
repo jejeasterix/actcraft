@@ -16,7 +16,7 @@ Menu {
     readonly property bool isCommandMenu: true
     // Documents récents (L6-T24) : liste de FileActions (`fileActions.recents`), liée par le menu Fichier de Main.qml.
     property var recents: null
-    title: spec.label
+    title: commands.translated(spec.label)
     // Au doigt (L11-T12, D11-7) : rangées de la taille d'une cible (appLayout.targetSize, relayée par Theme.tailleBouton,
     // comme CommandEntry) et sous-menus ouverts par un appui seulement (pas de survol sans pointeur).
     readonly property real rowHeight: Theme.tailleBouton

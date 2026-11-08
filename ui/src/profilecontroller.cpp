@@ -1,5 +1,6 @@
 #include <actcraft/ui/profilecontroller.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonObject>
@@ -465,9 +466,16 @@ QString ProfileController::currentId() const
     return m_profile.id;
 }
 
+// Nom d'un profil livré : traduit (contexte « profils », marqueurs dans commandlabels.cpp) ; un profil de
+// l'utilisateur est une donnée, jamais traduite.
+static QString displayLabel(const QString& label, bool builtin)
+{
+    return builtin ? QCoreApplication::translate("profils", label.toUtf8().constData()) : label;
+}
+
 QString ProfileController::label() const
 {
-    return m_profile.label;
+    return displayLabel(m_profile.label, m_store.isBuiltin(m_profile.id));
 }
 
 QVariantList ProfileController::profiles() const
@@ -481,7 +489,7 @@ QVariantList ProfileController::profiles() const
         // 9).
         const bool modified = m_store.hasUserCopy(id) || QFileInfo::exists(layoutPath(m_store, id));
         out.append(QVariantMap{{QStringLiteral("id"), id},
-                               {QStringLiteral("label"), p ? p->label : id},
+                               {QStringLiteral("label"), p ? displayLabel(p->label, builtin) : id},
                                {QStringLiteral("builtin"), builtin},
                                {QStringLiteral("modified"), builtin && modified}});
     }

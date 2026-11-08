@@ -9,7 +9,7 @@ Menu {
     required property Commands commands
     property var spec: ({ id: "", label: "", items: [] })
     readonly property bool isCommandMenu: true
-    title: spec.label
+    title: commands.translated(spec.label)
 
     Instantiator {
         model: menu.spec.items || []

@@ -80,6 +80,8 @@ public:
     // prioritaire sur un gestionnaire JavaScript ; un gestionnaire vide le retire.
     void setNativeHandler(const QString& id, actions::CommandRegistry::Handler handler);
     Q_INVOKABLE QString label(const QString& id) const;
+    // Libellé de menu ou de sous-menu lu dans la disposition, traduit (contexte « commandes », L11-T20).
+    Q_INVOKABLE QString translated(const QString& text) const;
     // « qrc:/qt/qml/ActCraft/Ui/icons/<icône>.svg », ou vide.
     Q_INVOKABLE QString iconUrl(const QString& id) const;
     Q_INVOKABLE QString shortcut(const QString& id) const;

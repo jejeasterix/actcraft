@@ -12,7 +12,11 @@ Dialog {
     title: qsTr("Taille de paperboard personnalisée")
     modal: true
     anchors.centerIn: Overlay.overlay
-    standardButtons: Dialog.Ok | Dialog.Cancel
+    // Boutons explicites : les boutons standard portent le texte de la plateforme, hors de nos traductions.
+    footer: DialogButtonBox {
+        Button { text: qsTr("OK"); DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
+        Button { text: qsTr("Annuler"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
+    }
 
     // Contrôleur du document : source unique du plafond d'un côté et du plus petit cadre.
     property var document: null
@@ -37,12 +41,12 @@ Dialog {
     GridLayout {
         columns: 2
         Label { text: qsTr("Largeur d'un cadre (pixels)") }
-        SpinBox { id: widthBox; objectName: "pageWidthBox"; from: dialog.framed ? dialog.minFrame : 200; to: Math.max(from, Math.floor(dialog.maxSide / Math.max(1, framesAcrossBox.value))); value: 1024; editable: true }
+        SpinBox { id: widthBox; objectName: "pageWidthBox"; from: dialog.framed ? dialog.minFrame : 200; to: Math.max(from, Math.floor(dialog.maxSide / Math.max(1, framesAcrossBox.value))); value: 1024; editable: true; Component.onCompleted: contentItem.objectName = "pageSizeValue" }
         Label { text: qsTr("Hauteur d'un cadre (pixels)") }
-        SpinBox { id: heightBox; objectName: "pageHeightBox"; from: dialog.framed ? dialog.minFrame : 200; to: Math.max(from, Math.floor(dialog.maxSide / Math.max(1, framesDownBox.value))); value: 768; editable: true }
+        SpinBox { id: heightBox; objectName: "pageHeightBox"; from: dialog.framed ? dialog.minFrame : 200; to: Math.max(from, Math.floor(dialog.maxSide / Math.max(1, framesDownBox.value))); value: 768; editable: true; Component.onCompleted: contentItem.objectName = "pageSizeValue" }
         Label { text: qsTr("Cadres en largeur") }
-        SpinBox { id: framesAcrossBox; objectName: "pageFramesAcrossBox"; from: 0; to: Math.min(40, Math.floor(dialog.maxSide / Math.max(widthBox.value, dialog.minFrame))); value: 0; editable: true }
+        SpinBox { id: framesAcrossBox; objectName: "pageFramesAcrossBox"; from: 0; to: Math.min(40, Math.floor(dialog.maxSide / Math.max(widthBox.value, dialog.minFrame))); value: 0; editable: true; Component.onCompleted: contentItem.objectName = "pageSizeValue" }
         Label { text: qsTr("Cadres en hauteur") }
-        SpinBox { id: framesDownBox; objectName: "pageFramesDownBox"; from: 0; to: Math.min(53, Math.floor(dialog.maxSide / Math.max(heightBox.value, dialog.minFrame))); value: 0; editable: true }
+        SpinBox { id: framesDownBox; objectName: "pageFramesDownBox"; from: 0; to: Math.min(53, Math.floor(dialog.maxSide / Math.max(heightBox.value, dialog.minFrame))); value: 0; editable: true; Component.onCompleted: contentItem.objectName = "pageSizeValue" }
     }
 }
