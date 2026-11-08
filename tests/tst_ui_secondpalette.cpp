@@ -17,6 +17,7 @@
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/dualmode.h>
+#include <actcraft/ui/helpviewer.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/toolhost.h>
@@ -214,6 +215,8 @@ private slots:
     // L11-C9 : derniers restes du mode à deux.
     void secondUsersToolKeepsItsSettings();
     void undoAbandonsTheSecondUsersStroke();
+    // L11-C11 (K) : aide du mode à deux depuis la deuxième palette.
+    void helpButtonOpensTheTwoUsersPage();
 
 private:
     QTemporaryDir m_settings;
@@ -825,6 +828,35 @@ void TstUiSecondpalette::undoAbandonsTheSecondUsersStroke()
     QCOMPARE(controller->shownObjectCount(), before);
     controller->redo(); // le trait du premier revient, seul
     QCOMPARE(controller->shownObjectCount(), before + 1);
+}
+
+void TstUiSecondpalette::helpButtonOpensTheTwoUsersPage()
+{
+    // L11-C11 (K) : le bouton « ? » de la deuxième palette ouvre la page du mode à deux. help.contents seul
+    // ouvre la page de l'outil courant du premier (ou le sommaire) ; la demande ne survit pas à l'ouverture.
+    App app;
+    QVERIFY(start(app));
+    QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
+    auto* palette = app.window->findChild<QQuickItem*>(QStringLiteral("secondPalette"));
+    QVERIFY(palette);
+    QTRY_VERIFY(palette->isVisible());
+    QQuickItem* button = findItem(palette, QStringLiteral("secondHelp"));
+    QVERIFY(button);
+    QVERIFY2(button->width() >= 48 && button->height() >= 48,
+             qPrintable(QStringLiteral("%1 x %2").arg(button->width()).arg(button->height())));
+    auto* viewer = app.window->findChild<QQuickItem*>(QStringLiteral("helpViewer"));
+    auto* model = viewer ? viewer->findChild<ui::HelpViewer*>() : nullptr; // pas celui de la palette
+    QVERIFY(viewer && model);
+    QVERIFY(!viewer->isVisible());
+
+    QVERIFY(QMetaObject::invokeMethod(button, "press"));
+    QVERIFY(viewer->isVisible());
+    QCOMPARE(model->source().fileName(), QStringLiteral("deux-utilisateurs.html"));
+
+    QVERIFY(QMetaObject::invokeMethod(viewer, "close"));
+    QVERIFY(app.commands->trigger(QStringLiteral("help.contents")));
+    QVERIFY(viewer->isVisible());
+    QVERIFY(model->source().fileName() != QStringLiteral("deux-utilisateurs.html"));
 }
 
 QTEST_MAIN(TstUiSecondpalette)
