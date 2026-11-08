@@ -163,6 +163,20 @@ public:
     // Identité du document affiché : change à chaque remplacement (ouverture, « Nouveau »), mais le suit dans
     // son onglet (garé puis repris, la même) ; jamais 0. Clé du dossier d'extraction des fichiers rangés.
     std::uint64_t documentKey() const noexcept { return m_documentKey; }
+    // Voir m_revision : change à chaque modification du document affiché (L11-T13 : copie inchangée non
+    // réécrite).
+    std::uint64_t revision() const noexcept { return m_revision; }
+    // Copie du document telle qu'« Enregistrer » l'écrit (saveToUrl, copie de reprise L11-T13) : même annonce
+    // (la vue termine son trait, l'outil abandonne son geste, un soulèvement est déposé), puis copie prise
+    // sur le fil principal (ressources partagées implicitement) ; le fil d'écriture ne lit jamais le document
+    // affiché.
+    std::shared_ptr<const core::Document> snapshotForSave();
+    // Reprise après une interruption (L11-T13) : document rouvert depuis sa copie de reprise, avec l'URL et
+    // le titre de son fichier d'origine, et l'état « modifié » (ce qui n'est pas dans le fichier reste à
+    // enregistrer). `reference` : le fichier d'origine tel que relu, référence de « Rétablir la page » ;
+    // nullptr s'il n'a pas pu être relu.
+    void replaceWithRecovered(core::Document document, const QUrl& fileUrl, const QString& title,
+                              std::shared_ptr<const core::Document> reference);
 
     // Document garé par un onglet (L5-T20) : document, pile d'annulation, URL, état modifié, avertissements,
     // page affichée.

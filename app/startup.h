@@ -20,9 +20,15 @@ struct StartupOptions
     // Accueil ouvert au démarrage (si la case de l'accueil le permet) : seul app/main.cpp le met à vrai ; le
     // joueur de captures, le banc et les tests le laissent faux (L6-T23).
     bool showDashboard = false;
+    // Dossier de la copie de reprise (L11-T13) ; vide : <AppDataLocation>/reprise. Joueur et tests : un
+    // dossier d'essai, jamais le vrai dossier de reprise.
+    QString recoveryDir;
+    // `--journal-empreinte` (essai sur l'émulateur) : « ACTCRAFT EMPREINTE <h> » au journal à chaque
+    // changement du document.
+    bool logFingerprint = false;
 };
 
-// Lit `--sans-cache` (décision 8) et `--ouvrir <fichier>`.
+// Lit `--sans-cache` (décision 8), `--ouvrir <fichier>` et `--journal-empreinte`.
 StartupOptions parseStartupOptions(const QStringList& args);
 
 // `--ouvrir <f>`, sinon premier argument qui n'est ni une option ni la valeur d'une option ; vide sinon.
