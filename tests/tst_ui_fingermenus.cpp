@@ -259,12 +259,31 @@ void TstUiFingermenus::paletteLabelStaysInWindow()
 {
     Shell s;
     QVERIFY(start(s));
-    QQuickItem* pen = nullptr;
-    QTRY_VERIFY((pen = item(s, "button-tool.pen")) && pen->isVisible());
+    QQuickItem* flick = nullptr;
+    QTRY_VERIFY((flick = item(s, "paletteFlick")) && flick->isVisible());
+    // Le bouton visible dont le libellé est le plus long : plus large que la palette, il déborderait si la
+    // bulle n'était bornée que dans la palette.
+    QQuickItem* longest = nullptr;
+    qsizetype longestSize = 0;
+    const QRectF visible(flick->mapToScene(QPointF(0, 0)), QSizeF(flick->width(), flick->height()));
+    const auto walk = [&](auto&& self, QQuickItem* from) -> void {
+        const QString id = from->property("commandId").toString();
+        if (from->objectName().startsWith(QLatin1String("button-")) && from->isVisible() && !id.isEmpty() &&
+            visible.contains(from->mapToScene(QPointF(from->width() / 2, from->height() / 2))) &&
+            s.commands->label(id).size() > longestSize) {
+            longest = from;
+            longestSize = s.commands->label(id).size();
+        }
+        for (QQuickItem* child : from->childItems()) {
+            self(self, child);
+        }
+    };
+    walk(walk, flick);
+    QVERIFY(longest);
     QQuickItem* label = item(s, "paletteLabel");
     QVERIFY(label);
     QPointingDevice* screen = QTest::createTouchDevice();
-    const QPoint at = sceneCenter(pen);
+    const QPoint at = sceneCenter(longest);
     QTest::touchEvent(s.window, screen).press(0, at, s.window);
     QTest::qWait(700);
     QTest::touchEvent(s.window, screen).release(0, at, s.window);
@@ -272,8 +291,12 @@ void TstUiFingermenus::paletteLabelStaysInWindow()
     const QRectF box(label->mapToScene(QPointF(0, 0)), QSizeF(label->width(), label->height()));
     const QRectF win(0, 0, s.window->width(), s.window->height());
     QVERIFY2(win.contains(box), qPrintable(QStringLiteral("bulle %1,%2 %3x%4 hors de la fenêtre %5x%6")
-                                               .arg(box.x()).arg(box.y()).arg(box.width()).arg(box.height())
-                                               .arg(win.width()).arg(win.height())));
+                                               .arg(box.x())
+                                               .arg(box.y())
+                                               .arg(box.width())
+                                               .arg(box.height())
+                                               .arg(win.width())
+                                               .arg(win.height())));
 }
 
 void TstUiFingermenus::menuRowsFollowTargetSize()
