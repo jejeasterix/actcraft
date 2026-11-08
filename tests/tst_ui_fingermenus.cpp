@@ -97,6 +97,7 @@ private slots:
     void longPressOnEmptyPageOpensPageMenu();
     void noMenuWithInkTool();
     void paletteLongPressShowsLabelOnly();
+    void paletteLabelStaysInWindow();
     void menuRowsFollowTargetSize();
     void submenuOpensOnTap();
     void imposedSelectorOpensTheMenu();
@@ -250,6 +251,29 @@ void TstUiFingermenus::paletteLongPressShowsLabelOnly()
     QCOMPARE(triggers.count(), 0);
     QCOMPARE(s.tools->currentTool(), QStringLiteral("select"));
     QTRY_VERIFY_WITH_TIMEOUT(!label->isVisible(), 4000); // bulle de 1,5 s
+}
+
+// L11-C16 : la palette est ancrée à droite ; la bulle de l'appui long, large de plus que la palette, reste
+// entière dans la fenêtre (un calcul borné dans la palette la ferait déborder à droite).
+void TstUiFingermenus::paletteLabelStaysInWindow()
+{
+    Shell s;
+    QVERIFY(start(s));
+    QQuickItem* pen = nullptr;
+    QTRY_VERIFY((pen = item(s, "button-tool.pen")) && pen->isVisible());
+    QQuickItem* label = item(s, "paletteLabel");
+    QVERIFY(label);
+    QPointingDevice* screen = QTest::createTouchDevice();
+    const QPoint at = sceneCenter(pen);
+    QTest::touchEvent(s.window, screen).press(0, at, s.window);
+    QTest::qWait(700);
+    QTest::touchEvent(s.window, screen).release(0, at, s.window);
+    QTRY_VERIFY(label->isVisible());
+    const QRectF box(label->mapToScene(QPointF(0, 0)), QSizeF(label->width(), label->height()));
+    const QRectF win(0, 0, s.window->width(), s.window->height());
+    QVERIFY2(win.contains(box), qPrintable(QStringLiteral("bulle %1,%2 %3x%4 hors de la fenêtre %5x%6")
+                                               .arg(box.x()).arg(box.y()).arg(box.width()).arg(box.height())
+                                               .arg(win.width()).arg(win.height())));
 }
 
 void TstUiFingermenus::menuRowsFollowTargetSize()

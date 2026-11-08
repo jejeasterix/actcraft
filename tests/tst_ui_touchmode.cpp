@@ -135,8 +135,8 @@ private slots:
         QCOMPARE(f.controller->property("mode").toString(), QStringLiteral("select"));
     }
 
-    // Identifiant inconnu : le mode ne change pas et rien n'est écrit. Le registre ne connaît que la forme de
-    // l'argument (texte non vide) : la commande est jouée, c'est le contrôleur qui refuse.
+    // Identifiant inconnu : le mode ne change pas et rien n'est écrit. Le registre refuse la valeur
+    // hors de la liste déclarée (commands.json) ; le contrôleur refuse aussi un appel direct.
     void unknownRefused()
     {
         Fixture f;
@@ -145,7 +145,7 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(f.controller.get(), "setMode", Q_RETURN_ARG(bool, accepted),
                                           Q_ARG(QString, QStringLiteral("zzz"))));
         QVERIFY(!accepted);
-        f.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("zzz"));
+        QVERIFY(!f.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("zzz")));
         QVERIFY(!f.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("")));
         QCOMPARE(f.controller->property("mode").toString(), QStringLiteral("ignore"));
         QCOMPARE(f.prefs->value(QString::fromLatin1(kKey)).toString(), QStringLiteral("ignore"));

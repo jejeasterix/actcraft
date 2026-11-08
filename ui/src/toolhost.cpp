@@ -711,6 +711,11 @@ void ToolHost::selectObjects(const std::vector<core::ObjectId>& ids)
 {
     cancelGesture();
     activate(QStringLiteral("select"));
+    applySelection(ids);
+}
+
+void ToolHost::applySelection(const std::vector<core::ObjectId>& ids)
+{
     user().setSelection(ids);
     if (tools::SelectTool* select = selectTool()) {
         select->refresh(); // filtre sur la page, recalcule le cadre
@@ -732,12 +737,7 @@ void ToolHost::selectObjectsForFinger(const std::vector<core::ObjectId>& ids)
         select->cancel();
     }
     m_fingerSelecting = true;
-    user().setSelection(ids);
-    if (select) {
-        select->refresh();
-    } else {
-        emit selectionChanged();
-    }
+    applySelection(ids);
 }
 
 void ToolHost::deleteSelection()

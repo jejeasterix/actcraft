@@ -178,6 +178,9 @@ public:
     // y est laissé à ToolHost, branché sur les mêmes annonces (L11-C13). La vue elle-même, avant tout
     // changement de zoom ou de défilement, termine aussi celui du second (endStrokes) : un trait n'est jamais
     // perdu ni versé à une autre page.
+    // CONTRAT (L11-C16) : ne termine que le geste du PREMIER utilisateur (et le trait du stylo du second,
+    // versé par la vue). Un geste du second passant par un outil de ToolHost n'est jamais terminé ici : il
+    // l'est par la connexion de ToolHost aux mêmes annonces. Nom gardé (appelé aussi par tst_pageview).
     Q_INVOKABLE void finishStroke();
     // Pendant un scénario du banc, seuls ces périphériques sont écoutés ; liste vide = tous.
     void setExclusiveDevices(QList<const QInputDevice*> devices);

@@ -53,6 +53,9 @@ struct CommandInfo
     // Vrai : la commande se déclenche aussi sans argument (QVariant invalide) — dialogue au lieu d'une URL
     // (décision 22). Un argument présent doit rester valide.
     bool argumentOptional = false;
+    // Argument texte à valeurs fixes (clé « values » du fichier) : trigger() refuse toute autre valeur.
+    // Vide = toute valeur de la forme convient.
+    QStringList argumentValues{};
     // Amendement 1, § 1 : le mode classe protégé peut la griser (F-298) ; une diffusion protégée peut
     // l'interdire (F-680, lot 8). Défaut sûr : verrouillable, non restreignable.
     bool lockable = true;
