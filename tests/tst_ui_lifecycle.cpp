@@ -2,6 +2,7 @@
 
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/documentio.h>
 #include <actcraft/ui/documenttabs.h>
@@ -689,6 +690,110 @@ private slots:
         QVERIFY(document.canRevertPage());
         document.revertPage();
         QCOMPARE(document.document().page(0).objects.size(), std::size_t(1));
+    }
+
+    // Revue 2, M : sous verrou de classe, l'onglet neuf est refusé ; la copie qui ne peut pas être montrée
+    // n'écrase pas l'onglet affiché, et elle est gardée (ni effacée par un enregistrement, ni réécrite).
+    void lockedTabsKeepTheOtherCopies()
+    {
+        QTemporaryDir dir;
+        const QString recovery = dir.filePath(QStringLiteral("reprise"));
+        QString shown;
+        {
+            ui::Commands commands;
+            ui::DocumentController document;
+            document.newDocument(1024, 768);
+            ui::DocumentTabs tabs;
+            tabs.setCommands(&commands);
+            tabs.setDocument(&document);
+            ui::LifecycleKeeper keeper;
+            keeper.setRecoveryDir(recovery);
+            keeper.setDocument(&document);
+            keeper.setTabs(&tabs);
+            keeper.start();
+            addStroke(document, 100, 100); // onglet 1, garé ensuite
+            tabs.newTab();
+            QCOMPARE(tabs.rowCount(), 2);
+            addStroke(document, 300, 300); // onglet 2, affiché
+            shown = document.fingerprintText();
+            QVERIFY(writeCopy(keeper));
+            QVERIFY(QFileInfo::exists(recovery + QStringLiteral("/reprise-2.actcraft")));
+        }
+        ui::Commands commands;
+        commands.setLocked(true);
+        ui::DocumentController document;
+        document.newDocument(1024, 768);
+        ui::DocumentTabs tabs;
+        tabs.setCommands(&commands);
+        tabs.setDocument(&document);
+        ui::LifecycleKeeper keeper;
+        keeper.setRecoveryDir(recovery);
+        keeper.setDocument(&document);
+        keeper.setTabs(&tabs);
+        keeper.start();
+        QTRY_VERIFY_WITH_TIMEOUT(keeper.recovered(), 5000);
+        QTest::qWait(200);
+        QCOMPARE(tabs.rowCount(), 1);
+        QCOMPARE(document.fingerprintText(), shown);
+        QVERIFY(QFileInfo::exists(recovery + QStringLiteral("/reprise-2.actcraft")));
+        QVERIFY(saveAndWait(document, QUrl::fromLocalFile(dir.filePath(QStringLiteral("lecon.actcraft")))));
+        QTest::qWait(200);
+        QVERIFY(QFileInfo::exists(recovery + QStringLiteral("/reprise-2.actcraft")));
+    }
+
+    // Revue 2, m1 : plus rien de modifié à la mise en arrière-plan (document abandonné) : la copie de ce
+    // gardien est effacée, jamais rouverte après un arrêt.
+    void abandonedDocumentCopyIsRemoved()
+    {
+        Fixture f;
+        addStroke(f.document, 100, 100);
+        QVERIFY(writeCopy(f.keeper));
+        f.document.newDocument(1024, 768); // « Ne pas enregistrer »
+        QApplicationStateChangeEvent active(Qt::ApplicationActive);
+        QCoreApplication::sendEvent(qApp, &active);
+        suspend();
+        QTRY_VERIFY_WITH_TIMEOUT(!QFileInfo::exists(f.copyPath()), 5000);
+    }
+
+    // Revue 2, m2 : une copie relue mais pas encore montrée n'est pas effacée (fermeture pendant la
+    // relecture).
+    void discardBeforeRecoveryShownKeepsCopy()
+    {
+        QTemporaryDir dir;
+        const QString recovery = dir.filePath(QStringLiteral("reprise"));
+        QVERIFY(!leaveCopy(recovery).isEmpty());
+        ui::DocumentController document;
+        document.newDocument(1024, 768);
+        ui::LifecycleKeeper keeper;
+        keeper.setRecoveryDir(recovery);
+        keeper.setDocument(&document);
+        keeper.start();
+        keeper.discard(); // avant l'arrivée de la reprise
+        QTRY_VERIFY_WITH_TIMEOUT(keeper.recovered(), 5000);
+        QTest::qWait(200);
+        QVERIFY(QFileInfo::exists(recovery + QStringLiteral("/reprise.actcraft")));
+    }
+
+    // Revue 2, m3 : onglet garé modifié et rien de changé depuis la copie (Hidden puis Suspended) : pas de
+    // seconde écriture.
+    void parkedUnchangedIsWrittenOnce()
+    {
+        Fixture f;
+        ui::Commands commands;
+        ui::DocumentTabs tabs;
+        tabs.setCommands(&commands);
+        tabs.setDocument(&f.document);
+        f.keeper.setTabs(&tabs);
+        addStroke(f.document, 100, 100);
+        tabs.newTab();
+        QCOMPARE(tabs.rowCount(), 2);
+        QVERIFY(writeCopy(f.keeper));
+        QSignalSpy finished(&f.keeper, &ui::LifecycleKeeper::writeFinished);
+        QApplicationStateChangeEvent active(Qt::ApplicationActive);
+        QCoreApplication::sendEvent(qApp, &active);
+        suspend();
+        QTest::qWait(300);
+        QCOMPARE(finished.count(), 0);
     }
 };
 
