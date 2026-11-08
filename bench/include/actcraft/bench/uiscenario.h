@@ -152,6 +152,10 @@ struct UiScenario
 
 // Fichier « actcraft-scenario/1 » ; tout ou rien, `error` nomme l'étape fautive (« étape 3 : … »).
 bool parseUiScenario(const QByteArray& json, UiScenario& out, QString& error);
+
+// L11-C12 : vrai si `skipOn` nomme exactement `productType`, ou la famille « linux » quand `kernelType` vaut
+// « linux » (une liste de distributions ne suit pas l'évolution des noms).
+bool skipOnMatches(const QStringList& skipOn, const QString& productType, const QString& kernelType);
 // « objet.propriété=valeur » (premier point, premier signe =) → étape Expect ; faux si une partie manque.
 bool parseReadSpec(const QString& text, UiStep& out);
 // Valeur d'une propriété en texte : booléen « true »/« false », réel sans zéros inutiles, couleur

@@ -37,7 +37,7 @@ Item {
                     Layout.preferredWidth: 280
                     implicitHeight: 36
                     radius: 4
-                    color: modelData.id === root.profile.currentId ? "#cfe3ff" : (hover.hovered ? "#eef3fa" : "transparent")
+                    color: modelData.id === root.profile.currentId ? Theme.surfaceActive : (hover.hovered ? Theme.surfaceSurvol : "transparent")
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
@@ -45,6 +45,7 @@ Item {
                         text: row.modelData.label
                         textFormat: Text.PlainText // libellé d'un profil importé : texte brut
                         font.bold: row.modelData.id === root.profile.currentId
+                        color: row.modelData.id === root.profile.currentId ? Theme.texteSurActive : Theme.texte
                     }
                     HoverHandler { id: hover }
                     TapHandler {

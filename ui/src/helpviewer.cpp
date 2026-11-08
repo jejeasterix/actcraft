@@ -2,6 +2,8 @@
 
 #include <QFile>
 
+#include <utility>
+
 namespace actcraft::ui {
 
 namespace {
@@ -17,6 +19,7 @@ bool pageExists(const QUrl& url)
 {
     return url.scheme() == QLatin1String("qrc") && QFile::exists(resourcePath(url));
 }
+
 } // namespace
 
 HelpViewer::HelpViewer(QObject* parent) : QObject(parent) {}

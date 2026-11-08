@@ -32,6 +32,15 @@ Item {
             Layout.fillWidth: true
             from: 16; to: 32; stepSize: 1
             onMoved: root.profile.iconPixels = Math.round(value)
+            // Focus clavier : le style n'entoure pas la réglette, sa poignée seule change à peine (L11-T24).
+            Rectangle {
+                anchors.fill: parent
+                visible: parent.visualFocus
+                color: "transparent"
+                radius: Theme.rayon
+                border.width: 2
+                border.color: Theme.surfaceActive
+            }
         }
         Binding {
             target: iconSlider; property: "value"

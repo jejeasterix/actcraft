@@ -1,3 +1,4 @@
+#include <actcraft/actions/commandregistry.h>
 #include <actcraft/actions/profilestore.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
@@ -228,7 +229,8 @@ void TstUiClassroomlock::everyLockableGreyed()
     QVERIFY(f.createAndLock());
     int lockable = 0;
     for (const QString& id : f.commands->registry().ids()) {
-        if (!f.commands->isAvailable(id)) {
+        // Même contrat que commands.h : disponibilité de la plateforme seule (une commande cachée compte).
+        if (!f.commands->registry().isAvailable(id, actions::currentPlatform())) {
             continue;
         }
         const bool isLockable = f.commands->registry().find(id)->lockable;

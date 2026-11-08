@@ -1,3 +1,4 @@
+#include <actcraft/ui/actionbrowser.h>
 #include <actcraft/ui/language.h>
 #include <actcraft/ui/preferences.h>
 
@@ -71,8 +72,10 @@ private slots:
         QFile src(root + QStringLiteral("/ui/src/commandlabels.cpp"));
         QVERIFY(src.open(QIODevice::ReadOnly));
         const QString code = QString::fromUtf8(src.readAll());
+        // L11-C11 (L) : object-actions.json aussi, libellés du navigateur d'actions.
         QStringList files{root + QStringLiteral("/actions/data/commands.json"),
-                          root + QStringLiteral("/actions/data/layout.json")};
+                          root + QStringLiteral("/actions/data/layout.json"),
+                          root + QStringLiteral("/actions/data/object-actions.json")};
         const QDir profiles(root + QStringLiteral("/actions/data/profiles"));
         for (const QString& name : profiles.entryList({QStringLiteral("*.json")}, QDir::Files)) {
             files << profiles.filePath(name);
@@ -87,6 +90,40 @@ private slots:
         QVERIFY2(checked > 100, "libellés non lus");
         QVERIFY2(missing.isEmpty(), qPrintable(QStringLiteral("absents de commandlabels.cpp : ") +
                                                missing.join(QStringLiteral(" | "))));
+    }
+
+    // L11-C11 (L) : le navigateur d'actions montre le libellé traduit, contexte « actions-objet ».
+    void objectActionLabelsTranslated()
+    {
+        struct Probe : QTranslator
+        {
+            bool isEmpty() const override { return false; }
+            QString translate(const char* context, const char* source, const char* = nullptr,
+                              int = -1) const override
+            {
+                if (QLatin1String(context) == QLatin1String("actions-objet") &&
+                    QLatin1String(source) == QLatin1String("Outil stylo")) {
+                    return QStringLiteral("Pen tool");
+                }
+                return {};
+            }
+        };
+        Probe probe;
+        QVERIFY(QCoreApplication::installTranslator(&probe));
+        ActionBrowserModel model;
+        const QHash<int, QByteArray> roles = model.roleNames();
+        const int idRole = roles.key("id");
+        const int labelRole = roles.key("label");
+        QVERIFY(model.rowCount() > 0);
+        QString shown;
+        for (int r = 0; r < model.rowCount(); ++r) {
+            const QModelIndex at = model.index(r, 0);
+            if (model.data(at, idRole).toString() == QLatin1String("command.tool.pen")) {
+                shown = model.data(at, labelRole).toString();
+            }
+        }
+        QCoreApplication::removeTranslator(&probe);
+        QCOMPARE(shown, QStringLiteral("Pen tool"));
     }
 
     // Réglage vide : la langue du système, si une traduction la porte.

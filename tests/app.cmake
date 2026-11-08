@@ -44,8 +44,20 @@ actcraft_add_test(tst_app_notices
     LIBS ActCraft::ui)
 target_compile_definitions(tst_app_notices PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
+# Règle du versionCode (cmake/ActCraftVersion.cmake) : la valeur du projet et trois exemples calculés par la même fonction.
+include(ActCraftVersion)
+actcraft_version_code(ACTCRAFT_TEST_CODE_PROJECT ${PROJECT_VERSION_MAJOR} ${PROJECT_VERSION_MINOR} ${PROJECT_VERSION_PATCH})
+actcraft_version_code(ACTCRAFT_TEST_CODE_1_0_0 1 0 0)
+actcraft_version_code(ACTCRAFT_TEST_CODE_0_10_0 0 10 0)
+actcraft_version_code(ACTCRAFT_TEST_CODE_1_2_3 1 2 3)
 actcraft_add_test(tst_app_versioninfo
     SOURCES tst_app_versioninfo.cpp
     LIBS ActCraft::ui)
-target_compile_definitions(tst_app_versioninfo PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_compile_definitions(tst_app_versioninfo PRIVATE
+    ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+    ACTCRAFT_PROJECT_VERSION="${PROJECT_VERSION}"
+    ACTCRAFT_VERSION_CODE=${ACTCRAFT_TEST_CODE_PROJECT}
+    ACTCRAFT_CODE_1_0_0=${ACTCRAFT_TEST_CODE_1_0_0}
+    ACTCRAFT_CODE_0_10_0=${ACTCRAFT_TEST_CODE_0_10_0}
+    ACTCRAFT_CODE_1_2_3=${ACTCRAFT_TEST_CODE_1_2_3})
 

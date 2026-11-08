@@ -113,5 +113,31 @@ Rectangle {
                 }
             }
         }
+
+        // L11-C11 (K) : aide du mode à deux. help.contents ouvre le lecteur, sur la page passée en argument.
+        Rectangle {
+            id: helpButton
+            objectName: "secondHelp"
+            function press() {
+                return paletteRoot.commands.trigger("help.contents", "deux-utilisateurs", paletteRoot.secondUser)
+            }
+            width: 92
+            height: Math.max(48, Theme.tailleBouton) // cible au doigt : 48 dp au moins
+            radius: 6
+            color: "#FFFFFF"
+            border.width: 1
+            border.color: "#9E9E9E"
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTr("Aide du mode à deux utilisateurs")
+            Accessible.onPressAction: helpButton.press()
+            TapHandler { onTapped: helpButton.press() }
+            Text {
+                anchors.centerIn: parent
+                text: qsTr("?")
+                font.pixelSize: 22
+                font.bold: true
+                color: "#212121"
+            }
+        }
     }
 }

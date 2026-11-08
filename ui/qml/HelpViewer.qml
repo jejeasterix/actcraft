@@ -20,8 +20,9 @@ Item {
         onExternalLink: link => Qt.openUrlExternally(link)
     }
 
-    function open() {
-        help.openFor(root.tools ? root.tools.currentTool : "")
+    // `page` : nom de page demandé par l'appelant (L11-C12 : argument de help.contents), sinon l'outil courant.
+    function open(page) {
+        help.openFor(typeof page === "string" && page !== "" ? page : (root.tools ? root.tools.currentTool : ""))
         root.visible = true
         root.forceActiveFocus() // Échap atteint l'item, pas le raccourci de tool.select
     }
@@ -63,6 +64,6 @@ Item {
 
     Component.onCompleted: {
         if (root.commands)
-            root.commands.setHandler("help.contents", function () { root.open() })
+            root.commands.setHandler("help.contents", function (page) { root.open(page) })
     }
 }
