@@ -84,7 +84,10 @@ private:
         send(s, QEvent::TabletPress, QPointF(300, y), 0.7, Qt::LeftButton, Qt::LeftButton);
         for (int i = 1; i <= 100; ++i) {
             if (rotateTo && i == 50) {
+                QVERIFY(s.view->contactActive()); // le contact est bien en cours avant la rotation
                 QVERIFY(resizeTo(s, *rotateTo));
+                // Avant le relâché : le contact en cours est terminé par la rotation, pas laissé ouvert.
+                QVERIFY(!s.view->contactActive());
             }
             send(s, QEvent::TabletMove, QPointF(300 + 2.0 * i, y), 0.7, Qt::NoButton, Qt::LeftButton);
         }
@@ -199,7 +202,6 @@ void TstUiOrientation::rotationDuringStrokeKeepsIt()
     stroke(s, 300, &portrait); // la rotation tombe au milieu du trait
     QCOMPARE(s.window->size(), portrait);
     QVERIFY(QTest::qWaitFor([&] { return s.document->shownObjectCount() == before + 1; }, 5000));
-    QVERIFY(!s.view->contactActive()); // le contact en cours est terminé, pas laissé ouvert
 }
 
 QTEST_MAIN(TstUiOrientation)

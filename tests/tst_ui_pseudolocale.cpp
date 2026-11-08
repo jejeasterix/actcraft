@@ -36,7 +36,7 @@ class TstUiPseudolocale : public QObject
             xml.readNext();
             if (!xml.isStartElement())
                 continue;
-            const auto name = xml.name();
+            const QString name = xml.name().toString(); // copie : le lecteur réécrit sa vue à chaque lecture
             if (name == QLatin1String("name"))
                 context = xml.readElementText();
             else if (name == QLatin1String("message"))
@@ -48,11 +48,8 @@ class TstUiPseudolocale : public QObject
                     xml.attributes().value(QLatin1String("type")) == QLatin1String("unfinished");
                 const QString whole = xml.readElementText(QXmlStreamReader::IncludeChildElements);
                 current.translations << whole;
-            } else if (name == QLatin1String("numerusform")) {
-                // Les formes plurielles sont lues par readElementText ci-dessus : voir plus bas.
-            }
-            if (name == QLatin1String("translation"))
                 messages.append(current);
+            }
         }
         return messages;
     }

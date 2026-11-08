@@ -47,7 +47,7 @@ actcraft_add_test(tst_tools_interactivity
     SOURCES tst_tools_interactivity.cpp
     LIBS ActCraft::tools ActCraft::core)
 
-# Lot 11 (L11-T1) : talon QSKIP, rempli par L11-T8 (lie ActCraft::ui si le test crée un ToolHost).
+# Lot 11 (L11-T1) : test réservé à l'origine par un talon QSKIP, rempli par L11-T8 (plus de talon ; lie ActCraft::ui si le test crée un ToolHost).
 actcraft_add_test(tst_tools_twousers
     SOURCES tst_tools_twousers.cpp
     LIBS ActCraft::tools)
