@@ -48,6 +48,8 @@ Window {
     property bool generatedPage: false
     // Dossier des profils de l'utilisateur ; vide : <AppConfigLocation>/profiles (StartupOptions::profileRoot).
     property string profileRoot: ""
+    // Dossier de la copie de reprise ; vide : <AppDataLocation>/reprise (StartupOptions::recoveryDir, L11-T13).
+    property string recoveryDir: ""
     // Accueil au démarrage : posée à vrai par app/main.cpp seulement (StartupOptions::showDashboard) ; le joueur
     // de captures, le banc et les tests la laissent fausse.
     property bool showDashboard: false
@@ -123,7 +125,7 @@ Window {
         target: Theme; property: "largeurPalette"
         value: appLayout.touchUi ? 2 * appLayout.targetSize + appLayout.spacing + 3 * Theme.espace2 : 112
     }
-    LifecycleKeeper { id: appLifecycle; objectName: "appLifecycle"; document: appDocument; view: pageArea.view }
+    LifecycleKeeper { id: appLifecycle; objectName: "appLifecycle"; document: appDocument; view: pageArea.view; tabs: appTabs; recoveryDir: root.recoveryDir }
     DocumentPortal { id: appPortal; objectName: "appPortal" }
     UpdateChecker { id: appUpdates; objectName: "appUpdates"; preferences: appPreferences }
 
@@ -498,7 +500,17 @@ Window {
     }
 
     // Lot 11 : emplacements du bandeau de reprise, du menu au doigt et de la boîte des mises à jour (talons).
-    RecoveryBanner { id: recoveryBanner; commands: appCommands }
+    RecoveryBanner {
+        id: recoveryBanner
+        commands: appCommands
+        lifecycle: appLifecycle
+        parent: pageArea
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Theme.espace2
+        z: 11
+    }
     FingerMenu {
         id: fingerMenu
         view: pageArea.view
@@ -746,6 +758,7 @@ Window {
 
     FileActions {
         id: fileActions
+        objectName: "fileActions"
         document: appDocument
         tabs: appTabs
         textEditing: appText
@@ -769,7 +782,11 @@ Window {
         if (!fileActions.quitting && fileActions.hasUnsavedTabs()) {
             close.accepted = false
             fileActions.quit()
+            return
         }
+        // Fermeture acceptée (tout est enregistré, ou « Ne pas enregistrer » choisi) : la copie de reprise n'a
+        // plus d'objet et n'est pas rouverte au lancement suivant (L11-T13).
+        appLifecycle.discard()
     }
 
     // Avertissements de lecture et erreurs : en haut de la page, sans bloquer, refermables.

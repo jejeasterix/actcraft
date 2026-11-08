@@ -1024,6 +1024,31 @@ void DocumentController::openUrl(const QUrl& url)
     });
 }
 
+std::shared_ptr<const core::Document> DocumentController::snapshotForSave()
+{
+    // La vue termine son trait, qui entre dans le fichier ; l'outil abandonne son geste. Puis M2 :
+    // Enregistrer n'écrit jamais un document dont des objets sont soulevés.
+    announceEdit();
+    // Copie prise ici, sur le fil principal (ressources partagées implicitement) : le fil secondaire ne lit
+    // jamais le document affiché, que l'utilisateur continue de modifier.
+    return std::make_shared<const core::Document>(m_document);
+}
+
+void DocumentController::replaceWithRecovered(core::Document document, const QUrl& fileUrl,
+                                              const QString& title,
+                                              std::shared_ptr<const core::Document> reference)
+{
+    // Même pose de la référence qu'à l'ouverture : elle vaut dès les signaux de replaceDocument.
+    m_reference = std::move(reference);
+    m_referenceGeneration = m_generation + 1;
+    replaceDocument(std::move(document), fileUrl, title);
+    m_referenceGeneration = m_generation;
+    m_revertCheck.valid = false;
+    m_modifiedOutsideStack = true; // replaceDocument rend un document propre ; le fichier n'a pas ce contenu
+    updateModified();
+    emit canRevertPageChanged();
+}
+
 void DocumentController::saveToUrl(const QUrl& url)
 {
     if (m_busy) {
@@ -1043,13 +1068,9 @@ void DocumentController::saveToUrl(const QUrl& url)
             Qt::QueuedConnection);
         return;
     }
-    // La vue termine son trait, qui entre dans le fichier ; l'outil abandonne son geste. Puis M2 :
-    // Enregistrer n'écrit jamais un document dont des objets sont soulevés.
-    announceEdit();
+    // Même copie que la copie de reprise (L11-T13) : voir snapshotForSave.
+    std::shared_ptr<const core::Document> snapshot = snapshotForSave();
     setBusy(true);
-    // Copie prise ici, sur le fil principal (ressources partagées implicitement) : le fil secondaire ne lit
-    // jamais le document affiché, que l'utilisateur continue de modifier.
-    auto snapshot = std::make_shared<const core::Document>(m_document);
     const std::uint64_t generation = m_generation;
     const std::uint64_t revision = m_revision;
     std::shared_ptr<IoRelay> relay = m_relay;
