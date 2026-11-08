@@ -122,6 +122,7 @@ private slots:
     void updateBannerKeepsDiscoveryDuringManualCheck();
     void updateBannerCloseHides();
     void updateBannerDoesNotCoverMessageBanner();
+    void messageStaysBelowRecoveryBanner();
 
 private:
     QString data(const char* name) const;
@@ -512,19 +513,41 @@ QString textOf(QQuickWindow* window, const char* name)
     auto* item = window->findChild<QObject*>(QString::fromLatin1(name));
     return item ? item->property("text").toString() : QStringLiteral("<absent>");
 }
+
+// Montage commun des essais du bandeau : profils temporaires, moteur, fenêtre principale. L'ordre des membres
+// fait détruire le moteur avant le dossier des profils.
+struct Shell
+{
+    QTemporaryDir profiles;
+    QQmlApplicationEngine engine;
+    QQuickWindow* window = nullptr;
+
+    bool load()
+    {
+        if (!profiles.isValid())
+            return false;
+        StartupOptions options;
+        options.profileRoot = profiles.path();
+        window = loadMainWindow(engine, options);
+        return window != nullptr;
+    }
+    QObject* child(const char* name) const { return window->findChild<QObject*>(QString::fromLatin1(name)); }
+    QQuickItem* item(const char* name) const { return qobject_cast<QQuickItem*>(child(name)); }
+};
+// Rectangle d'un item dans le repère de la scène (repère commun à deux items de parents différents).
+QRectF sceneRect(const QQuickItem* item)
+{
+    return item->mapRectToScene(QRectF(0, 0, item->width(), item->height()));
+}
 } // namespace
 
 // L11-C20 : après la découverte du démarrage, le bandeau annonce la version trouvée.
 void TstUiUpdatechecker::updateBannerTextAfterStartupDiscovery()
 {
     enableCheckAtStart(fileUrl(data("newer.json")));
-    QTemporaryDir profiles;
-    QVERIFY(profiles.isValid());
-    QQmlApplicationEngine engine;
-    StartupOptions options;
-    options.profileRoot = profiles.path();
-    QQuickWindow* window = loadMainWindow(engine, options);
-    QVERIFY(window);
+    Shell shell;
+    QVERIFY(shell.load());
+    QQuickWindow* window = shell.window;
     auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
     QVERIFY(banner);
     QTRY_VERIFY(banner->property("visible").toBool());
@@ -537,49 +560,61 @@ void TstUiUpdatechecker::updateBannerTextAfterStartupDiscovery()
 void TstUiUpdatechecker::updateBannerKeepsDiscoveryDuringManualCheck()
 {
     enableCheckAtStart(fileUrl(data("newer.json")));
-    QTemporaryDir profiles;
-    QVERIFY(profiles.isValid());
-    QQmlApplicationEngine engine;
-    StartupOptions options;
-    options.profileRoot = profiles.path();
-    QQuickWindow* window = loadMainWindow(engine, options);
-    QVERIFY(window);
+    Shell shell;
+    QVERIFY(shell.load());
+    QQuickWindow* window = shell.window;
     auto* checker = window->findChild<UpdateChecker*>(QStringLiteral("appUpdates"));
     auto* commands = window->findChild<actcraft::ui::Commands*>(QStringLiteral("commands"));
     auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
     QVERIFY(checker && commands && banner);
     QTRY_VERIFY(banner->property("visible").toBool());
+    // La page reçue est celle de la version découverte, non vide.
+    const QString discovered = banner->property("page").toUrl().toString();
+    QVERIFY2(discovered.endsWith(QStringLiteral("/releases/tag/v9.9.9")), qPrintable(discovered));
 
-    const QList<QPair<QByteArray, UpdateChecker::State>> rounds{
-        {fileUrl(m_settings.filePath(QStringLiteral("absent.json"))), UpdateChecker::State::Failed},
-        {fileUrl(data("prerelease.json")), UpdateChecker::State::UpToDate},
-    };
-    for (const auto& round : rounds) {
-        qputenv(kVariable, round.first);
-        QVERIFY(commands->trigger(QStringLiteral("help.check-updates")));
-        // Pendant la recherche : l'état du vérificateur est vide, le bandeau garde la version découverte.
-        QCOMPARE(checker->state(), UpdateChecker::State::Checking);
-        QVERIFY(checker->latestVersion().isEmpty());
-        QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("9.9.9")),
-                 qPrintable(textOf(window, "updateBannerText")));
-        QTRY_COMPARE(checker->state(), round.second);
-        QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("9.9.9")),
-                 qPrintable(textOf(window, "updateBannerText")));
-        QVERIFY(banner->property("visible").toBool());
-    }
+    // 10.0.0 est sorti après la découverte de 9.9.9.
+    const QString newer10 = writeFile(
+        QStringLiteral("newer-10.json"),
+        R"({"tag_name": "v10.0.0", "html_url": "https://github.com/jejeasterix/actcraft/releases/tag/v10.0.0", "draft": false, "prerelease": false})");
+    QVERIFY(!newer10.isEmpty());
+
+    // Checking et Failed : le bandeau garde la version découverte.
+    qputenv(kVariable, fileUrl(m_settings.filePath(QStringLiteral("absent.json"))));
+    QVERIFY(commands->trigger(QStringLiteral("help.check-updates")));
+    QCOMPARE(checker->state(), UpdateChecker::State::Checking);
+    QVERIFY(checker->latestVersion().isEmpty());
+    QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("9.9.9")),
+             qPrintable(textOf(window, "updateBannerText")));
+    QVERIFY(banner->property("visible").toBool());
+    QTRY_COMPARE(checker->state(), UpdateChecker::State::Failed);
+    QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("9.9.9")),
+             qPrintable(textOf(window, "updateBannerText")));
+    QVERIFY(banner->property("visible").toBool());
+    QCOMPARE(banner->property("page").toUrl().toString(), discovered);
+
+    // Available de nouveau : version et page recopiées.
+    qputenv(kVariable, fileUrl(newer10));
+    QVERIFY(commands->trigger(QStringLiteral("help.check-updates")));
+    QTRY_COMPARE(checker->state(), UpdateChecker::State::Available);
+    QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("10.0.0")),
+             qPrintable(textOf(window, "updateBannerText")));
+    QVERIFY(banner->property("page").toUrl().toString().endsWith(QStringLiteral("/releases/tag/v10.0.0")));
+    QVERIFY(banner->property("visible").toBool());
+
+    // UpToDate : plus rien à annoncer, le bandeau disparaît.
+    qputenv(kVariable, fileUrl(data("prerelease.json")));
+    QVERIFY(commands->trigger(QStringLiteral("help.check-updates")));
+    QTRY_COMPARE(checker->state(), UpdateChecker::State::UpToDate);
+    QTRY_VERIFY(!banner->property("visible").toBool());
 }
 
 // L11-C20 : « Fermer » masque le bandeau seulement.
 void TstUiUpdatechecker::updateBannerCloseHides()
 {
     enableCheckAtStart(fileUrl(data("newer.json")));
-    QTemporaryDir profiles;
-    QVERIFY(profiles.isValid());
-    QQmlApplicationEngine engine;
-    StartupOptions options;
-    options.profileRoot = profiles.path();
-    QQuickWindow* window = loadMainWindow(engine, options);
-    QVERIFY(window);
+    Shell shell;
+    QVERIFY(shell.load());
+    QQuickWindow* window = shell.window;
     auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
     auto* close = window->findChild<QObject*>(QStringLiteral("updateBannerClose"));
     auto* view = window->findChild<QObject*>(QStringLiteral("updateBannerView"));
@@ -594,23 +629,19 @@ void TstUiUpdatechecker::updateBannerCloseHides()
 void TstUiUpdatechecker::updateBannerDoesNotCoverMessageBanner()
 {
     enableCheckAtStart(fileUrl(data("newer.json")));
-    QTemporaryDir profiles;
-    QVERIFY(profiles.isValid());
-    QQmlApplicationEngine engine;
-    StartupOptions options;
-    options.profileRoot = profiles.path();
-    QQuickWindow* window = loadMainWindow(engine, options);
-    QVERIFY(window);
-    auto* banner = qobject_cast<QQuickItem*>(window->findChild<QObject*>(QStringLiteral("updateBanner")));
-    auto* message = qobject_cast<QQuickItem*>(window->findChild<QObject*>(QStringLiteral("messageBanner")));
+    Shell shell;
+    QVERIFY(shell.load());
+    QQuickWindow* window = shell.window;
+    auto* banner = shell.item("updateBanner");
+    auto* message = shell.item("messageBanner");
     QVERIFY(banner && message);
     QTRY_VERIFY(banner->isVisible());
     QVERIFY(
         QMetaObject::invokeMethod(message, "show", Q_ARG(QVariant, QStringLiteral("Ouverture impossible"))));
     QTRY_VERIFY(message->isVisible());
     QTRY_VERIFY(banner->height() > 0 && message->height() > 0);
-    const QRectF b = banner->mapRectToScene(QRectF(0, 0, banner->width(), banner->height()));
-    const QRectF m = message->mapRectToScene(QRectF(0, 0, message->width(), message->height()));
+    const QRectF b = sceneRect(banner);
+    const QRectF m = sceneRect(message);
     QTRY_VERIFY2(m.top() >= b.bottom() - 0.5, qPrintable(QStringLiteral("bandeau %1..%2, message %3..%4")
                                                              .arg(b.top())
                                                              .arg(b.bottom())
@@ -621,7 +652,33 @@ void TstUiUpdatechecker::updateBannerDoesNotCoverMessageBanner()
     QVERIFY(close);
     QVERIFY(QMetaObject::invokeMethod(close, "click"));
     QTRY_VERIFY(!banner->isVisible());
-    QTRY_VERIFY(message->y() < b.bottom());
+    // Même repère (la scène) des deux côtés : message->y() est en repère de la page, b en repère de la scène.
+    QTRY_VERIFY2(sceneRect(message).top() < b.bottom() - 0.5,
+                 qPrintable(QStringLiteral("message %1, bas du bandeau %2")
+                                .arg(sceneRect(message).top())
+                                .arg(b.bottom())));
+}
+
+// L11-C22 : sans bandeau de mise à jour, le message commence sous le bandeau de reprise (Main.qml, ancrage du
+// message). Le bandeau de reprise est rendu visible directement : l'ancrage ne dépend que de sa visibilité.
+void TstUiUpdatechecker::messageStaysBelowRecoveryBanner()
+{
+    Shell shell;
+    QVERIFY(shell.load());
+    auto* recovery = shell.item("recoveryBanner");
+    auto* message = shell.item("messageBanner");
+    QVERIFY(recovery && message);
+    recovery->setVisible(true);
+    QVERIFY(
+        QMetaObject::invokeMethod(message, "show", Q_ARG(QVariant, QStringLiteral("Ouverture impossible"))));
+    QTRY_VERIFY(message->isVisible());
+    QTRY_VERIFY(recovery->height() > 0 && message->height() > 0);
+    const QRectF r = sceneRect(recovery);
+    QTRY_VERIFY2(sceneRect(message).top() >= r.bottom() - 0.5,
+                 qPrintable(QStringLiteral("reprise %1..%2, message %3")
+                                .arg(r.top())
+                                .arg(r.bottom())
+                                .arg(sceneRect(message).top())));
 }
 
 QTEST_MAIN(TstUiUpdatechecker)
