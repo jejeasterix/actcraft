@@ -124,6 +124,18 @@ while :; do
   [ "$retire" = 1 ] || break
 done
 
+# Identifiant (LC_ID_DYLIB) resté sur le chemin de Homebrew (44 frameworks de Qt 6.12 Homebrew, relevé du 2026-11-08) :
+# remis sous la forme des autres. dyld ne charge rien par lui, mais otool -L le montre comme une ligne de dépendance.
+find "$app/Contents/Frameworks" -type f | while read -r fichier; do
+  id="$(otool -D "$fichier" 2>/dev/null | sed -n 2p)"
+  case "$id" in
+    /opt/homebrew/* | /usr/local/*)
+      install_name_tool -id "@executable_path/../Frameworks/${fichier#"$app/Contents/Frameworks/"}" "$fichier" 2>/dev/null ||
+        echo "Identifiant non réécrit : $fichier"
+      ;;
+  esac
+done
+
 # Tous les fichiers (binaires de framework sans extension ni droit x) ; les non Mach-O sont ignorés.
 restes="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |
   grep -E '^[[:space:]]+(/opt/homebrew|/usr/local)/' | sort -u)"
