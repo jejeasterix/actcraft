@@ -70,6 +70,10 @@ Item {
             TabBar {
                 id: tabs
                 objectName: "editorTabs"
+                // Le style Basic peint les onglets non choisis en palette.dark (l'accent, ici) : onglets locaux,
+                // le choisi garde le fond de la fenêtre, les autres la surface ; l'anneau de focus reste l'accent.
+                palette.dark: Theme.surface
+                palette.brightText: Theme.texte
                 Layout.fillWidth: true
                 TabButton {
                     text: qsTr("Format")
@@ -79,7 +83,7 @@ Item {
                         visible: parent.visualFocus
                         color: "transparent"
                         border.width: 2
-                        border.color: parent.checked ? Theme.surfaceActive : Theme.texteSurActive
+                        border.color: Theme.surfaceActive
                     }
                 }
                 TabButton {
@@ -90,7 +94,7 @@ Item {
                         visible: parent.visualFocus
                         color: "transparent"
                         border.width: 2
-                        border.color: parent.checked ? Theme.surfaceActive : Theme.texteSurActive
+                        border.color: Theme.surfaceActive
                     }
                 }
                 TabButton {
@@ -101,7 +105,7 @@ Item {
                         visible: parent.visualFocus
                         color: "transparent"
                         border.width: 2
-                        border.color: parent.checked ? Theme.surfaceActive : Theme.texteSurActive
+                        border.color: Theme.surfaceActive
                     }
                 }
                 TabButton {
@@ -112,7 +116,7 @@ Item {
                         visible: parent.visualFocus
                         color: "transparent"
                         border.width: 2
-                        border.color: parent.checked ? Theme.surfaceActive : Theme.texteSurActive
+                        border.color: Theme.surfaceActive
                     }
                 }
             }

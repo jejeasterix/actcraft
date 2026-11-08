@@ -18,9 +18,11 @@
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/dualmode.h>
 #include <actcraft/ui/helpviewer.h>
+#include <actcraft/ui/keyboardinset.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/toolhost.h>
+#include <actcraft/ui/textediting.h>
 #include <actcraft/ui/touchmode.h>
 
 #include <QJSEngine>
@@ -219,6 +221,8 @@ private slots:
     void helpButtonOpensTheTwoUsersPage();
     // L11-C14 : cibles au doigt de la deuxième palette (D11-5).
     void touchUiTargetsAndGaps();
+    // L11-C14 : le clavier reçoit le rectangle du curseur, pas le cadre entier du texte (L11-T11).
+    void caretRectIsTheCursorNotTheFrame();
 
 private:
     QTemporaryDir m_settings;
@@ -907,6 +911,20 @@ void TstUiSecondpalette::touchUiTargetsAndGaps()
     QVERIFY(gapY(8, 9) >= 8);
     QVERIFY(gapY(9, 10) >= 8);
     QVERIFY(buttons[8]->width() <= palette->width());
+}
+
+void TstUiSecondpalette::caretRectIsTheCursorNotTheFrame()
+{
+    App app;
+    QVERIFY(start(app));
+    auto* live = app.window->findChild<ui::KeyboardInset*>(QStringLiteral("keyboardInset"));
+    auto* text = app.window->findChild<ui::TextEditing*>(QStringLiteral("appText"));
+    QVERIFY(live && text);
+    QVERIFY(text->beginAt(QPointF(300, 300), false));
+    QTRY_VERIFY(!live->caretRect().isNull());
+    QVERIFY2(live->caretRect().width() < 8,
+             qPrintable(QStringLiteral("largeur %1").arg(live->caretRect().width())));
+    QVERIFY(live->caretRect().height() > 0);
 }
 
 QTEST_MAIN(TstUiSecondpalette)

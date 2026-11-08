@@ -33,7 +33,11 @@ Rectangle {
     function showLabel(button) {
         paletteLabel.text = paletteRoot.commands.label(button.commandId)
         const at = paletteRoot.mapFromItem(button, 0, button.height / 2)
-        paletteLabel.x = Math.max(0, at.x - paletteLabel.width - Theme.espace2)
+        // Bornée dans la fenêtre (et non dans la palette : ancrée à droite, la bulle déborderait à droite).
+        const origin = paletteRoot.mapToItem(null, 0, 0)
+        const windowWidth = paletteRoot.Window.width > 0 ? paletteRoot.Window.width : origin.x + paletteRoot.width
+        const wanted = origin.x + at.x - paletteLabel.width - Theme.espace2
+        paletteLabel.x = Math.max(0, Math.min(windowWidth - paletteLabel.width, wanted)) - origin.x
         paletteLabel.y = Math.max(0, Math.min(paletteRoot.height - paletteLabel.height, at.y - paletteLabel.height / 2))
         paletteLabel.visible = true
         labelTimer.restart()

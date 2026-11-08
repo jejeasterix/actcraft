@@ -14,6 +14,7 @@ class HelpViewer : public QObject
     Q_OBJECT
     QML_NAMED_ELEMENT(HelpViewerModel) // QML_ELEMENT heurterait HelpViewer.qml dans ActCraft.Ui
     Q_PROPERTY(QUrl source READ source NOTIFY sourceChanged FINAL)
+    Q_PROPERTY(QString currentPage READ currentPage NOTIFY sourceChanged FINAL) // « pen », « index »
     Q_PROPERTY(QString html READ html NOTIFY htmlChanged FINAL)
 
 public:
@@ -21,6 +22,8 @@ public:
 
     QUrl source() const { return m_source; }
     QString html() const { return m_html; }
+    // Nom de la page montrée : nom du fichier sans « .html » ; vide tant qu'aucune page n'est montrée.
+    QString currentPage() const { return m_source.fileName().chopped(m_source.fileName().endsWith(QLatin1String(".html")) ? 5 : 0); }
 
     // Page de l'outil (« pen » ou « tool.pen ») si elle existe, sinon l'index.
     Q_INVOKABLE void openFor(QString toolId);

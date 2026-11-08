@@ -30,8 +30,8 @@ Rectangle {
         function press() {
             return button.commands ? button.commands.trigger(button.commandId, button.argument, button.user) : false
         }
-        width: 44
-        height: 44
+        width: Theme.tailleBouton
+        height: Theme.tailleBouton
         radius: 6
         color: "#FFFFFF"
         border.width: 1
@@ -49,7 +49,7 @@ Rectangle {
 
         Grid {
             columns: 2
-            spacing: 4
+            spacing: Theme.espaceCible
             Repeater {
                 model: paletteRoot.toolIds
                 PaletteButton {
@@ -72,7 +72,7 @@ Rectangle {
 
         Grid {
             columns: 2
-            spacing: 4
+            spacing: Theme.espaceCible
             Repeater {
                 model: paletteRoot.colorValues
                 PaletteButton {
@@ -90,7 +90,7 @@ Rectangle {
         }
 
         Column {
-            spacing: 4
+            spacing: Theme.espaceCible
             Repeater {
                 model: paletteRoot.widthValues
                 PaletteButton {
@@ -101,7 +101,7 @@ Rectangle {
                     user: paletteRoot.secondUser
                     commandId: "pen.width"
                     argument: modelData
-                    width: 92
+                    width: 2 * Theme.tailleBouton + Theme.espaceCible
                     Accessible.name: qsTr("Épaisseur %1").arg(modelData)
                     Rectangle {
                         anchors.centerIn: parent
@@ -121,7 +121,7 @@ Rectangle {
             function press() {
                 return paletteRoot.commands.trigger("help.contents", "deux-utilisateurs", paletteRoot.secondUser)
             }
-            width: 92
+            width: 2 * Theme.tailleBouton + Theme.espaceCible
             height: Math.max(48, Theme.tailleBouton) // cible au doigt : 48 dp au moins
             radius: 6
             color: "#FFFFFF"

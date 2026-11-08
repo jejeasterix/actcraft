@@ -17,6 +17,8 @@ Item {
     readonly property color trait: "#1F4E9E" // cadre et poignées : plus de 3:1 sur la page blanche
     // Compteur réévalué quand la vue bouge : pageToScene n'annonce pas ses dépendances.
     property int tick: 0
+    // Le TextEdit : PageArea lit son rectangle de curseur pour remonter la zone au-dessus du clavier (L11-T11).
+    readonly property Item cursorItem: textEdit
     // Vrai pendant que la sélection du TextEdit et celle de TextEditing se recopient l'une dans l'autre.
     property bool syncing: false
     // Une liste de la barre de mise en forme est ouverte : Échap la ferme, il ne valide pas le texte.

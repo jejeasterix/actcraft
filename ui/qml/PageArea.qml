@@ -73,6 +73,16 @@ Item {
             keyboardInset.caretRect = Qt.rect(0, 0, 0, 0)
             return
         }
+        // Le rectangle du curseur (celui du TextEdit de l'éditeur, en coordonnées de fenêtre) ; à défaut, le cadre.
+        const edit = textEditorItem.cursorItem
+        if (edit && edit.visible) {
+            // mapToItem(null) tient compte du zoom du TextEdit et du décalage appliqué à la zone : on le retire.
+            const r = edit.cursorRectangle
+            const a = edit.mapToItem(null, r.x, r.y)
+            const b = edit.mapToItem(null, r.x + r.width, r.y + r.height)
+            keyboardInset.caretRect = Qt.rect(a.x, a.y + area.appliedShift, Math.max(1, b.x - a.x), b.y - a.y)
+            return
+        }
         const f = area.textEditing.frame
         const topLeft = view.pageToScene(Qt.point(f.x, f.y))
         const bottomRight = view.pageToScene(Qt.point(f.x + f.width, f.y + f.height))
@@ -83,6 +93,10 @@ Item {
         target: area.textEditing
         function onActiveChanged() { area.refreshCaret() }
         function onFrameChanged() { area.refreshCaret() }
+    }
+    Connections {
+        target: textEditorItem.cursorItem
+        function onCursorRectangleChanged() { area.refreshCaret() }
     }
     Connections {
         target: view
@@ -260,6 +274,7 @@ Item {
     }
     // Lot 4 : éditeur de texte (talon), à côté de la sélection.
     TextEditor {
+        id: textEditorItem
         objectName: "textEditor"
         anchors.fill: parent
         editing: area.textEditing

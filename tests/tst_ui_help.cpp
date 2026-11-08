@@ -72,6 +72,21 @@ private slots:
         QCOMPARE(external.count(), 0);
     }
 
+    // L11-C14 : nom de la page montrée, sans dossier ni « .html » (convention de help.contents : « pen »).
+    void currentPageName()
+    {
+        HelpViewer help;
+        QVERIFY(help.currentPage().isEmpty());
+        QSignalSpy changed(&help, &HelpViewer::sourceChanged);
+        help.openFor(QStringLiteral("tool.pen"));
+        QCOMPARE(help.currentPage(), QStringLiteral("pen"));
+        QCOMPARE(changed.count(), 1);
+        help.openFor(QStringLiteral("deux-utilisateurs"));
+        QCOMPARE(help.currentPage(), QStringLiteral("deux-utilisateurs"));
+        help.openFor(QStringLiteral("inconnue"));
+        QCOMPARE(help.currentPage(), QStringLiteral("index"));
+    }
+
     void textsAreOurs()
     {
         const QString text = indexText();

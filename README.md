@@ -64,16 +64,17 @@ installez.
 ### Premiers pas
 
 - **Écrire** : prenez le stylo dans la palette d'outils et écrivez sur la page, au stylet, à la souris ou au doigt.
-- **Page suivante** : le navigateur de pages (ou le menu Page) ajoute une page et passe de l'une à l'autre.
+- **Page suivante** : le navigateur de pages (ou le menu Affichage) passe d'une page à l'autre.
 - **Enregistrer** : commande « Enregistrer » du menu Fichier. Le paperboard garde le format `.actcraft` ; les `.flipchart` s'ouvrent aussi.
 - **Aide** : la touche F1 ouvre l'aide, avec une page par outil et des procédures pas à pas.
-- **Modes du toucher** : sur une tablette, choisissez ce que fait le doigt (ignorer, écrire, sélectionner) ; la
-  paume posée sur l'écran n'écrit pas.
+- **Modes du toucher** : sur une tablette, choisissez ce que fait le doigt (Gestion complète par défaut, ignorer, écrire,
+  sélectionner) par Affichage > Mode du toucher ; la paume posée sur l'écran n'écrit pas. En mode tactile, les
+  cibles à toucher font au moins 48 dp.
 - **Deux utilisateurs** : deux personnes travaillent ensemble sur la même page, chacune avec sa palette, son outil et
   son trait. Ses réglages sont propres à chacune.
-- **Réglages** : la fenêtre des réglages regroupe la langue, les outils, le profil de commandes et les mises à jour.
+- **Réglages** : Outils > Profils et réglages…, onglet Paramètres : la fenêtre regroupe la langue, les outils, le profil de commandes et les mises à jour.
 - **Reprise après interruption** : si l'application est coupée (batterie, appel, changement d'application),
-  elle propose de reprendre le travail là où il en était, sans perte.
+  elle reprend seule le travail là où il en était, sans perte, et un bandeau l'indique (vous pouvez supprimer la copie).
 - **Mises à jour** : la commande « Rechercher des mises à jour… » du menu d'aide. L'application peut aussi le faire au démarrage, si vous le
   décidez dans les réglages ; rien n'est installé sans votre accord.
 
