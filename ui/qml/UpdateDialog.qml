@@ -24,6 +24,22 @@ Dialog {
             dialog.open()
         })
         dialog.updates.start()
+        // start() lance la recherche seulement si le réglage est vrai : l'état « en cours » le dit aussitôt.
+        dialog.startupSearch = dialog.updates.state === UpdateChecker.Checking
+    }
+
+    // La recherche du démarrage ouvre la boîte seulement si une nouvelle version existe : ni à jour, ni en erreur
+    // (aucune boîte au démarrage sans nouvelle version, L11-T22).
+    property bool startupSearch: false
+    Connections {
+        target: dialog.updates
+        function onStateChanged() {
+            if (!dialog.startupSearch || dialog.updates.state === UpdateChecker.Checking)
+                return
+            dialog.startupSearch = false
+            if (dialog.updates.state === UpdateChecker.Available)
+                dialog.open()
+        }
     }
 
     Label {

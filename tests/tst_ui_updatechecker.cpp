@@ -115,6 +115,7 @@ private slots:
     void failureReported();
     void remoteOverrideRefused();
     void startCalledOnceByTheShell();
+    void dialogOpensOnlyForANewVersionAtStart();
 
 private:
     QString data(const char* name) const;
@@ -423,6 +424,65 @@ void TstUiUpdatechecker::startCalledOnceByTheShell()
         QTest::qWait(150);
         QCOMPARE(checker->requestCount(), atStart ? 1 : 0);
     }
+}
+
+// L11-C14 : la recherche du démarrage ouvre la boîte seulement si une nouvelle version existe (aucune boîte
+// au démarrage sans nouvelle version : ni à jour, ni en erreur, ni quand le réglage est faux).
+void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
+{
+    struct Case
+    {
+        QByteArray url;
+        UpdateChecker::State expected;
+        bool opened;
+    };
+    const QList<Case> cases{
+        {fileUrl(data("newer.json")), UpdateChecker::State::Available, true},
+        {fileUrl(data("prerelease.json")), UpdateChecker::State::UpToDate, false},
+        {fileUrl(m_settings.filePath(QStringLiteral("absent.json"))), UpdateChecker::State::Failed, false},
+    };
+    for (const Case& c : cases) {
+        qputenv(kVariable, c.url);
+        {
+            QSettings settings;
+            settings.setValue(QStringLiteral("updates/check-at-start"), true);
+            settings.sync();
+        }
+        QTemporaryDir profiles;
+        QVERIFY(profiles.isValid());
+        QQmlApplicationEngine engine;
+        StartupOptions options;
+        options.profileRoot = profiles.path();
+        QQuickWindow* window = loadMainWindow(engine, options);
+        QVERIFY(window);
+        auto* checker = window->findChild<UpdateChecker*>(QStringLiteral("appUpdates"));
+        auto* dialog = window->findChild<QObject*>(QStringLiteral("updateDialog"));
+        QVERIFY(checker && dialog);
+        QTRY_COMPARE(checker->state(), c.expected);
+        QCoreApplication::processEvents();
+        if (c.opened)
+            QTRY_VERIFY(dialog->property("visible").toBool());
+        else
+            QVERIFY(!dialog->property("visible").toBool());
+    }
+    // Réglage faux : aucune requête, aucune boîte.
+    {
+        QSettings settings;
+        settings.setValue(QStringLiteral("updates/check-at-start"), false);
+        settings.sync();
+    }
+    qputenv(kVariable, fileUrl(data("newer.json")));
+    QTemporaryDir profiles;
+    QVERIFY(profiles.isValid());
+    QQmlApplicationEngine engine;
+    StartupOptions options;
+    options.profileRoot = profiles.path();
+    QQuickWindow* window = loadMainWindow(engine, options);
+    QVERIFY(window);
+    auto* dialog = window->findChild<QObject*>(QStringLiteral("updateDialog"));
+    QVERIFY(dialog);
+    QTest::qWait(100);
+    QVERIFY(!dialog->property("visible").toBool());
 }
 
 QTEST_MAIN(TstUiUpdatechecker)

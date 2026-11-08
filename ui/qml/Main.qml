@@ -660,7 +660,7 @@ Window {
         tools: appTools
         // La couche des médias est posée par PageArea (pageOverlays, z 4) : elle reçoit ici son modèle et sa vue.
         Component.onCompleted: {
-        pageArea.view.addInputCover(browsersButton)
+            pageArea.view.addInputCover(browsersButton)
             for (const layer of pageArea.pageOverlays.children) {
                 if (layer.objectName === "mediaLayer") {
                     layer.view = pageArea.view

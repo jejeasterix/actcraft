@@ -13,6 +13,8 @@ Item {
     property PageView view: null
     property var profile: null
     property var preferences: null
+    // Nom de la page montrée (« pen », « deux-utilisateurs », « index ») ; lu par les scénarios du banc (L11-T18).
+    readonly property string currentPage: help.currentPage
     visible: false
 
     HelpViewerModel {

@@ -51,7 +51,7 @@ Rectangle {
             contentItem: Label {
                 text: topOverflow.text
                 font: topOverflow.font
-                color: Theme.texte
+                color: bar.mainMenuOpened ? Theme.texteSurActive : Theme.texte
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }

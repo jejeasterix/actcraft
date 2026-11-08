@@ -19,7 +19,7 @@
         <translation>Logiciel libre de tableau blanc interactif, sous licence %1.</translation>
     </message>
     <message>
-        <location filename="../qml/AboutDialog.qml" line="66"/>
+        <location filename="../qml/AboutDialog.qml" line="78"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="144"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="153"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="155"/>
@@ -107,32 +107,32 @@
         <translation>Couleur</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="132"/>
+        <location filename="../qml/BackgroundDialog.qml" line="140"/>
         <source>Dégradé</source>
         <translation>Dégradé</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="141"/>
+        <location filename="../qml/BackgroundDialog.qml" line="157"/>
         <source>Haut-bas</source>
         <translation>Haut-bas</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="150"/>
+        <location filename="../qml/BackgroundDialog.qml" line="166"/>
         <source>Côtés</source>
         <translation>Côtés</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="177"/>
+        <location filename="../qml/BackgroundDialog.qml" line="193"/>
         <source>Annuler</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="184"/>
+        <location filename="../qml/BackgroundDialog.qml" line="200"/>
         <source>Appliquer</source>
         <translation>Appliquer</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="191"/>
+        <location filename="../qml/BackgroundDialog.qml" line="207"/>
         <source>Valider</source>
         <translation>Valider</translation>
     </message>
@@ -623,84 +623,84 @@
         <translation>Taille des icônes : %1 px</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="41"/>
+        <location filename="../qml/FormatPage.qml" line="50"/>
         <source>Palette d&apos;outils</source>
         <translation>Palette d&apos;outils</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="43"/>
+        <location filename="../qml/FormatPage.qml" line="52"/>
         <source>Ancrage</source>
         <translation>Ancrage</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="48"/>
-        <location filename="../qml/FormatPage.qml" line="84"/>
+        <location filename="../qml/FormatPage.qml" line="57"/>
+        <location filename="../qml/FormatPage.qml" line="93"/>
         <source>Gauche</source>
         <translation>Gauche</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="48"/>
-        <location filename="../qml/FormatPage.qml" line="84"/>
+        <location filename="../qml/FormatPage.qml" line="57"/>
+        <location filename="../qml/FormatPage.qml" line="93"/>
         <source>Droite</source>
         <translation>Droite</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="49"/>
+        <location filename="../qml/FormatPage.qml" line="58"/>
         <source>Haut</source>
         <translation>Haut</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="49"/>
+        <location filename="../qml/FormatPage.qml" line="58"/>
         <source>Bas</source>
         <translation>Bas</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="53"/>
+        <location filename="../qml/FormatPage.qml" line="62"/>
         <source>Couleurs</source>
         <translation>Couleurs</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="62"/>
+        <location filename="../qml/FormatPage.qml" line="71"/>
         <source>Palette épinglée</source>
         <translation>Palette épinglée</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="67"/>
+        <location filename="../qml/FormatPage.qml" line="76"/>
         <source>Palette réduite</source>
         <translation>Palette réduite</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="72"/>
+        <location filename="../qml/FormatPage.qml" line="81"/>
         <source>Palette réduite au maximum</source>
         <translation>Palette réduite au maximum</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="77"/>
+        <location filename="../qml/FormatPage.qml" line="86"/>
         <source>Navigateurs</source>
         <translation>Navigateurs</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="79"/>
+        <location filename="../qml/FormatPage.qml" line="88"/>
         <source>Côté</source>
         <translation>Côté</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="90"/>
+        <location filename="../qml/FormatPage.qml" line="99"/>
         <source>Navigateurs épinglés</source>
         <translation>Navigateurs épinglés</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="95"/>
+        <location filename="../qml/FormatPage.qml" line="104"/>
         <source>Navigateurs visibles</source>
         <translation>Navigateurs visibles</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="101"/>
+        <location filename="../qml/FormatPage.qml" line="110"/>
         <source>Corbeille visible</source>
         <translation>Corbeille visible</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="106"/>
+        <location filename="../qml/FormatPage.qml" line="115"/>
         <source>Plein écran au démarrage</source>
         <translation>Plein écran au démarrage</translation>
     </message>
@@ -748,97 +748,97 @@
         <translation>Niveau %1</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="189"/>
+        <location filename="../qml/GridDesigner.qml" line="197"/>
         <source>Ajouter</source>
         <translation>Ajouter</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="194"/>
+        <location filename="../qml/GridDesigner.qml" line="202"/>
         <source>Retirer</source>
         <translation>Retirer</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="203"/>
+        <location filename="../qml/GridDesigner.qml" line="211"/>
         <source>Niveau courant</source>
         <translation>Niveau courant</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="214"/>
+        <location filename="../qml/GridDesigner.qml" line="222"/>
         <source>Pas horizontal</source>
         <translation>Pas horizontal</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="222"/>
+        <location filename="../qml/GridDesigner.qml" line="230"/>
         <source>Pas vertical</source>
         <translation>Pas vertical</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="231"/>
+        <location filename="../qml/GridDesigner.qml" line="239"/>
         <source>Style</source>
         <translation>Style</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="235"/>
+        <location filename="../qml/GridDesigner.qml" line="243"/>
         <source>Normal</source>
         <translation>Normal</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="235"/>
+        <location filename="../qml/GridDesigner.qml" line="243"/>
         <source>Diagonal à 45°</source>
         <translation>Diagonal à 45°</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="235"/>
+        <location filename="../qml/GridDesigner.qml" line="243"/>
         <source>Angle libre</source>
         <translation>Angle libre</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="239"/>
+        <location filename="../qml/GridDesigner.qml" line="247"/>
         <source>Ligne</source>
         <translation>Ligne</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="251"/>
         <source>Points</source>
         <translation>Points</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="251"/>
         <source>Croix</source>
         <translation>Croix</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="251"/>
         <source>Trait plein</source>
         <translation>Trait plein</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="251"/>
         <source>Pointillés</source>
         <translation>Pointillés</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="251"/>
         <source>Tirets</source>
         <translation>Tirets</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="251"/>
         <source>Gros points</source>
         <translation>Gros points</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="249"/>
+        <location filename="../qml/GridDesigner.qml" line="257"/>
         <source>Angle</source>
         <translation>Angle</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="260"/>
+        <location filename="../qml/GridDesigner.qml" line="268"/>
         <source>Couleur</source>
         <translation>Couleur</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="286"/>
+        <location filename="../qml/GridDesigner.qml" line="294"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
     </message>
@@ -846,7 +846,7 @@
 <context>
     <name>HelpViewer</name>
     <message>
-        <location filename="../qml/HelpViewer.qml" line="55"/>
+        <location filename="../qml/HelpViewer.qml" line="58"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
     </message>
@@ -1038,27 +1038,27 @@
         <translation>%1%2 — ActCraft — rendu : %3</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="816"/>
+        <location filename="../qml/Main.qml" line="833"/>
         <source>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</source>
         <translation>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="858"/>
+        <location filename="../qml/Main.qml" line="875"/>
         <source>Ouverture impossible : %1</source>
         <translation>Ouverture impossible : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="860"/>
+        <location filename="../qml/Main.qml" line="877"/>
         <source>1 avertissement de lecture : %1</source>
         <translation>1 avertissement de lecture : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="862"/>
+        <location filename="../qml/Main.qml" line="879"/>
         <source>%1 avertissements de lecture : %2</source>
         <translation>%1 avertissements de lecture : %2</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="869"/>
+        <location filename="../qml/Main.qml" line="886"/>
         <source>Enregistrement impossible : %1</source>
         <translation>Enregistrement impossible : %1</translation>
     </message>
@@ -1243,6 +1243,11 @@
         <source>Palette d&apos;outils</source>
         <translation>Palette d&apos;outils</translation>
     </message>
+    <message>
+        <location filename="../qml/PaletteFrame.qml" line="272"/>
+        <source>Options de la palette</source>
+        <translation>Options de la palette</translation>
+    </message>
 </context>
 <context>
     <name>PenModifierBar</name>
@@ -1300,147 +1305,147 @@
 <context>
     <name>PrintSetupDialog</name>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="92"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="94"/>
         <source>Imprimante</source>
         <translation>Imprimante</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="97"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="99"/>
         <source>Imprimante par défaut</source>
         <translation>Imprimante par défaut</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="100"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="102"/>
         <source>Couleur</source>
         <translation>Couleur</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="105"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="107"/>
         <source>En couleur</source>
         <translation>En couleur</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="111"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="113"/>
         <source>En gris</source>
         <translation>En gris</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="115"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="117"/>
         <source>Pages par feuille : lignes</source>
         <translation>Pages par feuille : lignes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="122"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="124"/>
         <source>Pages par feuille : colonnes</source>
         <translation>Pages par feuille : colonnes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="127"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="129"/>
         <source>Cadres</source>
         <translation>Cadres</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="129"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="131"/>
         <source>Entourer chaque page</source>
         <translation>Entourer chaque page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="132"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="134"/>
         <source>Numéros</source>
         <translation>Numéros</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="134"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="136"/>
         <source>Numéroter les pages</source>
         <translation>Numéroter les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="137"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="139"/>
         <source>Plage</source>
         <translation>Plage</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="142"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="144"/>
         <source>Toutes les pages</source>
         <translation>Toutes les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="142"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="144"/>
         <source>Page affichée</source>
         <translation>Page affichée</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="142"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="144"/>
         <source>De… à…</source>
         <translation>De… à…</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="145"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="147"/>
         <source>De la page</source>
         <translation>De la page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="153"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="155"/>
         <source>à la page</source>
         <translation>à la page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="161"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="163"/>
         <source>Copies</source>
         <translation>Copies</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="166"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="168"/>
         <source>Marge (mm)</source>
         <translation>Marge (mm)</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="171"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="173"/>
         <source>Notes</source>
         <translation>Notes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="176"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="178"/>
         <source>Sans les notes</source>
         <translation>Sans les notes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="176"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="178"/>
         <source>Avec les pages</source>
         <translation>Avec les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="176"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="178"/>
         <source>Notes seules</source>
         <translation>Notes seules</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="182"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="184"/>
         <source>Une feuille par page</source>
         <translation>Une feuille par page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="187"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="189"/>
         <source>Trait entre les pages</source>
         <translation>Trait entre les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="216"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="218"/>
         <source>Exporter en PDF…</source>
         <translation>Exporter en PDF…</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="222"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="224"/>
         <source>Imprimer</source>
         <translation>Imprimer</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="235"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="245"/>
         <source>Enregistrer les réglages et quitter</source>
         <translation>Enregistrer les réglages et quitter</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="243"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="253"/>
         <source>Annuler</source>
         <translation>Annuler</translation>
     </message>
@@ -1456,88 +1461,88 @@
 <context>
     <name>ProfileEditor</name>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="51"/>
+        <location filename="../qml/ProfileEditor.qml" line="53"/>
         <source>Importer…</source>
         <translation>Importer…</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="52"/>
+        <location filename="../qml/ProfileEditor.qml" line="54"/>
         <source>Exporter…</source>
         <translation>Exporter…</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="53"/>
+        <location filename="../qml/ProfileEditor.qml" line="55"/>
         <source>Enregistrer</source>
         <translation>Enregistrer</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="54"/>
+        <location filename="../qml/ProfileEditor.qml" line="56"/>
         <source>Enregistrer sous…</source>
         <translation>Enregistrer sous…</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="57"/>
+        <location filename="../qml/ProfileEditor.qml" line="59"/>
         <source>Supprimer</source>
         <translation>Supprimer</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="63"/>
+        <location filename="../qml/ProfileEditor.qml" line="65"/>
         <source>Revenir à l&apos;origine</source>
         <translation>Revenir à l&apos;origine</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="72"/>
+        <location filename="../qml/ProfileEditor.qml" line="79"/>
         <source>Format</source>
         <translation>Format</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="73"/>
+        <location filename="../qml/ProfileEditor.qml" line="90"/>
         <source>Commandes</source>
         <translation>Commandes</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="74"/>
+        <location filename="../qml/ProfileEditor.qml" line="101"/>
         <source>Raccourcis vers des programmes</source>
         <translation>Raccourcis vers des programmes</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="75"/>
+        <location filename="../qml/ProfileEditor.qml" line="112"/>
         <source>Paramètres</source>
         <translation>Paramètres</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="100"/>
+        <location filename="../qml/ProfileEditor.qml" line="146"/>
         <source>Terminé</source>
         <translation>Terminé</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="118"/>
+        <location filename="../qml/ProfileEditor.qml" line="164"/>
         <source>Nom du profil</source>
         <translation>Nom du profil</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="122"/>
+        <location filename="../qml/ProfileEditor.qml" line="168"/>
         <source>OK</source>
         <translation>OK</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="135"/>
+        <location filename="../qml/ProfileEditor.qml" line="181"/>
         <source>Importer un profil</source>
         <translation>Importer un profil</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="137"/>
-        <location filename="../qml/ProfileEditor.qml" line="146"/>
+        <location filename="../qml/ProfileEditor.qml" line="183"/>
+        <location filename="../qml/ProfileEditor.qml" line="192"/>
         <source>Profils ActCraft (*.json)</source>
         <translation>Profils ActCraft (*.json)</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="137"/>
+        <location filename="../qml/ProfileEditor.qml" line="183"/>
         <source>Tous les fichiers (*)</source>
         <translation>Tous les fichiers (*)</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="143"/>
+        <location filename="../qml/ProfileEditor.qml" line="189"/>
         <source>Exporter le profil</source>
         <translation>Exporter le profil</translation>
     </message>
@@ -1687,6 +1692,24 @@
         <location filename="../qml/RecordingIndicator.qml" line="98"/>
         <source>Arrêter</source>
         <translation>Arrêter</translation>
+    </message>
+</context>
+<context>
+    <name>RecoveryBanner</name>
+    <message>
+        <location filename="../qml/RecoveryBanner.qml" line="32"/>
+        <source>Travail repris après une interruption</source>
+        <translation>Travail repris après une interruption</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecoveryBanner.qml" line="39"/>
+        <source>Supprimer la copie</source>
+        <translation>Supprimer la copie</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecoveryBanner.qml" line="44"/>
+        <source>Fermer</source>
+        <translation type="unfinished">Fermer</translation>
     </message>
 </context>
 <context>
@@ -1867,22 +1890,22 @@
 <context>
     <name>SecondPalette</name>
     <message>
-        <location filename="../qml/SecondPalette.qml" line="92"/>
+        <location filename="../qml/SecondPalette.qml" line="87"/>
         <source>Couleur %1</source>
         <translation>Couleur %1</translation>
     </message>
     <message>
-        <location filename="../qml/SecondPalette.qml" line="110"/>
+        <location filename="../qml/SecondPalette.qml" line="105"/>
         <source>Épaisseur %1</source>
         <translation>Épaisseur %1</translation>
     </message>
     <message>
-        <location filename="../qml/SecondPalette.qml" line="140"/>
+        <location filename="../qml/SecondPalette.qml" line="131"/>
         <source>Aide du mode à deux utilisateurs</source>
         <translation>Aide du mode à deux utilisateurs</translation>
     </message>
     <message>
-        <location filename="../qml/SecondPalette.qml" line="145"/>
+        <location filename="../qml/SecondPalette.qml" line="136"/>
         <source>?</source>
         <translation>?</translation>
     </message>
@@ -1890,12 +1913,12 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="62"/>
+        <location filename="../qml/SettingsPage.qml" line="66"/>
         <source>La langue choisie sera appliquée au prochain démarrage d&apos;ActCraft.</source>
         <translation>La langue choisie sera appliquée au prochain démarrage d&apos;ActCraft.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="123"/>
+        <location filename="../qml/SettingsPage.qml" line="127"/>
         <source>Rechercher les mises à jour au démarrage</source>
         <translation>Rechercher les mises à jour au démarrage</translation>
     </message>
@@ -2410,32 +2433,32 @@
         <translation>Mises à jour</translation>
     </message>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="36"/>
+        <location filename="../qml/UpdateDialog.qml" line="52"/>
         <source>Recherche en cours…</source>
         <translation>Recherche en cours…</translation>
     </message>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="38"/>
+        <location filename="../qml/UpdateDialog.qml" line="54"/>
         <source>ActCraft est à jour.</source>
         <translation>ActCraft est à jour.</translation>
     </message>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="40"/>
+        <location filename="../qml/UpdateDialog.qml" line="56"/>
         <source>La version %1 est disponible.</source>
         <translation>La version %1 est disponible.</translation>
     </message>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="42"/>
+        <location filename="../qml/UpdateDialog.qml" line="58"/>
         <source>Impossible de vérifier pour le moment.</source>
         <translation>Impossible de vérifier pour le moment.</translation>
     </message>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="52"/>
+        <location filename="../qml/UpdateDialog.qml" line="68"/>
         <source>Voir la version</source>
         <translation>Voir la version</translation>
     </message>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="59"/>
+        <location filename="../qml/UpdateDialog.qml" line="75"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
     </message>
@@ -2458,7 +2481,7 @@
         <translation>Ou code HTML</translation>
     </message>
     <message>
-        <location filename="../qml/WebFrameDialog.qml" line="75"/>
+        <location filename="../qml/WebFrameDialog.qml" line="96"/>
         <source>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</source>
         <translation>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</translation>
     </message>
@@ -2617,17 +2640,17 @@
         <translation>Le paperboard a changé pendant l&apos;ouverture : ouverture annulée, rien n&apos;est perdu.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1030"/>
+        <location filename="../src/documentcontroller.cpp" line="1055"/>
         <source>Une opération est déjà en cours : enregistrement refusé.</source>
         <translation>Une opération est déjà en cours : enregistrement refusé.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1109"/>
+        <location filename="../src/documentcontroller.cpp" line="1130"/>
         <source>Une opération est déjà en cours : diffusion refusée.</source>
         <translation>Une opération est déjà en cours : diffusion refusée.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1117"/>
+        <location filename="../src/documentcontroller.cpp" line="1138"/>
         <source>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</source>
         <translation>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</translation>
     </message>

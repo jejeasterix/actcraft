@@ -9,13 +9,14 @@ chaque lot (décision 31 du cadrage `docs/specs/2026-10-14-livraison-complete-ca
 Toucher, deux utilisateurs, tablette, reprise, aide complète, mises à jour et accessibilité. Le numéro 1.0.0 est posé à
 la release ; les versions 0.6.0 à 0.9.0 ne sont pas toutes publiées : leurs nouveautés viennent avec celle-ci.
 
-- Toucher : le doigt a trois modes (ignorer, écrire, sélectionner), la paume posée sur l'écran n'écrit pas, et les
-  menus s'ouvrent au doigt. Les cibles à toucher font au moins 48 dp.
+- Toucher : le doigt a quatre modes (Gestion complète par défaut, ignorer, écrire, sélectionner), réglés par
+  Affichage > Mode du toucher ; la paume posée sur l'écran n'écrit pas, et les menus s'ouvrent au doigt. En mode
+  tactile, les cibles à toucher font au moins 48 dp.
 - Deux utilisateurs : deux personnes travaillent sur la même page, chacune avec sa palette, son outil, son trait, ses
   réglages et son cadre de sélection ; un objet tenu par l'une n'est pas pris par l'autre.
 - Tablette : mise en page étroite, palette qui tient dans une fenêtre basse, rotation de l'écran, et fichiers ouverts
   ou enregistrés par le sélecteur du système.
-- Reprise : si l'application est interrompue, elle propose de reprendre là où vous en étiez, sans perte.
+- Reprise : si l'application est interrompue, elle reprend seule là où vous en étiez, sans perte, et un bandeau le dit (vous pouvez supprimer la copie).
 - Aide : une page par outil, des procédures pas à pas, un index complet et la liste des raccourcis clavier (F1).
 - Mises à jour : la commande « Rechercher des mises à jour… » dit si une version plus récente existe ; une case
   permet de le faire au démarrage. Rien ne s'installe sans votre accord.
