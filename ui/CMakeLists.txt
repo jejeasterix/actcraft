@@ -475,6 +475,8 @@ qt_add_resources(actcraft_ui "ui_lot6_data"
           help/camera-window.html
           help/camera-screen.html
           help/keyboard.html
+          help/ruler.html help/set-square.html help/protractor.html help/compass.html help/xy-origin.html
+          help/curtain.html help/spotlight.html
           help/raccourcis.html help/deux-utilisateurs.html help/modes-toucher.html help/reprise.html
           help/mises-a-jour.html help/profils.html help/mot-de-passe-oublie.html)
 
