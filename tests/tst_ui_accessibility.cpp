@@ -322,11 +322,15 @@ void collectButtons(QQuickItem* item, QList<QQuickItem*>& out)
     }
 }
 
-QStringList unnamedButtons(QQuickItem* root, const QString& scope)
+// `count` (facultatif) reçoit le nombre de boutons examinés : un plancher évite le succès à vide.
+QStringList unnamedButtons(QQuickItem* root, const QString& scope, int* count = nullptr)
 {
     QStringList failures;
     QList<QQuickItem*> buttons;
     collectButtons(root, buttons);
+    if (count) {
+        *count += static_cast<int>(buttons.size());
+    }
     for (QQuickItem* b : std::as_const(buttons)) {
         QAccessibleInterface* iface = QAccessible::queryAccessibleInterface(b);
         if (!iface) {
@@ -502,17 +506,26 @@ private slots:
     {
         Shell s;
         QVERIFY(start(s));
-        QStringList failures = unnamedButtons(s.window->contentItem(), QStringLiteral("fenêtre"));
+        int windowButtons = 0;
+        int dialogButtons = 0;
+        int dialogsOpened = 0;
+        QStringList failures =
+            unnamedButtons(s.window->contentItem(), QStringLiteral("fenêtre"), &windowButtons);
         for (const QString& id : dialogCommands()) {
             if (!openDialog(s, id)) {
                 continue;
             }
+            ++dialogsOpened;
             QTest::qWait(200);
             for (QObject* popup : openPopups(s)) {
-                failures << unnamedButtons(popupRoot(popup), id);
+                failures << unnamedButtons(popupRoot(popup), id, &dialogButtons);
             }
         }
         closeAll(s);
+        // Planchers : le contrôle a regardé quelque chose.
+        QVERIFY2(windowButtons > 0, "aucun bouton visible dans la fenêtre");
+        QVERIFY2(dialogsOpened > 0, "aucune boîte ouverte");
+        QVERIFY2(dialogButtons > 0, "aucun bouton dans les boîtes ouvertes");
         QVERIFY2(failures.isEmpty(), qPrintable(failures.join(QLatin1Char('\n'))));
     }
 
@@ -528,12 +541,11 @@ private slots:
         s.window->resize(QSize(800, 1280));
         QVERIFY(QTest::qWaitFor([&] { return s.window->size() == QSize(800, 1280); }, 5000));
         QTest::qWait(200);
-        for (const char* name : {"paletteToggle"}) {
-            QQuickItem* toggle = findItem(s.window->contentItem(), QString::fromLatin1(name));
-            QVERIFY(toggle);
-            const QPointF p = toggle->mapToScene(QPointF(toggle->width() / 2, toggle->height() / 2));
-            QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, p.toPoint());
-        }
+        QQuickItem* toggle = findItem(s.window->contentItem(), QStringLiteral("paletteToggle"));
+        QVERIFY(toggle);
+        const QPointF p = toggle->mapToScene(QPointF(toggle->width() / 2, toggle->height() / 2));
+        QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, p.toPoint());
+        QTRY_VERIFY(toggle->property("checked").toBool()); // la palette est bien ouverte
         QQuickItem* browser = findItem(s.window->contentItem(), QStringLiteral("browserPanel"));
         QVERIFY(browser);
         QVERIFY(QMetaObject::invokeMethod(browser, "toggleDrawer"));

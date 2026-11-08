@@ -39,6 +39,14 @@ QString pageName(const QString& id)
 {
     return id.startsWith(QLatin1String("tool.")) ? id.mid(5) : id;
 }
+// Toutes les pages du paquet d'aide (outils, procédures, index) : nom sans « .html ».
+QStringList allPages()
+{
+    QStringList names;
+    for (const QString& file : QDir(QStringLiteral(":/actcraft/help")).entryList({QStringLiteral("*.html")}))
+        names << file.chopped(5);
+    return names;
+}
 QString page(const QString& id)
 {
     QFile f(QStringLiteral(":/actcraft/help/%1.html").arg(pageName(id)));
@@ -46,6 +54,13 @@ QString page(const QString& id)
 }
 } // namespace
 
+// Écart au nom prescrit : la fonction s'appelle pagesOfAllToolsExist (et non pagesOfLots1To5Exist) parce
+// qu'elle couvre kAllTools = lots 1 à 5 + lots 6 à 11 (tool.reveal-ink). Les 13 commandes tool.* sans
+// gestionnaire à la tête, donc sans page d'aide, sont exclues : tool.dice, tool.calculator, tool.clock,
+// tool.ticker, tool.web-browser, tool.shape-recognition, tool.handwriting, tool.camera-area,
+// tool.camera-polygon, tool.camera-freehand, tool.camera-window, tool.camera-screen, tool.keyboard
+// (kToolsWithoutHandler : une page décrirait un outil qui n'agit pas encore). everyToolHasAPage fait
+// échouer toute commande tool.* nouvelle absente des deux listes.
 class TstUiHelpPages : public QObject
 {
     Q_OBJECT
@@ -55,9 +70,18 @@ private slots:
         for (const QString& id : kAllTools)
             QVERIFY2(!page(id).isEmpty(), qPrintable(id));
     }
+    void allPagesAreCollected()
+    {
+        // Plancher : outils, procédures et index sont tous parcourus par les contrôles qui suivent.
+        const QStringList pages = allPages();
+        QVERIFY2(pages.size() >= kAllTools.size() + kProcedures.size() + 1, qPrintable(pages.join(',')));
+        QVERIFY(pages.contains(QStringLiteral("index")));
+        for (const QString& procedure : kProcedures)
+            QVERIFY2(pages.contains(procedure), qPrintable(procedure));
+    }
     void everyPageHasATitleAndABackLink()
     {
-        for (const QString& id : kAllTools) {
+        for (const QString& id : allPages()) {
             const QString html = page(id);
             QVERIFY2(QRegularExpression(QStringLiteral("<title>[^<]{3,}</title>")).match(html).hasMatch(),
                      qPrintable(id));
@@ -67,7 +91,7 @@ private slots:
     void internalLinksResolve()
     {
         const QRegularExpression link(QStringLiteral("href=\"([^\"#:]+\\.html)"));
-        for (const QString& id : kAllTools) {
+        for (const QString& id : allPages()) {
             auto it = link.globalMatch(page(id));
             while (it.hasNext()) {
                 const QString target = it.next().captured(1);
@@ -78,7 +102,7 @@ private slots:
     }
     void noScriptImageOrRemoteResource()
     {
-        for (const QString& id : kAllTools) {
+        for (const QString& id : allPages()) {
             const QString html = page(id);
             QVERIFY2(!html.contains(QStringLiteral("<script"), Qt::CaseInsensitive), qPrintable(id));
             QVERIFY2(!html.contains(QStringLiteral("<img"), Qt::CaseInsensitive), qPrintable(id));
@@ -97,7 +121,7 @@ private slots:
                 if (!line.trimmed().isEmpty())
                     forbidden << QString::fromUtf8(line.trimmed());
         }
-        for (const QString& id : kAllTools) {
+        for (const QString& id : allPages()) {
             const QString html = page(id);
             QVERIFY2(!html.isEmpty(), qPrintable(id));
             for (const QString& word : forbidden)

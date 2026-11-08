@@ -243,7 +243,7 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
             why = QStringLiteral("contrôle de pixel invalide (checkPixel, at, color)");
             return false;
         }
-        return true;
+        return readSpace(o, step.windowSpace, why); // « space » : « window » lit le pixel là où un doigt a posé
     }
     if (o.contains(QStringLiteral("checkEdge"))) {
         step.kind = UiStepKind::CheckEdge;
@@ -1434,6 +1434,11 @@ bool UiScenarioPlayer::visibleTexts(const UiStep& step, QStringList& report)
         }
     }
     report << lines;
+    // Aucun texte examiné : la boîte n'était pas là (ou la lecture n'a rien vu) ; ce n'est pas un succès.
+    if (checked == 0) {
+        report << QStringLiteral("TEXTES ECHEC (aucun texte visible examiné)");
+        return false;
+    }
     report << (lines.isEmpty() ? QStringLiteral("TEXTES OK %1").arg(checked)
                                : QStringLiteral("TEXTES EN ECART %1").arg(lines.size()));
     return lines.isEmpty();
@@ -1637,12 +1642,13 @@ bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
     const QImage image = m_window->grabWindow();
     QColor actual;
     QString read = QStringLiteral("hors image");
-    if (!v) {
+    if (!v && !step.windowSpace) {
         read = QStringLiteral("vue de page introuvable");
     } else if (image.isNull()) {
         read = QStringLiteral("capture vide");
     } else {
-        actual = sampleColor(image, sceneToImage(v->pageToScene(step.at), m_window->devicePixelRatio()));
+        const QPointF scene = step.windowSpace ? step.at : v->pageToScene(step.at);
+        actual = sampleColor(image, sceneToImage(scene, m_window->devicePixelRatio()));
         if (actual.isValid()) {
             read = actual.name();
         }

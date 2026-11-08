@@ -174,10 +174,13 @@ private slots:
                     QVERIFY2(!registry().isAvailable(command, actions::Platform::Android),
                              qPrintable(command));
                 }
-            // Sous Windows, tout ce qui est déclaré pour Windows reste.
-            for (const QString& command :
-                 actions::layoutForPlatform(*p, registry(), actions::Platform::Windows))
+            // Sous Windows, tout ce qui est déclaré pour Windows reste (et rien d'indisponible n'y figure).
+            const QStringList windows = actions::layoutForPlatform(*p, registry(), actions::Platform::Windows);
+            for (const QString& command : windows)
                 QVERIFY2(registry().isAvailable(command, actions::Platform::Windows), qPrintable(command));
+            for (const QString& command : p->pinned)
+                if (registry().isAvailable(command, actions::Platform::Windows))
+                    QVERIFY2(windows.contains(command), qPrintable(id + QStringLiteral(" : ") + command));
         }
         QVERIFY(dropped >= 1);
         const auto son = store.load(QStringLiteral("son-image"), error);

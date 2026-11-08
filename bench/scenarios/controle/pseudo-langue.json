@@ -29,7 +29,8 @@
       "space": "window"
     },
     {
-      "wait": 300
+      "waitFor": "menu-file.visible",
+      "value": true
     },
     {
       "visibleTexts": "pseudo",
@@ -54,7 +55,8 @@
       "command": "help.about"
     },
     {
-      "wait": 300
+      "waitFor": "aboutDialog.visible",
+      "value": true
     },
     {
       "visibleTexts": "pseudo",
@@ -79,7 +81,8 @@
       "command": "file.new-custom"
     },
     {
-      "wait": 300
+      "waitFor": "pageSizeDialog.visible",
+      "value": true
     },
     {
       "visibleTexts": "pseudo",
@@ -105,7 +108,8 @@
       "command": "profile.edit"
     },
     {
-      "wait": 300
+      "waitFor": "profileEditorPopup.visible",
+      "value": true
     },
     {
       "visibleTexts": "pseudo",

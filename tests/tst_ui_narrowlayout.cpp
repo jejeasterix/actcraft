@@ -191,6 +191,7 @@ void TstUiNarrowlayout::everyTargetAtLeast48dp()
     QQuickItem* toggle = item(s, "paletteToggle");
     QVERIFY(toggle);
     clickCenter(s, toggle);
+    QTRY_VERIFY(toggle->property("checked").toBool()); // la palette est bien ouverte
     QQuickItem* browser = item(s, "browserPanel");
     QVERIFY(browser);
     QVERIFY(QMetaObject::invokeMethod(browser, "toggleDrawer"));

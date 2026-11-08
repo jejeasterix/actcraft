@@ -237,10 +237,12 @@ private slots:
             onPage.insert(portable(it.next().captured(1)));
         }
         QStringList missing;
+        int checked = 0;
         for (const auto& [id, keys] : kTable) {
             if (!s.commands->registry().hasHandler(QString::fromLatin1(id))) {
                 continue;
             }
+            ++checked;
             const QString wanted = QKeySequence(QString::fromLatin1(keys), QKeySequence::PortableText)
                                        .toString(QKeySequence::PortableText);
             const QString command = QString::fromLatin1(id);
@@ -249,6 +251,8 @@ private slots:
             }
         }
         QVERIFY2(missing.isEmpty(), qPrintable(missing.join(QStringLiteral(", "))));
+        qInfo("RACCOURCIS CONTROLES %d", checked);
+        QVERIFY2(checked > 40, qPrintable(QStringLiteral("%1 séquences contrôlées").arg(checked)));
     }
 };
 
