@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace actcraft::ui {
 
@@ -18,6 +19,18 @@ namespace actcraft::ui {
 // est déposé avant le garage : il n'y en a jamais ici.
 struct DocumentController::ParkedSession
 {
+    // Registre des sessions vivantes (fil principal) : la reprise (L11-T13) copie aussi les onglets garés
+    // modifiés. Une session vit derrière un unique_ptr : ni copie ni déplacement.
+    ParkedSession() { live().push_back(this); }
+    ~ParkedSession() { std::erase(live(), this); }
+    ParkedSession(const ParkedSession&) = delete;
+    ParkedSession& operator=(const ParkedSession&) = delete;
+    static std::vector<ParkedSession*>& live()
+    {
+        static std::vector<ParkedSession*> sessions;
+        return sessions;
+    }
+
     core::Document document;
     core::UndoStack undo;
     std::size_t current = 0; // page affichée
