@@ -84,6 +84,13 @@ private slots:
             QVERIFY2(activate(id), qPrintable(id));
             for (const QString& command : m_profile->pinned())
                 QVERIFY2(registry().find(command), qPrintable(id + QStringLiteral(" : ") + command));
+            // Information pour le rapport : épinglages sans gestionnaire (lot 7 pas encore fusionné).
+            QStringList inert;
+            for (const QString& command : m_profile->pinned())
+                if (!registry().hasHandler(command))
+                    inert << command;
+            if (!inert.isEmpty())
+                qInfo().noquote() << "SANS GESTIONNAIRE" << id << inert.join(QLatin1Char(' '));
         }
     }
 
