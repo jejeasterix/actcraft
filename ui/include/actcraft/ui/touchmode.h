@@ -43,8 +43,9 @@ public:
     // change.
     Q_INVOKABLE bool setMode(const QString& id);
 
-    // Politique du routeur d'un mode, par son identifiant ; un identifiant inconnu ou vide donne « full ». Seule
-    // conversion identifiant -> TouchMode -> politique, partagée avec DualMode (retour du mode à deux utilisateurs).
+    // Politique du routeur d'un mode, par son identifiant ; un identifiant inconnu ou vide donne « full ».
+    // Seule conversion identifiant -> TouchMode -> politique, partagée avec DualMode (retour du mode à deux
+    // utilisateurs).
     static std::unique_ptr<input::RoutingPolicy> makePolicy(const QString& id);
 
 signals:
