@@ -1,20 +1,24 @@
+#include "startup.h"
+
 #include <actcraft/actions/commandregistry.h>
 #include <actcraft/ui/classroomlock.h>
 #include <actcraft/ui/commands.h>
-
-#include "startup.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QQmlApplicationEngine>
+#include <QQuickWindow>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
 #include <memory>
+
+Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 using namespace actcraft;
 
@@ -90,7 +94,9 @@ class TstUiLockall : public QObject
             if (!m_lock->createPassword(kPassword, kPassword)) {
                 return false;
             }
-            QTRY_VERIFY_WITH_TIMEOUT(m_lock->property("hasPassword").toBool(), 30000);
+            if (!QTest::qWaitFor([this] { return m_lock->property("hasPassword").toBool(); }, 30000)) {
+                return false;
+            }
         }
         if (!m_commands->isLocked() && !m_lock->lock()) {
             return false;
@@ -106,8 +112,7 @@ class TstUiLockall : public QObject
         if (!m_lock->unlock(kPassword)) {
             return false;
         }
-        QTRY_VERIFY_WITH_TIMEOUT(!m_commands->isLocked(), 30000);
-        return !m_commands->isLocked();
+        return QTest::qWaitFor([this] { return !m_commands->isLocked(); }, 30000);
     }
 
 private slots:
@@ -124,17 +129,30 @@ private slots:
         options.profileRoot = m_profiles.path();
         options.recoveryDir = m_recovery.path();
         m_engine = std::make_unique<QQmlApplicationEngine>();
-        QVERIFY(loadMainQml(*m_engine, options));
-        QVERIFY(!m_engine->rootObjects().isEmpty());
-        QObject* root = m_engine->rootObjects().constFirst();
-        m_commands = root->findChild<ui::Commands*>(QStringLiteral("commands"));
+        QQuickWindow* window = loadMainWindow(*m_engine, options);
+        QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        // Les noms que lisent les scénarios : « commands » (jamais l'id appCommands) et « appClassroom ».
+        m_commands = window->findChild<ui::Commands*>(QStringLiteral("commands"));
         QVERIFY2(m_commands, "objet « commands » absent de Main.qml");
-        m_lock = root->findChild<ui::ClassroomLock*>();
-        QVERIFY2(m_lock, "ClassroomLock absent de Main.qml");
+        m_lock = window->findChild<ui::ClassroomLock*>(QStringLiteral("appClassroom"));
+        QVERIFY2(m_lock, "objet « appClassroom » absent de Main.qml");
 
         QSettings probe;
         QCOMPARE(probe.format(), QSettings::IniFormat);
         QVERIFY(probe.fileName().startsWith(m_settings.path()));
+    }
+
+    // Une fonction en échec laisse le verrou posé ou la plateforme d'Android : la suivante repart de l'état
+    // d'origine, sans échec en cascade.
+    void cleanup()
+    {
+        if (m_commands && m_commands->platformName() != actions::platformName(actions::currentPlatform())) {
+            m_commands->setPlatform(actions::currentPlatform());
+        }
+        if (m_commands && m_commands->isLocked()) {
+            QVERIFY(unlockApp());
+        }
     }
 
     void cleanupTestCase()
