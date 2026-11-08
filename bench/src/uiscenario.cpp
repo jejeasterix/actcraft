@@ -740,6 +740,12 @@ QQuickItem* findItem(QQuickItem* root, const QString& name)
 
 } // namespace
 
+bool skipOnMatches(const QStringList& skipOn, const QString& productType, const QString& kernelType)
+{
+    return skipOn.contains(productType) ||
+           (kernelType == QLatin1String("linux") && skipOn.contains(QStringLiteral("linux")));
+}
+
 bool parseUiScenario(const QByteArray& json, UiScenario& out, QString& error)
 {
     QJsonParseError parseError{};
@@ -2168,7 +2174,7 @@ bool UiScenarioPlayer::play(const UiScenario& scenario, const QString& outputDir
         m_loopRetryAsked = false;
         const qsizetype before = report.size();
         bool stepOk = true;
-        if (step.skipOn.contains(QSysInfo::productType())) {
+        if (skipOnMatches(step.skipOn, QSysInfo::productType(), QSysInfo::kernelType())) {
             report << QStringLiteral("SAUTE étape %1 (%2) : %3")
                           .arg(i + 1)
                           .arg(QSysInfo::productType(), step.skipReason);
