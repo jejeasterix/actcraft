@@ -466,6 +466,7 @@ Demandes du pilote : paquet `.dmg` non signé du Mac ajouté au plan 11b (tâche
 **H11-O6** (orchestrateur, 2026-11-08) — L11-T13, deuxième tour de corrections : sous verrou de classe, la reprise de plusieurs onglets ne crée pas d'onglet neuf en silence (correction en cours).
 **H11-O7** (orchestrateur, 2026-11-08) — jeton `tests` du lot 11 porté de P = 1 à **P = 2** : le jeton est propre au Mac et la session B (lot 7) travaille sur le PC ; mémoire libre 55 % ; les agents perdaient la moitié de leurs tours à attendre une place. Retour à P = 1 si la mémoire libre passe sous 30 %.
 **H11-O8** (orchestrateur, 2026-11-08) — sous macOS, Qt fait de `Ctrl` la touche ⌘ : `Ctrl+H` (`tool.highlighter`) et `Ctrl+M` (`insert.media`) deviennent ⌘H (masquer l'application) et ⌘M (réduire la fenêtre). Non changé dans ce lot (décision de conception pour la version Mac) ; à revoir par Jérôme avec le `.dmg`.
+**H11-O9** (orchestrateur, 2026-11-08) — en mode à deux utilisateurs, le mode du toucher (`ignore`, `pen`, `select`) ne s'applique pas : le doigt de chaque utilisateur prend l'outil courant de cet utilisateur (comportement de `TwoUserPolicy`) ; écrit dans l'aide. À revoir par Jérôme.
 Questions à Jérôme (lot 11) : aucune ouverte.
 
 ### Tâches du lot 11
