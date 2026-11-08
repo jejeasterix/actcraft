@@ -824,6 +824,19 @@ private slots:
         QVERIFY(error.contains(QStringLiteral("skipReason")));
     }
 
+    void skipOnRecognisesTheLinuxFamily()
+    {
+        const QStringList family{QStringLiteral("linux"), QStringLiteral("windows")};
+        QVERIFY(skipOnMatches(family, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+        QVERIFY(skipOnMatches(family, QStringLiteral("unknown"), QStringLiteral("linux")));
+        QVERIFY(skipOnMatches(family, QStringLiteral("windows"), QStringLiteral("winnt")));
+        QVERIFY(!skipOnMatches(family, QStringLiteral("macos"), QStringLiteral("darwin")));
+        QVERIFY(
+            !skipOnMatches({QStringLiteral("windows")}, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+        QVERIFY(skipOnMatches({QStringLiteral("ubuntu")}, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+        QVERIFY(!skipOnMatches({}, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+    }
+
     void skippedStepIsReportedAndNotPlayed()
     {
         UiScenario s;

@@ -226,6 +226,24 @@ private slots:
         QCOMPARE(m_commands->property("lockedCount").toInt(), 0);
     }
 
+    // Une commande cachée (faute de convertisseur) reste grisée par le verrou : K ne change pas.
+    void lockedCountIgnoresHiddenCommands()
+    {
+        const QString platform = jsonPlatformName(actions::currentPlatform());
+        const int expected = rawLockedCount(platform);
+        const QString hidden = QStringLiteral("file.import-pdf");
+        QVERIFY(m_commands->registry().find(hidden) != nullptr);
+        m_commands->setHidden(hidden, true);
+        QVERIFY(lockApp());
+        QCOMPARE(m_commands->lockedCount(), expected);
+        QCOMPARE(m_commands->property("lockedCount").toInt(), expected);
+        QVERIFY(unlockApp());
+        m_commands->setHidden(hidden, false);
+        QVERIFY(lockApp());
+        QCOMPARE(m_commands->lockedCount(), expected);
+        QVERIFY(unlockApp());
+    }
+
     // Une commande verrouillable désactivée par son contrôleur avant le verrou reste désactivée après ;
     // toutes les autres retrouvent l'état d'avant.
     void unlockRestoresOwnState()

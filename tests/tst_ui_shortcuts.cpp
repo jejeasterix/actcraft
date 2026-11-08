@@ -107,10 +107,6 @@ const std::vector<std::pair<const char*, const char*>> kTable = {
     {"record.sound", "Ctrl+Shift+R"},
 };
 
-// Raccourcis déclarés et actifs que la page d'aide n'a pas encore : la page est régénérée de commands.json
-// en fin de lot 11 (L11-T18). Dès qu'une entrée figure sur la page, le test exige de la retirer d'ici.
-const QSet<QString> kPagePending = {QStringLiteral("transform.flip-x"), QStringLiteral("transform.flip-y")};
-
 // Écrit en français dans la page d'aide : « Maj », « Échap », « Suppr ».
 QString portable(QString text)
 {
@@ -248,11 +244,6 @@ private slots:
             const QString wanted = QKeySequence(QString::fromLatin1(keys), QKeySequence::PortableText)
                                        .toString(QKeySequence::PortableText);
             const QString command = QString::fromLatin1(id);
-            if (kPagePending.contains(command)) {
-                QVERIFY2(!onPage.contains(wanted),
-                         qPrintable(command + QStringLiteral(" est sur la page : retirer de kPagePending")));
-                continue;
-            }
             if (!onPage.contains(wanted)) {
                 missing << command + QStringLiteral(" ") + wanted;
             }
