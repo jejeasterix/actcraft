@@ -421,8 +421,8 @@ void TstUiUpdatechecker::startCalledOnceByTheShell()
     }
 }
 
-// L11-C14 : la recherche du démarrage ouvre la boîte seulement si une nouvelle version existe (aucune boîte au
-// démarrage sans nouvelle version : ni à jour, ni en erreur, ni quand le réglage est faux).
+// L11-C14 : la recherche du démarrage ouvre la boîte seulement si une nouvelle version existe (aucune boîte
+// au démarrage sans nouvelle version : ni à jour, ni en erreur, ni quand le réglage est faux).
 void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
 {
     struct Case

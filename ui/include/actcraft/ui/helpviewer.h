@@ -23,7 +23,10 @@ public:
     QUrl source() const { return m_source; }
     QString html() const { return m_html; }
     // Nom de la page montrée : nom du fichier sans « .html » ; vide tant qu'aucune page n'est montrée.
-    QString currentPage() const { return m_source.fileName().chopped(m_source.fileName().endsWith(QLatin1String(".html")) ? 5 : 0); }
+    QString currentPage() const
+    {
+        return m_source.fileName().chopped(m_source.fileName().endsWith(QLatin1String(".html")) ? 5 : 0);
+    }
 
     // Page de l'outil (« pen » ou « tool.pen ») si elle existe, sinon l'index.
     Q_INVOKABLE void openFor(QString toolId);

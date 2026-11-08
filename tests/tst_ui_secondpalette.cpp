@@ -21,8 +21,8 @@
 #include <actcraft/ui/keyboardinset.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/preferences.h>
-#include <actcraft/ui/toolhost.h>
 #include <actcraft/ui/textediting.h>
+#include <actcraft/ui/toolhost.h>
 #include <actcraft/ui/touchmode.h>
 
 #include <QJSEngine>
@@ -881,7 +881,9 @@ void TstUiSecondpalette::touchUiTargetsAndGaps()
     QTRY_VERIFY(palette->isVisible());
     QList<QQuickItem*> buttons;
     for (int i = 0; i < 4; ++i) {
-        buttons << findItem(palette, QStringLiteral("secondTool_") + QString(QStringList{"pen", "highlighter", "eraser", "select"}.at(i)));
+        buttons << findItem(palette,
+                            QStringLiteral("secondTool_") +
+                                QString(QStringList{"pen", "highlighter", "eraser", "select"}.at(i)));
     }
     for (int i = 0; i < 4; ++i) {
         buttons << findItem(palette, QStringLiteral("secondColor_%1").arg(i));
