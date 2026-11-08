@@ -464,6 +464,7 @@ Demandes du pilote : paquet `.dmg` non signé du Mac ajouté au plan 11b (tâche
 **H11-12 à H11-17** (L11-T0, 2026-11-07, défauts du plan à confronter au PC) : contenu de la deuxième palette ; objet tenu inaccessible à l'autre ; toucher `full` par défaut ; le doigt prend l'outil courant ; un utilisateur neuf commence au stylo ; Windows et Android envoient l'état de l'application à `qApp`.
 **H11-O5** (orchestrateur, 2026-11-07) — des tâches de 11b aux fichiers disjoints de la fin de 11a (L11-T21, L11-T25) partent avant le point d'étape L11-T16 pour ne pas laisser le Mac au repos ; le point d'étape 11a reste joué sur la tête complète.
 **H11-O6** (orchestrateur, 2026-11-08) — L11-T13, deuxième tour de corrections : sous verrou de classe, la reprise de plusieurs onglets ne crée pas d'onglet neuf en silence (correction en cours).
+**H11-O7** (orchestrateur, 2026-11-08) — jeton `tests` du lot 11 porté de P = 1 à **P = 2** : le jeton est propre au Mac et la session B (lot 7) travaille sur le PC ; mémoire libre 55 % ; les agents perdaient la moitié de leurs tours à attendre une place. Retour à P = 1 si la mémoire libre passe sous 30 %.
 Questions à Jérôme (lot 11) : aucune ouverte.
 
 ### Tâches du lot 11
