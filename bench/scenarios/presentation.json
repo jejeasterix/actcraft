@@ -1,0 +1,212 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "presentation",
+  "description": "S10 de bout en bout : rideau fermé (centre noir) puis tiré du haut au milieu de la page (haut = page, bas = noir) et rouvert ; règle ouverte, trait le long du bord (encre sur le bord) ; compte à rebours de 3 s réglé dans le panneau de l'horloge avec l'action « page suivante », page 2 affichée à l'échéance. Captures : rideau, regle, apres-compte-a-rebours. Les étapes de tool.clock à clockDigital.text sont celles de compte-a-rebours.json, sans ses deux captures « horloge-ouverte » (panneau ouvert, avant le clic sur Réglage) et « reglage » (boîte remplie, avant Entrée) ; la capture finale s'appelle « apres-compte-a-rebours » ici, « horloge » dans compte-a-rebours.json. Le lecteur de scénarios n'a pas d'inclusion : une modification de ces étapes se reporte dans l'autre fichier.",
+  "steps": [
+    {
+      "waitReady": true
+    },
+    {
+      "command": "present.curtain"
+    },
+    {
+      "expect": "curtain.active",
+      "value": true
+    },
+    {
+      "expect": "curtain.coverage",
+      "value": 1,
+      "tolerance": 0.02
+    },
+    {
+      "checkPixel": "rideau-ferme-centre",
+      "at": [
+        512,
+        384
+      ],
+      "color": "#000000",
+      "tolerance": 8
+    },
+    {
+      "pointer": [
+        [
+          512,
+          2
+        ],
+        [
+          512,
+          192
+        ],
+        [
+          512,
+          384
+        ]
+      ],
+      "button": "left"
+    },
+    {
+      "expect": "curtain.coverage",
+      "value": 0.5,
+      "tolerance": 0.02
+    },
+    {
+      "checkPixel": "rideau-moitie-decouverte",
+      "at": [
+        512,
+        200
+      ],
+      "color": "#FFFFFF",
+      "tolerance": 8
+    },
+    {
+      "checkPixel": "rideau-moitie-couverte",
+      "at": [
+        512,
+        600
+      ],
+      "color": "#000000",
+      "tolerance": 8
+    },
+    {
+      "capture": "rideau"
+    },
+    {
+      "command": "present.curtain"
+    },
+    {
+      "expect": "curtain.active",
+      "value": false
+    },
+    {
+      "command": "math.ruler"
+    },
+    {
+      "expect": "mathTools.count",
+      "value": 1
+    },
+    {
+      "command": "pen.width",
+      "argument": 12
+    },
+    {
+      "stroke": [
+        [
+          300,
+          340
+        ],
+        [
+          400,
+          384
+        ],
+        [
+          700,
+          384
+        ]
+      ]
+    },
+    {
+      "waitReady": true
+    },
+    {
+      "checkPixel": "trait-sur-le-bord",
+      "at": [
+        500,
+        340
+      ],
+      "color": "#000000"
+    },
+    {
+      "checkPixel": "milieu-de-la-regle-sans-encre",
+      "at": [
+        420,
+        384
+      ],
+      "color": "#ffffff"
+    },
+    {
+      "capture": "regle"
+    },
+    {
+      "command": "tool.clock"
+    },
+    {
+      "expect": "clockRoot.visible",
+      "value": true
+    },
+    {
+      "expect": "pageIndicator.text",
+      "value": "1 / 1"
+    },
+    {
+      "pointer": [
+        [
+          1200,
+          400
+        ]
+      ],
+      "button": "left",
+      "space": "window"
+    },
+    {
+      "expect": "countdownDialog.visible",
+      "value": true
+    },
+    {
+      "key": "0"
+    },
+    {
+      "key": "0"
+    },
+    {
+      "key": ":"
+    },
+    {
+      "key": "0"
+    },
+    {
+      "key": "0"
+    },
+    {
+      "key": ":"
+    },
+    {
+      "key": "0"
+    },
+    {
+      "key": "3"
+    },
+    {
+      "expect": "countdownField.text",
+      "value": "00:00:03"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "key": "Down"
+    },
+    {
+      "expect": "countdownEndAction.currentValue",
+      "value": "page.next"
+    },
+    {
+      "key": "Return"
+    },
+    {
+      "expect": "countdownDialog.visible",
+      "value": false
+    },
+    {
+      "waitFor": "pageIndicator.text",
+      "value": "2 / 2",
+      "timeoutMs": 6000
+    },
+    {
+      "expect": "clockDigital.text",
+      "value": "00:00:00"
+    },
+    {
+      "capture": "apres-compte-a-rebours"
+    }
+  ]
+}

@@ -44,6 +44,21 @@ Window {
         focus: true
     }
 
+    // L7-T41 : cibles de l'étape « pointer » sur un nom d'objet, qui doit échouer : élément caché, élément hors de
+    // la fenêtre (« survol », plus bas, n'a pas de taille).
+    Item {
+        objectName: "cache"
+        visible: false
+        width: 40
+        height: 40
+    }
+    Item {
+        objectName: "dehors"
+        x: -200
+        width: 40
+        height: 40
+    }
+
     DocumentController {
         id: doc
         fixedPage: fixed

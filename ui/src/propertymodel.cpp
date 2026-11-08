@@ -494,8 +494,8 @@ bool PropertyModel::setValue(int row, const QVariant& value)
         // « Mots acceptés » : la règle du conteneur (H8-12), saisie lue comme la ligne des mots-clés du
         // lot 6.
         std::unique_ptr<core::UndoCommand> command =
-            i->field == InteractivityField::ContainWords
-                ? std::make_unique<SetInteractivityCommand>(page, m_ids, InteractivityField::ContainWords,
+            i->field == InteractivityField::AcceptedWords
+                ? std::make_unique<SetInteractivityCommand>(page, m_ids, InteractivityField::AcceptedWords,
                                                             InteractivityValue{keywordsOf(value)})
                 : interactivityCommand(m_document->document().page(page), page, m_ids, *i, value);
         if (!command) {

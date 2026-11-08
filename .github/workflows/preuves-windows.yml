@@ -89,7 +89,7 @@ jobs:
         if: runner.environment == 'github-hosted'
         shell: bash
         run: |
-          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtmultimedia qtwebview qtpdf --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
@@ -146,10 +146,16 @@ jobs:
           if ($env:MOTIF) { ctest --preset $env:PRESET --output-on-failure -R $env:MOTIF } else { ctest --preset $env:PRESET --output-on-failure }
           if ($LASTEXITCODE -eq 0) { Write-Output 'PREUVES WINDOWS OK' } else {
             # ctest n'affiche rien quand le test meurt avant d'écrire : relancer chaque test rouge en direct, avec son code de sortie.
-            ctest --preset $env:PRESET --rerun-failed -N | Select-String 'Test +#\d+: (\S+)' | ForEach-Object {
-              $nom = $_.Matches[0].Groups[1].Value
-              $exe = Get-ChildItem "build/$env:PRESET" -Recurse -Filter "$nom.exe" | Select-Object -First 1
-              if ($exe) { Write-Output "== $nom en direct"; $env:QT_QPA_PLATFORM = 'offscreen'; $env:QT_QUICK_BACKEND = 'software'; $env:QT_QPA_FONTDIR = "$env:WINDIR/Fonts"; $env:QT_FORCE_STDERR_LOGGING = '1'; $env:QT_LOGGING_RULES = '*.debug=false'; & $exe.FullName -v2 -o 'sortie-test.txt,txt' 2>&1 | Select-Object -Last 60; Write-Output ("code de sortie 0x{0:X}" -f $LASTEXITCODE); if (Test-Path sortie-test.txt) { Select-String -Path sortie-test.txt -Pattern 'FAIL!|QFATAL|Totals' -Context 0,6 | ForEach-Object { $_.ToString() } } else { Write-Output 'aucune sortie QtTest' } }
+            # La commande vient de ctest (json-v1) : un test multi-classes (tst_ui_lot7 clock) garde ses arguments ; seuls les exécutables QtTest (tst_*) sont relancés.
+            # Plafond : 5 relances et 4 min en tout (marge du délai de 40 min du job), chaque relance coupée au-delà.
+            $rouges = (ctest --preset $env:PRESET --rerun-failed --show-only=json-v1 | Out-String | ConvertFrom-Json).tests
+            $fin = (Get-Date).AddMinutes(4); $relances = 0
+            foreach ($t in $rouges) {
+              $nom = $t.name; $commande = @($t.command | Where-Object { $_ })
+              $exe = if ($commande.Count -gt 0 -and (Split-Path $commande[0] -Leaf) -like 'tst_*') { $commande[0] } else { $null }
+              $arguments = @($commande | Select-Object -Skip 1) + @('-v2', '-o', 'sortie-test.txt,txt')
+              if ($exe -and ($relances -ge 5 -or (Get-Date) -ge $fin)) { Write-Output "== $nom non relancé (plafond : 5 relances, 4 min)"; $exe = $null }
+              if ($exe) { $relances++; Write-Output "== $nom en direct"; Remove-Item sortie-test.txt -ErrorAction SilentlyContinue; $env:QT_QPA_PLATFORM = 'offscreen'; $env:QT_QUICK_BACKEND = 'software'; $env:QT_QPA_FONTDIR = "$env:WINDIR/Fonts"; $env:QT_FORCE_STDERR_LOGGING = '1'; $env:QT_LOGGING_RULES = '*.debug=false'; $job = Start-Job -ScriptBlock { param($e, $a) & $e @a 2>&1 | Select-Object -Last 60; 'code de sortie 0x{0:X}' -f $LASTEXITCODE } -ArgumentList $exe, $arguments; if (Wait-Job $job -Timeout ([int][Math]::Max(1, ($fin - (Get-Date)).TotalSeconds))) { Receive-Job $job } else { Stop-Job $job; Write-Output 'relance coupée (plafond de 4 min des relances)' }; Remove-Job $job -Force; if (Test-Path sortie-test.txt) { Select-String -Path sortie-test.txt -Pattern 'FAIL!|QFATAL|Totals' -Context 0,6 | ForEach-Object { $_.ToString() } } else { Write-Output 'aucune sortie QtTest' } }
             }
             Write-Output 'PREUVES WINDOWS EN ECHEC'; exit 1
           }

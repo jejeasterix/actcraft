@@ -1,0 +1,10 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "reglages-vierges",
+  "description": "L7-T41, seconde passe de tst_captures_reglages_isoles, lancée juste après reglages-ecrits : elle repart des réglages par défaut et ne voit pas le fondu écrit par la passe précédente.",
+  "steps": [
+    {"waitReady": true},
+    {"expect": "transition.globalEffect", "value": "none"},
+    {"expect": "transition.durationTenths", "value": 15}
+  ]
+}

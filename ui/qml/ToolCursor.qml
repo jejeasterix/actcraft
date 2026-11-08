@@ -14,15 +14,16 @@ Item {
     // Position du pointeur dans le repère de ce curseur : la plus récente des deux sources. Source unique : PageArea
     // (indicateur de largeur) la lit ici.
     property point pointerAt: Qt.point(0, 0)
-    readonly property bool circled: cursor.tools.currentTool === "highlighter" || cursor.tools.currentTool === "eraser"
-    readonly property bool shaped: cursor.tools.currentTool === "shape"
-    property int cursorShape: cursor.tools.currentTool === "select" || cursor.shaped
+    readonly property bool circled: !!cursor.tools && (cursor.tools.currentTool === "highlighter" || cursor.tools.currentTool === "eraser")
+    readonly property bool shaped: !!cursor.tools && cursor.tools.currentTool === "shape"
+    property int cursorShape: !!cursor.tools && cursor.tools.currentTool === "select" || cursor.shaped
                               ? Qt.ArrowCursor
                               : cursor.circled ? Qt.BlankCursor : Qt.CrossCursor
     readonly property var outline: cursor.shaped ? cursor.tools.shapeOutline(cursor.tools.shapePreset) : []
 
     HoverHandler {
         id: pointer
+        parent: cursor.parent // Sur le parent : survolé ici, il retiendrait le survol des sœurs dessous (outils de maths, L7-T33b)
         onPointChanged: cursor.pointerAt = pointer.point.position
     }
     Connections {
