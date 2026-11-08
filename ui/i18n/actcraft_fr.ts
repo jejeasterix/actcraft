@@ -20,10 +20,10 @@
     </message>
     <message>
         <location filename="../qml/AboutDialog.qml" line="78"/>
-        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="144"/>
-        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="153"/>
-        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="155"/>
-        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="159"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="141"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="150"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="152"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="156"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
     </message>
@@ -1038,27 +1038,27 @@
         <translation>%1%2 — ActCraft — rendu : %3</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="833"/>
+        <location filename="../qml/Main.qml" line="844"/>
         <source>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</source>
         <translation>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="875"/>
+        <location filename="../qml/Main.qml" line="886"/>
         <source>Ouverture impossible : %1</source>
         <translation>Ouverture impossible : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="877"/>
+        <location filename="../qml/Main.qml" line="888"/>
         <source>1 avertissement de lecture : %1</source>
         <translation>1 avertissement de lecture : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="879"/>
+        <location filename="../qml/Main.qml" line="890"/>
         <source>%1 avertissements de lecture : %2</source>
         <translation>%1 avertissements de lecture : %2</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="886"/>
+        <location filename="../qml/Main.qml" line="897"/>
         <source>Enregistrement impossible : %1</source>
         <translation>Enregistrement impossible : %1</translation>
     </message>
@@ -2423,6 +2423,24 @@
         <location filename="../qml/TouchModeMenu.qml" line="48"/>
         <source>Gestion complète</source>
         <translation>Gestion complète</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateBanner</name>
+    <message>
+        <location filename="../qml/UpdateBanner.qml" line="32"/>
+        <source>Version %1 disponible</source>
+        <translation>Version %1 disponible</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateBanner.qml" line="39"/>
+        <source>Voir la version</source>
+        <translation>Voir la version</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateBanner.qml" line="44"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
     </message>
 </context>
 <context>
