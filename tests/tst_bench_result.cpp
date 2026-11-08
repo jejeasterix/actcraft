@@ -367,7 +367,7 @@ private slots:
             }
         }
         if constexpr (ACTCRAFT_SMOKE_RELEASE != 0) {
-            QVERIFY(checked > 0);
+            QCOMPARE(checked, qsizetype{17}); // les 17 choix arrivent au repos
         }
     }
 
