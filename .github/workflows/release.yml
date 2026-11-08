@@ -24,18 +24,6 @@ on:
         type: choice
         options: [essai, reel]
         default: essai
-      # Exécuteurs (O86) : nos runners par défaut, y compris sur un tag (entrées vides). Repli manuel seulement, sur
-      # les machines GitHub (minutes payantes).
-      runner_linux:
-        description: "Jobs légers et android : self-hosted (Mac mini) ou ubuntu-latest (minutes payantes)"
-        type: choice
-        options: [self-hosted, ubuntu-latest]
-        default: self-hosted
-      runner_windows:
-        description: "Job windows : self-hosted (PC) ou windows-latest (minutes payantes)"
-        type: choice
-        options: [self-hosted, windows-latest]
-        default: self-hosted
 
 # Un seul run à la fois par référence (un run en cours n'est pas annulé). Une release déjà présente pour le tag,
 # brouillon compris, arrête le job « release » (RELEASE EXISTE DEJA) : jamais de second brouillon.
@@ -45,9 +33,6 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-# Exécuteurs (O86) : runner du Mac mini pour les jobs légers et android (PowerShell et chaîne Android installés dans son
-# cache, .github/actions/pwsh-mac, scripts/ci/outils-android-mac.sh), runner du PC pour windows. En mode réel, les
-# secrets de signature passent donc par le Mac (keystore écrit dans RUNNER_TEMP le temps de la signature, puis retiré).
 # Lecture seule partout ; seuls « release » (brouillon) et « nettoyer » (artefacts du run) écrivent, en mode réel.
 permissions:
   contents: read
@@ -57,16 +42,13 @@ env:
 
 jobs:
   mode:
-    runs-on: ${{ inputs.runner_linux == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       mode: ${{ steps.mode.outputs.mode }}
       version: ${{ steps.mode.outputs.version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: ./.github/actions/pwsh-mac
-        if: runner.environment != 'github-hosted'
 
       # Contexte passé par l'environnement, jamais interpolé dans le script (un nom de branche peut contenir « ' »).
       - id: mode
@@ -96,13 +78,10 @@ jobs:
     needs: mode
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
-    runs-on: ${{ inputs.runner_linux == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: ./.github/actions/pwsh-mac
-        if: runner.environment != 'github-hosted'
 
       - name: Secrets de signature
         shell: pwsh
@@ -132,13 +111,10 @@ jobs:
   controle-mode-reel:
     needs: mode
     if: needs.mode.outputs.mode == 'essai'
-    runs-on: ${{ inputs.runner_linux == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: ./.github/actions/pwsh-mac
-        if: runner.environment != 'github-hosted'
 
       # Même script que le job « secrets », dans la forme qu'y prend un secret absent : variable définie et vide.
       # Contre-épreuve avec des valeurs factices : le contrôle laisse passer, il n'échoue donc pas toujours.
@@ -183,44 +159,21 @@ jobs:
   windows:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
-    runs-on: ${{ inputs.runner_windows == 'windows-latest' && 'windows-latest' || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]') }}
-    # 20 min ne suffisaient plus au lot 5 : construction de l'installateur coupée à 18 min, deux fois (v0.6.0). PC :
-    # premier run plus long (arbre build/release vide), puis compilation incrémentale.
-    timeout-minutes: 90
+    runs-on: windows-latest
+    # 20 min ne suffisaient plus au lot 5 : construction de l'installateur coupée à 18 min, deux fois (v0.6.0).
+    timeout-minutes: 45
     steps:
-      # Mêmes étapes que paquet-windows de ci.yml (garde, copie de travail, Qt, Inno Setup du PC).
-      - name: Garde du runner auto-hébergé Windows (visibilité)
-        if: runner.environment != 'github-hosted'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $visibilite = (gh api "repos/$env:GITHUB_REPOSITORY" --jq .visibility).Trim()
-          if ($LASTEXITCODE -ne 0 -or $visibilite -ne 'private') {
-            "::error::Dépôt '$visibilite' : runner auto-hébergé interdit. Arrêter la tâche Claude-Runner-Actcraft et désenregistrer le runner (C:\actions-runner-actcraft)."
-            exit 1
-          }
-
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Nettoyer la copie de travail, sauf build/ (runner Windows)
-        if: runner.environment != 'github-hosted'
-        run: git clean -ffdx -e /build/
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        if: runner.environment == 'github-hosted'
         with:
           python-version: "3.12"
 
       # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 : même commit que ci.yml.
       - name: Installer Ninja et aqtinstall
-        if: runner.environment == 'github-hosted'
         run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
       - name: Installer Qt
-        if: runner.environment == 'github-hosted'
         shell: bash
         run: |
           python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
@@ -228,51 +181,14 @@ jobs:
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
 
-      - name: Qt du PC
-        if: runner.environment != 'github-hosted'
-        shell: pwsh
-        run: |
-          $qt = "C:\Qt\$env:QT_VERSION\msvc2022_64"
-          foreach ($module in 'Qt6', 'Qt6ShaderTools') {
-            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt"; exit 1 }
-          }
-          "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
-          "$qt\bin" >> $env:GITHUB_PATH
-          "CMAKE_BUILD_PARALLEL_LEVEL=6" >> $env:GITHUB_ENV
-
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
-      - name: Installer Inno Setup (exécuteur GitHub)
-        if: runner.environment == 'github-hosted'
+      - name: Installer Inno Setup
         shell: pwsh
         run: |
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
           if (-not (Test-Path $iscc)) { throw "ISCC.exe introuvable après installation" }
-          "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
-
-      - name: Inno Setup du PC
-        if: runner.environment != 'github-hosted'
-        shell: pwsh
-        run: |
-          $candidats = @((Join-Path $env:LOCALAPPDATA 'Programs/Inno Setup 6/ISCC.exe'), (Join-Path $HOME '.tools/InnoSetup6/ISCC.exe'),
-            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'), (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe'))
-          $iscc = $candidats | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $iscc) {
-            $dossier = Join-Path $env:RUNNER_TOOL_CACHE 'innosetup/6.7.3'
-            $iscc = Join-Path $dossier 'ISCC.exe'
-            if (-not (Test-Path $iscc)) {
-              $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
-              Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $setup
-              $somme = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
-              if ($somme -ne '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732') { throw "innosetup-6.7.3.exe : somme inattendue $somme" }
-              $p = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
-                '/CURRENTUSER', '/PORTABLE=1', '/NOICONS', "/DIR=`"$dossier`"")
-              Remove-Item -Force $setup
-              if ($p.ExitCode -ne 0 -or -not (Test-Path $iscc)) { throw "installation d'Inno Setup en échec (code $($p.ExitCode))" }
-            }
-          }
-          "Inno Setup : $iscc"
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
       - name: Construire l'installateur
@@ -283,23 +199,9 @@ jobs:
 
       # S1 dans une vraie fenêtre, rendu D3D11 (WARP sur l'exécuteur sans GPU), comme ci.yml.
       - name: Essai de l'installateur (S1)
-        if: runner.environment == 'github-hosted'
         shell: pwsh
         run: |
           pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -Rendu d3d11 | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
-          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/s1.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
-
-      # PC : hors écran, jamais par-dessus une installation d'ActCraft du profil (comme paquet-windows de ci.yml).
-      - name: Essai de l'installateur (S1, PC hors écran)
-        if: runner.environment != 'github-hosted'
-        shell: pwsh
-        run: |
-          $traces = @((Join-Path ([Environment]::GetFolderPath('Programs')) 'ActCraft.lnk'),
-            'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{5F0C2E7A-3B4D-4C8E-9A61-ACC0C4AF7A10}_is1',
-            'HKCU:\Software\Classes\ActCraft.Document')
-          $presentes = @($traces | Where-Object { Test-Path -LiteralPath $_ })
-          if ($presentes) { "::error::ActCraft déjà installé dans le profil du runner ($($presentes -join ', ')) : essai S1 refusé, il le désinstallerait."; exit 1 }
-          pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -HorsEcran | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/s1.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
 
       - name: Somme SHA-256
@@ -326,23 +228,15 @@ jobs:
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     # Mode réel seulement (secrets de signature) ; vide en mode essai : aucun environnement.
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
-    runs-on: ${{ inputs.runner_linux == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
-    # Mac mini : premier run plus long (Qt pour Android et SDK installés dans le cache du runner, voir ci.yml).
-    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       # Un démon Gradle resté vivant verrouille le dossier de construction (piège L1-T17).
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: ./.github/actions/gardes-mac
-        if: runner.environment != 'github-hosted'
-
-      - uses: ./.github/actions/pwsh-mac
-        if: runner.environment != 'github-hosted'
-
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        if: runner.environment == 'github-hosted'
         with:
           python-version: "3.12"
 
@@ -356,13 +250,11 @@ jobs:
         run: cat packaging/android/versions.env >> "$GITHUB_ENV"
 
       - name: Installer Ninja et aqtinstall
-        if: runner.environment == 'github-hosted'
         run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
       # Qt Android arm64-v8a seul ; ACTCRAFT_QT_ANDROID_X86_64_DIR désigne le même dossier pour que
       # dev-env-android.ps1 ne s'arrête pas (le preset android-x86_64 n'est pas construit ici).
       - name: Installer Qt (hôte et Android arm64-v8a)
-        if: runner.environment == 'github-hosted'
         run: |
           python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
@@ -371,18 +263,11 @@ jobs:
           echo "ACTCRAFT_QT_ANDROID_X86_64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
 
       - name: Installer le NDK, la plateforme et les build-tools
-        if: runner.environment == 'github-hosted'
         run: |
           sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$sdkmanager" --licenses > /dev/null
           "$sdkmanager" "ndk;$ANDROID_NDK_VERSION" "build-tools;$ANDROID_BUILD_TOOLS" "platforms;android-$ANDROID_PLATFORM"
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
-
-      # Mac : même chaîne que le job android de ci.yml, sans émulateur ; ACTCRAFT_QT_ANDROID_X86_64_DIR y désigne aussi
-      # le dossier arm64-v8a.
-      - name: Chaîne Android du Mac (cache du runner)
-        if: runner.environment != 'github-hosted'
-        run: ./scripts/ci/outils-android-mac.sh arm64_v8a
 
       # Secrets lus en mode réel seulement (vides en mode essai). Clé et alias lus puis retirés de l'environnement de
       # l'étape avant tout lancement ; mots de passe transmis à paquet-android.ps1 par ses variables
@@ -447,15 +332,12 @@ jobs:
     needs: [mode, secrets, windows, android]
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
-    runs-on: ${{ inputs.runner_linux == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: ./.github/actions/pwsh-mac
-        if: runner.environment != 'github-hosted'
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -507,7 +389,7 @@ jobs:
   nettoyer:
     needs: [mode, windows, android, release]
     if: always() && needs.mode.outputs.mode == 'reel'
-    runs-on: ${{ inputs.runner_linux == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       actions: write

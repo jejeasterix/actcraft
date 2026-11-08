@@ -377,6 +377,14 @@ jobs:
           "Inno Setup : $iscc"
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
+      # PC : build/release est partagé avec les runs d'autres branches (et preuves-windows.yml). paquet.ps1 configure
+      # sans --fresh : le cache CMake est retiré pour que les options de cette branche s'appliquent, comme le --fresh du
+      # job build ; Ninja garde les objets compilés.
+      - name: Cache CMake de build/release retiré (PC)
+        if: runner.environment != 'github-hosted'
+        shell: pwsh
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/CMakeCache.txt, build/release/CMakeFiles
+
       # Chaque script finit par une ligne de verdict (« … OK » / « … EN ECHEC : … ») : la CI l'exige en plus du code.
       - name: Construire l'installateur
         shell: pwsh
@@ -400,7 +408,7 @@ jobs:
         run: |
           $traces = @((Join-Path ([Environment]::GetFolderPath('Programs')) 'ActCraft.lnk'),
             'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{5F0C2E7A-3B4D-4C8E-9A61-ACC0C4AF7A10}_is1',
-            'HKCU:\Software\Classes\ActCraft.Document')
+            'HKCU:\Software\Classes\ActCraft.Document', 'HKCU:\Software\Classes\.actcraft')
           $presentes = @($traces | Where-Object { Test-Path -LiteralPath $_ })
           if ($presentes) { "::error::ActCraft déjà installé dans le profil du runner ($($presentes -join ', ')) : essai S1 refusé, il le désinstallerait."; exit 1 }
           pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -HorsEcran | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"

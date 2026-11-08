@@ -6,7 +6,9 @@
 # - Qt $QT_VERSION hôte macOS et Qt pour Android des ABI demandées, mêmes modules que la CI Linux ;
 # - SDK Android : cmdline-tools, NDK, build-tools, plateforme, platform-tools de versions.env ; avec l'ABI arm64-v8a
 #   demandée pour l'essai (-Emulateur), l'émulateur épinglé et son image système arm64-v8a ;
-# - Gradle et l'AVD rangés dans le cache (GRADLE_USER_HOME, ANDROID_USER_HOME).
+# - Gradle, les réglages Android et l'AVD rangés dans le cache (GRADLE_USER_HOME, ANDROID_PREFS_ROOT, ANDROID_AVD_HOME).
+#   ANDROID_PREFS_ROOT et non ANDROID_USER_HOME : le plugin Gradle d'Android écrit ~/.android/analytics.settings malgré
+#   ANDROID_USER_HOME, et refuse les deux variables ensemble quand elles diffèrent.
 # Le JDK 21 vient de actions/setup-java (JAVA_HOME). Écrit les variables du job dans $GITHUB_ENV et $GITHUB_PATH.
 # Usage : scripts/ci/outils-android-mac.sh [--emulateur] <abi>...   (abi : arm64_v8a, x86_64)
 set -euo pipefail
@@ -56,8 +58,8 @@ if [ ! -x "$sdkmanager" ]; then
   mv "$sdk/cmdline-tools/cmdline-tools" "$sdk/cmdline-tools/latest"
   rm -f "$RUNNER_TEMP/outils.zip"
 fi
-export ANDROID_USER_HOME="$cache/android-user"
-mkdir -p "$ANDROID_USER_HOME/avd"
+prefs="$cache/android-user"
+mkdir -p "$prefs/avd"
 paquets=(platform-tools "ndk;$ANDROID_NDK_VERSION" "build-tools;$ANDROID_BUILD_TOOLS" "platforms;android-$ANDROID_PLATFORM")
 if [ -n "$emulateur" ]; then
   paquets+=(emulator "system-images;android-$ANDROID_EMULATOR_API;google_apis;arm64-v8a")
@@ -85,9 +87,8 @@ x86_64="$qt/$QT_VERSION/android_x86_64"
   echo "ANDROID_SDK_ROOT=$sdk"
   echo "ANDROID_HOME=$sdk"
   echo "ANDROID_NDK_ROOT=$sdk/ndk/$ANDROID_NDK_VERSION"
-  echo "ANDROID_USER_HOME=$ANDROID_USER_HOME"
-  echo "ANDROID_AVD_HOME=$ANDROID_USER_HOME/avd"
-  echo "ANDROID_EMULATOR_HOME=$ANDROID_USER_HOME"
+  echo "ANDROID_PREFS_ROOT=$prefs"
+  echo "ANDROID_AVD_HOME=$prefs/avd"
   echo "GRADLE_USER_HOME=$cache/gradle"
   echo "ACTCRAFT_QT_HOST_DIR=$qt/$QT_VERSION/macos"
   echo "ACTCRAFT_QT_ANDROID_ARM64_DIR=$arm64"
