@@ -27,11 +27,11 @@ Window {
     palette.text: Theme.texte
     palette.button: Theme.surface
     palette.buttonText: Theme.texte
-    palette.brightText: Theme.texte
+    palette.brightText: Theme.texteSurActive
     palette.light: Theme.surfaceSurvol
     palette.midlight: Theme.surfaceSurvol
     palette.mid: Theme.surfaceSurvol
-    palette.dark: Theme.contour
+    palette.dark: Theme.surfaceActive // remplissage d'un bouton coché (L11-T24) ; son libellé : brightText
     palette.highlight: Theme.surfaceActive
     palette.highlightedText: Theme.texteSurActive
     palette.link: Theme.surfaceActive
