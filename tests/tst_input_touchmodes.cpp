@@ -106,7 +106,9 @@ private slots:
             // Une paume pose souvent plusieurs points dans le même événement : aucun geste pour autant
             // (D11-3).
             const Sample palm[] = {press(DeviceKind::Touch, 8), press(DeviceKind::Touch, 9)};
-            for (const Decision& d : router.routePresses(palm)) {
+            const auto palmDecisions = router.routePresses(palm);
+            QCOMPARE(palmDecisions.size(), std::size_t(2));
+            for (const Decision& d : palmDecisions) {
                 QCOMPARE(d.route, Route::Ignore);
             }
             QCOMPARE(router.gestureTouches(), 0);

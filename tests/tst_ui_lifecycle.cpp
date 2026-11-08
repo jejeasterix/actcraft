@@ -511,7 +511,14 @@ private slots:
         const QString copy = recovery + QStringLiteral("/reprise.actcraft");
         const QUrl original = QUrl::fromLocalFile(dir.filePath(QStringLiteral("lecon.actcraft")));
         QVERIFY(!leaveCopy(recovery, original).isEmpty());
-        QTest::qWait(50);
+        // Vieillit la copie de dix secondes : un qWait ne suffirait pas sur un système de fichiers à la
+        // seconde (la comparaison du gardien est stricte).
+        {
+            QFile aged(copy);
+            QVERIFY(aged.open(QIODevice::ReadWrite));
+            QVERIFY(aged.setFileTime(QDateTime::currentDateTime().addSecs(-10),
+                                     QFileDevice::FileModificationTime));
+        }
         {
             ui::DocumentController other; // enregistré après la copie, sans gardien
             other.newDocument(1024, 768);

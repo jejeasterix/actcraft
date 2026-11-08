@@ -491,6 +491,29 @@ private slots:
         QVERIFY2(report.last().contains(QLatin1String("hors image")), qPrintable(report.last()));
     }
 
+    // checkPixel en repère fenêtre (L11-C15) : lit le pixel là où un trait posé en repère fenêtre est passé ;
+    // le même point lu en repère fenêtre, là où rien n'a été tracé, est un écart.
+    void checkPixelReadsInWindowSpace()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        const UiScenario s =
+            scenario("fenetre",
+                     "[{\"waitReady\":true},"
+                     " {\"stroke\":[[100,400],[300,400]],\"space\":\"window\",\"pressure\":1.0},"
+                     " {\"waitReady\":true},"
+                     " {\"checkPixel\":\"trait\",\"at\":[200,400],\"space\":\"window\",\"color\":\"#000000\","
+                     "\"tolerance\":60}]");
+        QStringList report;
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        const UiScenario blank =
+            scenario("fenetre-vide",
+                     "[{\"checkPixel\":\"rien\",\"at\":[200,100],\"space\":\"window\",\"color\":\"#000000\","
+                     "\"tolerance\":60}]");
+        QVERIFY(!f.player->play(blank, f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("PIXEL rien ECART")), qPrintable(report.last()));
+    }
+
     // Une étape en échec arrête le scénario ; l'index le dit.
     void stopsAtFirstFailingStep()
     {
@@ -1146,7 +1169,18 @@ private slots:
                                    QStringLiteral("R1"), QStringLiteral("R2")};
         QCOMPARE(injector.eventLog(), expected);
         QCoreApplication::processEvents();
-        // Un contact plus court garde sa dernière position ; contacts invalides refusés sans rien poster.
+        // Un contact plus court n'émet plus de mouvement une fois ses points épuisés, puis se relâche avec
+        // les autres (le journal porte les phases, pas les positions).
+        injector.setLogging(true);
+        const std::vector<ParallelContact> uneven{
+            {1, QStringLiteral("stylus"), {QPointF(10, 10), QPointF(50, 10), QPointF(90, 10)}},
+            {2, QStringLiteral("touch"), {QPointF(10, 90)}}};
+        QVERIFY(injector.postParallel(uneven, 0.5, PointSpace::Window));
+        const QStringList expectedUneven{QStringLiteral("P1"), QStringLiteral("P2"), QStringLiteral("M1"),
+                                         QStringLiteral("M1"), QStringLiteral("R1"), QStringLiteral("R2")};
+        QCOMPARE(injector.eventLog(), expectedUneven);
+        QCoreApplication::processEvents();
+        // Contacts invalides refusés sans rien poster.
         injector.setLogging(true);
         QVERIFY(!injector.postParallel({}, 0.5, PointSpace::Window));
         QVERIFY(
