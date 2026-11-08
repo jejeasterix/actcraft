@@ -19,9 +19,74 @@
         <translation>Logiciel libre de tableau blanc interactif, sous licence %1.</translation>
     </message>
     <message>
-        <location filename="../qml/AboutDialog.qml" line="65"/>
+        <location filename="../qml/AboutDialog.qml" line="66"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="144"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="153"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="155"/>
+        <location filename="../../tests/tst_ui_pseudolocale.cpp" line="159"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
+    </message>
+</context>
+<context>
+    <name>ActionBrowser</name>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="62"/>
+        <source>Catégorie</source>
+        <translation>Catégorie</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="122"/>
+        <source>Propriétés</source>
+        <translation>Propriétés</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="133"/>
+        <source>Replier les propriétés</source>
+        <translation>Replier les propriétés</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="133"/>
+        <source>Déplier les propriétés</source>
+        <translation>Déplier les propriétés</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="190"/>
+        <source>Appliquer</source>
+        <translation>Appliquer</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="198"/>
+        <source>Retirer les actions existantes</source>
+        <translation>Retirer les actions existantes</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="256"/>
+        <source>Cliquer sur l&apos;objet…</source>
+        <translation>Cliquer sur l&apos;objet…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="257"/>
+        <source>Objet %1</source>
+        <translation>Objet %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ActionBrowser.qml" line="257"/>
+        <source>Choisir l&apos;objet</source>
+        <translation>Choisir l&apos;objet</translation>
+    </message>
+</context>
+<context>
+    <name>AreaSelector</name>
+    <message>
+        <location filename="../qml/AreaSelector.qml" line="80"/>
+        <source>Tracez la zone de l&apos;écran à enregistrer (Échap pour annuler)</source>
+        <translation>Tracez la zone de l&apos;écran à enregistrer (Échap pour annuler)</translation>
+    </message>
+    <message>
+        <location filename="../qml/AreaSelector.qml" line="81"/>
+        <source>Placez la fenêtre sur l&apos;écran principal pour tracer la zone (Échap pour annuler)</source>
+        <translation>Placez la fenêtre sur l&apos;écran principal pour tracer la zone (Échap pour annuler)</translation>
     </message>
 </context>
 <context>
@@ -75,34 +140,108 @@
 <context>
     <name>BrowserPanel</name>
     <message>
-        <location filename="../qml/BrowserPanel.qml" line="98"/>
+        <location filename="../qml/BrowserPanel.qml" line="136"/>
         <source>Pages</source>
         <translation>Pages</translation>
     </message>
     <message>
-        <location filename="../qml/BrowserPanel.qml" line="99"/>
+        <location filename="../qml/BrowserPanel.qml" line="137"/>
         <source>Ressources</source>
         <translation>Ressources</translation>
     </message>
     <message>
-        <location filename="../qml/BrowserPanel.qml" line="100"/>
+        <location filename="../qml/BrowserPanel.qml" line="138"/>
         <source>Objets</source>
         <translation>Objets</translation>
     </message>
     <message>
-        <location filename="../qml/BrowserPanel.qml" line="101"/>
+        <location filename="../qml/BrowserPanel.qml" line="139"/>
         <source>Notes</source>
         <translation>Notes</translation>
     </message>
     <message>
-        <location filename="../qml/BrowserPanel.qml" line="102"/>
+        <location filename="../qml/BrowserPanel.qml" line="140"/>
         <source>Propriétés</source>
         <translation>Propriétés</translation>
     </message>
     <message>
-        <location filename="../qml/BrowserPanel.qml" line="103"/>
+        <location filename="../qml/BrowserPanel.qml" line="141"/>
         <source>Actions</source>
         <translation>Actions</translation>
+    </message>
+</context>
+<context>
+    <name>ClassroomLockDialog</name>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="38"/>
+        <source>Le mot de passe n&apos;a pas pu être créé.</source>
+        <translation>Le mot de passe n&apos;a pas pu être créé.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="49"/>
+        <source>Mot de passe incorrect.</source>
+        <translation>Mot de passe incorrect.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="55"/>
+        <source>L&apos;ancien mot de passe est incorrect.</source>
+        <translation>L&apos;ancien mot de passe est incorrect.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="87"/>
+        <source>Saisissez un mot de passe.</source>
+        <translation>Saisissez un mot de passe.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="91"/>
+        <source>Les deux saisies diffèrent.</source>
+        <translation>Les deux saisies diffèrent.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="133"/>
+        <source>Saisissez le mot de passe de la classe.</source>
+        <translation>Saisissez le mot de passe de la classe.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="134"/>
+        <source>Changez le mot de passe de la classe.</source>
+        <translation>Changez le mot de passe de la classe.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="135"/>
+        <source>Créez le mot de passe de la classe (deux fois).</source>
+        <translation>Créez le mot de passe de la classe (deux fois).</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="146"/>
+        <source>Ancien mot de passe</source>
+        <translation>Ancien mot de passe</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="146"/>
+        <source>Mot de passe</source>
+        <translation>Mot de passe</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="155"/>
+        <source>Nouveau mot de passe</source>
+        <translation>Nouveau mot de passe</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="155"/>
+        <location filename="../qml/ClassroomLockDialog.qml" line="164"/>
+        <source>Confirmation</source>
+        <translation>Confirmation</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="180"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClassroomLockDialog.qml" line="184"/>
+        <source>Valider</source>
+        <translation>Valider</translation>
     </message>
 </context>
 <context>
@@ -124,7 +263,7 @@
 <context>
     <name>CommandMenu</name>
     <message>
-        <location filename="../qml/CommandMenu.qml" line="80"/>
+        <location filename="../qml/CommandMenu.qml" line="87"/>
         <source>Documents récents</source>
         <translation>Documents récents</translation>
     </message>
@@ -170,43 +309,111 @@
 <context>
     <name>ConnectorPanel</name>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="19"/>
+        <location filename="../qml/ConnectorPanel.qml" line="36"/>
         <source>Aucune</source>
         <translation>Aucune</translation>
     </message>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="19"/>
+        <location filename="../qml/ConnectorPanel.qml" line="36"/>
         <source>Rayon</source>
         <translation>Rayon</translation>
     </message>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="19"/>
+        <location filename="../qml/ConnectorPanel.qml" line="36"/>
         <source>Flèche</source>
         <translation>Flèche</translation>
     </message>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="58"/>
-        <location filename="../qml/ConnectorPanel.qml" line="62"/>
         <source>Style %1</source>
-        <translation>Style %1</translation>
+        <translation type="vanished">Style %1</translation>
     </message>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="80"/>
+        <location filename="../qml/ConnectorPanel.qml" line="17"/>
+        <source>Ligne</source>
+        <translation>Ligne</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="18"/>
+        <source>Flèche au départ</source>
+        <translation>Flèche au départ</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="19"/>
+        <source>Flèche à l&apos;arrivée</source>
+        <translation>Flèche à l&apos;arrivée</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="20"/>
+        <source>Deux flèches</source>
+        <translation>Deux flèches</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="21"/>
+        <source>Pointillés</source>
+        <translation>Pointillés</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="22"/>
+        <source>Pointillés, flèche au départ</source>
+        <translation>Pointillés, flèche au départ</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="23"/>
+        <source>Pointillés, flèche à l&apos;arrivée</source>
+        <translation>Pointillés, flèche à l&apos;arrivée</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="24"/>
+        <source>Pointillés, deux flèches</source>
+        <translation>Pointillés, deux flèches</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="25"/>
+        <source>Courbe, départ vertical</source>
+        <translation>Courbe, départ vertical</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="26"/>
+        <source>Courbe, départ horizontal</source>
+        <translation>Courbe, départ horizontal</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="27"/>
+        <source>Marches</source>
+        <translation>Marches</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="28"/>
+        <source>Coude</source>
+        <translation>Coude</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="29"/>
+        <source>Oblique puis horizontal</source>
+        <translation>Oblique puis horizontal</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="30"/>
+        <source>Oblique puis horizontal, flèche au départ</source>
+        <translation>Oblique puis horizontal, flèche au départ</translation>
+    </message>
+    <message>
+        <location filename="../qml/ConnectorPanel.qml" line="153"/>
         <source>Extrémité A</source>
         <translation>Extrémité A</translation>
     </message>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="80"/>
+        <location filename="../qml/ConnectorPanel.qml" line="153"/>
         <source>Extrémité B</source>
         <translation>Extrémité B</translation>
     </message>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="99"/>
+        <location filename="../qml/ConnectorPanel.qml" line="172"/>
         <source>Extrémité A : %1</source>
         <translation>Extrémité A : %1</translation>
     </message>
     <message>
-        <location filename="../qml/ConnectorPanel.qml" line="99"/>
+        <location filename="../qml/ConnectorPanel.qml" line="172"/>
         <source>Extrémité B : %1</source>
         <translation>Extrémité B : %1</translation>
     </message>
@@ -263,19 +470,28 @@
 <context>
     <name>DocumentTabBar</name>
     <message>
-        <location filename="../qml/DocumentTabBar.qml" line="149"/>
+        <location filename="../qml/DocumentTabBar.qml" line="159"/>
         <source>Sans titre</source>
         <translation>Sans titre</translation>
     </message>
     <message>
-        <location filename="../qml/DocumentTabBar.qml" line="164"/>
+        <location filename="../qml/DocumentTabBar.qml" line="174"/>
         <source>Fermer l&apos;onglet</source>
         <translation>Fermer l&apos;onglet</translation>
     </message>
     <message>
-        <location filename="../qml/DocumentTabBar.qml" line="204"/>
+        <location filename="../qml/DocumentTabBar.qml" line="214"/>
         <source>Nouvel onglet</source>
         <translation>Nouvel onglet</translation>
+    </message>
+</context>
+<context>
+    <name>DragDropActions</name>
+    <message>
+        <location filename="../qml/DragDropActions.qml" line="28"/>
+        <location filename="../qml/DragDropActions.qml" line="54"/>
+        <source>Glisser-déposer</source>
+        <translation>Glisser-déposer</translation>
     </message>
 </context>
 <context>
@@ -304,92 +520,97 @@
 <context>
     <name>FileActions</name>
     <message>
-        <location filename="../qml/FileActions.qml" line="145"/>
+        <location filename="../qml/FileActions.qml" line="167"/>
         <source>Ouvrir un paperboard</source>
         <translation>Ouvrir un paperboard</translation>
     </message>
     <message>
-        <location filename="../qml/FileActions.qml" line="147"/>
+        <location filename="../qml/FileActions.qml" line="169"/>
         <source>Paperboards (*.actcraft *.flipchart)</source>
         <translation>Paperboards (*.actcraft *.flipchart)</translation>
     </message>
     <message>
-        <location filename="../qml/FileActions.qml" line="147"/>
+        <location filename="../qml/FileActions.qml" line="169"/>
         <source>Tous les fichiers (*)</source>
         <translation>Tous les fichiers (*)</translation>
     </message>
     <message>
-        <location filename="../qml/FileActions.qml" line="153"/>
+        <location filename="../qml/FileActions.qml" line="175"/>
         <source>Enregistrer le paperboard sous</source>
         <translation>Enregistrer le paperboard sous</translation>
     </message>
     <message>
-        <location filename="../qml/FileActions.qml" line="156"/>
+        <location filename="../qml/FileActions.qml" line="178"/>
         <source>Paperboards ActCraft (*.actcraft)</source>
         <translation>Paperboards ActCraft (*.actcraft)</translation>
+    </message>
+    <message>
+        <location filename="../qml/FileActions.qml" line="260"/>
+        <source>« %1 » a été retiré des documents récents : l&apos;accès au document est perdu.</source>
+        <translation>« %1 » a été retiré des documents récents : l&apos;accès au document est perdu.</translation>
     </message>
 </context>
 <context>
     <name>FileExchangeActions</name>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="53"/>
+        <location filename="../qml/FileExchangeActions.qml" line="55"/>
         <source>Insérer une image</source>
         <translation>Insérer une image</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="55"/>
+        <location filename="../qml/FileExchangeActions.qml" line="57"/>
         <source>Images (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff *.svg)</source>
         <translation>Images (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff *.svg)</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="55"/>
-        <location filename="../qml/FileExchangeActions.qml" line="65"/>
+        <location filename="../qml/FileExchangeActions.qml" line="57"/>
+        <location filename="../qml/FileExchangeActions.qml" line="67"/>
         <source>Tous les fichiers (*)</source>
         <translation>Tous les fichiers (*)</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="62"/>
+        <location filename="../qml/FileExchangeActions.qml" line="64"/>
         <source>Insérer un média</source>
         <translation>Insérer un média</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="64"/>
+        <location filename="../qml/FileExchangeActions.qml" line="66"/>
         <source>Sons et vidéos (*.mp3 *.wav *.ogg *.oga *.m4a *.aac *.flac *.opus *.mp4 *.m4v *.mov *.avi *.webm *.mkv *.mpg *.mpeg *.wmv)</source>
         <translation>Sons et vidéos (*.mp3 *.wav *.ogg *.oga *.m4a *.aac *.flac *.opus *.mp4 *.m4v *.mov *.avi *.webm *.mkv *.mpg *.mpeg *.wmv)</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="72"/>
+        <location filename="../qml/FileExchangeActions.qml" line="74"/>
         <source>Exporter en PDF</source>
         <translation>Exporter en PDF</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="75"/>
-        <location filename="../qml/FileExchangeActions.qml" line="94"/>
+        <location filename="../qml/FileExchangeActions.qml" line="77"/>
+        <location filename="../qml/FileExchangeActions.qml" line="96"/>
         <source>Documents PDF (*.pdf)</source>
         <translation>Documents PDF (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="82"/>
+        <location filename="../qml/FileExchangeActions.qml" line="84"/>
         <source>Exporter la page en image</source>
         <translation>Exporter la page en image</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="85"/>
+        <location filename="../qml/FileExchangeActions.qml" line="87"/>
         <source>Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff)</source>
         <translation>Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff)</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="92"/>
+        <location filename="../qml/FileExchangeActions.qml" line="94"/>
         <source>Importer un PDF</source>
         <translation>Importer un PDF</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="101"/>
+        <location filename="../qml/FileExchangeActions.qml" line="103"/>
         <source>Importer une présentation en images</source>
         <translation>Importer une présentation en images</translation>
     </message>
     <message>
-        <location filename="../qml/FileExchangeActions.qml" line="103"/>
+        <location filename="../qml/FileExchangeActions.qml" line="105"/>
         <source>Présentations (*.pptx *.ppt *.ppsx *.odp)</source>
         <translation>Présentations (*.pptx *.ppt *.ppsx *.odp)</translation>
     </message>
@@ -412,52 +633,74 @@
         <translation>Ancrage</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="50"/>
+        <location filename="../qml/FormatPage.qml" line="48"/>
+        <location filename="../qml/FormatPage.qml" line="84"/>
+        <source>Gauche</source>
+        <translation>Gauche</translation>
+    </message>
+    <message>
+        <location filename="../qml/FormatPage.qml" line="48"/>
+        <location filename="../qml/FormatPage.qml" line="84"/>
+        <source>Droite</source>
+        <translation>Droite</translation>
+    </message>
+    <message>
+        <location filename="../qml/FormatPage.qml" line="49"/>
+        <source>Haut</source>
+        <translation>Haut</translation>
+    </message>
+    <message>
+        <location filename="../qml/FormatPage.qml" line="49"/>
+        <source>Bas</source>
+        <translation>Bas</translation>
+    </message>
+    <message>
+        <location filename="../qml/FormatPage.qml" line="53"/>
         <source>Couleurs</source>
         <translation>Couleurs</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="59"/>
+        <location filename="../qml/FormatPage.qml" line="62"/>
         <source>Palette épinglée</source>
         <translation>Palette épinglée</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="64"/>
+        <location filename="../qml/FormatPage.qml" line="67"/>
         <source>Palette réduite</source>
         <translation>Palette réduite</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="69"/>
+        <location filename="../qml/FormatPage.qml" line="72"/>
         <source>Palette réduite au maximum</source>
         <translation>Palette réduite au maximum</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="74"/>
+        <location filename="../qml/FormatPage.qml" line="77"/>
         <source>Navigateurs</source>
         <translation>Navigateurs</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="76"/>
+        <location filename="../qml/FormatPage.qml" line="79"/>
         <source>Côté</source>
         <translation>Côté</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="85"/>
+        <location filename="../qml/FormatPage.qml" line="90"/>
         <source>Navigateurs épinglés</source>
         <translation>Navigateurs épinglés</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="90"/>
+        <location filename="../qml/FormatPage.qml" line="95"/>
         <source>Navigateurs visibles</source>
         <translation>Navigateurs visibles</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="96"/>
+        <location filename="../qml/FormatPage.qml" line="101"/>
         <source>Corbeille visible</source>
         <translation>Corbeille visible</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="101"/>
+        <location filename="../qml/FormatPage.qml" line="106"/>
         <source>Plein écran au démarrage</source>
         <translation>Plein écran au démarrage</translation>
     </message>
@@ -603,7 +846,7 @@
 <context>
     <name>HelpViewer</name>
     <message>
-        <location filename="../qml/HelpViewer.qml" line="54"/>
+        <location filename="../qml/HelpViewer.qml" line="55"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
     </message>
@@ -651,29 +894,140 @@
         <translation>Choisir un programme ou un document</translation>
     </message>
     <message>
-        <location filename="../qml/LaunchersPage.qml" line="205"/>
+        <location filename="../qml/LaunchersPage.qml" line="206"/>
         <source>Lancer ce programme ? Il ne vient pas de ce poste.</source>
         <translation>Lancer ce programme ? Il ne vient pas de ce poste.</translation>
     </message>
     <message>
-        <location filename="../qml/LaunchersPage.qml" line="210"/>
+        <location filename="../qml/LaunchersPage.qml" line="211"/>
         <source>Paramètres : %1</source>
         <translation>Paramètres : %1</translation>
     </message>
     <message>
-        <location filename="../qml/LaunchersPage.qml" line="213"/>
+        <location filename="../qml/LaunchersPage.qml" line="214"/>
         <source>Lancer</source>
         <translation>Lancer</translation>
     </message>
     <message>
-        <location filename="../qml/LaunchersPage.qml" line="214"/>
+        <location filename="../qml/LaunchersPage.qml" line="215"/>
         <source>Refuser</source>
         <translation>Refuser</translation>
     </message>
     <message>
-        <location filename="../qml/LaunchersPage.qml" line="228"/>
+        <location filename="../qml/LaunchersPage.qml" line="229"/>
         <source>OK</source>
         <translation>OK</translation>
+    </message>
+</context>
+<context>
+    <name>LinkConfirmDialog</name>
+    <message>
+        <location filename="../qml/LinkConfirmDialog.qml" line="17"/>
+        <source>Ouvrir ce lien ?</source>
+        <translation>Ouvrir ce lien ?</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkConfirmDialog.qml" line="17"/>
+        <source>Ouverture refusée</source>
+        <translation>Ouverture refusée</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkConfirmDialog.qml" line="66"/>
+        <source>Le paperboard demande d&apos;ouvrir :</source>
+        <translation>Le paperboard demande d&apos;ouvrir :</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkConfirmDialog.qml" line="86"/>
+        <source>Ouvrir</source>
+        <translation>Ouvrir</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkConfirmDialog.qml" line="95"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkConfirmDialog.qml" line="95"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
+    </message>
+</context>
+<context>
+    <name>LinkDialog</name>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="18"/>
+        <source>Lien vers un fichier</source>
+        <translation>Lien vers un fichier</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="18"/>
+        <source>Lien vers un site</source>
+        <translation>Lien vers un site</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="68"/>
+        <source>Fichier</source>
+        <translation>Fichier</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="68"/>
+        <source>Adresse du site (http ou https)</source>
+        <translation>Adresse du site (http ou https)</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="83"/>
+        <source>Parcourir…</source>
+        <translation>Parcourir…</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="87"/>
+        <source>Forme du lien</source>
+        <translation>Forme du lien</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="93"/>
+        <source>Texte</source>
+        <translation>Texte</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="93"/>
+        <source>Icône</source>
+        <translation>Icône</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="93"/>
+        <source>Objet d&apos;action</source>
+        <translation>Objet d&apos;action</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="93"/>
+        <source>Objet sélectionné sur la page</source>
+        <translation>Objet sélectionné sur la page</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="99"/>
+        <source>Ranger le fichier dans le paperboard</source>
+        <translation>Ranger le fichier dans le paperboard</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="103"/>
+        <source>Paramètres de ligne de commande (gardés, jamais passés)</source>
+        <translation>Paramètres de ligne de commande (gardés, jamais passés)</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="125"/>
+        <source>Créer le lien</source>
+        <translation>Créer le lien</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="130"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../qml/LinkDialog.qml" line="138"/>
+        <source>Choisir le fichier du lien</source>
+        <translation>Choisir le fichier du lien</translation>
     </message>
 </context>
 <context>
@@ -684,22 +1038,27 @@
         <translation>%1%2 — ActCraft — rendu : %3</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="556"/>
+        <location filename="../qml/Main.qml" line="816"/>
+        <source>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</source>
+        <translation>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="858"/>
         <source>Ouverture impossible : %1</source>
         <translation>Ouverture impossible : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="558"/>
+        <location filename="../qml/Main.qml" line="860"/>
         <source>1 avertissement de lecture : %1</source>
         <translation>1 avertissement de lecture : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="560"/>
+        <location filename="../qml/Main.qml" line="862"/>
         <source>%1 avertissements de lecture : %2</source>
         <translation>%1 avertissements de lecture : %2</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="567"/>
+        <location filename="../qml/Main.qml" line="869"/>
         <source>Enregistrement impossible : %1</source>
         <translation>Enregistrement impossible : %1</translation>
     </message>
@@ -773,25 +1132,50 @@
 <context>
     <name>NotesBrowser</name>
     <message>
-        <location filename="../qml/NotesBrowser.qml" line="59"/>
+        <location filename="../qml/NotesBrowser.qml" line="70"/>
         <source>Écrivez ici les notes de cette page…</source>
         <translation>Écrivez ici les notes de cette page…</translation>
     </message>
     <message>
-        <location filename="../qml/NotesBrowser.qml" line="62"/>
+        <location filename="../qml/NotesBrowser.qml" line="73"/>
         <source>Notes de la page</source>
         <translation>Notes de la page</translation>
+    </message>
+    <message>
+        <location filename="../qml/NotesBrowser.qml" line="105"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../qml/NotesBrowser.qml" line="106"/>
+        <source>Rétablir</source>
+        <translation>Rétablir</translation>
+    </message>
+    <message>
+        <location filename="../qml/NotesBrowser.qml" line="108"/>
+        <source>Coller</source>
+        <translation>Coller</translation>
+    </message>
+    <message>
+        <location filename="../qml/NotesBrowser.qml" line="110"/>
+        <source>Supprimer</source>
+        <translation>Supprimer</translation>
+    </message>
+    <message>
+        <location filename="../qml/NotesBrowser.qml" line="115"/>
+        <source>Tout sélectionner</source>
+        <translation>Tout sélectionner</translation>
     </message>
 </context>
 <context>
     <name>ObjectBrowser</name>
     <message>
-        <location filename="../qml/ObjectBrowser.qml" line="160"/>
+        <location filename="../qml/ObjectBrowser.qml" line="161"/>
         <source>Masquer</source>
         <translation>Masquer</translation>
     </message>
     <message>
-        <location filename="../qml/ObjectBrowser.qml" line="173"/>
+        <location filename="../qml/ObjectBrowser.qml" line="174"/>
         <source>Verrouiller</source>
         <translation>Verrouiller</translation>
     </message>
@@ -809,7 +1193,7 @@
         <translation>Menu des pages</translation>
     </message>
     <message>
-        <location filename="../qml/PageNavigator.qml" line="403"/>
+        <location filename="../qml/PageNavigator.qml" line="406"/>
         <source>Menu de la page</source>
         <translation>Menu de la page</translation>
     </message>
@@ -822,24 +1206,42 @@
         <translation>Taille de paperboard personnalisée</translation>
     </message>
     <message>
-        <location filename="../qml/PageSizeDialog.qml" line="39"/>
+        <location filename="../qml/PageSizeDialog.qml" line="17"/>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../qml/PageSizeDialog.qml" line="18"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../qml/PageSizeDialog.qml" line="43"/>
         <source>Largeur d&apos;un cadre (pixels)</source>
         <translation>Largeur d&apos;un cadre (pixels)</translation>
     </message>
     <message>
-        <location filename="../qml/PageSizeDialog.qml" line="41"/>
+        <location filename="../qml/PageSizeDialog.qml" line="45"/>
         <source>Hauteur d&apos;un cadre (pixels)</source>
         <translation>Hauteur d&apos;un cadre (pixels)</translation>
     </message>
     <message>
-        <location filename="../qml/PageSizeDialog.qml" line="43"/>
+        <location filename="../qml/PageSizeDialog.qml" line="47"/>
         <source>Cadres en largeur</source>
         <translation>Cadres en largeur</translation>
     </message>
     <message>
-        <location filename="../qml/PageSizeDialog.qml" line="45"/>
+        <location filename="../qml/PageSizeDialog.qml" line="49"/>
         <source>Cadres en hauteur</source>
         <translation>Cadres en hauteur</translation>
+    </message>
+</context>
+<context>
+    <name>PaletteFrame</name>
+    <message>
+        <location filename="../qml/PaletteFrame.qml" line="196"/>
+        <source>Palette d&apos;outils</source>
+        <translation>Palette d&apos;outils</translation>
     </message>
 </context>
 <context>
@@ -898,147 +1300,147 @@
 <context>
     <name>PrintSetupDialog</name>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="84"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="92"/>
         <source>Imprimante</source>
         <translation>Imprimante</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="89"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="97"/>
         <source>Imprimante par défaut</source>
         <translation>Imprimante par défaut</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="92"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="100"/>
         <source>Couleur</source>
         <translation>Couleur</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="97"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="105"/>
         <source>En couleur</source>
         <translation>En couleur</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="103"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="111"/>
         <source>En gris</source>
         <translation>En gris</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="107"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="115"/>
         <source>Pages par feuille : lignes</source>
         <translation>Pages par feuille : lignes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="112"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="122"/>
         <source>Pages par feuille : colonnes</source>
         <translation>Pages par feuille : colonnes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="117"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="127"/>
         <source>Cadres</source>
         <translation>Cadres</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="119"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="129"/>
         <source>Entourer chaque page</source>
         <translation>Entourer chaque page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="122"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="132"/>
         <source>Numéros</source>
         <translation>Numéros</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="124"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="134"/>
         <source>Numéroter les pages</source>
         <translation>Numéroter les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="127"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="137"/>
         <source>Plage</source>
         <translation>Plage</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="132"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="142"/>
         <source>Toutes les pages</source>
         <translation>Toutes les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="132"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="142"/>
         <source>Page affichée</source>
         <translation>Page affichée</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="132"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="142"/>
         <source>De… à…</source>
         <translation>De… à…</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="135"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="145"/>
         <source>De la page</source>
         <translation>De la page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="141"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="153"/>
         <source>à la page</source>
         <translation>à la page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="147"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="161"/>
         <source>Copies</source>
         <translation>Copies</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="152"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="166"/>
         <source>Marge (mm)</source>
         <translation>Marge (mm)</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="157"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="171"/>
         <source>Notes</source>
         <translation>Notes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="162"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="176"/>
         <source>Sans les notes</source>
         <translation>Sans les notes</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="162"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="176"/>
         <source>Avec les pages</source>
         <translation>Avec les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="162"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="176"/>
         <source>Notes seules</source>
         <translation>Notes seules</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="168"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="182"/>
         <source>Une feuille par page</source>
         <translation>Une feuille par page</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="173"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="187"/>
         <source>Trait entre les pages</source>
         <translation>Trait entre les pages</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="202"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="216"/>
         <source>Exporter en PDF…</source>
         <translation>Exporter en PDF…</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="208"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="222"/>
         <source>Imprimer</source>
         <translation>Imprimer</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="221"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="235"/>
         <source>Enregistrer les réglages et quitter</source>
         <translation>Enregistrer les réglages et quitter</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="229"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="243"/>
         <source>Annuler</source>
         <translation>Annuler</translation>
     </message>
@@ -1143,106 +1545,245 @@
 <context>
     <name>PropertyEditor</name>
     <message>
-        <location filename="../qml/PropertyEditor.qml" line="204"/>
+        <location filename="../qml/PropertyEditor.qml" line="226"/>
         <source>Choisir une couleur</source>
         <translation>Choisir une couleur</translation>
+    </message>
+    <message>
+        <location filename="../qml/PropertyEditor.qml" line="300"/>
+        <source>Aucune action</source>
+        <translation>Aucune action</translation>
+    </message>
+    <message>
+        <location filename="../qml/PropertyEditor.qml" line="310"/>
+        <source>Modifier…</source>
+        <translation>Modifier…</translation>
+    </message>
+</context>
+<context>
+    <name>PublishDialog</name>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="47"/>
+        <source>Copie protégée enregistrée.</source>
+        <translation>Copie protégée enregistrée.</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="47"/>
+        <source>Diffusion impossible : %1</source>
+        <translation>Diffusion impossible : %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="60"/>
+        <source>Diffuser en protégé</source>
+        <translation>Diffuser en protégé</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="67"/>
+        <source>Informations de l&apos;auteur</source>
+        <translation>Informations de l&apos;auteur</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="72"/>
+        <source>Nom, établissement, contact</source>
+        <translation>Nom, établissement, contact</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="74"/>
+        <source>Interdire dans la copie diffusée :</source>
+        <translation>Interdire dans la copie diffusée :</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="75"/>
+        <source>La copie de pages et d&apos;objets</source>
+        <translation>La copie de pages et d&apos;objets</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="76"/>
+        <source>L&apos;enregistrement et l&apos;export</source>
+        <translation>L&apos;enregistrement et l&apos;export</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="77"/>
+        <source>L&apos;impression</source>
+        <translation>L&apos;impression</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="78"/>
+        <source>La caméra</source>
+        <translation>La caméra</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="82"/>
+        <source>Le document ouvert n&apos;est pas modifié : la copie protégée est un nouveau fichier.</source>
+        <translation>Le document ouvert n&apos;est pas modifié : la copie protégée est un nouveau fichier.</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="86"/>
+        <source>Diffuser…</source>
+        <translation>Diffuser…</translation>
+    </message>
+    <message>
+        <location filename="../qml/PublishDialog.qml" line="103"/>
+        <source>Document ActCraft (*.actcraft)</source>
+        <translation>Document ActCraft (*.actcraft)</translation>
+    </message>
+</context>
+<context>
+    <name>RecorderPalette</name>
+    <message>
+        <location filename="../qml/RecorderPalette.qml" line="53"/>
+        <source>Compris</source>
+        <translation>Compris</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecorderPalette.qml" line="61"/>
+        <source>Reprendre</source>
+        <translation>Reprendre</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecorderPalette.qml" line="61"/>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecorderPalette.qml" line="66"/>
+        <source>Arrêter</source>
+        <translation>Arrêter</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecorderPalette.qml" line="71"/>
+        <source>Abandonner</source>
+        <translation>Abandonner</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecorderPalette.qml" line="76"/>
+        <source>Masquer</source>
+        <translation>Masquer</translation>
+    </message>
+</context>
+<context>
+    <name>RecordingIndicator</name>
+    <message>
+        <location filename="../qml/RecordingIndicator.qml" line="86"/>
+        <source>Écran</source>
+        <translation>Écran</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecordingIndicator.qml" line="86"/>
+        <source>Son</source>
+        <translation>Son</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecordingIndicator.qml" line="87"/>
+        <source>en pause</source>
+        <translation>en pause</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecordingIndicator.qml" line="87"/>
+        <source>enregistré</source>
+        <translation>enregistré</translation>
+    </message>
+    <message>
+        <location filename="../qml/RecordingIndicator.qml" line="98"/>
+        <source>Arrêter</source>
+        <translation>Arrêter</translation>
     </message>
 </context>
 <context>
     <name>ResourceBrowser</name>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="165"/>
+        <location filename="../qml/ResourceBrowser.qml" line="187"/>
         <source>Mes ressources</source>
         <translation>Mes ressources</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="166"/>
+        <location filename="../qml/ResourceBrowser.qml" line="188"/>
         <source>Ressources partagées</source>
         <translation>Ressources partagées</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="167"/>
+        <location filename="../qml/ResourceBrowser.qml" line="189"/>
         <source>Autre dossier…</source>
         <translation>Autre dossier…</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="203"/>
+        <location filename="../qml/ResourceBrowser.qml" line="225"/>
         <source>Rechercher…</source>
         <translation>Rechercher…</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ResourceBrowser.qml" line="256"/>
+        <location filename="../qml/ResourceBrowser.qml" line="278"/>
         <source>%n élément(s)</source>
         <translation>
-<numerusform>%n élément(s)</numerusform>
-<numerusform>%n élément(s)</numerusform>
-</translation>
+            <numerusform>%n élément(s)</numerusform>
+            <numerusform>%n élément(s)</numerusform>
+        </translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="262"/>
+        <location filename="../qml/ResourceBrowser.qml" line="284"/>
         <source>Liste</source>
         <translation>Liste</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="262"/>
+        <location filename="../qml/ResourceBrowser.qml" line="284"/>
         <source>Grille</source>
         <translation>Grille</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="268"/>
+        <location filename="../qml/ResourceBrowser.qml" line="290"/>
         <source>Tampon</source>
         <translation>Tampon</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="387"/>
-        <location filename="../qml/ResourceBrowser.qml" line="434"/>
+        <location filename="../qml/ResourceBrowser.qml" line="409"/>
+        <location filename="../qml/ResourceBrowser.qml" line="456"/>
         <source>Nouveau dossier</source>
         <translation>Nouveau dossier</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="391"/>
-        <location filename="../qml/ResourceBrowser.qml" line="412"/>
+        <location filename="../qml/ResourceBrowser.qml" line="413"/>
+        <location filename="../qml/ResourceBrowser.qml" line="434"/>
         <source>Renommer…</source>
         <translation>Renommer…</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="396"/>
+        <location filename="../qml/ResourceBrowser.qml" line="421"/>
         <source>Supprimer</source>
         <translation>Supprimer</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="408"/>
+        <location filename="../qml/ResourceBrowser.qml" line="430"/>
         <source>Insérer dans le paperboard</source>
         <translation>Insérer dans le paperboard</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="416"/>
-        <location filename="../qml/ResourceBrowser.qml" line="464"/>
+        <location filename="../qml/ResourceBrowser.qml" line="438"/>
+        <location filename="../qml/ResourceBrowser.qml" line="486"/>
         <source>Retirer de la bibliothèque</source>
         <translation>Retirer de la bibliothèque</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="424"/>
+        <location filename="../qml/ResourceBrowser.qml" line="446"/>
         <source>Choisir un dossier de ressources</source>
         <translation>Choisir un dossier de ressources</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="434"/>
+        <location filename="../qml/ResourceBrowser.qml" line="456"/>
         <source>Renommer</source>
         <translation>Renommer</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="470"/>
+        <location filename="../qml/ResourceBrowser.qml" line="492"/>
         <source>Retirer cet élément de la bibliothèque ?</source>
         <translation>Retirer cet élément de la bibliothèque ?</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="485"/>
+        <location filename="../qml/ResourceBrowser.qml" line="507"/>
         <source>Suppression définitive</source>
         <translation>Suppression définitive</translation>
     </message>
     <message>
-        <location filename="../qml/ResourceBrowser.qml" line="491"/>
+        <location filename="../qml/ResourceBrowser.qml" line="513"/>
         <source>La corbeille n&apos;est pas disponible. Supprimer définitivement ?</source>
         <translation>La corbeille n&apos;est pas disponible. Supprimer définitivement ?</translation>
     </message>
@@ -1324,11 +1865,29 @@
     </message>
 </context>
 <context>
+    <name>SecondPalette</name>
+    <message>
+        <location filename="../qml/SecondPalette.qml" line="87"/>
+        <source>Couleur %1</source>
+        <translation>Couleur %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/SecondPalette.qml" line="105"/>
+        <source>Épaisseur %1</source>
+        <translation>Épaisseur %1</translation>
+    </message>
+</context>
+<context>
     <name>SettingsPage</name>
     <message>
         <location filename="../qml/SettingsPage.qml" line="62"/>
         <source>La langue choisie sera appliquée au prochain démarrage d&apos;ActCraft.</source>
         <translation>La langue choisie sera appliquée au prochain démarrage d&apos;ActCraft.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="123"/>
+        <source>Rechercher les mises à jour au démarrage</source>
+        <translation>Rechercher les mises à jour au démarrage</translation>
     </message>
 </context>
 <context>
@@ -1524,142 +2083,167 @@
         <translation>Durée de l&apos;effet (dixièmes de seconde)</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="182"/>
+        <location filename="../src/settingsschema.cpp" line="183"/>
         <source>Langue de l&apos;interface</source>
         <translation>Langue de l&apos;interface</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="183"/>
+        <location filename="../src/settingsschema.cpp" line="184"/>
         <source>Langue du système</source>
         <translation>Langue du système</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="184"/>
+        <location filename="../src/settingsschema.cpp" line="185"/>
         <source>Français</source>
         <translation>Français</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="188"/>
+        <location filename="../src/settingsschema.cpp" line="189"/>
         <source>Tolérance de centrage (pixels)</source>
         <translation>Tolérance de centrage (pixels)</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="193"/>
+        <location filename="../src/settingsschema.cpp" line="194"/>
         <source>Page d&apos;accueil du navigateur web</source>
         <translation>Page d&apos;accueil du navigateur web</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="195"/>
+        <location filename="../src/settingsschema.cpp" line="196"/>
         <source>Calculatrice : 0 intégrée, 1 celle du système, 2 le programme ci-dessous</source>
         <translation>Calculatrice : 0 intégrée, 1 celle du système, 2 le programme ci-dessous</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="199"/>
+        <location filename="../src/settingsschema.cpp" line="200"/>
         <source>Programme de calculatrice</source>
         <translation>Programme de calculatrice</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="202"/>
+        <location filename="../src/settingsschema.cpp" line="203"/>
         <source>Ignorer les mots à majuscule initiale</source>
         <translation>Ignorer les mots à majuscule initiale</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="204"/>
+        <location filename="../src/settingsschema.cpp" line="205"/>
         <source>Ignorer les mots en majuscules</source>
         <translation>Ignorer les mots en majuscules</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="206"/>
+        <location filename="../src/settingsschema.cpp" line="207"/>
         <source>Ignorer les mots qui contiennent des chiffres</source>
         <translation>Ignorer les mots qui contiennent des chiffres</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="208"/>
+        <location filename="../src/settingsschema.cpp" line="209"/>
         <source>Ignorer les mots à casse mixte</source>
         <translation>Ignorer les mots à casse mixte</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="210"/>
+        <location filename="../src/settingsschema.cpp" line="211"/>
         <source>Ignorer les adresses web et de courriel</source>
         <translation>Ignorer les adresses web et de courriel</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="211"/>
+        <location filename="../src/settingsschema.cpp" line="212"/>
         <source>Signaler les mots répétés</source>
         <translation>Signaler les mots répétés</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="215"/>
+        <location filename="../src/settingsschema.cpp" line="217"/>
+        <source>Dossier des enregistrements</source>
+        <translation>Dossier des enregistrements</translation>
+    </message>
+    <message>
+        <location filename="../src/settingsschema.cpp" line="218"/>
+        <source>Format du son</source>
+        <translation>Format du son</translation>
+    </message>
+    <message>
+        <location filename="../src/settingsschema.cpp" line="219"/>
+        <source>WAV</source>
+        <translation>WAV</translation>
+    </message>
+    <message>
+        <location filename="../src/settingsschema.cpp" line="221"/>
+        <source>Format de la vidéo</source>
+        <translation>Format de la vidéo</translation>
+    </message>
+    <message>
+        <location filename="../src/settingsschema.cpp" line="222"/>
+        <source>MP4</source>
+        <translation>MP4</translation>
+    </message>
+    <message>
+        <location filename="../src/settingsschema.cpp" line="225"/>
         <source>Dossier des ressources partagées</source>
         <translation>Dossier des ressources partagées</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="220"/>
+        <location filename="../src/settingsschema.cpp" line="230"/>
         <source>Regrouper les traits successifs</source>
         <translation>Regrouper les traits successifs</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="222"/>
+        <location filename="../src/settingsschema.cpp" line="232"/>
         <source>Rendu en haute qualité</source>
         <translation>Rendu en haute qualité</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="225"/>
+        <location filename="../src/settingsschema.cpp" line="235"/>
         <source>Haute qualité pendant l&apos;écriture</source>
         <translation>Haute qualité pendant l&apos;écriture</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="227"/>
+        <location filename="../src/settingsschema.cpp" line="237"/>
         <source>Haute qualité pendant le déplacement des objets</source>
         <translation>Haute qualité pendant le déplacement des objets</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="229"/>
+        <location filename="../src/settingsschema.cpp" line="239"/>
         <source>Taille d&apos;une nouvelle page</source>
         <translation>Taille d&apos;une nouvelle page</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="234"/>
+        <location filename="../src/settingsschema.cpp" line="244"/>
         <source>Déplacer les objets verrouillés</source>
         <translation>Déplacer les objets verrouillés</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="236"/>
+        <location filename="../src/settingsschema.cpp" line="246"/>
         <source>Montrer les objets masqués</source>
         <translation>Montrer les objets masqués</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="238"/>
+        <location filename="../src/settingsschema.cpp" line="248"/>
         <source>Signaler les objets qui portent une action</source>
         <translation>Signaler les objets qui portent une action</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="239"/>
+        <location filename="../src/settingsschema.cpp" line="249"/>
         <source>Suspendre les actions</source>
         <translation>Suspendre les actions</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="242"/>
+        <location filename="../src/settingsschema.cpp" line="252"/>
         <source>Suspendre les restrictions</source>
         <translation>Suspendre les restrictions</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="244"/>
+        <location filename="../src/settingsschema.cpp" line="254"/>
         <source>Suspendre les obstacles</source>
         <translation>Suspendre les obstacles</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="245"/>
+        <location filename="../src/settingsschema.cpp" line="255"/>
         <source>Couper l&apos;accrochage</source>
         <translation>Couper l&apos;accrochage</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="247"/>
+        <location filename="../src/settingsschema.cpp" line="257"/>
         <source>Suspendre le bureau</source>
         <translation>Suspendre le bureau</translation>
     </message>
     <message>
-        <location filename="../src/settingsschema.cpp" line="249"/>
+        <location filename="../src/settingsschema.cpp" line="259"/>
         <source>Montrer les astuces</source>
         <translation>Montrer les astuces</translation>
     </message>
@@ -1707,6 +2291,54 @@
     </message>
 </context>
 <context>
+    <name>SpellingDialog</name>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="94"/>
+        <source>Mot répété</source>
+        <translation>Mot répété</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="94"/>
+        <source>Mot inconnu</source>
+        <translation>Mot inconnu</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="127"/>
+        <source>Remplacer par</source>
+        <translation>Remplacer par</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="141"/>
+        <source>Ignorer</source>
+        <translation>Ignorer</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="142"/>
+        <source>Ignorer toujours</source>
+        <translation>Ignorer toujours</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="143"/>
+        <source>Ajouter au dictionnaire</source>
+        <translation>Ajouter au dictionnaire</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="150"/>
+        <source>Remplacer</source>
+        <translation>Remplacer</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="156"/>
+        <source>Remplacer tout</source>
+        <translation>Remplacer tout</translation>
+    </message>
+    <message>
+        <location filename="../qml/SpellingDialog.qml" line="159"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
+    </message>
+</context>
+<context>
     <name>TextFormatBar</name>
     <message>
         <location filename="../qml/TextFormatBar.qml" line="166"/>
@@ -1717,14 +2349,146 @@
 <context>
     <name>TopBar</name>
     <message>
-        <location filename="../qml/TopBar.qml" line="80"/>
+        <location filename="../qml/TopBar.qml" line="50"/>
+        <source>Menus</source>
+        <translation>Menus</translation>
+    </message>
+    <message>
+        <location filename="../qml/TopBar.qml" line="117"/>
         <source>Notes de la page</source>
         <translation>Notes de la page</translation>
     </message>
     <message>
-        <location filename="../qml/TopBar.qml" line="125"/>
+        <location filename="../qml/TopBar.qml" line="162"/>
         <source>Ajuster</source>
         <translation>Ajuster</translation>
+    </message>
+</context>
+<context>
+    <name>TouchModeMenu</name>
+    <message>
+        <location filename="../qml/TouchModeMenu.qml" line="41"/>
+        <source>Mode du toucher</source>
+        <translation>Mode du toucher</translation>
+    </message>
+    <message>
+        <location filename="../qml/TouchModeMenu.qml" line="45"/>
+        <source>Ignorer le toucher</source>
+        <translation>Ignorer le toucher</translation>
+    </message>
+    <message>
+        <location filename="../qml/TouchModeMenu.qml" line="46"/>
+        <source>Le doigt écrit</source>
+        <translation>Le doigt écrit</translation>
+    </message>
+    <message>
+        <location filename="../qml/TouchModeMenu.qml" line="47"/>
+        <source>Le doigt sélectionne</source>
+        <translation>Le doigt sélectionne</translation>
+    </message>
+    <message>
+        <location filename="../qml/TouchModeMenu.qml" line="48"/>
+        <source>Gestion complète</source>
+        <translation>Gestion complète</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateDialog</name>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="14"/>
+        <source>Mises à jour</source>
+        <translation>Mises à jour</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="36"/>
+        <source>Recherche en cours…</source>
+        <translation>Recherche en cours…</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="38"/>
+        <source>ActCraft est à jour.</source>
+        <translation>ActCraft est à jour.</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="40"/>
+        <source>La version %1 est disponible.</source>
+        <translation>La version %1 est disponible.</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="42"/>
+        <source>Impossible de vérifier pour le moment.</source>
+        <translation>Impossible de vérifier pour le moment.</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="52"/>
+        <source>Voir la version</source>
+        <translation>Voir la version</translation>
+    </message>
+    <message>
+        <location filename="../qml/UpdateDialog.qml" line="59"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
+    </message>
+</context>
+<context>
+    <name>WebFrameDialog</name>
+    <message>
+        <location filename="../qml/WebFrameDialog.qml" line="34"/>
+        <source>Cadre web</source>
+        <translation>Cadre web</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameDialog.qml" line="46"/>
+        <source>Adresse de la page</source>
+        <translation>Adresse de la page</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameDialog.qml" line="57"/>
+        <source>Ou code HTML</source>
+        <translation>Ou code HTML</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameDialog.qml" line="75"/>
+        <source>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</source>
+        <translation>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</translation>
+    </message>
+</context>
+<context>
+    <name>WebFrameLayer</name>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="219"/>
+        <source>Contenu distant bloqué : %1</source>
+        <translation>Contenu distant bloqué : %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="220"/>
+        <source>Adresse refusée par le cadre web.</source>
+        <translation>Adresse refusée par le cadre web.</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="226"/>
+        <source>Débloquer…</source>
+        <translation>Débloquer…</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="272"/>
+        <source>Image fixe</source>
+        <translation>Image fixe</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="281"/>
+        <source>Chargement…</source>
+        <translation>Chargement…</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="330"/>
+        <source>Débloquer le contenu distant</source>
+        <translation>Débloquer le contenu distant</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="335"/>
+        <source>Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.</source>
+        <translation>Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.</translation>
     </message>
 </context>
 <context>
@@ -1741,133 +2505,233 @@
     </message>
 </context>
 <context>
+    <name>actcraft::media::CaptureEngine</name>
+    <message>
+        <location filename="../../media/src/soundrecorder.cpp" line="49"/>
+        <source>Enregistrement du son impossible.</source>
+        <translation>Enregistrement du son impossible.</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::media::DisplayRecorder</name>
+    <message>
+        <location filename="../../media/include/actcraft/media/displayrecorder.h" line="254"/>
+        <source>Dossier d&apos;enregistrement inaccessible : %1</source>
+        <translation>Dossier d&apos;enregistrement inaccessible : %1</translation>
+    </message>
+    <message>
+        <location filename="../../media/include/actcraft/media/displayrecorder.h" line="260"/>
+        <source>Enregistrement de l&apos;écran impossible.</source>
+        <translation>Enregistrement de l&apos;écran impossible.</translation>
+    </message>
+    <message>
+        <location filename="../../media/include/actcraft/media/displayrecorder.h" line="309"/>
+        <source>La zone choisie est hors de l&apos;écran.</source>
+        <translation>La zone choisie est hors de l&apos;écran.</translation>
+    </message>
+    <message>
+        <location filename="../../media/src/displayrecorder_other.cpp" line="14"/>
+        <source>Enregistrement de l&apos;écran : Windows seulement.</source>
+        <translation>Enregistrement de l&apos;écran : Windows seulement.</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::media::Player</name>
+    <message>
+        <location filename="../../media/src/player.cpp" line="74"/>
+        <source>Un chemin réseau ne se lit pas depuis un paperboard : %1</source>
+        <translation>Un chemin réseau ne se lit pas depuis un paperboard : %1</translation>
+    </message>
+    <message>
+        <location filename="../../media/src/player.cpp" line="79"/>
+        <source>Fichier introuvable : %1</source>
+        <translation>Fichier introuvable : %1</translation>
+    </message>
+    <message>
+        <location filename="../../media/src/player.cpp" line="83"/>
+        <source>Lecture du fichier refusée : %1</source>
+        <translation>Lecture du fichier refusée : %1</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::media::SoundRecorder</name>
+    <message>
+        <location filename="../../media/src/soundrecorder.cpp" line="253"/>
+        <source>Le micro est refusé à ActCraft : l&apos;enregistrement de son est désactivé. Autorisez le micro dans les réglages du système, puis relancez ActCraft.</source>
+        <translation>Le micro est refusé à ActCraft : l&apos;enregistrement de son est désactivé. Autorisez le micro dans les réglages du système, puis relancez ActCraft.</translation>
+    </message>
+    <message>
+        <location filename="../../media/src/soundrecorder.cpp" line="266"/>
+        <source>Dossier d&apos;enregistrement inaccessible : %1</source>
+        <translation>Dossier d&apos;enregistrement inaccessible : %1</translation>
+    </message>
+    <message>
+        <location filename="../../media/src/soundrecorder.cpp" line="272"/>
+        <source>Enregistrement du son impossible.</source>
+        <translation>Enregistrement du son impossible.</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::BroadcastGate</name>
+    <message>
+        <location filename="../src/broadcastgate.cpp" line="203"/>
+        <source>Diffusion protégée : ce paperboard interdit la copie de son contenu.</source>
+        <translation>Diffusion protégée : ce paperboard interdit la copie de son contenu.</translation>
+    </message>
+    <message>
+        <location filename="../src/broadcastgate.cpp" line="205"/>
+        <source>Diffusion protégée : ce paperboard ne peut pas être enregistré ni exporté.</source>
+        <translation>Diffusion protégée : ce paperboard ne peut pas être enregistré ni exporté.</translation>
+    </message>
+    <message>
+        <location filename="../src/broadcastgate.cpp" line="207"/>
+        <source>Diffusion protégée : ce paperboard ne peut pas être imprimé.</source>
+        <translation>Diffusion protégée : ce paperboard ne peut pas être imprimé.</translation>
+    </message>
+    <message>
+        <location filename="../src/broadcastgate.cpp" line="209"/>
+        <source>Diffusion protégée : la capture de l&apos;écran est interdite avec ce paperboard.</source>
+        <translation>Diffusion protégée : la capture de l&apos;écran est interdite avec ce paperboard.</translation>
+    </message>
+</context>
+<context>
     <name>actcraft::ui::DocumentController</name>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="898"/>
+        <location filename="../src/documentcontroller.cpp" line="966"/>
         <source>Une opération est déjà en cours : ouverture refusée.</source>
         <translation>Une opération est déjà en cours : ouverture refusée.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="931"/>
+        <location filename="../src/documentcontroller.cpp" line="999"/>
         <source>Le paperboard a changé pendant l&apos;ouverture : ouverture annulée, rien n&apos;est perdu.</source>
         <translation>Le paperboard a changé pendant l&apos;ouverture : ouverture annulée, rien n&apos;est perdu.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="962"/>
+        <location filename="../src/documentcontroller.cpp" line="1030"/>
         <source>Une opération est déjà en cours : enregistrement refusé.</source>
         <translation>Une opération est déjà en cours : enregistrement refusé.</translation>
+    </message>
+    <message>
+        <location filename="../src/documentcontroller.cpp" line="1109"/>
+        <source>Une opération est déjà en cours : diffusion refusée.</source>
+        <translation>Une opération est déjà en cours : diffusion refusée.</translation>
+    </message>
+    <message>
+        <location filename="../src/documentcontroller.cpp" line="1117"/>
+        <source>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</source>
+        <translation>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</translation>
     </message>
 </context>
 <context>
     <name>actcraft::ui::FileExchange</name>
     <message>
-        <location filename="../src/fileexchange.cpp" line="113"/>
+        <location filename="../src/fileexchange.cpp" line="127"/>
         <source>Aucun paperboard à traiter.</source>
         <translation>Aucun paperboard à traiter.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="117"/>
+        <location filename="../src/fileexchange.cpp" line="131"/>
         <source>Une autre opération de fichier est en cours.</source>
         <translation>Une autre opération de fichier est en cours.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="189"/>
+        <location filename="../src/fileexchange.cpp" line="202"/>
         <source>PDF enregistré : %1</source>
         <translation>PDF enregistré : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="189"/>
+        <location filename="../src/fileexchange.cpp" line="202"/>
         <source>Export PDF impossible : %1</source>
         <translation>Export PDF impossible : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="203"/>
+        <location filename="../src/fileexchange.cpp" line="216"/>
         <source>Image enregistrée : %1</source>
         <translation>Image enregistrée : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="203"/>
+        <location filename="../src/fileexchange.cpp" line="216"/>
         <source>Export de la page impossible : %1</source>
         <translation>Export de la page impossible : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="212"/>
+        <location filename="../src/fileexchange.cpp" line="225"/>
         <source>L&apos;import PDF n&apos;est pas disponible dans cette version.</source>
         <translation>L&apos;import PDF n&apos;est pas disponible dans cette version.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="216"/>
+        <location filename="../src/fileexchange.cpp" line="229"/>
         <source>Aucun onglet pour recevoir le PDF.</source>
         <translation>Aucun onglet pour recevoir le PDF.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="224"/>
+        <location filename="../src/fileexchange.cpp" line="237"/>
         <source>Import PDF impossible : %1</source>
         <translation>Import PDF impossible : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="225"/>
+        <location filename="../src/fileexchange.cpp" line="238"/>
         <source>Import PDF impossible : un autre fichier est en cours de lecture.</source>
         <translation>Import PDF impossible : un autre fichier est en cours de lecture.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="226"/>
+        <location filename="../src/fileexchange.cpp" line="239"/>
         <source>PDF importé : %1</source>
         <translation>PDF importé : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="236"/>
+        <location filename="../src/fileexchange.cpp" line="249"/>
         <source>L&apos;import de présentations n&apos;est pas disponible dans cette version.</source>
         <translation>L&apos;import de présentations n&apos;est pas disponible dans cette version.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="241"/>
+        <location filename="../src/fileexchange.cpp" line="254"/>
         <source>Aucun convertisseur de présentations n&apos;est installé (LibreOffice ou PowerPoint).</source>
         <translation>Aucun convertisseur de présentations n&apos;est installé (LibreOffice ou PowerPoint).</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="245"/>
+        <location filename="../src/fileexchange.cpp" line="258"/>
         <source>Aucun onglet pour recevoir la présentation.</source>
         <translation>Aucun onglet pour recevoir la présentation.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="250"/>
+        <location filename="../src/fileexchange.cpp" line="263"/>
         <source>Import de la présentation impossible : seul un fichier local est accepté.</source>
         <translation>Import de la présentation impossible : seul un fichier local est accepté.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="260"/>
-        <location filename="../src/fileexchange.cpp" line="267"/>
+        <location filename="../src/fileexchange.cpp" line="273"/>
+        <location filename="../src/fileexchange.cpp" line="280"/>
         <source>Import de la présentation impossible : %1</source>
         <translation>Import de la présentation impossible : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="268"/>
+        <location filename="../src/fileexchange.cpp" line="281"/>
         <source>Import de la présentation impossible : un autre fichier est en cours de lecture.</source>
         <translation>Import de la présentation impossible : un autre fichier est en cours de lecture.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="270"/>
+        <location filename="../src/fileexchange.cpp" line="283"/>
         <source>Présentation importée : %1</source>
         <translation>Présentation importée : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="287"/>
+        <location filename="../src/fileexchange.cpp" line="300"/>
         <source>Impression impossible : le dossier temporaire n&apos;est pas accessible.</source>
         <translation>Impression impossible : le dossier temporaire n&apos;est pas accessible.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="298"/>
+        <location filename="../src/fileexchange.cpp" line="311"/>
         <source>Impression impossible : %1</source>
         <translation>Impression impossible : %1</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="300"/>
+        <location filename="../src/fileexchange.cpp" line="313"/>
         <source>Impression impossible : aucun lecteur de PDF n&apos;a pu ouvrir %1.</source>
         <translation>Impression impossible : aucun lecteur de PDF n&apos;a pu ouvrir %1.</translation>
     </message>
     <message>
-        <location filename="../src/fileexchange.cpp" line="303"/>
+        <location filename="../src/fileexchange.cpp" line="316"/>
         <source>PDF ouvert pour l&apos;impression.</source>
         <translation>PDF ouvert pour l&apos;impression.</translation>
     </message>
@@ -1875,42 +2739,43 @@
 <context>
     <name>actcraft::ui::Launchers</name>
     <message>
-        <location filename="../src/launchers.cpp" line="132"/>
+        <location filename="../src/launchers.cpp" line="152"/>
         <source>Un document ne prend pas de paramètres : %1</source>
         <translation>Un document ne prend pas de paramètres : %1</translation>
     </message>
     <message>
-        <location filename="../src/launchers.cpp" line="227"/>
+        <location filename="../src/launchers.cpp" line="252"/>
         <source>Raccourci introuvable.</source>
         <translation>Raccourci introuvable.</translation>
     </message>
     <message>
-        <location filename="../src/launchers.cpp" line="234"/>
+        <location filename="../src/launchers.cpp" line="259"/>
         <source>Raccourci refusé : caractère invisible ou de contrôle, ou l&apos;un de &quot; &lt; &gt; | ? * dans le chemin.</source>
         <translation>Raccourci refusé : caractère invisible ou de contrôle, ou l&apos;un de &quot; &lt; &gt; | ? * dans le chemin.</translation>
     </message>
     <message>
-        <location filename="../src/launchers.cpp" line="239"/>
+        <location filename="../src/launchers.cpp" line="264"/>
         <source>Ce type de fichier ne se lance pas depuis un raccourci : %1</source>
         <translation>Ce type de fichier ne se lance pas depuis un raccourci : %1</translation>
     </message>
     <message>
-        <location filename="../src/launchers.cpp" line="243"/>
+        <location filename="../src/launchers.cpp" line="268"/>
         <source>Seul un programme (.exe ; sans suffixe hors Windows) prend des paramètres : %1</source>
         <translation>Seul un programme (.exe ; sans suffixe hors Windows) prend des paramètres : %1</translation>
     </message>
     <message>
-        <location filename="../src/launchers.cpp" line="266"/>
+        <location filename="../src/launchers.cpp" line="291"/>
         <source>Le raccourci a changé depuis la demande de confirmation.</source>
         <translation>Le raccourci a changé depuis la demande de confirmation.</translation>
     </message>
     <message>
-        <location filename="../src/launchers.cpp" line="415"/>
+        <location filename="../src/launchers.cpp" line="417"/>
+        <location filename="../../tests/tst_ui_launchers.cpp" line="778"/>
         <source>Ce .exe n&apos;est pas un programme Windows : %1</source>
         <translation>Ce .exe n&apos;est pas un programme Windows : %1</translation>
     </message>
     <message>
-        <location filename="../src/launchers.cpp" line="382"/>
+        <location filename="../src/launchers.cpp" line="425"/>
         <source>Impossible de lancer %1.</source>
         <translation>Impossible de lancer %1.</translation>
     </message>
@@ -2179,24 +3044,166 @@
     </message>
 </context>
 <context>
+    <name>actcraft::ui::LinkDialogs</name>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="232"/>
+        <location filename="../src/linkdialogs.cpp" line="254"/>
+        <location filename="../src/linkdialogs.cpp" line="326"/>
+        <source>Les liens ne sont pas disponibles.</source>
+        <translation>Les liens ne sont pas disponibles.</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="234"/>
+        <location filename="../src/linkdialogs.cpp" line="256"/>
+        <location filename="../src/linkdialogs.cpp" line="327"/>
+        <source>Cette fonction est verrouillée.</source>
+        <translation>Cette fonction est verrouillée.</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="277"/>
+        <source>Un fichier est déjà en cours de lecture.</source>
+        <translation>Un fichier est déjà en cours de lecture.</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="279"/>
+        <location filename="../src/linkdialogs.cpp" line="319"/>
+        <source>Ce fichier est trop gros pour être rangé dans le paperboard : %1</source>
+        <translation>Ce fichier est trop gros pour être rangé dans le paperboard : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="313"/>
+        <source>Fichier illisible : %1</source>
+        <translation>Fichier illisible : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="316"/>
+        <source>Fichier vide : %1</source>
+        <translation>Fichier vide : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="343"/>
+        <source>Aucune page ne reçoit le lien.</source>
+        <translation>Aucune page ne reçoit le lien.</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="365"/>
+        <source>Choisissez d&apos;abord un objet de la page.</source>
+        <translation>Choisissez d&apos;abord un objet de la page.</translation>
+    </message>
+    <message>
+        <location filename="../src/linkdialogs.cpp" line="432"/>
+        <source>Le lien n&apos;a pas pu être créé.</source>
+        <translation>Le lien n&apos;a pas pu être créé.</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::LinkLauncher</name>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="97"/>
+        <source>Un fichier sans extension ne s&apos;ouvre pas depuis un paperboard : %1</source>
+        <translation>Un fichier sans extension ne s&apos;ouvre pas depuis un paperboard : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="100"/>
+        <source>Ce type de fichier (.%1) ne s&apos;ouvre pas depuis un paperboard : %2</source>
+        <translation>Ce type de fichier (.%1) ne s&apos;ouvre pas depuis un paperboard : %2</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="188"/>
+        <source>Seules les adresses http et https s&apos;ouvrent : %1</source>
+        <translation>Seules les adresses http et https s&apos;ouvrent : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="190"/>
+        <source>Adresse sans nom d&apos;hôte : %1</source>
+        <translation>Adresse sans nom d&apos;hôte : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="193"/>
+        <source>Une adresse qui porte des identifiants ne s&apos;ouvre pas : %1</source>
+        <translation>Une adresse qui porte des identifiants ne s&apos;ouvre pas : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="197"/>
+        <source>Type de lien inconnu.</source>
+        <translation>Type de lien inconnu.</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="199"/>
+        <source>Seul un fichier de cet ordinateur s&apos;ouvre : %1</source>
+        <translation>Seul un fichier de cet ordinateur s&apos;ouvre : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="203"/>
+        <source>Un chemin réseau ne s&apos;ouvre pas depuis un paperboard : %1</source>
+        <translation>Un chemin réseau ne s&apos;ouvre pas depuis un paperboard : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="208"/>
+        <source>Nom de fichier refusé : %1</source>
+        <translation>Nom de fichier refusé : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="212"/>
+        <source>Un chemin relatif ne s&apos;ouvre pas depuis un paperboard : %1</source>
+        <translation>Un chemin relatif ne s&apos;ouvre pas depuis un paperboard : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="216"/>
+        <source>Fichier introuvable : %1</source>
+        <translation>Fichier introuvable : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="218"/>
+        <source>Ce lien désigne un type de fichier refusé : %1</source>
+        <translation>Ce lien désigne un type de fichier refusé : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="314"/>
+        <source>Le fichier rangé dans le paperboard n&apos;a pas de nom utilisable.</source>
+        <translation>Le fichier rangé dans le paperboard n&apos;a pas de nom utilisable.</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="322"/>
+        <location filename="../src/linklauncher.cpp" line="343"/>
+        <source>Impossible d&apos;extraire le fichier %1 du paperboard.</source>
+        <translation>Impossible d&apos;extraire le fichier %1 du paperboard.</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="347"/>
+        <source>Le fichier %1 n&apos;a pas pu être marqué comme venu d&apos;un paperboard : il ne s&apos;ouvre pas.</source>
+        <translation>Le fichier %1 n&apos;a pas pu être marqué comme venu d&apos;un paperboard : il ne s&apos;ouvre pas.</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="369"/>
+        <source>Le fichier %1 est en cours d&apos;extraction : confirmez à nouveau dans un instant.</source>
+        <translation>Le fichier %1 est en cours d&apos;extraction : confirmez à nouveau dans un instant.</translation>
+    </message>
+    <message>
+        <location filename="../src/linklauncher.cpp" line="379"/>
+        <source>Le système n&apos;a pas pu ouvrir %1.</source>
+        <translation>Le système n&apos;a pas pu ouvrir %1.</translation>
+    </message>
+</context>
+<context>
     <name>actcraft::ui::ObjectTreeModel</name>
     <message>
-        <location filename="../src/objecttree.cpp" line="537"/>
+        <location filename="../src/objecttree.cpp" line="539"/>
         <source>Couche du dessus</source>
         <translation>Couche du dessus</translation>
     </message>
     <message>
-        <location filename="../src/objecttree.cpp" line="540"/>
+        <location filename="../src/objecttree.cpp" line="542"/>
         <source>Couche intermédiaire</source>
         <translation>Couche intermédiaire</translation>
     </message>
     <message>
-        <location filename="../src/objecttree.cpp" line="543"/>
+        <location filename="../src/objecttree.cpp" line="545"/>
         <source>Couche inférieure</source>
         <translation>Couche inférieure</translation>
     </message>
     <message>
-        <location filename="../src/objecttree.cpp" line="546"/>
+        <location filename="../src/objecttree.cpp" line="548"/>
         <source>Arrière-plan</source>
         <translation>Arrière-plan</translation>
     </message>
@@ -2212,9 +3219,9 @@
         <location filename="../src/printcontroller.cpp" line="469"/>
         <source>%n feuille(s) envoyée(s) à l&apos;impression.</source>
         <translation>
-<numerusform>%n feuille(s) envoyée(s) à l&apos;impression.</numerusform>
-<numerusform>%n feuille(s) envoyée(s) à l&apos;impression.</numerusform>
-</translation>
+            <numerusform>%n feuille(s) envoyée(s) à l&apos;impression.</numerusform>
+            <numerusform>%n feuille(s) envoyée(s) à l&apos;impression.</numerusform>
+        </translation>
     </message>
     <message>
         <location filename="../src/printcontroller.cpp" line="477"/>
@@ -2236,9 +3243,9 @@
         <location filename="../src/printcontroller.cpp" line="522"/>
         <source>%n feuille(s) écrite(s).</source>
         <translation>
-<numerusform>%n feuille(s) écrite(s).</numerusform>
-<numerusform>%n feuille(s) écrite(s).</numerusform>
-</translation>
+            <numerusform>%n feuille(s) écrite(s).</numerusform>
+            <numerusform>%n feuille(s) écrite(s).</numerusform>
+        </translation>
     </message>
     <message>
         <location filename="../src/printcontroller.cpp" line="525"/>
@@ -2254,17 +3261,17 @@
 <context>
     <name>actcraft::ui::ProfileController</name>
     <message>
-        <location filename="../src/profilecontroller.cpp" line="158"/>
+        <location filename="../src/profilecontroller.cpp" line="159"/>
         <source>Identifiant de profil refusé : « %1 »</source>
         <translation>Identifiant de profil refusé : « %1 »</translation>
     </message>
     <message>
-        <location filename="../src/profilecontroller.cpp" line="214"/>
+        <location filename="../src/profilecontroller.cpp" line="220"/>
         <source>Disposition non enregistrée : %1</source>
         <translation>Disposition non enregistrée : %1</translation>
     </message>
     <message>
-        <location filename="../src/profilecontroller.cpp" line="323"/>
+        <location filename="../src/profilecontroller.cpp" line="339"/>
         <source>Nom de profil refusé : « %1 »</source>
         <translation>Nom de profil refusé : « %1 »</translation>
     </message>
@@ -2272,166 +3279,362 @@
 <context>
     <name>actcraft::ui::PropertyModel</name>
     <message>
-        <location filename="../src/propertymodel.cpp" line="148"/>
+        <location filename="../src/propertymodel.cpp" line="152"/>
         <source>Identification</source>
         <translation>Identification</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="151"/>
+        <location filename="../src/propertymodel.cpp" line="155"/>
         <source>Apparence</source>
         <translation>Apparence</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="154"/>
+        <location filename="../src/propertymodel.cpp" line="158"/>
         <source>Contour</source>
         <translation>Contour</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="157"/>
+        <location filename="../src/propertymodel.cpp" line="161"/>
         <source>Remplissage</source>
         <translation>Remplissage</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="160"/>
+        <location filename="../src/propertymodel.cpp" line="164"/>
         <source>Position</source>
         <translation>Position</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="163"/>
+        <location filename="../src/propertymodel.cpp" line="167"/>
         <source>Étiquette</source>
         <translation>Étiquette</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="166"/>
+        <location filename="../src/propertymodel.cpp" line="170"/>
         <source>Divers</source>
         <translation>Divers</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="168"/>
-        <location filename="../src/propertymodel.cpp" line="631"/>
+        <location filename="../src/propertymodel.cpp" line="172"/>
+        <location filename="../src/propertymodel.cpp" line="733"/>
         <source>Page</source>
         <translation>Page</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="176"/>
+        <location filename="../src/propertymodel.cpp" line="180"/>
         <source>Arrière-plan</source>
         <translation>Arrière-plan</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="176"/>
+        <location filename="../src/propertymodel.cpp" line="180"/>
         <source>Couche inférieure</source>
         <translation>Couche inférieure</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="177"/>
+        <location filename="../src/propertymodel.cpp" line="181"/>
         <source>Couche intermédiaire</source>
         <translation>Couche intermédiaire</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="177"/>
+        <location filename="../src/propertymodel.cpp" line="181"/>
         <source>Couche du dessus</source>
         <translation>Couche du dessus</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="179"/>
         <location filename="../src/propertymodel.cpp" line="183"/>
+        <location filename="../src/propertymodel.cpp" line="187"/>
+        <location filename="../src/propertymodel.cpp" line="365"/>
         <source>Aucun</source>
         <translation>Aucun</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="179"/>
+        <location filename="../src/propertymodel.cpp" line="183"/>
         <source>Continu</source>
         <translation>Continu</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="180"/>
+        <location filename="../src/propertymodel.cpp" line="184"/>
         <source>Tirets</source>
         <translation>Tirets</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="180"/>
+        <location filename="../src/propertymodel.cpp" line="184"/>
         <source>Points</source>
         <translation>Points</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="181"/>
+        <location filename="../src/propertymodel.cpp" line="185"/>
         <source>Tiret-point</source>
         <translation>Tiret-point</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="181"/>
+        <location filename="../src/propertymodel.cpp" line="185"/>
         <source>Tiret-point-point</source>
         <translation>Tiret-point-point</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="183"/>
+        <location filename="../src/propertymodel.cpp" line="187"/>
         <source>Uni</source>
         <translation>Uni</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="183"/>
+        <location filename="../src/propertymodel.cpp" line="187"/>
         <source>Motif</source>
         <translation>Motif</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="184"/>
+        <location filename="../src/propertymodel.cpp" line="188"/>
         <source>Dégradé</source>
         <translation>Dégradé</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="195"/>
+        <location filename="../src/propertymodel.cpp" line="199"/>
         <source>Forme</source>
         <translation>Forme</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="197"/>
+        <location filename="../src/propertymodel.cpp" line="201"/>
         <source>Image</source>
         <translation>Image</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="199"/>
+        <location filename="../src/propertymodel.cpp" line="203"/>
         <source>Trait</source>
         <translation>Trait</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="201"/>
+        <location filename="../src/propertymodel.cpp" line="205"/>
         <source>Ligne</source>
         <translation>Ligne</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="203"/>
+        <location filename="../src/propertymodel.cpp" line="207"/>
         <source>Texte</source>
         <translation>Texte</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="205"/>
+        <location filename="../src/propertymodel.cpp" line="209"/>
         <source>Média</source>
         <translation>Média</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="207"/>
+        <location filename="../src/propertymodel.cpp" line="211"/>
         <source>Groupe</source>
         <translation>Groupe</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="209"/>
+        <location filename="../src/propertymodel.cpp" line="213"/>
         <source>Connecteur</source>
         <translation>Connecteur</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="211"/>
+        <location filename="../src/propertymodel.cpp" line="215"/>
         <source>Équation</source>
         <translation>Équation</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="215"/>
+        <location filename="../src/propertymodel.cpp" line="220"/>
         <source>Objet</source>
         <translation>Objet</translation>
     </message>
     <message>
-        <location filename="../src/propertymodel.cpp" line="638"/>
+        <location filename="../src/propertymodel.cpp" line="740"/>
         <source>%1 objets</source>
         <translation>%1 objets</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="313"/>
+        <source>Centre</source>
+        <translation>Centre</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="313"/>
+        <source>Coin en haut à gauche</source>
+        <translation>Coin en haut à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="314"/>
+        <source>Milieu du haut</source>
+        <translation>Milieu du haut</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="314"/>
+        <source>Coin en haut à droite</source>
+        <translation>Coin en haut à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="315"/>
+        <source>Milieu de droite</source>
+        <translation>Milieu de droite</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="315"/>
+        <source>Coin en bas à droite</source>
+        <translation>Coin en bas à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="316"/>
+        <source>Milieu du bas</source>
+        <translation>Milieu du bas</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="316"/>
+        <source>Coin en bas à gauche</source>
+        <translation>Coin en bas à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="317"/>
+        <source>Milieu de gauche</source>
+        <translation>Milieu de gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="317"/>
+        <source>Première ligne du texte</source>
+        <translation>Première ligne du texte</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="318"/>
+        <source>Point choisi</source>
+        <translation>Point choisi</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="318"/>
+        <source>Autre objet</source>
+        <translation>Autre objet</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="353"/>
+        <source>Actions</source>
+        <translation>Actions</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="356"/>
+        <source>Conteneur</source>
+        <translation>Conteneur</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="359"/>
+        <source>Rotation</source>
+        <translation>Rotation</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="362"/>
+        <source>Limiteurs</source>
+        <translation>Limiteurs</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="365"/>
+        <source>Multimédia</source>
+        <translation>Multimédia</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="395"/>
+        <source>Rien</source>
+        <translation>Rien</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="395"/>
+        <source>N&apos;importe quel objet</source>
+        <translation>N&apos;importe quel objet</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="396"/>
+        <source>Un objet précis</source>
+        <translation>Un objet précis</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="396"/>
+        <source>Des objets aux mots-clés acceptés</source>
+        <translation>Des objets aux mots-clés acceptés</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="398"/>
+        <source>Les centres se rejoignent</source>
+        <translation>Les centres se rejoignent</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="399"/>
+        <source>Il est entièrement dedans</source>
+        <translation>Il est entièrement dedans</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="401"/>
+        <location filename="../src/interactivityprops.cpp" line="404"/>
+        <source>Librement</source>
+        <translation>Librement</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="401"/>
+        <source>Dans le sens des aiguilles d&apos;une montre</source>
+        <translation>Dans le sens des aiguilles d&apos;une montre</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="402"/>
+        <source>Dans le sens inverse</source>
+        <translation>Dans le sens inverse</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="402"/>
+        <location filename="../src/interactivityprops.cpp" line="406"/>
+        <source>Non</source>
+        <translation>Non</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="404"/>
+        <source>Verticalement</source>
+        <translation>Verticalement</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="405"/>
+        <source>Horizontalement</source>
+        <translation>Horizontalement</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="405"/>
+        <source>Le long d&apos;un chemin</source>
+        <translation>Le long d&apos;un chemin</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="408"/>
+        <source>Libre</source>
+        <translation>Libre</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="408"/>
+        <source>Bloquée</source>
+        <translation>Bloquée</translation>
+    </message>
+    <message>
+        <location filename="../src/interactivityprops.cpp" line="437"/>
+        <source>Action non prise en charge</source>
+        <translation>Action non prise en charge</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::Recorders</name>
+    <message>
+        <location filename="../src/recorders.cpp" line="277"/>
+        <source>Ce qui est enregistré : le son du micro ou l&apos;image de l&apos;écran, pendant que l&apos;indicateur est affiché. Le fichier est rangé dans le dossier des enregistrements (réglages), puis ajouté au paperboard. Rien n&apos;est envoyé.</source>
+        <translation>Ce qui est enregistré : le son du micro ou l&apos;image de l&apos;écran, pendant que l&apos;indicateur est affiché. Le fichier est rangé dans le dossier des enregistrements (réglages), puis ajouté au paperboard. Rien n&apos;est envoyé.</translation>
+    </message>
+    <message>
+        <location filename="../src/recorders.cpp" line="430"/>
+        <source>Enregistrement de l&apos;écran indisponible.</source>
+        <translation>Enregistrement de l&apos;écran indisponible.</translation>
+    </message>
+    <message>
+        <location filename="../src/recorders.cpp" line="482"/>
+        <source>Zone trop petite : tracez un rectangle pour enregistrer une zone de l&apos;écran.</source>
+        <translation>Zone trop petite : tracez un rectangle pour enregistrer une zone de l&apos;écran.</translation>
+    </message>
+    <message>
+        <location filename="../src/recorders.cpp" line="558"/>
+        <source>Enregistrement rangé : %1</source>
+        <translation>Enregistrement rangé : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/recorders.cpp" line="574"/>
+        <source>%1 Le fichier enregistré reste ici : %2</source>
+        <translation>%1 Le fichier enregistré reste ici : %2</translation>
     </message>
 </context>
 <context>
@@ -2440,6 +3643,1464 @@
         <location filename="../src/shortcutbar.cpp" line="167"/>
         <source>Objet %1</source>
         <translation>Objet %1</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::Spelling</name>
+    <message>
+        <location filename="../src/spelling.cpp" line="143"/>
+        <location filename="../src/spelling.cpp" line="148"/>
+        <source>Dictionnaire indisponible</source>
+        <translation>Dictionnaire indisponible</translation>
+    </message>
+    <message>
+        <location filename="../src/spelling.cpp" line="223"/>
+        <source>Vérification terminée</source>
+        <translation>Vérification terminée</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::WebFrameItems</name>
+    <message>
+        <location filename="../src/webframeitem.cpp" line="1324"/>
+        <source>Fichier illisible.</source>
+        <translation>Fichier illisible.</translation>
+    </message>
+    <message>
+        <location filename="../src/webframeitem.cpp" line="1384"/>
+        <source>Trop de redirections.</source>
+        <translation>Trop de redirections.</translation>
+    </message>
+    <message>
+        <location filename="../src/webframeitem.cpp" line="1414"/>
+        <source>Page indisponible : %1</source>
+        <translation>Page indisponible : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/webframeitem.cpp" line="1485"/>
+        <source>Cadre web</source>
+        <translation>Cadre web</translation>
+    </message>
+    <message>
+        <location filename="../src/webframeitem.cpp" line="1666"/>
+        <source>Image du cadre web</source>
+        <translation>Image du cadre web</translation>
+    </message>
+</context>
+<context>
+    <name>commandes</name>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="15"/>
+        <source>Créer un paperboard</source>
+        <translation>Créer un paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="16"/>
+        <source>Paperboard à la taille de l&apos;écran</source>
+        <translation>Paperboard à la taille de l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="17"/>
+        <source>Paperboard 1024 × 768</source>
+        <translation>Paperboard 1024 × 768</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="18"/>
+        <source>Paperboard 1152 × 864</source>
+        <translation>Paperboard 1152 × 864</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="19"/>
+        <source>Paperboard 1280 × 1024</source>
+        <translation>Paperboard 1280 × 1024</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="20"/>
+        <source>Taille de paperboard personnalisée…</source>
+        <translation>Taille de paperboard personnalisée…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="21"/>
+        <source>Ouvrir…</source>
+        <translation>Ouvrir…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="22"/>
+        <source>Enregistrer</source>
+        <translation>Enregistrer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="23"/>
+        <source>Enregistrer sous…</source>
+        <translation>Enregistrer sous…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="24"/>
+        <source>Fermer le paperboard</source>
+        <translation>Fermer le paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="25"/>
+        <source>Quitter</source>
+        <translation>Quitter</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="26"/>
+        <source>Plein écran</source>
+        <translation>Plein écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="27"/>
+        <source>Ajuster la page</source>
+        <translation>Ajuster la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="28"/>
+        <source>Échelle</source>
+        <translation>Échelle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="29"/>
+        <source>Page précédente</source>
+        <translation>Page précédente</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="30"/>
+        <source>Page suivante</source>
+        <translation>Page suivante</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="31"/>
+        <source>Stylo</source>
+        <translation>Stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="32"/>
+        <source>Couleur du stylo</source>
+        <translation>Couleur du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="33"/>
+        <source>Épaisseur du stylo</source>
+        <translation>Épaisseur du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="34"/>
+        <source>Menu principal</source>
+        <translation>Menu principal</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="35"/>
+        <source>Outils</source>
+        <translation>Outils</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="36"/>
+        <source>Site du projet</source>
+        <translation>Site du projet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="37"/>
+        <source>À propos d&apos;ActCraft</source>
+        <translation>À propos d&apos;ActCraft</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="38"/>
+        <source>Sélectionner</source>
+        <translation>Sélectionner</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="39"/>
+        <source>Marqueur</source>
+        <translation>Marqueur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="40"/>
+        <source>Gomme</source>
+        <translation>Gomme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="41"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="42"/>
+        <source>Rétablir</source>
+        <translation>Rétablir</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="43"/>
+        <source>Supprimer</source>
+        <translation>Supprimer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="44"/>
+        <source>Tout sélectionner</source>
+        <translation>Tout sélectionner</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="45"/>
+        <source>Annotations</source>
+        <translation>Annotations</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="46"/>
+        <source>Objets</source>
+        <translation>Objets</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="47"/>
+        <source>Grille</source>
+        <translation>Grille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="48"/>
+        <source>Fond</source>
+        <translation>Fond</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="49"/>
+        <source>Page</source>
+        <translation>Page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="50"/>
+        <source>Rétablir la page</source>
+        <translation>Rétablir la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="51"/>
+        <source>Afficher la corbeille</source>
+        <translation>Afficher la corbeille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="52"/>
+        <source>Déplacer librement</source>
+        <translation>Déplacer librement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="53"/>
+        <source>Faire pivoter</source>
+        <translation>Faire pivoter</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="54"/>
+        <source>Translucidité</source>
+        <translation>Translucidité</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="55"/>
+        <source>Agrandir l&apos;objet</source>
+        <translation>Agrandir l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="56"/>
+        <source>Réduire l&apos;objet</source>
+        <translation>Réduire l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="57"/>
+        <source>Zoom de page</source>
+        <translation>Zoom de page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="58"/>
+        <source>Effets de changement de page…</source>
+        <translation>Effets de changement de page…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="59"/>
+        <source>Effet de changement de page pour tout le paperboard</source>
+        <translation>Effet de changement de page pour tout le paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="60"/>
+        <source>Durée de l&apos;effet (dixièmes de seconde)</source>
+        <translation>Durée de l&apos;effet (dixièmes de seconde)</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="61"/>
+        <source>Effet propre à cette page</source>
+        <translation>Effet propre à cette page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="62"/>
+        <source>Outils de présentation de la page</source>
+        <translation>Outils de présentation de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="63"/>
+        <source>Rideau de la page</source>
+        <translation>Rideau de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="64"/>
+        <source>Distance du rideau</source>
+        <translation>Distance du rideau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="65"/>
+        <source>Spot de la page</source>
+        <translation>Spot de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="66"/>
+        <source>Rideau</source>
+        <translation>Rideau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="67"/>
+        <source>Couleur du rideau</source>
+        <translation>Couleur du rideau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="68"/>
+        <source>Spot rond</source>
+        <translation>Spot rond</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="69"/>
+        <source>Spot carré</source>
+        <translation>Spot carré</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="70"/>
+        <source>Cache rond</source>
+        <translation>Cache rond</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="71"/>
+        <source>Cache carré</source>
+        <translation>Cache carré</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="72"/>
+        <source>Règle</source>
+        <translation>Règle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="73"/>
+        <source>Équerre</source>
+        <translation>Équerre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="74"/>
+        <source>Rapporteur</source>
+        <translation>Rapporteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="75"/>
+        <source>Compas</source>
+        <translation>Compas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="76"/>
+        <source>Origine XY</source>
+        <translation>Origine XY</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="77"/>
+        <source>Dés</source>
+        <translation>Dés</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="78"/>
+        <source>Calculatrice</source>
+        <translation>Calculatrice</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="79"/>
+        <source>Horloge</source>
+        <translation>Horloge</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="80"/>
+        <source>Message défilant…</source>
+        <translation>Message défilant…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="81"/>
+        <source>Navigateur web</source>
+        <translation>Navigateur web</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="82"/>
+        <source>Date et heure</source>
+        <translation>Date et heure</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="83"/>
+        <source>Équation…</source>
+        <translation>Équation…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="84"/>
+        <source>Modifier l&apos;équation</source>
+        <translation>Modifier l&apos;équation</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="85"/>
+        <source>Reconnaissance de forme</source>
+        <translation>Reconnaissance de forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="86"/>
+        <source>Reconnaissance d&apos;écriture</source>
+        <translation>Reconnaissance d&apos;écriture</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="87"/>
+        <source>Convertir en forme</source>
+        <translation>Convertir en forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="88"/>
+        <source>Convertir en texte</source>
+        <translation>Convertir en texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="89"/>
+        <source>Capture d&apos;une zone</source>
+        <translation>Capture d&apos;une zone</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="90"/>
+        <source>Capture point par point</source>
+        <translation>Capture point par point</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="91"/>
+        <source>Capture à main levée</source>
+        <translation>Capture à main levée</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="92"/>
+        <source>Capture d&apos;une fenêtre</source>
+        <translation>Capture d&apos;une fenêtre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="93"/>
+        <source>Capture de l&apos;écran entier</source>
+        <translation>Capture de l&apos;écran entier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="94"/>
+        <source>Clavier à l&apos;écran</source>
+        <translation>Clavier à l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="95"/>
+        <source>Annoter le bureau</source>
+        <translation>Annoter le bureau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="96"/>
+        <source>Outils de bureau</source>
+        <translation>Outils de bureau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="97"/>
+        <source>Revenir à ActCraft</source>
+        <translation>Revenir à ActCraft</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="98"/>
+        <source>Fond : capture du bureau</source>
+        <translation>Fond : capture du bureau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="99"/>
+        <source>Fond : bureau en transparence</source>
+        <translation>Fond : bureau en transparence</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="100"/>
+        <source>Formes</source>
+        <translation>Formes</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="101"/>
+        <source>Choisir une forme</source>
+        <translation>Choisir une forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="102"/>
+        <source>Forme remplie</source>
+        <translation>Forme remplie</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="103"/>
+        <source>Couleur de remplissage</source>
+        <translation>Couleur de remplissage</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="104"/>
+        <source>Tracer depuis le centre</source>
+        <translation>Tracer depuis le centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="105"/>
+        <source>Texte</source>
+        <translation>Texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="106"/>
+        <source>Texte de haut en bas</source>
+        <translation>Texte de haut en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="107"/>
+        <source>Police</source>
+        <translation>Police</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="108"/>
+        <source>Taille</source>
+        <translation>Taille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="109"/>
+        <source>Agrandir le texte</source>
+        <translation>Agrandir le texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="110"/>
+        <source>Réduire le texte</source>
+        <translation>Réduire le texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="111"/>
+        <source>Gras</source>
+        <translation>Gras</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="112"/>
+        <source>Italique</source>
+        <translation>Italique</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="113"/>
+        <source>Souligné</source>
+        <translation>Souligné</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="114"/>
+        <source>Exposant</source>
+        <translation>Exposant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="115"/>
+        <source>Indice</source>
+        <translation>Indice</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="116"/>
+        <source>Couleur du texte</source>
+        <translation>Couleur du texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="117"/>
+        <source>Fond du texte</source>
+        <translation>Fond du texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="118"/>
+        <source>À gauche</source>
+        <translation>À gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="119"/>
+        <source>Au centre</source>
+        <translation>Au centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="120"/>
+        <source>À droite</source>
+        <translation>À droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="121"/>
+        <source>Plus d&apos;interligne</source>
+        <translation>Plus d&apos;interligne</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="122"/>
+        <source>Moins d&apos;interligne</source>
+        <translation>Moins d&apos;interligne</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="123"/>
+        <source>Plus de retrait</source>
+        <translation>Plus de retrait</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="124"/>
+        <source>Moins de retrait</source>
+        <translation>Moins de retrait</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="125"/>
+        <source>Puces</source>
+        <translation>Puces</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="126"/>
+        <source>Tout le texte</source>
+        <translation>Tout le texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="127"/>
+        <source>Symboles</source>
+        <translation>Symboles</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="128"/>
+        <source>Écrire ici</source>
+        <translation>Écrire ici</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="129"/>
+        <source>Navigateurs</source>
+        <translation>Navigateurs</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="130"/>
+        <source>Aller à la page</source>
+        <translation>Aller à la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="131"/>
+        <source>Page vierge avant</source>
+        <translation>Page vierge avant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="132"/>
+        <source>Page vierge après</source>
+        <translation>Page vierge après</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="133"/>
+        <source>Couper les pages</source>
+        <translation>Couper les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="134"/>
+        <source>Copier les pages</source>
+        <translation>Copier les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="135"/>
+        <source>Coller les pages</source>
+        <translation>Coller les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="136"/>
+        <source>Dupliquer les pages</source>
+        <translation>Dupliquer les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="137"/>
+        <source>Supprimer les pages</source>
+        <translation>Supprimer les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="138"/>
+        <source>Fond de la page…</source>
+        <translation>Fond de la page…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="139"/>
+        <source>Grille…</source>
+        <translation>Grille…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="140"/>
+        <source>Cacher la grille</source>
+        <translation>Cacher la grille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="141"/>
+        <source>Aimanter à la grille</source>
+        <translation>Aimanter à la grille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="142"/>
+        <source>Poignée d&apos;allongement</source>
+        <translation>Poignée d&apos;allongement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="143"/>
+        <source>Allonger la page</source>
+        <translation>Allonger la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="144"/>
+        <source>Zones de la page</source>
+        <translation>Zones de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="145"/>
+        <source>Couper</source>
+        <translation>Couper</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="146"/>
+        <source>Copier</source>
+        <translation>Copier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="147"/>
+        <source>Coller</source>
+        <translation>Coller</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="148"/>
+        <source>Coller sur l&apos;objet</source>
+        <translation>Coller sur l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="149"/>
+        <source>Dupliquer</source>
+        <translation>Dupliquer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="150"/>
+        <source>Menu de l&apos;objet</source>
+        <translation>Menu de l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="151"/>
+        <source>Grouper ou dégrouper</source>
+        <translation>Grouper ou dégrouper</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="152"/>
+        <source>Verrouiller</source>
+        <translation>Verrouiller</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="153"/>
+        <source>Masquer</source>
+        <translation>Masquer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="154"/>
+        <source>Glisser une copie</source>
+        <translation>Glisser une copie</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="155"/>
+        <source>Modifier les points de la forme</source>
+        <translation>Modifier les points de la forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="156"/>
+        <source>Mettre au premier plan</source>
+        <translation>Mettre au premier plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="157"/>
+        <source>Mettre à l&apos;arrière-plan</source>
+        <translation>Mettre à l&apos;arrière-plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="158"/>
+        <source>Avancer d&apos;un cran</source>
+        <translation>Avancer d&apos;un cran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="159"/>
+        <source>Reculer d&apos;un cran</source>
+        <translation>Reculer d&apos;un cran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="160"/>
+        <source>Vers la couche du dessus</source>
+        <translation>Vers la couche du dessus</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="161"/>
+        <source>Vers la couche du milieu</source>
+        <translation>Vers la couche du milieu</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="162"/>
+        <source>Vers la couche du dessous</source>
+        <translation>Vers la couche du dessous</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="163"/>
+        <source>Bords gauches</source>
+        <translation>Bords gauches</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="164"/>
+        <source>Centres horizontaux</source>
+        <translation>Centres horizontaux</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="165"/>
+        <source>Bords droits</source>
+        <translation>Bords droits</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="166"/>
+        <source>Bords hauts</source>
+        <translation>Bords hauts</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="167"/>
+        <source>Centres verticaux</source>
+        <translation>Centres verticaux</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="168"/>
+        <source>Bords bas</source>
+        <translation>Bords bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="169"/>
+        <source>Même largeur</source>
+        <translation>Même largeur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="170"/>
+        <source>Même hauteur</source>
+        <translation>Même hauteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="171"/>
+        <source>Même angle</source>
+        <translation>Même angle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="172"/>
+        <source>Tout aligner sur le premier</source>
+        <translation>Tout aligner sur le premier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="173"/>
+        <source>Taille initiale</source>
+        <translation>Taille initiale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="174"/>
+        <source>Ajuster à la largeur de la page</source>
+        <translation>Ajuster à la largeur de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="175"/>
+        <source>Ajuster à la hauteur de la page</source>
+        <translation>Ajuster à la hauteur de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="176"/>
+        <source>Ajuster à la page</source>
+        <translation>Ajuster à la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="177"/>
+        <source>Copie miroir verticale</source>
+        <translation>Copie miroir verticale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="178"/>
+        <source>Copie miroir horizontale</source>
+        <translation>Copie miroir horizontale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="179"/>
+        <source>Retourner de haut en bas</source>
+        <translation>Retourner de haut en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="180"/>
+        <source>Retourner de gauche à droite</source>
+        <translation>Retourner de gauche à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="181"/>
+        <source>Symétrie par l&apos;axe horizontal de l&apos;origine</source>
+        <translation>Symétrie par l&apos;axe horizontal de l&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="182"/>
+        <source>Symétrie par l&apos;axe vertical de l&apos;origine</source>
+        <translation>Symétrie par l&apos;axe vertical de l&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="183"/>
+        <source>Pot de peinture</source>
+        <translation>Pot de peinture</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="184"/>
+        <source>Connecteur</source>
+        <translation>Connecteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="185"/>
+        <source>Style du connecteur</source>
+        <translation>Style du connecteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="186"/>
+        <source>Extrémités du connecteur</source>
+        <translation>Extrémités du connecteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="187"/>
+        <source>Modification du stylo</source>
+        <translation>Modification du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="188"/>
+        <source>Tracé du stylo</source>
+        <translation>Tracé du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="189"/>
+        <source>Image…</source>
+        <translation>Image…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="190"/>
+        <source>Média…</source>
+        <translation>Média…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="191"/>
+        <source>Paperboard suivant</source>
+        <translation>Paperboard suivant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="192"/>
+        <source>Paperboard précédent</source>
+        <translation>Paperboard précédent</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="193"/>
+        <source>Onglets des paperboards</source>
+        <translation>Onglets des paperboards</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="194"/>
+        <source>Exporter la page en image…</source>
+        <translation>Exporter la page en image…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="195"/>
+        <source>Exporter en PDF…</source>
+        <translation>Exporter en PDF…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="196"/>
+        <source>PDF…</source>
+        <translation>PDF…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="197"/>
+        <source>Présentation en images…</source>
+        <translation>Présentation en images…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="198"/>
+        <source>Imprimer…</source>
+        <translation>Imprimer…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="199"/>
+        <source>Ancrer la palette à gauche</source>
+        <translation>Ancrer la palette à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="200"/>
+        <source>Ancrer la palette à droite</source>
+        <translation>Ancrer la palette à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="201"/>
+        <source>Ancrer la palette en haut</source>
+        <translation>Ancrer la palette en haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="202"/>
+        <source>Ancrer la palette en bas</source>
+        <translation>Ancrer la palette en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="203"/>
+        <source>Palette flottante</source>
+        <translation>Palette flottante</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="204"/>
+        <source>Réduire la palette</source>
+        <translation>Réduire la palette</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="205"/>
+        <source>Ne garder que la palette</source>
+        <translation>Ne garder que la palette</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="206"/>
+        <source>Garder la palette affichée</source>
+        <translation>Garder la palette affichée</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="207"/>
+        <source>Taille des icônes</source>
+        <translation>Taille des icônes</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="208"/>
+        <source>Plus de couleurs…</source>
+        <translation>Plus de couleurs…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="209"/>
+        <source>Prendre une couleur à l&apos;écran</source>
+        <translation>Prendre une couleur à l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="210"/>
+        <source>Choisir une couleur…</source>
+        <translation>Choisir une couleur…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="211"/>
+        <source>Ajouter la couleur à la palette</source>
+        <translation>Ajouter la couleur à la palette</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="212"/>
+        <source>Objets de la page</source>
+        <translation>Objets de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="213"/>
+        <source>Propriétés</source>
+        <translation>Propriétés</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="214"/>
+        <source>Notes de la page</source>
+        <translation>Notes de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="215"/>
+        <source>Bibliothèque</source>
+        <translation>Bibliothèque</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="216"/>
+        <source>Changer de profil…</source>
+        <translation>Changer de profil…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="217"/>
+        <source>Activer le profil</source>
+        <translation>Activer le profil</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="218"/>
+        <source>Profils et réglages…</source>
+        <translation>Profils et réglages…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="219"/>
+        <source>Enregistrer le profil sous…</source>
+        <translation>Enregistrer le profil sous…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="220"/>
+        <source>Importer un profil…</source>
+        <translation>Importer un profil…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="221"/>
+        <source>Exporter le profil…</source>
+        <translation>Exporter le profil…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="222"/>
+        <source>Supprimer le profil</source>
+        <translation>Supprimer le profil</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="223"/>
+        <source>Revenir au profil d&apos;origine</source>
+        <translation>Revenir au profil d&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="224"/>
+        <source>Mode conception</source>
+        <translation>Mode conception</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="225"/>
+        <source>Accueil</source>
+        <translation>Accueil</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="226"/>
+        <source>Vider la liste des documents récents</source>
+        <translation>Vider la liste des documents récents</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="227"/>
+        <source>Mes ressources</source>
+        <translation>Mes ressources</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="228"/>
+        <source>Ressources partagées</source>
+        <translation>Ressources partagées</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="229"/>
+        <source>Autre dossier…</source>
+        <translation>Autre dossier…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="230"/>
+        <source>Insérer dans le paperboard</source>
+        <translation>Insérer dans le paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="231"/>
+        <source>Ajouter la sélection à la bibliothèque</source>
+        <translation>Ajouter la sélection à la bibliothèque</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="232"/>
+        <source>Tampon</source>
+        <translation>Tampon</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="233"/>
+        <source>Nouveau dossier</source>
+        <translation>Nouveau dossier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="234"/>
+        <source>Renommer…</source>
+        <translation>Renommer…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="235"/>
+        <source>Retirer de la bibliothèque</source>
+        <translation>Retirer de la bibliothèque</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="236"/>
+        <source>Verrouiller pour la classe</source>
+        <translation>Verrouiller pour la classe</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="237"/>
+        <source>Mot de passe de la classe…</source>
+        <translation>Mot de passe de la classe…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="238"/>
+        <source>Vérifier l&apos;orthographe</source>
+        <translation>Vérifier l&apos;orthographe</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="239"/>
+        <source>Lancer le raccourci</source>
+        <translation>Lancer le raccourci</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="240"/>
+        <source>Raccourcis vers des programmes…</source>
+        <translation>Raccourcis vers des programmes…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="241"/>
+        <source>Aide</source>
+        <translation>Aide</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="242"/>
+        <source>Insérer l&apos;objet de la barre</source>
+        <translation>Insérer l&apos;objet de la barre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="243"/>
+        <source>Ajouter à la barre de raccourcis</source>
+        <translation>Ajouter à la barre de raccourcis</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="244"/>
+        <source>Langue de l&apos;interface</source>
+        <translation>Langue de l&apos;interface</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="245"/>
+        <source>Encre révélatrice</source>
+        <translation>Encre révélatrice</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="246"/>
+        <source>Navigateur d&apos;actions</source>
+        <translation>Navigateur d&apos;actions</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="247"/>
+        <source>Appliquer l&apos;action</source>
+        <translation>Appliquer l&apos;action</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="248"/>
+        <source>Retirer les actions</source>
+        <translation>Retirer les actions</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="249"/>
+        <source>Choisir l&apos;objet visé</source>
+        <translation>Choisir l&apos;objet visé</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="250"/>
+        <source>Lien vers un fichier…</source>
+        <translation>Lien vers un fichier…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="251"/>
+        <source>Lien vers un site…</source>
+        <translation>Lien vers un site…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="252"/>
+        <source>Page vue avant</source>
+        <translation>Page vue avant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="253"/>
+        <source>Page vue après</source>
+        <translation>Page vue après</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="254"/>
+        <source>Lecteur de sons</source>
+        <translation>Lecteur de sons</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="255"/>
+        <source>Enregistrer du son</source>
+        <translation>Enregistrer du son</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="256"/>
+        <source>Enregistrer tout l&apos;écran</source>
+        <translation>Enregistrer tout l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="257"/>
+        <source>Enregistrer une zone de l&apos;écran</source>
+        <translation>Enregistrer une zone de l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="258"/>
+        <source>Pause de l&apos;enregistrement</source>
+        <translation>Pause de l&apos;enregistrement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="259"/>
+        <source>Arrêter l&apos;enregistrement</source>
+        <translation>Arrêter l&apos;enregistrement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="260"/>
+        <source>Abandonner l&apos;enregistrement</source>
+        <translation>Abandonner l&apos;enregistrement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="261"/>
+        <source>Cadre web…</source>
+        <translation>Cadre web…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="262"/>
+        <source>Page web précédente</source>
+        <translation>Page web précédente</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="263"/>
+        <source>Page web suivante</source>
+        <translation>Page web suivante</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="264"/>
+        <source>Recharger le cadre</source>
+        <translation>Recharger le cadre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="265"/>
+        <source>Poser une image du cadre</source>
+        <translation>Poser une image du cadre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="266"/>
+        <source>Débloquer le contenu du cadre</source>
+        <translation>Débloquer le contenu du cadre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="267"/>
+        <source>Diffuser en protégé…</source>
+        <translation>Diffuser en protégé…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="268"/>
+        <source>Mode du toucher</source>
+        <translation>Mode du toucher</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="269"/>
+        <source>Mode à deux utilisateurs</source>
+        <translation>Mode à deux utilisateurs</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="270"/>
+        <source>Rechercher des mises à jour…</source>
+        <translation>Rechercher des mises à jour…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="271"/>
+        <source>Abandonner la copie de reprise</source>
+        <translation>Abandonner la copie de reprise</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="272"/>
+        <source>Première page</source>
+        <translation>Première page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="273"/>
+        <source>Dernière page</source>
+        <translation>Dernière page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="274"/>
+        <source>Fichier</source>
+        <translation>Fichier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="275"/>
+        <source>Importer</source>
+        <translation>Importer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="276"/>
+        <source>Exporter</source>
+        <translation>Exporter</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="277"/>
+        <source>Éditer</source>
+        <translation>Éditer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="278"/>
+        <source>Effacer</source>
+        <translation>Effacer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="279"/>
+        <source>Transformer</source>
+        <translation>Transformer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="280"/>
+        <source>Aligner</source>
+        <translation>Aligner</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="281"/>
+        <source>Organiser</source>
+        <translation>Organiser</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="282"/>
+        <source>Affichage</source>
+        <translation>Affichage</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="283"/>
+        <source>Palette</source>
+        <translation>Palette</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="284"/>
+        <source>Insérer</source>
+        <translation>Insérer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="285"/>
+        <source>Lien</source>
+        <translation>Lien</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="286"/>
+        <source>Spot</source>
+        <translation>Spot</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="287"/>
+        <source>Caméra</source>
+        <translation>Caméra</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="288"/>
+        <source>Outils de maths</source>
+        <translation>Outils de maths</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="289"/>
+        <source>Autres outils</source>
+        <translation>Autres outils</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="290"/>
+        <source>Enregistreurs</source>
+        <translation>Enregistreurs</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="291"/>
+        <source>Insérer une page</source>
+        <translation>Insérer une page</translation>
+    </message>
+</context>
+<context>
+    <name>profils</name>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="295"/>
+        <source>Compter et construire</source>
+        <translation>Compter et construire</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="295"/>
+        <source>Faire la classe</source>
+        <translation>Faire la classe</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="296"/>
+        <source>Lire et écrire</source>
+        <translation>Lire et écrire</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="296"/>
+        <source>Préparer un cours</source>
+        <translation>Préparer un cours</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="297"/>
+        <source>Sons et images</source>
+        <translation>Sons et images</translation>
     </message>
 </context>
 </TS>

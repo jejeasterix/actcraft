@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "pseudo-langue",
-  "description": "Pseudo-langue de contrôle (L11-T19, D11-14) : l'interface est chargée avec la traduction « ⟦source⟧ » (--traduction) ; chaque étape visibleTexts liste les textes visibles qui ne sont pas passés par la traduction. Fenêtre principale, menu Fichier, À propos, taille de page, réglages. Hors de « tous » (sous-dossier controle/).",
+  "description": "Pseudo-langue de contrôle (L11-T19, D11-14) : l'interface est chargée avec la traduction « ⟦source⟧ » (--traduction) ; chaque étape visibleTexts liste les textes visibles qui ne sont pas passés par la traduction. Fenêtre principale, menu Fichier, À propos, taille de page, réglages. Hors de « tous » (sous-dossier controle/). Données ignorées : raccourcis clavier (commandShortcut) et valeurs numériques des boîtes de taille (pageSizeValue : texte saisi des boîtes), lien du projet et avis tiers (données : projectLink, aboutNotices).",
   "steps": [
     {
       "waitReady": true
@@ -10,7 +10,10 @@
       "visibleTexts": "pseudo",
       "ignore": [
         "pageIndicator",
-        "zoomLabel"
+        "zoomLabel",
+        "commandShortcut",
+        "projectLink",
+        "aboutNotices"
       ]
     },
     {
@@ -32,7 +35,10 @@
       "visibleTexts": "pseudo",
       "ignore": [
         "pageIndicator",
-        "zoomLabel"
+        "zoomLabel",
+        "commandShortcut",
+        "projectLink",
+        "aboutNotices"
       ]
     },
     {
@@ -54,7 +60,10 @@
       "visibleTexts": "pseudo",
       "ignore": [
         "pageIndicator",
-        "zoomLabel"
+        "zoomLabel",
+        "commandShortcut",
+        "projectLink",
+        "aboutNotices"
       ]
     },
     {
@@ -76,7 +85,11 @@
       "visibleTexts": "pseudo",
       "ignore": [
         "pageIndicator",
-        "zoomLabel"
+        "zoomLabel",
+        "commandShortcut",
+        "projectLink",
+        "aboutNotices",
+        "pageSizeValue"
       ]
     },
     {
@@ -98,7 +111,10 @@
       "visibleTexts": "pseudo",
       "ignore": [
         "pageIndicator",
-        "zoomLabel"
+        "zoomLabel",
+        "commandShortcut",
+        "projectLink",
+        "aboutNotices"
       ]
     },
     {
