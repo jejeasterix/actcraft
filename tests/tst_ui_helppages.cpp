@@ -32,7 +32,29 @@ const QStringList kLots6To11Tools = {QStringLiteral("tool.reveal-ink"),
                                      QStringLiteral("tool.camera-window"),
                                      QStringLiteral("tool.camera-screen"),
                                      QStringLiteral("tool.keyboard")};
+// Outils de maths et de présentation (lot 7) : commande -> page d'aide que HelpViewer::openFor doit ouvrir.
+// Les commandes voisines partagent une page (rideau, projecteur).
+const QList<QPair<QString, QString>> kMathPresentCommands = {
+    {QStringLiteral("math.ruler"), QStringLiteral("ruler")},
+    {QStringLiteral("math.set-square"), QStringLiteral("set-square")},
+    {QStringLiteral("math.protractor"), QStringLiteral("protractor")},
+    {QStringLiteral("math.compass"), QStringLiteral("compass")},
+    {QStringLiteral("math.xy-origin"), QStringLiteral("xy-origin")},
+    {QStringLiteral("present.curtain"), QStringLiteral("curtain")},
+    {QStringLiteral("present.curtain-color"), QStringLiteral("curtain")},
+    {QStringLiteral("present.spotlight-circle"), QStringLiteral("spotlight")},
+    {QStringLiteral("present.spotlight-square"), QStringLiteral("spotlight")},
+    {QStringLiteral("present.spotlight-solid-circle"), QStringLiteral("spotlight")},
+    {QStringLiteral("present.spotlight-solid-square"), QStringLiteral("spotlight")}};
 const QStringList kAllTools = kLots1To5Tools + kLots6To11Tools;
+// Pages propres aux outils de maths et de présentation (une par page distincte de la table ci-dessus).
+const QStringList kMathPresentPages = {QStringLiteral("ruler"),    QStringLiteral("set-square"),
+                                       QStringLiteral("protractor"), QStringLiteral("compass"),
+                                       QStringLiteral("xy-origin"), QStringLiteral("curtain"),
+                                       QStringLiteral("spotlight")};
+// Commandes math.* / present.* qui ne sont pas un outil : aucune pour l'instant. present.curtain-color est
+// un réglage (argument « color »), mais son gestionnaire est celui du rideau : il ouvre la page du rideau.
+const QStringList kNotTools = {};
 
 const QStringList kProcedures = {QStringLiteral("raccourcis"),         QStringLiteral("deux-utilisateurs"),
                                  QStringLiteral("modes-toucher"),      QStringLiteral("reprise"),
@@ -137,6 +159,24 @@ private slots:
         QString error;
         QVERIFY2(registry.loadDeclarations(actcraft::actions::defaultCommandsJson(), error),
                  qPrintable(error));
+        // Commandes math.* et present.* : chacune ouvre sa page par openFor, jamais le sommaire.
+        int mathSeen = 0;
+        for (const QString& id : registry.ids()) {
+            if ((!id.startsWith(QLatin1String("math.")) && !id.startsWith(QLatin1String("present."))) ||
+                kNotTools.contains(id))
+                continue;
+            QString expected;
+            for (const auto& entry : kMathPresentCommands)
+                if (entry.first == id)
+                    expected = entry.second;
+            QVERIFY2(!expected.isEmpty(), qPrintable(id + " : commande sans page d'aide"));
+            actcraft::ui::HelpViewer viewer;
+            viewer.openFor(id);
+            QVERIFY2(viewer.source().toString().endsWith(QStringLiteral("/help/%1.html").arg(expected)),
+                     qPrintable(id + " -> " + viewer.source().toString()));
+            ++mathSeen;
+        }
+        QCOMPARE(mathSeen, int(kMathPresentCommands.size()));
         int seen = 0;
         for (const QString& id : registry.ids()) {
             if (!id.startsWith(QLatin1String("tool.")) ||
@@ -154,6 +194,11 @@ private slots:
                 ++expected;
         QVERIFY(expected > 0);
         QCOMPARE(seen, expected);
+    }
+    void pagesOfMathAndPresentToolsExist()
+    {
+        for (const QString& name : kMathPresentPages)
+            QVERIFY2(!page(name).isEmpty(), qPrintable(name));
     }
     void procedurePagesExist()
     {
@@ -186,7 +231,7 @@ private slots:
         QVERIFY(!index.isEmpty());
         const QStringList files =
             QDir(QStringLiteral(":/actcraft/help")).entryList(QStringList{QStringLiteral("*.html")});
-        QVERIFY(files.size() >= 2 + kAllTools.size());
+        QVERIFY(files.size() >= 2 + kAllTools.size() + kMathPresentPages.size());
         for (const QString& file : files)
             if (file != QLatin1String("index.html"))
                 QVERIFY2(index.contains(QStringLiteral("href=\"%1\"").arg(file)), qPrintable(file));
