@@ -309,6 +309,11 @@ lot 11 prendra le lot 7 en fusionnant `main` à sa clôture.
     la capture ; le changement de page suivant arrivé pendant la capture tourne la page sans effet). Des effets partis
     mais pas tous donnent `page-effects-incomplete` (mesure invalide, contrôles de contenu joués), comme
     `page-flash-unverified` ; en release, `validityFollowsBuildType` exige toujours les 16.
+  - Relecture de 98fd77da et 3b23feec : 0 bloquant, 0 majeur. Mineurs consignés : une perte partielle **systématique**
+    d'effet (15 sur 16 à chaque passage) n'est plus refusée par la CI debug, seulement par la suite release et le banc
+    réel (correctif possible : compter les captures supplantées par un `navigate` et n'excuser que si joués +
+    supplantées = attendus) ; la même course sous charge peut rendre `validityFollowsBuildType` intermittent en release
+    (non mesuré).
   - `tst_ui_resources` : rouge dans la seconde CI et dans la suite debug parallèle locale, vert seul et 8 fois sous
     charge ; intermittent non expliqué (sorties QtTest absentes du journal du runner).
 - Restent du lot 7, inchangés : la liste « À la porte de clôture » de « Fin du lot 7 côté Mac » ; `qtpdf` absent de
