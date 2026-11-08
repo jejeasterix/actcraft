@@ -328,6 +328,10 @@ private slots:
     // réglages (QSettings, synchrone). Ce sont des réglages, pas des gestes : ils n'entrent pas dans le
     // verdict. L'intervalle où chacun est planifié, fini avant le changement de page qui le suit, reste au
     // repos ; une commande ordinaire le classerait actif (entrée, fenêtre « commande -> image suivante »).
+    // Fusion des lots 7 et 8 : seul un choix arrivé au repos (intervalle précédent au repos) est jugé. En
+    // debug sur le PC, la page n'est prête qu'environ 1 s après son changement : le choix suivant, 0,85 s
+    // plus tard, tombe dans ce changement encore actif (pageChangesAreActiveUntilShown). En release, tous
+    // arrivent au repos.
     void pageEffectChoicesAreNotJudged()
     {
         QJsonObject effects;
@@ -351,7 +355,8 @@ private slots:
             for (qsizetype k = 0; k < classes.size(); ++k) {
                 const double start = swaps.at(k).toDouble();
                 const double end = swaps.at(k + 1).toDouble();
-                if (start < choice && choice <= end && end < turn) {
+                const bool atRest = k > 0 && classes.at(k - 1) == u'I';
+                if (start < choice && choice <= end && end < turn && atRest) {
                     ++checked;
                     QVERIFY2(classes.at(k) == u'I',
                              qPrintable(QStringLiteral("intervalle %1 (choix %2) classé %3")
@@ -361,7 +366,9 @@ private slots:
                 }
             }
         }
-        QVERIFY(checked > 0);
+        if constexpr (ACTCRAFT_SMOKE_RELEASE != 0) {
+            QVERIFY(checked > 0);
+        }
     }
 
     void strokeHasLatency()
