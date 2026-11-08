@@ -41,12 +41,12 @@ bool LabelTips::isVisible() const noexcept
 
 QString LabelTips::fontFamily() const
 {
-    return m_fontFamily;
+    return m_typeface;
 }
 
 qreal LabelTips::pointSize() const noexcept
 {
-    return m_pointSize;
+    return m_textPoints;
 }
 
 QColor LabelTips::color() const
@@ -112,8 +112,8 @@ void LabelTips::hoverAt(QPointF pagePoint)
     }
     const core::LabelStyle& style = common->labelStyle;
     m_text = QString::fromStdString(common->label);
-    m_fontFamily = QString::fromStdString(style.fontFamily);
-    m_pointSize = style.pointSize;
+    m_typeface = QString::fromStdString(style.fontFamily);
+    m_textPoints = style.pointSize;
     m_color = QColor::fromRgba(style.color);
     m_outlineColor = style.outline == core::PenStyle::None ? QColor(Qt::transparent)
                                                            : QColor::fromRgba(style.outlineColor);
