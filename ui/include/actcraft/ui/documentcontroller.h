@@ -235,6 +235,11 @@ signals:
     // outils leur geste (L2-T15).
     void editAboutToApply();
     void liftingChanged();
+    // Lot 7 (L7-T2) : le document entier a été remplacé (ouverture, « Nouveau », page ou document du banc),
+    // hors de la pile ; jamais après une modification par la pile (trait, annuler, rétablir). Un état lu du
+    // document (page de retour, outils de la page, origine, reconnaissance) se relit ici, jamais sur
+    // documentChanged, émis après chaque modification.
+    void documentReplaced();
     // Une fois par page touchée par une commande (objet ou page, hors page retirée), après settle().
     void pageContentChanged(int page);
     // L6-C2 (H6-15) : une fois par page dont un objet a changé de drapeau (core::ObjectFlag : verrou, masqué,

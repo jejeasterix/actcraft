@@ -15,6 +15,7 @@
 #include <QQuickWindow>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
 #if ACTCRAFT_WEBFRAME
@@ -44,6 +45,24 @@ int main(int argc, char* argv[])
     if (QGuiApplication::platformName() == QLatin1String("offscreen"))
         actcraft::bench::useSimulatedRecorders(); // hors écran : ni micro ni fenêtre de permission
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Banc"));
+    // Avant le relevé REGLAGES, qui montre ainsi le vrai chemin du fichier de réglages.
+    QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
+    // L7-T38 : réglages propres à la passe, dans un dossier temporaire, comme bench/captures/main.cpp :
+    // l'effet de page choisi par « effets-page » (QSettings, TransitionController) ne survit pas à une passe
+    // interrompue (Ctrl+C) et ne touche ni les passes suivantes ni de vrais réglages. QSettings natif
+    // (CFPreferences, registre) ignorerait QStandardPaths::setTestModeEnabled. Déclaré avant le moteur QML,
+    // détruit après lui.
+    const QTemporaryDir settingsDir;
+    if (!settingsDir.isValid()) {
+        std::fprintf(stderr, "dossier de réglages temporaire impossible : %s\n",
+                     qPrintable(settingsDir.errorString()));
+        printLine(QStringLiteral("MESURE INVALIDE"));
+        return 2;
+    }
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir.path());
+    // Relevé avant toute mesure, sans rien écrire (tst_bench_reglages_isoles, sur une sortie refusée).
+    std::fprintf(stderr, "REGLAGES %s\n", qPrintable(QSettings().fileName()));
     const QStringList args = QGuiApplication::arguments();
 
     RenderBackend backend = RenderBackend::Auto;
@@ -58,17 +77,13 @@ int main(int argc, char* argv[])
     applyRenderBackend(backend);
 
     // Dossier des résultats par défaut, calculé avant l'interface (amendement 3, n5) : il porte aussi les
-    // réglages et les profils d'essai du banc, vidés à chaque lancement et posés avant tout objet (N1).
+    // profils d'essai du banc, vidés à chaque lancement et posés avant tout objet (N1). Les réglages sont
+    // déjà dans le dossier temporaire de la passe (L7-T38, plus haut).
     const QString defaultDir = QCoreApplication::applicationDirPath() + QStringLiteral("/resultats-banc");
-    const QString settingsDir = QDir(defaultDir).filePath(QStringLiteral("reglages"));
     const QString profilesDir = QDir(defaultDir).filePath(QStringLiteral("profils"));
-    QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
     actcraft::bench::useIsolatedResourceRoots(defaultDir); // jamais le Documents/ActCraft/Ressources du poste
-    QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
 
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde les périphériques
     // synthétiques de l'injecteur, et le collecteur reçoit des appels directs du fil de rendu.

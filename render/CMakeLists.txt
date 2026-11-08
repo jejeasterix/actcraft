@@ -28,6 +28,7 @@ actcraft_add_module(render
         src/pagepainter.cpp
         include/actcraft/render/paintedrenderer.h
         src/paintedrenderer.cpp
+        include/actcraft/render/equationpaint.h
         src/equationlayout.h
         src/equationlayout.cpp
         include/actcraft/render/liftlayeritem.h

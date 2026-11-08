@@ -1,0 +1,26 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "spot",
+  "description": "F-270 : present.spotlight-circle ouvre un spot rond au centre de la page (disque clair sur fond noir : page blanche au centre, noir à 20 px du bord) ; glissé par la partie masquée de (900, 700) vers (688, 616), il se déplace de (-212, -84) et son centre passe de (512, 384) à (300, 300) ; son pourtour droit tiré de x = 450 à x = 600 l'élargit en ovale de 450 sur 300.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "present.spotlight-circle"},
+    {"expect": "spotlight.shape", "value": 1},
+    {"expect": "spotlight.centerX", "value": 512, "tolerance": 1},
+    {"expect": "spotlight.centerY", "value": 384, "tolerance": 1},
+    {"checkPixel": "spot-centre-clair", "at": [512, 384], "color": "#FFFFFF", "tolerance": 8},
+    {"checkPixel": "spot-bord-noir", "at": [20, 20], "color": "#000000", "tolerance": 8},
+    {"capture": "spot-rond"},
+    {"pointer": [[900, 700], [800, 660], [688, 616]], "button": "left"},
+    {"expect": "spotlight.centerX", "value": 300, "tolerance": 1.5},
+    {"expect": "spotlight.centerY", "value": 300, "tolerance": 1.5},
+    {"checkPixel": "spot-deplace-centre-clair", "at": [300, 300], "color": "#FFFFFF", "tolerance": 8},
+    {"checkPixel": "spot-ancien-centre-noir", "at": [512, 384], "color": "#000000", "tolerance": 8},
+    {"capture": "spot-deplace"},
+    {"pointer": [[450, 300], [520, 300], [600, 300]], "button": "left"},
+    {"expect": "spotlight.frameWidth", "value": 450, "tolerance": 1.5},
+    {"expect": "spotlight.frameHeight", "value": 300, "tolerance": 1.5},
+    {"checkPixel": "spot-ovale-clair", "at": [520, 300], "color": "#FFFFFF", "tolerance": 8},
+    {"capture": "spot-ovale"}
+  ]
+}

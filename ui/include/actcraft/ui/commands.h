@@ -72,6 +72,10 @@ public:
     // Gestionnaire C++ (L6-T5 : `profile.activate`, posé par ProfileController), gardé à travers reload() et
     // prioritaire sur un gestionnaire JavaScript ; un gestionnaire vide le retire.
     void setNativeHandler(const QString& id, actions::CommandRegistry::Handler handler);
+    // Appelé par le gestionnaire d'une commande « mainWindow » (CommandInfo::opensInMainWindow) juste avant
+    // de montrer son panneau, et seulement s'il le montre (Ma1 essai 3 : la calculatrice du système n'en
+    // montre aucun) : émet mainWindowNeeded. Commande sans ce drapeau : refusée, avertissement.
+    Q_INVOKABLE void requestMainWindow(const QString& id);
     Q_INVOKABLE QString label(const QString& id) const;
     // « qrc:/qt/qml/ActCraft/Ui/icons/<icône>.svg », ou vide.
     Q_INVOKABLE QString iconUrl(const QString& id) const;
@@ -110,6 +114,10 @@ signals:
     // Refus de la diffusion protégée : essai d'une commande restreinte par trigger (menu, raccourci), ou
     // geste hors trigger signalé par reportRestrictionRefusal (action d'objet, ressources, onglets).
     void refusedByRestriction(const QString& id);
+    // Juste avant qu'une commande « mainWindow » (CommandInfo::opensInMainWindow) montre son panneau, quel
+    // que soit le chemin (menu, palette, raccourci, roue, trigger direct), par requestMainWindow : la
+    // fenêtre principale doit être rendue.
+    void mainWindowNeeded(const QString& id);
 
 private:
     // Éléments d'un menu : `submenus` nul = pas de sous-menu possible (sous-menu lui-même, menu contextuel).

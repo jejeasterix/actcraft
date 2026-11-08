@@ -1,10 +1,10 @@
-# Ajoute un test Qt Test : actcraft_add_test(<nom> SOURCES ... LIBS ...)
+# Ajoute un test Qt Test : actcraft_add_test(<nom> SOURCES ... LIBS ... [ARGS ...]) ; ARGS : arguments de Qt Test.
 function(actcraft_add_test name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;ARGS" ${ARGN})
     qt_add_executable(${name} ${ARG_SOURCES})
     target_link_libraries(${name} PRIVATE Qt6::Test ${ARG_LIBS})
     actcraft_set_warnings(${name})
-    add_test(NAME ${name} COMMAND ${name})
+    add_test(NAME ${name} COMMAND ${name} ${ARG_ARGS})
     # Sans écran : fenêtres hors écran, rendu logiciel (le secours doit toujours marcher).
     set(env_test "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     if(WIN32)

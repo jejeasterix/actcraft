@@ -38,7 +38,7 @@ const std::array kRows = {
     row("actions", "actions", "Actions", E::Actions, F::Actions),
     row("container", "accepts", "Peut contenir", E::Choice, F::Accepts),
     row("container", "contained-object", "Objet accepté", E::Object, F::ContainedObject),
-    row("container", "contain-words", "Mots acceptés", E::Keywords, F::ContainWords),
+    row("container", "contain-words", "Mots acceptés", E::Keywords, F::AcceptedWords),
     row("container", "fit", "Contenu quand", E::Choice, F::Fit),
     row("container", "tolerance", "Écart des centres", E::Number, F::Tolerance, 0, 1000),
     row("container", "bounce-back", "Revenir si non contenu", E::Bool, F::BounceBack),
@@ -300,7 +300,7 @@ void writeField(const core::Page& page, core::PageObject& object, InteractivityF
             break;
         }
         break;
-    case F::ContainWords:
+    case F::AcceptedWords:
         c.keywords = std::get<std::vector<std::string>>(value);
         break;
     case F::Actions:
@@ -442,7 +442,7 @@ QVariant readInteractivity(const core::PageObject& object, InteractivityField fi
         return static_cast<int>(c.accepts);
     case F::ContainedObject:
         return id(c.object);
-    case F::ContainWords:
+    case F::AcceptedWords:
         return toStringList(c.keywords); // la règle (H8-12), jamais object.common.keywords
     case F::Fit:
         return static_cast<int>(c.fit);
@@ -500,7 +500,7 @@ bool isEnabled(const core::PageObject& object, InteractivityField field)
     switch (field) {
     case F::ContainedObject:
         return c.accepts == core::Accepts::OneObject;
-    case F::ContainWords:
+    case F::AcceptedWords:
         return c.accepts == core::Accepts::Keywords;
     case F::Fit:
     case F::BounceBack:

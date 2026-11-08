@@ -20,6 +20,7 @@
 #include <qpa/qwindowsysteminterface.h>
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
@@ -764,6 +765,27 @@ private slots:
         QVERIFY(!parseSteps("{\"pointer\": [[5, 6]], \"holdMs\": -1}", s, error));
     }
 
+    // L7-T41 : « pointer » vise un élément par son nom (le modèle « fraction » d'equation.json), pas par des
+    // coordonnées que les polices déplacent. Nom vide ou repère donné : refusé.
+    void pointerStepTargetsANamedItem()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"pointer\": \"equationTemplate_fraction\"},"
+                            "{\"pointer\": \"survol\", \"button\": \"right\"}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{2});
+        QVERIFY(s.steps[0].kind == UiStepKind::Pointer);
+        QCOMPARE(s.steps[0].target, QStringLiteral("equationTemplate_fraction"));
+        QVERIFY(s.steps[0].points.empty());
+        QVERIFY(s.steps[0].windowSpace); // centre lu dans la scène
+        QVERIFY(s.steps[1].button == Qt::RightButton);
+        QVERIFY(!parseSteps("{\"pointer\": \"\"}", s, error));
+        QVERIFY(error.contains(QStringLiteral("nom d'objet")));
+        QVERIFY(!parseSteps("{\"pointer\": \"survol\", \"space\": \"page\"}", s, error));
+    }
+
     // L4-C21 : les étapes « pointer » portent des modificateurs (Ctrl+clic d'une miniature).
     void pointerStepModifiersParsed()
     {
@@ -1072,6 +1094,34 @@ private slots:
         QVERIFY2(all.contains(QStringLiteral("PINCEMENT ×2 OK")), qPrintable(all));
         QCOMPARE(all.count(QLatin1String("POINTEUR 2 OK")), 2);
         QCOMPARE(all.count(QLatin1String("DOUBLECLIC OK")), 2);
+    }
+
+    // L7-T41 : « pointer » sur un nom d'objet clique au centre de l'élément trouvé (la vue de page, au centre
+    // de la fenêtre) ; introuvable, caché, sans taille ou centre hors de la fenêtre, l'étape échoue avec sa
+    // raison.
+    void pointerStepOnANamedItemPlays()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        QVERIFY2(f.player->play(scenario("nomme", "[{\"waitReady\":true},{\"pointer\":\"pageView\"}]"),
+                                f.out.path(), report),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(report.join(QLatin1Char('\n')).contains(QLatin1String("POINTEUR sur pageView OK")),
+                 qPrintable(report.join(QLatin1Char('\n'))));
+        const std::pair<const char*, const char*> failures[] = {{"absent", "introuvable"},
+                                                                {"cache", "invisible"},
+                                                                {"survol", "sans taille"},
+                                                                {"dehors", "hors de la fenêtre"}};
+        for (const auto& [name, why] : failures) {
+            report.clear();
+            const QByteArray steps = QByteArrayLiteral("[{\"pointer\":\"") + name + QByteArrayLiteral("\"}]");
+            QVERIFY2(!f.player->play(scenario("nomme", steps.constData()), f.out.path(), report), name);
+            const QString all = report.join(QLatin1Char('\n'));
+            const QString expected = QStringLiteral("POINTEUR sur %1 ECHEC (élément %2")
+                                         .arg(QString::fromLatin1(name), QString::fromUtf8(why));
+            QVERIFY2(all.contains(expected), qPrintable(expected + QStringLiteral(" attendu : ") + all));
+        }
     }
 
     // L4-C14 : à la fin d'une étape « pointer », le survol (HoverHandler) est celui du dernier point. Qt
