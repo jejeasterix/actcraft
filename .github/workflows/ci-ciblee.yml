@@ -12,6 +12,9 @@ name: CI ciblée
 # Cache de compilation : celui de la CI, sur le même runner (arbre build/ gardé sur le PC, ccache sur le Mac) ; Qt est
 # installé sur le runner. sccache n'apporterait rien de plus et changerait les options de MSVC (/Z7 au lieu de /Zi).
 on:
+  # TEMPORAIRE (O84) : enregistre le workflow pour le lancer depuis la branche avant le merge ; retiré avant le merge.
+  push:
+    branches: [ci/ci-ciblee]
   workflow_dispatch:
     inputs:
       tests:
@@ -41,6 +44,7 @@ env:
 jobs:
   tests:
     name: tests ciblés (${{ inputs.plateforme }})
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ${{ inputs.plateforme == 'macos' && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]') }}
     # Le temps d'attente du runner (occupé par la CI) ne compte pas dans ce délai.
     timeout-minutes: 40
