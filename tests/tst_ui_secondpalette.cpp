@@ -845,7 +845,7 @@ void TstUiSecondpalette::helpButtonOpensTheTwoUsersPage()
     QVERIFY2(button->width() >= 48 && button->height() >= 48,
              qPrintable(QStringLiteral("%1 x %2").arg(button->width()).arg(button->height())));
     auto* viewer = app.window->findChild<QQuickItem*>(QStringLiteral("helpViewer"));
-    auto* model = app.window->findChild<ui::HelpViewer*>();
+    auto* model = viewer ? viewer->findChild<ui::HelpViewer*>() : nullptr; // pas celui de la palette
     QVERIFY(viewer && model);
     QVERIFY(!viewer->isVisible());
 

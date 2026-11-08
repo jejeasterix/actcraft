@@ -19,6 +19,11 @@ Rectangle {
     implicitWidth: Theme.largeurPalette
     color: "#F4F4F4"
 
+    // L11-C11 (K) : demande la page du mode à deux à la prochaine ouverture du lecteur d'aide.
+    HelpViewerModel {
+        id: helpRequest
+    }
+
     component PaletteButton: Rectangle {
         id: button
         property string commandId
@@ -111,6 +116,36 @@ Rectangle {
                         color: "#212121"
                     }
                 }
+            }
+        }
+
+        // L11-C11 (K) : aide du mode à deux. help.contents ouvre le lecteur, sur la page demandée juste avant.
+        Rectangle {
+            id: helpButton
+            objectName: "secondHelp"
+            function press() {
+                helpRequest.requestNextPage("deux-utilisateurs")
+                const opened = paletteRoot.commands.trigger("help.contents", undefined, paletteRoot.secondUser)
+                if (!opened)
+                    helpRequest.requestNextPage("")
+                return opened
+            }
+            width: 92
+            height: Math.max(48, Theme.tailleBouton) // cible au doigt : 48 dp au moins
+            radius: 6
+            color: "#FFFFFF"
+            border.width: 1
+            border.color: "#9E9E9E"
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTr("Aide du mode à deux utilisateurs")
+            Accessible.onPressAction: helpButton.press()
+            TapHandler { onTapped: helpButton.press() }
+            Text {
+                anchors.centerIn: parent
+                text: qsTr("?")
+                font.pixelSize: 22
+                font.bold: true
+                color: "#212121"
             }
         }
     }
