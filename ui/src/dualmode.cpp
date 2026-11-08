@@ -1,9 +1,7 @@
-#include <actcraft/input/touchmodes.h>
 #include <actcraft/input/twouserpolicy.h>
 #include <actcraft/ui/dualmode.h>
 
 #include <memory>
-#include <string>
 
 namespace actcraft::ui {
 
@@ -159,14 +157,7 @@ void DualMode::restoreTouchPolicy()
     if (!m_view) {
         return;
     }
-    input::TouchMode mode = input::TouchMode::Full;
-    if (m_touchMode) {
-        const std::string id = m_touchMode->mode().toStdString();
-        if (!input::touchModeFromId(id, mode)) {
-            mode = input::TouchMode::Full;
-        }
-    }
-    m_view->setRoutingPolicy(input::makeTouchPolicy(mode));
+    m_view->setRoutingPolicy(TouchModeController::makePolicy(m_touchMode ? m_touchMode->mode() : QString()));
 }
 
 void DualMode::updateArea()

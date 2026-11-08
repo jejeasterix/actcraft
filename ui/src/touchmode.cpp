@@ -137,16 +137,21 @@ void TouchModeController::apply(const QString& wanted)
     emit modeChanged();
 }
 
+std::unique_ptr<input::RoutingPolicy> TouchModeController::makePolicy(const QString& id)
+{
+    input::TouchMode parsed{};
+    if (!knownId(id, parsed)) {
+        parsed = input::TouchMode::Full;
+    }
+    return input::makeTouchPolicy(parsed);
+}
+
 void TouchModeController::applyPolicy()
 {
     if (!m_view) {
         return;
     }
-    input::TouchMode parsed{};
-    if (!knownId(m_mode, parsed)) {
-        parsed = input::TouchMode::Full;
-    }
-    m_view->setRoutingPolicy(input::makeTouchPolicy(parsed));
+    m_view->setRoutingPolicy(makePolicy(m_mode));
 }
 
 void TouchModeController::applyPending()
