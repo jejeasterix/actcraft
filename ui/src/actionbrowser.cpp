@@ -2,6 +2,7 @@
 #include <actcraft/core/actionedits.h>
 #include <actcraft/ui/actionbrowser.h>
 
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -134,8 +135,8 @@ QVariant ActionBrowserModel::data(const QModelIndex& index, int role) const
     switch (role) {
     case IdRole:
         return row.info->id;
-    case LabelRole:
-        return row.info->label;
+    case LabelRole: // L11-C11 (L) : extrait par ui/src/commandlabels.cpp
+        return QCoreApplication::translate("actions-objet", row.info->label.toUtf8().constData());
     case IconRole:
         return row.info->icon;
     case ExistingRole:
