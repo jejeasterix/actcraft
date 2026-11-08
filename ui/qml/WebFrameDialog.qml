@@ -59,6 +59,17 @@ Item {
             ScrollView {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 160
+                // Anneau de focus du champ (L11-T24) : le style n'en dessine pas pour un TextArea. Accent posé sur le
+                // dialogue sombre, autour du champ : sur le blanc du puits, il tomberait sous 3:1.
+                background: Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: -3
+                    visible: codeField.activeFocus
+                    color: "transparent"
+                    radius: Theme.rayon + 3
+                    border.width: 2
+                    border.color: Theme.surfaceActive
+                }
                 TextArea {
                     id: codeField
                     objectName: "webFrameCode"
@@ -66,6 +77,16 @@ Item {
                     textFormat: TextEdit.PlainText
                     selectByMouse: true
                     placeholderText: "<p>…</p>"
+                    // Tab quitte le champ, comme ailleurs dans la boîte : sinon il y insère une tabulation et le
+                    // clavier ne sort plus du champ (L11-T24).
+                    Keys.onTabPressed: event => {
+                        event.accepted = true
+                        codeField.nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+                    }
+                    Keys.onBacktabPressed: event => {
+                        event.accepted = true
+                        codeField.nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
+                    }
                 }
             }
             Label {

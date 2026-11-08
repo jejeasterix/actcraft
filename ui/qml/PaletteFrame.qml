@@ -269,6 +269,7 @@ Item {
             BarButton {
                 id: optionsButton
                 objectName: "paletteOptions"
+                Accessible.name: qsTr("Options de la palette")
                 x: Theme.espace1
                 icon.source: root.commands ? root.commands.iconUrl("palette.float") : ""
                 onClicked: optionsMenu.popup(optionsButton, 0, optionsButton.height)
@@ -281,6 +282,7 @@ Item {
             BarButton {
                 id: pinButton
                 objectName: "palettePinButton"
+                Accessible.name: root.commands ? root.commands.label(root.idPin) : ""
                 anchors.right: parent.right
                 anchors.rightMargin: Theme.espace1
                 checkable: false
@@ -292,6 +294,7 @@ Item {
             BarButton {
                 id: collapseButton
                 objectName: "paletteCollapseButton"
+                Accessible.name: root.commands ? root.commands.label(root.idCollapse) : ""
                 anchors.right: pinButton.left
                 anchors.rightMargin: Theme.espace1
                 icon.source: root.commands ? root.commands.iconUrl(root.idCollapse) : ""
