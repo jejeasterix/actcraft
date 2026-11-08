@@ -590,7 +590,7 @@ set_tests_properties(tst_captures_mises_a_jour PROPERTIES
 actcraft_add_lot11_capture(tst_captures_classe_protegee_complete classe-protegee-complete)
 actcraft_add_lot11_capture(tst_captures_profils_complets profils-complets)
 
-# Lot 11 (L11-T1) : talon QSKIP de tst_bench_resultsdir, rempli par L11-T15.
+# Lot 11 (L11-T1) : test tst_bench_resultsdir, réservé à l'origine par un talon QSKIP, rempli par L11-T15 (plus de talon).
 actcraft_add_test(tst_bench_resultsdir
     SOURCES tst_bench_resultsdir.cpp
     LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick)

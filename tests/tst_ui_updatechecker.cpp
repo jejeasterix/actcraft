@@ -418,6 +418,11 @@ void TstUiUpdatechecker::startCalledOnceByTheShell()
             QTRY_COMPARE(checker->state(), UpdateChecker::State::Available);
         else
             QCOMPARE(checker->state(), UpdateChecker::State::Idle);
+        // check() ignore un appel pendant « Checking » : un second start() synchrone ne se voit pas d'ici
+        // (sans toucher au code de production, aucun espion sur start()). Un second appel après la réponse,
+        // lui, relancerait une requête : on laisse la boucle tourner et on recompte.
+        QTest::qWait(150);
+        QCOMPARE(checker->requestCount(), atStart ? 1 : 0);
     }
 }
 

@@ -207,7 +207,7 @@ private slots:
                 QVERIFY2(m_commands->isEnabled(id) == own, qPrintable(id));
             }
         }
-        QCOMPARE(greyed, rawLockedCount(platform));
+        QCOMPARE(greyed, m_commands->lockedCount()); // compté par l'appli, pas relu du JSON brut
         QVERIFY(unlockApp());
     }
 

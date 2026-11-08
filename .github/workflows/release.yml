@@ -108,6 +108,20 @@ jobs:
             exit 1
           }
 
+      # Les relevés de copyright de THIRD_PARTY_NOTICES.md se font au PC : tant qu'une ligne dit « à relever », la
+      # release est refusée, avant toute construction et donc avant tout brouillon. Mode réel seulement (ce job).
+      - name: Notices tierces complètes
+        shell: bash
+        run: |
+          # Lignes jointes : une mention coupée par le retour à la ligne (« à » en fin, « relever » au début de la
+          # suivante) est vue aussi.
+          restes=$(tr -s '[:space:]' ' ' < THIRD_PARTY_NOTICES.md | grep -o 'à relever' | wc -l | tr -d ' ')
+          if [ "$restes" != 0 ]; then
+            echo "NOTICES INCOMPLETES : THIRD_PARTY_NOTICES.md contient encore $restes fois « à relever ». Release refusée."
+            exit 1
+          fi
+          echo "NOTICES COMPLETES"
+
   # Mode essai : prouve que le mode réel, privé de secrets, échoue avec son message ; et que les notes existent.
   controle-mode-reel:
     needs: mode
@@ -284,7 +298,7 @@ jobs:
           cache="$HOME/actions-runner-actcraft/_cache"
           mkdir -p "$cache"
           brew_qt=/opt/homebrew/opt/qt
-          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1)
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1) || true
           if [ "$version" = "$QT_VERSION" ]; then
             qt_dir="$brew_qt"
           else
@@ -339,8 +353,8 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
+          # bash -eo pipefail : un lancement en échec fait déjà échouer le pipeline (donc l'étape).
           ./scripts/essai-dmg.sh --lancer 2>&1 | tail -4
-          test "${PIPESTATUS[0]}" = 0
 
       - name: Somme SHA-256
         shell: bash
@@ -521,7 +535,7 @@ jobs:
           gh release create "v$VERSION" --draft --verify-tag \
             --title "ActCraft $VERSION" --notes-file notes.md paquets/*
 
-  # Mode réel : les artefacts du run (installateur, APK signé) ne servent qu'à assembler le brouillon. Supprimés à
+  # Mode réel : les artefacts du run (installateur, APK signé, image disque .dmg) ne servent qu'à assembler le brouillon. Supprimés à
   # la fin quoi qu'il arrive (échec de « windows », d'« android » ou de « release » compris), pour qu'ils ne restent
   # pas téléchargeables avant la publication (go écrit).
   nettoyer:

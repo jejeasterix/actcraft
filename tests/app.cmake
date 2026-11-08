@@ -38,7 +38,7 @@ actcraft_add_test(tst_app_open
     LIBS Qt6::Quick ActCraft::ui ActCraft::formats actcraft_uiplugin)
 target_include_directories(tst_app_open PRIVATE ${PROJECT_SOURCE_DIR}/app)
 
-# Lot 11 (L11-T1) : talons QSKIP, remplis par L11-T25 et L11-T28.
+# Lot 11 (L11-T1) : tests réservés à l'origine par des talons QSKIP, remplis par L11-T25 et L11-T28 (plus aucun talon).
 actcraft_add_test(tst_app_notices
     SOURCES tst_app_notices.cpp
     LIBS ActCraft::ui)

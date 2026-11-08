@@ -87,7 +87,7 @@ endif()
 # Hachage et mandataire du lot 6 (Qt6::Network).
 find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
 
-# Lot 11 (L11-T1) : sources réservées (talons marqués), remplies par les tâches nommées dans leurs marqueurs.
+# Lot 11 (L11-T1) : sources réservées à l'origine (talons), remplies par les tâches nommées dans leurs marqueurs (plus aucun talon).
 set(ACTCRAFT_UI_LOT11_SOURCES
     include/actcraft/ui/touchmode.h
     src/touchmode.cpp
