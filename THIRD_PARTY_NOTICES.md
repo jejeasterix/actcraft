@@ -9,7 +9,7 @@ liste SPDX ; ceux dont l'identifiant commence par `LicenseRef-` sont repris du p
 de l'éditeur.
 
 Les lignes de copyright viennent des déclarations de Qt (nomenclature SPDX de Qt 6.12.0) ou de la source du
-composant. Une ligne de copyright qui renvoie au relevé fait au PC signale une ligne absente de la nomenclature disponible lors de
+composant. Une ligne de copyright qui renvoie au relevé à faire au PC signale une ligne absente de la nomenclature disponible lors de
 la rédaction : elle sera reprise des fichiers `qt_attribution.json` de Qt 6.12.0 pour Windows et pour Android.
 
 Ce document décrit ce que les paquets contiennent et sous quelles licences ; il n'a pas été validé par un juriste et

@@ -623,7 +623,6 @@ actcraft_add_lot8_capture(tst_captures_diffusion_protegee diffusion-protegee)
 function(actcraft_add_lot11_capture name scenario)
     set(file ${PROJECT_SOURCE_DIR}/bench/scenarios/${scenario}.json)
     get_filename_component(_base ${scenario} NAME_WE)
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${file})
     add_test(NAME ${name}
         COMMAND $<TARGET_FILE:actcraft-captures>
             --scenario ${file}
