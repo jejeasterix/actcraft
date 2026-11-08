@@ -11,8 +11,10 @@
 #include <QtQml/qqmlparserstatus.h>
 #include <QtQml/qqmlregistration.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace actcraft::ui {
@@ -36,8 +38,11 @@ namespace actcraft::ui {
 // l'onglet affiché reste devant. Sans onglets, une copie qui ne peut pas être rouverte est gardée telle
 // quelle.
 //
-// La copie est effacée par un enregistrement réussi qui laisse tous les documents propres, par discard()
-// (recovery.discard, « Quitter » accepté) ; jamais une copie que ce gardien n'a ni écrite ni rouverte.
+// La copie est effacée par un enregistrement réussi qui laisse tous les documents propres, par une mise en
+// arrière-plan où plus rien n'est modifié, par discard() (recovery.discard, « Quitter » accepté) ; jamais une
+// copie que ce gardien n'a ni écrite ni rouverte. Une copie relue mais pas encore montrée (reprise en
+// attente, onglet neuf refusé sous verrou de classe) est gardée : ni réécrite ni effacée, rouverte au
+// lancement suivant.
 //
 // État de l'application : un filtre posé sur qApp lit l'événement public QApplicationStateChangeEvent (A22),
 // celui que la plateforme et l'étape « appState » du joueur envoient. applyState est aussi relié au signal
@@ -84,6 +89,7 @@ public:
     void componentComplete() override;
 
     struct Found; // copie relue au démarrage (lifecycle.cpp)
+    struct Held;  // copies relues mais pas montrées : ni réécrites ni effacées (lifecycle.cpp)
 
 signals:
     void documentChanged();
@@ -122,6 +128,8 @@ private:
     bool m_copyValid = false;
     std::uint64_t m_copyKey = 0;
     std::uint64_t m_copyRevision = 0;
+    std::vector<std::pair<std::uint64_t, std::size_t>> m_copyParked; // onglets garés modifiés : clé, pages
+    std::shared_ptr<Held> m_held;
     // Un seul fil : écritures, effacements et lecture du démarrage dans l'ordre où ils sont demandés.
     // Déclaré en dernier : détruit le premier, il attend ses tâches avant tout autre membre.
     QThreadPool m_pool;

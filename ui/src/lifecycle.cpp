@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -64,11 +65,13 @@ void removePair(const QDir& folder, const QString& copyName)
     QFile::remove(folder.filePath(copyName.chopped(int(sizeof("actcraft") - 1)) + QStringLiteral("json")));
 }
 
-void removeAll(const QString& dir)
+void removeAll(const QString& dir, const QStringList& held)
 {
     const QDir folder(dir);
     for (const QString& name : copyNames(dir)) {
-        removePair(folder, name);
+        if (!held.contains(name)) {
+            removePair(folder, name);
+        }
     }
     QDir().rmdir(dir); // vide seulement
 }
@@ -94,10 +97,10 @@ struct Entry
 };
 
 // Sur le fil de la réserve. Chaque copie est écrite par l'écrivain natif, puis son .json (chacun atomique) ;
-// le .json n'est cru à la reprise que s'il porte l'empreinte de la copie. Les copies d'un rang supérieur,
-// d'une écriture précédente, sont effacées. Le journal est écrit d'ici : sous Android, la boucle principale
-// peut être arrêtée après Suspended.
-bool writeSet(const QString& dir, const std::vector<Entry>& entries, qint64 time)
+// le .json n'est cru à la reprise que s'il porte l'empreinte de la copie. Les rangs des copies gardées
+// (`held`) sont sautés ; les autres copies d'une écriture précédente sont effacées. Le journal est écrit
+// d'ici : sous Android, la boucle principale peut être arrêtée après Suspended.
+bool writeSet(const QString& dir, const std::vector<Entry>& entries, qint64 time, const QStringList& held)
 {
     const QDir folder(dir);
     if (!QDir().mkpath(dir)) {
@@ -106,9 +109,15 @@ bool writeSet(const QString& dir, const std::vector<Entry>& entries, qint64 time
     }
     bool ok = true;
     QString first;
+    QStringList written;
+    int rank = 0;
     for (std::size_t i = 0; i < entries.size(); ++i) {
         const Entry& e = entries[i];
-        const QString base = baseName(int(i) + 1);
+        do {
+            ++rank;
+        } while (held.contains(baseName(rank) + QStringLiteral(".actcraft")));
+        const QString base = baseName(rank);
+        written << base + QStringLiteral(".actcraft");
         const SaveOutcome saved = saveDocument(
             *e.snapshot, QUrl::fromLocalFile(folder.filePath(base + QStringLiteral(".actcraft"))));
         if (!saved.ok) {
@@ -133,9 +142,7 @@ bool writeSet(const QString& dir, const std::vector<Entry>& entries, qint64 time
         }
     }
     for (const QString& name : copyNames(dir)) {
-        static const QRegularExpression rank(QStringLiteral("^reprise-([0-9]+)\\.actcraft$"));
-        const QRegularExpressionMatch m = rank.match(name);
-        if (m.hasMatch() && m.captured(1).toInt() > int(entries.size())) {
+        if (!written.contains(name) && !held.contains(name)) {
             removePair(folder, name);
         }
     }
@@ -148,8 +155,26 @@ bool writeSet(const QString& dir, const std::vector<Entry>& entries, qint64 time
 
 } // namespace
 
+struct LifecycleKeeper::Held
+{
+    std::mutex mutex;
+    QStringList names;
+
+    QStringList get()
+    {
+        const std::lock_guard<std::mutex> lock(mutex);
+        return names;
+    }
+    void set(QStringList held)
+    {
+        const std::lock_guard<std::mutex> lock(mutex);
+        names = std::move(held);
+    }
+};
+
 struct LifecycleKeeper::Found
 {
+    QString name; // nom de la copie dans le dossier de reprise
     LoadOutcome outcome;
     QUrl origin; // vide si le .json ne décrit pas cette copie
     int page = 0;
@@ -168,6 +193,7 @@ std::vector<LifecycleKeeper::Found> readSet(const QString& dir)
     for (const QString& name : copyNames(dir)) {
         const QString copy = folder.filePath(name);
         LifecycleKeeper::Found found;
+        found.name = name;
         QString fingerprint;
         QFile info(folder.filePath(name.chopped(int(sizeof("actcraft") - 1)) + QStringLiteral("json")));
         if (info.open(QIODevice::ReadOnly)) {
@@ -210,7 +236,7 @@ std::vector<LifecycleKeeper::Found> readSet(const QString& dir)
 
 } // namespace
 
-LifecycleKeeper::LifecycleKeeper(QObject* parent) : QObject(parent)
+LifecycleKeeper::LifecycleKeeper(QObject* parent) : QObject(parent), m_held(std::make_shared<Held>())
 {
     m_pool.setMaxThreadCount(1);
     if (auto* app = QCoreApplication::instance()) {
@@ -368,29 +394,36 @@ void LifecycleKeeper::suspend()
         entries.push_back({std::move(snapshot), m_document->fileUrl(), m_document->currentIndex(),
                            m_view ? double(m_view->zoom()) : 1.0});
     }
-    bool parkedModified = false;
+    // Un onglet garé ne change que par « Copier vers l'onglet » (pages ajoutées) : clé et nombre de pages.
+    std::vector<std::pair<std::uint64_t, std::size_t>> parked;
     for (const DocumentController::ParkedSession* s : DocumentController::ParkedSession::live()) {
         if (s->isModified()) {
-            parkedModified = true;
+            parked.emplace_back(s->documentKey, s->document.pageCount());
             entries.push_back(
                 {std::make_shared<const core::Document>(s->document), s->fileUrl, int(s->current), 0.0});
         }
     }
     if (entries.empty()) {
+        // Plus rien à enregistrer (document abandonné, annulé jusqu'à propre) : la copie de ce gardien n'a
+        // plus d'objet ; rouverte après un arrêt, elle ressusciterait un travail abandonné.
+        if (m_ownsCopy) {
+            removeCopy();
+        }
         return;
     }
-    // Android : Hidden puis Suspended ; un document inchangé depuis sa copie n'est pas réécrit.
-    if (!parkedModified && m_copyValid && m_copyKey == key && m_copyRevision == revision) {
+    // Android : Hidden puis Suspended ; rien de changé depuis la copie : pas de seconde écriture.
+    if (m_copyValid && m_copyKey == key && m_copyRevision == revision && m_copyParked == parked) {
         return;
     }
-    m_copyValid = !parkedModified;
+    m_copyValid = true;
     m_copyKey = key;
     m_copyRevision = revision;
+    m_copyParked = std::move(parked);
     m_ownsCopy = true;
     const QString dir = recoveryDir();
     const qint64 time = QDateTime::currentMSecsSinceEpoch();
-    m_pool.start([this, entries = std::move(entries), dir, time] {
-        const bool ok = writeSet(dir, entries, time);
+    m_pool.start([this, entries = std::move(entries), dir, time, held = m_held] {
+        const bool ok = writeSet(dir, entries, time, held->get());
         QMetaObject::invokeMethod(this, [this, ok] { finishWrite(ok); }, Qt::QueuedConnection);
     });
 }
@@ -416,7 +449,7 @@ void LifecycleKeeper::start()
     const QString dir = recoveryDir();
     const std::uint64_t key = m_document ? m_document->documentKey() : 0;
     const std::uint64_t revision = m_document ? m_document->revision() : 0;
-    m_pool.start([this, dir, key, revision] {
+    m_pool.start([this, dir, key, revision, held = m_held] {
         if (!QFileInfo::exists(dir)) {
             return; // aucune copie : ni lecture ni écriture
         }
@@ -424,6 +457,13 @@ void LifecycleKeeper::start()
         if (found->empty()) {
             return;
         }
+        // Gardées jusqu'à ce que la reprise les montre : une écriture ou un effacement demandé entre-temps
+        // (fermeture pendant la relecture) les laisse.
+        QStringList names;
+        for (const Found& f : *found) {
+            names << f.name;
+        }
+        held->set(std::move(names));
         QMetaObject::invokeMethod(
             this, [this, found, key, revision] { restore(found, key, revision); }, Qt::QueuedConnection);
     });
@@ -461,12 +501,21 @@ void LifecycleKeeper::restore(const std::shared_ptr<std::vector<Found>>& found, 
     }
     const int home = m_tabs ? m_tabs->currentIndex() : 0;
     bool intoHome = untouched;
+    int shown = 0;
+    QStringList kept;
     for (Found& f : *found) {
         if (!intoHome) {
-            if (!m_tabs) {
-                break; // sans onglets : la première seulement
+            // Onglet neuf vérifié : refusé (verrou de classe sur « Nouveau », lecture en cours), la copie est
+            // gardée, jamais versée dans l'onglet affiché. Le verrou n'est pas contourné : la reprise ne crée
+            // pas d'onglet que l'enseignant a interdit ; rien n'est perdu, elle revient au lancement suivant.
+            const int before = m_tabs ? m_tabs->rowCount() : 0;
+            if (m_tabs) {
+                m_tabs->newTab();
             }
-            m_tabs->newTab();
+            if (!m_tabs || m_tabs->rowCount() == before) {
+                kept << f.name;
+                continue;
+            }
         }
         const QString title = f.origin.isEmpty() ? QString() : titleFromUrl(f.origin);
         m_document->replaceWithRecovered(std::move(f.outcome.document), f.origin, title, f.reference);
@@ -478,6 +527,14 @@ void LifecycleKeeper::restore(const std::shared_ptr<std::vector<Found>>& found, 
         }
         qCInfo(lcLifecycle, "ACTCRAFT REPRISE %s", qPrintable(fingerprintHex(f.outcome.fingerprint)));
         intoHome = false;
+        ++shown;
+    }
+    m_held->set(kept);
+    if (!kept.isEmpty()) {
+        qCInfo(lcLifecycle, "%d copie(s) de reprise gardée(s) : onglet neuf refusé", int(kept.size()));
+    }
+    if (shown == 0) {
+        return;
     }
     if (m_tabs && m_tabs->currentIndex() != home) {
         m_tabs->activate(home);
@@ -497,7 +554,8 @@ void LifecycleKeeper::removeCopy()
     m_copyValid = false;
     m_ownsCopy = false;
     const QString dir = recoveryDir();
-    m_pool.start([dir] { removeAll(dir); }); // après toute écriture déjà demandée
+    // Après toute écriture déjà demandée ; les copies gardées restent.
+    m_pool.start([dir, held = m_held] { removeAll(dir, held->get()); });
 }
 
 void LifecycleKeeper::setRecovered(bool recovered)
