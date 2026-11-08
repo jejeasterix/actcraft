@@ -13,13 +13,17 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QNetworkAccessManager>
 #include <QQmlApplicationEngine>
+#include <QQmlNetworkAccessManagerFactory>
 #include <QQuickWindow>
 #include <QScreen>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QSysInfo>
+#include <QTemporaryDir>
 #include <QTest>
+#include <QThread>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
 #if ACTCRAFT_WEBFRAME
@@ -55,12 +59,50 @@ QString valueAfter(const QStringList& args, const QString& name)
     return index >= 0 && index + 1 < args.size() ? args.at(index + 1) : QString();
 }
 
+// --retard-images (L7-T40) : injection de lenteur, jamais une synchronisation. Le lecteur d'images de Qt
+// Quick charge hors du fil principal ce qui n'est ni un fichier ni une ressource, URL « data: » comprises (le
+// pointillé des séparations de zones), par le gestionnaire réseau que lui fabrique le moteur. Chaque requête
+// attend ici, dans le fil du lecteur : une étape qui lit des pixels sans attendre la fin des chargements
+// échoue à coup sûr.
+class SlowNetworkAccessManager : public QNetworkAccessManager
+{
+public:
+    SlowNetworkAccessManager(unsigned long delayMs, QObject* parent)
+        : QNetworkAccessManager(parent), m_delayMs(delayMs)
+    {}
+
+protected:
+    QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,
+                                 QIODevice* outgoingData) override
+    {
+        QThread::msleep(m_delayMs);
+        return QNetworkAccessManager::createRequest(op, request, outgoingData);
+    }
+
+private:
+    unsigned long m_delayMs;
+};
+
+class SlowNetworkFactory : public QQmlNetworkAccessManagerFactory
+{
+public:
+    explicit SlowNetworkFactory(unsigned long delayMs) : m_delayMs(delayMs) {}
+    QNetworkAccessManager* create(QObject* parent) override
+    {
+        return new SlowNetworkAccessManager(m_delayMs, parent);
+    }
+
+private:
+    unsigned long m_delayMs;
+};
+
 } // namespace
 
 // Captures et scénarios d'interface (DA8). Dernière ligne et code : SCENARIO OK (0), SCENARIO EN ECHEC (1),
 // SCENARIO INVALIDE (2 : arguments, fichier, interface).
 //   actcraft-captures --scenario <fichier.json> [--rendu auto|d3d11|logiciel] [--sortie <dossier>]
 //                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]… [--traduction <fichier.qm>]
+//                     [--retard-images <ms>]
 int main(int argc, char* argv[])
 {
     // DA8 : dialogues Qt Quick non natifs forcés (un dialogue natif ne reçoit pas d'événements postés).
@@ -72,6 +114,18 @@ int main(int argc, char* argv[])
     if (QGuiApplication::platformName() == QLatin1String("offscreen"))
         actcraft::bench::useSimulatedRecorders(); // hors écran : ni micro ni fenêtre de permission
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft-Captures"));
+    // Réglages propres à la passe, dans un dossier temporaire, comme MainWindow des tests
+    // (tests/support/presentationharness.h) : une passe ne lit jamais ce qu'une autre a écrit (effets.json
+    // choisit le fondu global), ni les réglages réels de l'utilisateur. QStandardPaths::setTestModeEnabled ne
+    // suffirait pas : le format natif de QSettings (CFPreferences sous macOS, registre sous Windows)
+    // l'ignore. Déclaré avant le moteur QML, donc détruit après lui.
+    const QTemporaryDir settingsDir;
+    if (!settingsDir.isValid()) {
+        return invalid(
+            QStringLiteral("dossier de réglages temporaire impossible : %1").arg(settingsDir.errorString()));
+    }
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir.path());
     const QStringList args = QGuiApplication::arguments();
 
     RenderBackend backend = RenderBackend::Auto;
@@ -126,14 +180,13 @@ int main(int argc, char* argv[])
         }
     }
 
-    // Réglages et profils d'essai propres à ce lancement (L6-T5, amendement 3, N1), posés avant tout objet :
-    // jamais ceux du poste. `<sortie>` est propre au scénario et au rendu ; l'étape `restart` ne vide rien.
+    // Profils d'essai propres à ce lancement (L6-T5, amendement 3, N1), posés avant tout objet : jamais ceux
+    // du poste ; les réglages sont déjà dans le dossier temporaire de la passe (L7-T41, plus haut).
+    // `<sortie>` est propre au scénario et au rendu ; l'étape `restart` ne vide rien.
     const QDir outputDir(output);
-    const QString settingsDir = outputDir.filePath(QStringLiteral("reglages"));
     const QString profilesDir = outputDir.filePath(QStringLiteral("profils"));
     // Copie de reprise (L11-T13) : vidée au lancement, gardée à l'étape `restart` (la reprise s'y relit).
     const QString recoveryDir = outputDir.filePath(QStringLiteral("reprise"));
-    QDir(settingsDir).removeRecursively();
     QDir(profilesDir).removeRecursively();
     QDir(recoveryDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
@@ -141,8 +194,6 @@ int main(int argc, char* argv[])
     // test ne déplace pas DocumentsLocation : jamais le vrai Documents/ActCraft/Ressources du poste).
     actcraft::bench::useIsolatedResourceRoots(output);
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir);
     StartupOptions startup = parseStartupOptions(args); // --sans-cache compris
     startup.profileRoot = profilesDir;
     startup.recoveryDir = recoveryDir;
@@ -153,12 +204,29 @@ int main(int argc, char* argv[])
         return invalid(QStringLiteral("--traduction : fichier illisible : %1").arg(translation));
     }
 
+    std::unique_ptr<SlowNetworkFactory> slowImages; // avant le moteur, donc détruit après lui
+    const QString delay = valueAfter(args, QStringLiteral("--retard-images"));
+    if (args.contains(QStringLiteral("--retard-images")) && delay.isEmpty()) {
+        return invalid(QStringLiteral("--retard-images attend un délai de 1 à 60000 ms"));
+    }
+    if (!delay.isEmpty()) {
+        bool okDelay = false;
+        const int delayMs = delay.toInt(&okDelay);
+        if (!okDelay || delayMs < 1 || delayMs > 60000) {
+            return invalid(QStringLiteral("--retard-images attend un délai de 1 à 60000 ms"));
+        }
+        slowImages = std::make_unique<SlowNetworkFactory>(static_cast<unsigned long>(delayMs));
+    }
+
     // Déclaré AVANT le moteur QML, donc détruit APRÈS la fenêtre : Qt Quick garde le stylet synthétique.
     std::unique_ptr<UiScenarioPlayer> player;
     auto engine = std::make_unique<QQmlApplicationEngine>();
     // Charge l'interface sur les dossiers d'essai ci-dessus et l'affiche ; sert au démarrage et à l'étape
     // `restart` (mêmes dossiers, jamais ceux du poste).
     const auto launch = [&]() -> QQuickWindow* {
+        if (slowImages) {
+            engine->setNetworkAccessManagerFactory(slowImages.get());
+        }
         QQuickWindow* shown = loadMainWindow(*engine, startup);
         if (!shown) {
             return nullptr;

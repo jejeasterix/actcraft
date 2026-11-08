@@ -138,6 +138,17 @@ void Commands::bindHandler(const QString& id)
     });
 }
 
+void Commands::requestMainWindow(const QString& id)
+{
+    const actions::CommandInfo* info = m_registry.find(id);
+    if (!info || !info->opensInMainWindow) {
+        qWarning("ActCraft : commande %s : fenêtre principale demandée sans le drapeau « mainWindow »",
+                 qPrintable(id));
+        return;
+    }
+    emit mainWindowNeeded(id);
+}
+
 void Commands::bumpState()
 {
     ++m_revision;

@@ -1007,6 +1007,7 @@ Window {
         z: 50
     }
     Presentation {
+        id: presentationRoot
         objectName: "presentation"
         commands: appCommands
         documentController: appDocument
@@ -1014,6 +1015,25 @@ Window {
         pageArea: pageArea
         pageOverlays: pageArea.pageOverlays
         layer: presentationLayer
+    }
+
+    // Refus d'un schéma par le navigateur web (PresentationCommands.message, posé par OtherToolsHost) : montré dans
+    // le bandeau ; un message vide retire seulement celui-ci.
+    property string webBrowserMessage: ""
+    Connections {
+        target: presentationRoot.otherToolsController
+        ignoreUnknownSignals: true
+        function onMessageChanged() {
+            const text = target ? target.message : ""
+            if (text.length > 0) {
+                root.webBrowserMessage = text
+                messageBanner.show(text)
+            } else {
+                if (messageBanner.message === root.webBrowserMessage)
+                    messageBanner.dismiss()
+                root.webBrowserMessage = ""
+            }
+        }
     }
 
     // Raccourcis de la disposition (commande, ou remplacement du profil).

@@ -20,9 +20,9 @@ Item {
     readonly property color gris: "#808080"
     property color contour: "#101418" // L11-C10 (F) : autre couleur pour le cadre du second
 
-    property var frame: tools.selectionFrame // L11-C10 (F) : secondSelectionFrame pour le second
+    property var frame: tools ? tools.selectionFrame : ({}) // L11-C10 (F) : secondSelectionFrame pour le second
     readonly property bool framed: frame.visible === true
-    property bool handlesOn: tools.handlesVisible
+    property bool handlesOn: !!tools && tools.handlesVisible
     // Compteur réévalué quand la vue bouge : pageToScene n'annonce pas ses dépendances.
     property int tick: 0
 
@@ -147,7 +147,7 @@ Item {
         id: bar
         anchors.fill: parent
         tools: root.tools
-        commands: root.tools.commands
+        commands: root.tools ? root.tools.commands : null
         overlay: root
         visible: root.framed && root.handlesOn
     }

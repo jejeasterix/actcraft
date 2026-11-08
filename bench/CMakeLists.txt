@@ -100,13 +100,15 @@ target_link_libraries(actcraft_benchui PRIVATE Qt6::Test Qt6::GuiPrivate)
 # Fixture « flipchart-synthetique » (L2-T21) : paperboard de notre écrivain de tests, jamais un fichier réel.
 target_include_directories(actcraft_benchui PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
 
-# Captures et scénarios d'interface (DA8) : outil de preuve, jamais livré.
+# Captures et scénarios d'interface (DA8) : outil de preuve, jamais livré. Network : --retard-images (L7-T40).
+find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
 qt_add_executable(actcraft-captures
     captures/main.cpp
     ${PROJECT_SOURCE_DIR}/app/renderbackend.cpp
     ${PROJECT_SOURCE_DIR}/app/startup.cpp)
 target_include_directories(actcraft-captures PRIVATE ${PROJECT_SOURCE_DIR}/app)
-target_link_libraries(actcraft-captures PRIVATE ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick Qt6::Test)
+target_link_libraries(actcraft-captures PRIVATE ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick Qt6::Test
+    Qt6::Network)
 actcraft_set_warnings(actcraft-captures)
 set_target_properties(actcraft-captures PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 

@@ -127,6 +127,8 @@ public:
         return {QStringLiteral("object.move-free"), QStringLiteral("object.rotate"),
                 QStringLiteral("object.enlarge")};
     }
+    std::optional<core::PointF> rotationPivot() const override { return origin; }
+    std::optional<core::PointF> origin; // origine XY montrée (F-284, lot 7)
 };
 
 class FakeInk final : public tools::InkSurface
@@ -447,6 +449,37 @@ private slots:
         QCOMPARE(t.editor.calls, (std::vector<std::string>{"lift", "drop:Transform"}));
         QVERIFY2(closeTo(angleOf(t.editor.find(1)->common.transform), 135, 1e-6),
                  qPrintable(QString::number(angleOf(t.editor.find(1)->common.transform))));
+    }
+
+    // Fusion des lots 7 et 8 : l'origine XY montrée (lot 7) sert de pivot à une rotation libre, mais une
+    // rotation à règle (lot 8) garde le pivot de l'objet.
+    void ruleRotationKeepsItsPivotWhenTheOriginIsShown()
+    {
+        const core::PointF origin{20, 30};
+        const core::PointF centre{200, 150};
+        for (const bool ruled : {true, false}) {
+            Rig r;
+            r.view.origin = origin;
+            core::PageObject object = rectangle(1, 100, 100, 200, 100);
+            if (ruled) {
+                object.common.restrictions.turnStep = 45;
+            }
+            r.page().objects.push_back(std::move(object));
+            r.user.setSelection({1});
+            r.tool.refresh();
+            const core::PointF button = r.barSpot(QStringLiteral("object.rotate"));
+            QVERIFY(button.x > -1e8);
+            const core::PointF pivot = ruled ? centre : origin;
+            const core::PointF to = core::rotationAbout(pivot, 45).map(button);
+            r.press(button.x, button.y);
+            r.move(to.x, to.y);
+            const core::PointF fixed = r.lift.last.map(pivot);
+            QVERIFY2(closePoint(fixed, pivot.x, pivot.y),
+                     qPrintable(QStringLiteral("%1 : (%2, %3)").arg(ruled).arg(fixed.x).arg(fixed.y)));
+            QVERIFY2(closeTo(angleOf(r.lift.last), 45, 1e-6),
+                     qPrintable(QString::number(angleOf(r.lift.last))));
+            r.release(to.x, to.y);
+        }
     }
 
     // L8-C6 (revue de L8-T15) : le pas de rotation porte sur l'angle de l'objet (core::objectAngle), celui de

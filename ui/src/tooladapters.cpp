@@ -1,5 +1,7 @@
 #include "tooladapters.h"
 
+#include "mathtoolscontroller.h"
+
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
@@ -172,6 +174,16 @@ bool ViewInfoAdapter::overTrash(core::PointF pagePoint) const
 void ViewInfoAdapter::setTrashHover(bool hover)
 {
     m_hover(hover);
+}
+
+std::optional<core::PointF> ViewInfoAdapter::rotationPivot() const
+{
+    // F-284 : l'origine XY montrée, posée sur la vue par MathToolsController (kRotationPivotProperty).
+    const QVariant pivot = m_view.property(MathToolsController::kRotationPivotProperty);
+    if (!pivot.isValid()) {
+        return std::nullopt;
+    }
+    return core::PointF{pivot.toPointF().x(), pivot.toPointF().y()};
 }
 
 QStringList ViewInfoAdapter::objectBarCommands() const

@@ -39,9 +39,12 @@ actcraft_add_test(tst_bench_options
     LIBS ActCraft::bench)
 
 # Verdict et validité ; les contrôles de la chaîne réelle chargent la vraie interface (startup.cpp).
+# Sortie de Qt Test aussi écrite dans <build>/tests/tst_bench_verdict.txt : sous ctest, la sortie standard de ce test
+# n'apparaît pas (journal du runner vide, même en échec), et ses échecs sous charge ne se reproduisent pas seuls.
 actcraft_add_test(tst_bench_verdict
     SOURCES tst_bench_verdict.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
-    LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
+    LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick
+    ARGS -o tst_bench_verdict.txt,txt -o -,txt)
 target_include_directories(tst_bench_verdict PRIVATE ${PROJECT_SOURCE_DIR}/app)
 # Chien de garde de Qt Test : 300 s par fonction par défaut (QTEST_FUNCTION_TIMEOUT). Les fonctions qui jouent le
 # vrai banc (runBench) le dépassaient sous charge : abandon par qFatal (« Test function timed out »), rien dans la
@@ -86,6 +89,16 @@ set_tests_properties(tst_bench_smoke PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     FIXTURES_REQUIRED bench_smoke_clean
     FIXTURES_SETUP bench_smoke_json)
+
+# L7-T38 : le banc lit et écrit ses réglages (QSettings(), l'effet de page d'« effets-page ») dans l'INI de son
+# dossier temporaire (QTemporaryDir « ActCraft-Banc-XXXXXX »), jamais dans les réglages natifs (CFPreferences,
+# registre). Relevé au démarrage sur une sortie refusée : aucune mesure, rien d'écrit, ni sous le correctif ni
+# sous un banc sans dossier temporaire (une passe à deux tours, comme tst_captures_reglages_isoles, écrirait alors
+# dans les réglages réels de la machine).
+add_test(NAME tst_bench_reglages_isoles COMMAND actcraft-bench --sortie refus.txt)
+set_tests_properties(tst_bench_reglages_isoles PROPERTIES
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "REGLAGES [^\n]*/ActCraft-Banc-[A-Za-z0-9]+/[^\n]*ActCraft-Banc\\.ini")
 
 actcraft_add_test(tst_bench_result
     SOURCES tst_bench_result.cpp
@@ -416,6 +429,61 @@ set_tests_properties(tst_captures_page_allongee_zones PROPERTIES
     ENVIRONMENT "${_bench_env_offscreen}"
     PASS_REGULAR_EXPRESSION "SCENARIO OK"
     FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# L7-T40 : même scénario, images chargées hors du fil retardées de 3 s chacune. Rend déterministe la course de
+# l'instabilité : des pixels lus pendant le chargement du pointillé des séparations (BORD ... intermédiaires 0).
+add_test(NAME tst_captures_page_allongee_zones_lent
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/page-allongee-zones.json
+        --rendu logiciel --taille 1280x800 --retard-images 3000
+        --sortie ${CMAKE_BINARY_DIR}/captures-page-allongee-zones-lent)
+set_tests_properties(tst_captures_page_allongee_zones_lent PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# L7-T43 : capture, contrôle de pixel et contrôle de bord attendent la fin des chargements (3 s retardées) ...
+add_test(NAME tst_captures_images_lentes
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes.json
+        --rendu logiciel --taille 1280x800 --retard-images 3000
+        --sortie ${CMAKE_BINARY_DIR}/captures-images-lentes)
+set_tests_properties(tst_captures_images_lentes PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "CAPTURE [^\n]*OK.*BORD separation-verticale OK.*SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# L7-T43 : le contrôle de pixel attend lui aussi les chargements ; placé avant toute capture, sur un point du
+# pointillé (blanc tant que l'image n'est pas chargée) : sans l'attente, il lirait la page sans séparation.
+add_test(NAME tst_captures_images_lentes_pixel
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes-pixel.json
+        --rendu logiciel --taille 1280x800 --retard-images 3000
+        --sortie ${CMAKE_BINARY_DIR}/captures-images-lentes-pixel)
+set_tests_properties(tst_captures_images_lentes_pixel PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "PIXEL pointille-vertical OK.*SCENARIO OK"
+    FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+# ... et le plafond de 10 s tient : un chargement de 15 s fait échouer la capture, pas lire une image à moitié
+# chargée (échec attendu : PASS_REGULAR_EXPRESSION sur la raison, le code de sortie est ignoré).
+add_test(NAME tst_captures_images_lentes_plafond
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes.json
+        --rendu logiciel --taille 1280x800 --retard-images 15000
+        --sortie ${CMAKE_BINARY_DIR}/captures-images-lentes-plafond)
+set_tests_properties(tst_captures_images_lentes_plafond PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "CAPTURE [^\n]*ECHEC \\(image encore en chargement après 10000 ms\\)")
+# L7-T43 : --retard-images sans valeur est refusé (il était ignoré sans erreur).
+add_test(NAME tst_captures_retard_images_sans_valeur
+    COMMAND $<TARGET_FILE:actcraft-captures>
+        --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/images-lentes.json
+        --rendu logiciel --taille 1280x800 --retard-images)
+set_tests_properties(tst_captures_retard_images_sans_valeur PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "--retard-images attend un délai de 1 à 60000 ms")
 add_test(NAME tst_captures_texte_vertical
     COMMAND $<TARGET_FILE:actcraft-captures>
         --scenario ${PROJECT_SOURCE_DIR}/bench/scenarios/texte-vertical.json
@@ -595,3 +663,15 @@ actcraft_add_lot11_capture(tst_captures_profils_complets profils-complets)
 actcraft_add_test(tst_bench_resultsdir
     SOURCES tst_bench_resultsdir.cpp
     LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick)
+# L7-T41 : chaque passe d'actcraft-captures a ses propres réglages. Deux passes à la suite dans un seul test (ordre
+# garanti, même sous -j) : la seconde lit les valeurs par défaut, pas le fondu écrit par la première. Scénarios sous
+# tests/data/ : ce ne sont pas des preuves visuelles, captures.ps1 ne les joue pas.
+add_test(NAME tst_captures_reglages_isoles
+    COMMAND ${CMAKE_COMMAND} -DCAPTURES=$<TARGET_FILE:actcraft-captures>
+        -DSCENARIOS=${PROJECT_SOURCE_DIR}/tests/data/captures-reglages -DSORTIE=${CMAKE_BINARY_DIR}/captures-reglages-isoles
+        -P ${CMAKE_CURRENT_LIST_DIR}/captures_reglages_isoles.cmake)
+set_tests_properties(tst_captures_reglages_isoles PROPERTIES
+    TIMEOUT 300
+    ENVIRONMENT "${_bench_env_offscreen}"
+    PASS_REGULAR_EXPRESSION "REGLAGES ISOLES OK"
+    FAIL_REGULAR_EXPRESSION "REGLAGES PARTAGES|PASSE EN ECHEC|ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")

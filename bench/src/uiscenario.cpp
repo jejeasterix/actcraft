@@ -48,6 +48,12 @@ constexpr int kStrokeSubdivisions = 16; // déplacements postés entre deux poin
 constexpr int kReadyTimeoutMs = 10000;
 constexpr int kStrokeTimeoutMs = 5000;   // trait figé après le relâché
 constexpr int kActivateTimeoutMs = 2000; // fenêtre active avant une touche
+
+// Raison donnée quand le plafond d'attente des images est atteint (grabLoadedScene n'a pas rendu `loaded`).
+QString imageStillLoading()
+{
+    return QStringLiteral("image encore en chargement après %1 ms").arg(kReadyTimeoutMs);
+}
 // Bornes des étapes de L2-T20 (le scénario est une entrée non fiable) : attente d'une propriété de 1 ms à 2
 // min, seuil de boucle de 1 ms à 1 min.
 constexpr int kWaitForDefaultMs = 10000;
@@ -419,8 +425,17 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
     }
     if (o.contains(QStringLiteral("pointer"))) {
         step.kind = UiStepKind::Pointer;
-        if (!parsePoints(o.value(QStringLiteral("pointer")), step.points)) {
-            why = QStringLiteral("pointeur invalide (pointer : au moins un point [x, y])");
+        const QJsonValue pointer = o.value(QStringLiteral("pointer"));
+        // L7-T41 : un nom d'objet au lieu des points vise le centre de cet élément (comme clickIn de
+        // tst_ui_equation), où que les polices l'aient placé ; repère de la fenêtre, « space » refusé.
+        if (pointer.isString()) {
+            step.target = pointer.toString();
+            if (step.target.isEmpty() || o.contains(QStringLiteral("space"))) {
+                why = QStringLiteral("pointeur invalide (pointer : nom d'objet non vide, sans « space »)");
+                return false;
+            }
+        } else if (!parsePoints(pointer, step.points)) {
+            why = QStringLiteral("pointeur invalide (pointer : au moins un point [x, y], ou un nom d'objet)");
             return false;
         }
         if (o.contains(QStringLiteral("button"))) {
@@ -463,6 +478,10 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
                 why = QStringLiteral("maintien invalide (holdMs de 0 à %1)").arg(kHoldMaxMs);
                 return false;
             }
+        }
+        if (!step.target.isEmpty()) {
+            step.windowSpace = true;
+            return true;
         }
         return readSpace(o, step.windowSpace, why);
     }
@@ -642,6 +661,36 @@ bool waitUntil(const std::function<bool()>& condition, int timeoutMs)
         QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
     }
     return true;
+}
+
+// Statut « Loading » de QQuickImageBase (Image, BorderImage, AnimatedImage), lu par le méta-objet public.
+constexpr int kImageLoading = 2;
+
+// Vrai si une image visible de la scène se charge encore (L7-T40). Le lecteur d'images de Qt Quick charge
+// hors du fil principal ce qui n'est ni un fichier ni une ressource, URL « data: » comprises (le pointillé
+// des séparations de zones) : tant qu'elle se charge, l'image n'est pas dessinée et grabWindow() rend la
+// scène sans elle. Le cache de la page n'y est pour rien : il ne photographie pas les surcouches.
+bool imageLoading(const QQuickItem* item)
+{
+    if (item == nullptr || !item->isVisible()) {
+        return false;
+    }
+    if (item->inherits("QQuickImageBase") && item->property("status").toInt() == kImageLoading) {
+        return true;
+    }
+    const QList<QQuickItem*> children = item->childItems();
+    return std::any_of(children.cbegin(), children.cend(),
+                       [](const QQuickItem* child) { return imageLoading(child); });
+}
+
+// Image du moment pour une étape qui lit des pixels (capture, checkPixel, checkEdge), prise une fois chargées
+// les images visibles de la scène : jamais une scène à moitié dessinée, quelle que soit l'attente que le
+// scénario a posée avant. Attente avec plafond ; `loaded` faux si une image se charge encore au plafond
+// (l'étape échoue alors et le dit).
+QImage grabLoadedScene(QQuickWindow* window, bool& loaded)
+{
+    loaded = waitUntil([window] { return !imageLoading(window->contentItem()); }, kReadyTimeoutMs);
+    return window->grabWindow();
 }
 
 // Témoin d'une touche (filtre posé sur l'application le temps de l'étape). Le booléen « acceptée » de
@@ -1557,7 +1606,8 @@ bool UiScenarioPlayer::tap(const UiStep& step, QStringList& report)
 
 bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
 {
-    const QString head = QStringLiteral("POINTEUR %1").arg(step.points.size());
+    const QString head = step.target.isEmpty() ? QStringLiteral("POINTEUR %1").arg(step.points.size())
+                                               : QStringLiteral("POINTEUR sur %1").arg(step.target);
     if (!step.windowSpace && !view()) {
         report << head + QStringLiteral(" ECHEC (vue de page « pageView » introuvable)");
         return false;
@@ -1567,13 +1617,39 @@ bool UiScenarioPlayer::pointer(const UiStep& step, QStringList& report)
     // abandonne alors le geste de l'outil (PageView::finishStroke). grabWindow() termine la mise en page
     // en attente avant le premier point ; les points de page sont convertis ensuite, à la taille définitive.
     m_window->grabWindow();
+    std::vector<QPointF> points = step.points;
+    if (!step.target.isEmpty()) {
+        // Centre de l'élément nommé, lu après la mise en page (grabWindow ci-dessus).
+        const auto* item = qobject_cast<const QQuickItem*>(find(step.target));
+        QString why;
+        QPointF centre;
+        if (!item) {
+            why = QStringLiteral("élément introuvable");
+        } else if (!item->isVisible()) {
+            why = QStringLiteral("élément invisible");
+        } else if (item->width() <= 0 || item->height() <= 0) {
+            why = QStringLiteral("élément sans taille");
+        } else {
+            centre = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+            if (!QRectF(0, 0, m_window->width(), m_window->height()).contains(centre)) {
+                why = QStringLiteral("élément hors de la fenêtre, centre (%1, %2)")
+                          .arg(centre.x())
+                          .arg(centre.y());
+            }
+        }
+        if (!why.isEmpty()) {
+            report << head + QStringLiteral(" ECHEC (%1)").arg(why);
+            return false;
+        }
+        points = {centre};
+    }
     GestureWitness witness(m_window);
     QCoreApplication::instance()->installEventFilter(&witness);
     const Qt::MouseButton button = step.button;
     const Qt::KeyboardModifiers modifiers = step.modifiers;
     QPoint lastPoint;
     const bool sent = gestures().pointerPath(
-        step.points,
+        points,
         [this, button, modifiers, &lastPoint](GesturePhase phase, QPointF position) {
             const QPoint point = position.toPoint();
             lastPoint = point;
@@ -1638,13 +1714,17 @@ bool UiScenarioPlayer::doubleClick(const UiStep& step, QStringList& report)
 bool UiScenarioPlayer::checkPixel(const UiStep& step, QStringList& report)
 {
     ui::PageView* v = view();
-    // Image du moment, jamais la dernière capture : grabWindow() synchronise et dessine la scène courante. Le
-    // scénario place « waitReady » avant si le cache doit être à jour (le joueur ne le devine pas).
-    const QImage image = m_window->grabWindow();
+    // Image du moment, jamais la dernière capture : grabWindow() synchronise et dessine la scène courante,
+    // une fois chargées ses images (grabLoadedScene). Le scénario place « waitReady » avant si le cache doit
+    // être à jour (le joueur ne le devine pas).
+    bool loaded = false;
+    const QImage image = grabLoadedScene(m_window, loaded);
     QColor actual;
     QString read = QStringLiteral("hors image");
     if (!v && !step.windowSpace) {
         read = QStringLiteral("vue de page introuvable");
+    } else if (!loaded) {
+        read = imageStillLoading();
     } else if (image.isNull()) {
         read = QStringLiteral("capture vide");
     } else {
@@ -1670,7 +1750,12 @@ bool UiScenarioPlayer::checkEdge(const UiStep& step, QStringList& report)
     constexpr int kEdgeMargin = 24;
     const QColor edgeInk(Qt::black);
     ui::PageView* v = view();
-    const QImage image = m_window->grabWindow();
+    bool loaded = false;
+    const QImage image = grabLoadedScene(m_window, loaded);
+    if (!loaded) {
+        report << QStringLiteral("BORD %1 ECART (%2)").arg(step.name, imageStillLoading());
+        return false;
+    }
     int count = -1;
     int ink = -1;
     if (v && !image.isNull()) {
@@ -2079,14 +2164,17 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return ok;
     }
     case UiStepKind::Capture: {
-        const QImage image = m_window->grabWindow();
+        bool loaded = false;
+        const QImage image = grabLoadedScene(m_window, loaded);
         const QString file = QStringLiteral("%1-%2-%3.png")
                                  .arg(m_scenarioName)
                                  .arg(++m_captureIndex, 2, 10, QLatin1Char('0'))
                                  .arg(step.name);
         const QString path = QDir(m_outputDir).filePath(file);
         QString why;
-        if (image.isNull()) {
+        if (!loaded) {
+            why = imageStillLoading();
+        } else if (image.isNull()) {
             why = QStringLiteral("capture vide");
         } else if (isUniform(image)) {
             why = QStringLiteral("image uniforme : rien de dessiné");

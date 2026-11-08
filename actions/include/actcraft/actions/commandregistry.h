@@ -63,6 +63,12 @@ struct CommandInfo
     // L11-T9 (F-303) : la commande ouvre une boîte (Dialog, Popup modale, sélecteur de fichier) ; le second
     // utilisateur du mode à deux ne la déclenche pas (ui::Commands::trigger). Absente : faux.
     bool opensDialog = false;
+    // Vrai (« mainWindow » : true) : la commande montre un panneau de la fenêtre principale (posé dans
+    // presentation.layer : horloge, dés, calculatrice, message défilant, effets de page, éditeur d'équation).
+    // Son gestionnaire la demande juste avant de montrer le panneau, et seulement s'il le montre
+    // (Commands::requestMainWindow) ; le contrôleur du bureau la rend alors (makeRoomForMainWindowTool,
+    // H-M8).
+    bool opensInMainWindow = false;
 };
 
 bool argumentIsValid(ArgumentKind kind, const QVariant& argument);

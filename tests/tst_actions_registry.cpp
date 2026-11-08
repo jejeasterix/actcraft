@@ -194,12 +194,12 @@ private slots:
                                    QStringLiteral("pen.width"),          QStringLiteral("menu.main"),
                                    QStringLiteral("menu.tools"),         QStringLiteral("help.website"),
                                    QStringLiteral("help.about")};
-        // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les lots 3 et 7 (L0-S4) suivent,
-        // puis les 47 du lot 4 (L4-T1) : le total passe de 62 à 109 commandes au-delà du lot 1 ; les 54 du
-        // lot 5 suivent (53 de L5-T1, plus connector.caps, extrémités du connecteur, de L5-C18).
-        // Les 45 du lot 6 (L6-T1) terminent le fichier.
+        // Les 23 commandes du lot 1 ouvrent le fichier, dans cet ordre ; les 65 des lots 3 et 7 (L0-S4, puis
+        // L7-T32) suivent, puis les 47 du lot 4 (L4-T1) : le total passe de 65 à 112 commandes au-delà du
+        // lot 1 ; les 54 du lot 5 suivent (53 de L5-T1, plus connector.caps, extrémités du connecteur, de
+        // L5-C18). Les 45 du lot 6 (L6-T1) terminent le fichier.
         QCOMPARE(r.ids().mid(0, expected.size()), expected);
-        QCOMPARE(r.ids().size(), expected.size() + 62 + 47 + 54 + 46 + 25 + 4);
+        QCOMPARE(r.ids().size(), expected.size() + 65 + 47 + 54 + 46 + 25 + 4);
         // 25 du lot 8 : 23 (L8-T1) + 2 (L8-C0) ; 4 du lot 11 (L11-T1).
         QCOMPARE(r.find(QStringLiteral("view.fullscreen"))->shortcut, QStringLiteral("F5"));
         QVERIFY(r.find(QStringLiteral("view.fullscreen"))->checkable);
@@ -452,6 +452,25 @@ private slots:
             R"({"format":"actcraft-commands/1","commands":[{"id":"a.b","label":"A","argument":"url","values":["x"]}]})",
             error));
         QVERIFY2(error.contains(QStringLiteral("values")), qPrintable(error));
+    }
+
+    // Ma1 (tour 2 de relecture du lot 7) : « mainWindow » déclare une commande qui ouvre un panneau de la
+    // fenêtre principale ; absente, faux. Le fichier par défaut la pose sur l'horloge. Mutant : clé non lue.
+    void mainWindowFlag()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY2(r.loadDeclarations(R"({"format":"actcraft-commands/1","commands":[
+            {"id":"tool.clock","label":"Horloge","mainWindow":true},
+            {"id":"tool.pen","label":"Stylo"}]})",
+                                    error),
+                 qPrintable(error));
+        QVERIFY(r.find(QStringLiteral("tool.clock"))->opensInMainWindow);
+        QVERIFY(!r.find(QStringLiteral("tool.pen"))->opensInMainWindow);
+        CommandRegistry defaults;
+        QVERIFY2(defaults.loadDeclarations(defaultCommandsJson(), error), qPrintable(error));
+        QVERIFY(defaults.find(QStringLiteral("tool.clock"))->opensInMainWindow);
+        QVERIFY(!defaults.find(QStringLiteral("tool.pen"))->opensInMainWindow);
     }
 };
 
