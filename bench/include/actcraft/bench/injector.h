@@ -20,6 +20,9 @@ class QEvent;
 
 namespace actcraft::bench {
 
+// Identifiant système du contact d'un appareil de l'étape « parallel » : base + numéro de l'appareil.
+inline constexpr qint64 kParallelSystemIdBase = 6000;
+
 // Repère des points d'un geste direct : page (convertie en scène par `pageToScene`) ou fenêtre (tels quels).
 enum class PointSpace : std::uint8_t
 {

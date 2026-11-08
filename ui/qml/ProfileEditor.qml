@@ -78,46 +78,22 @@ Item {
                 TabButton {
                     text: qsTr("Format")
                     // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: parent.visualFocus
-                        color: "transparent"
-                        border.width: 2
-                        border.color: Theme.surfaceActive
-                    }
+                    FocusRing { visible: parent.visualFocus }
                 }
                 TabButton {
                     text: qsTr("Commandes")
                     // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: parent.visualFocus
-                        color: "transparent"
-                        border.width: 2
-                        border.color: Theme.surfaceActive
-                    }
+                    FocusRing { visible: parent.visualFocus }
                 }
                 TabButton {
                     text: qsTr("Raccourcis vers des programmes")
                     // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: parent.visualFocus
-                        color: "transparent"
-                        border.width: 2
-                        border.color: Theme.surfaceActive
-                    }
+                    FocusRing { visible: parent.visualFocus }
                 }
                 TabButton {
                     text: qsTr("Paramètres")
                     // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: parent.visualFocus
-                        color: "transparent"
-                        border.width: 2
-                        border.color: Theme.surfaceActive
-                    }
+                    FocusRing { visible: parent.visualFocus }
                 }
             }
             StackLayout {

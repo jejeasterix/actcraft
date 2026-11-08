@@ -9,6 +9,8 @@
 #include <QString>
 #include <QtQml/qqmlregistration.h>
 
+#include <memory>
+
 namespace actcraft::ui {
 
 // Réglage du mode du toucher (F-930) : « ignore », « pen », « select » ou « full » (défaut, décision 25). Le
@@ -40,6 +42,11 @@ public:
     // Vrai si l'identifiant est connu (changement fait, ou différé jusqu'au relâché) ; faux sinon, rien ne
     // change.
     Q_INVOKABLE bool setMode(const QString& id);
+
+    // Politique du routeur d'un mode, par son identifiant ; un identifiant inconnu ou vide donne « full ».
+    // Seule conversion identifiant -> TouchMode -> politique, partagée avec DualMode (retour du mode à deux
+    // utilisateurs).
+    static std::unique_ptr<input::RoutingPolicy> makePolicy(const QString& id);
 
 signals:
     void commandsChanged();

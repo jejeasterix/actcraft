@@ -34,8 +34,6 @@ void pauseMs(int ms)
     }
 }
 
-constexpr qint64 kParallelSystemIdBase = 6000;
-
 } // namespace
 
 Injector::Injector(QWindow* target, PageToScene pageToScene, QObject* parent)
