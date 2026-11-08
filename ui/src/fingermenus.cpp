@@ -84,10 +84,17 @@ bool FingerMenus::insideSelection(QPointF pagePoint) const
     return pagePoint.x() >= left && pagePoint.x() <= right && pagePoint.y() >= top && pagePoint.y() <= bottom;
 }
 
-void FingerMenus::onTouchHeld(QPointF pagePoint, QPointF windowPoint, int /*user*/)
+void FingerMenus::onTouchHeld(QPointF pagePoint, QPointF windowPoint, int user, const QString& tool)
 {
-    if (!m_tools || m_tools->currentTool() != QLatin1String("select")) {
+    // L11-C13 : l'outil effectif du contact décide (stylo imposé : aucun menu ; sélecteur imposé : un menu,
+    // l'outil courant fût-il le stylo), jamais l'outil courant du premier.
+    if (!m_tools || tool != QLatin1String("select")) {
         return; // outil d'encre (ou autre) : l'appui long ne montre aucun menu
+    }
+    // F-303 : le second n'ouvre aucune boîte, et ces menus n'ont que les entrées du premier (sa sélection,
+    // ses boîtes : page.background, grid.designer, export.page-image…). Son appui long ne montre rien.
+    if (user != input::kFirstUser) {
+        return;
     }
     // Objet sous le doigt : désigné comme au clic droit (la sélection n'a pas encore suivi l'appui), puis
     // sélectionné s'il ne l'est pas déjà, pour que le menu agisse sur lui.
@@ -99,7 +106,7 @@ void FingerMenus::onTouchHeld(QPointF pagePoint, QPointF windowPoint, int /*user
         const std::optional<core::ObjectId> hit = core::objectAt(
             page, core::PointF{pagePoint.x(), pagePoint.y()}, core::kHitToleranceScreen / m_view->zoom());
         if (hit) {
-            m_tools->selectObjects({*hit});
+            m_tools->selectObjectsForFinger({*hit}); // sélecteur imposé : l'outil courant reste
             onObject = true;
         }
     }

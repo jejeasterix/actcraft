@@ -173,14 +173,33 @@ public:
     tools::Tool* target = nullptr;
 };
 
+namespace {
+
+// D11-7, L11-C13 : outil effectif d'un contact du doigt, celui qui reçoit ses points : l'outil imposé par le
+// mode du toucher, sinon l'outil courant de son utilisateur.
+QString effectiveToolId(ToolHost* tools, input::UserId user, input::FingerTool fingerTool)
+{
+    if (fingerTool == input::FingerTool::Select) {
+        return QStringLiteral("select");
+    }
+    if (fingerTool == input::FingerTool::Pen) {
+        return QStringLiteral("pen");
+    }
+    return tools ? tools->user(user).currentTool() : QStringLiteral("pen");
+}
+
+} // namespace
+
 PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::make_unique<ToolDispatch>())
 {
     m_toolContacts.reserve(8); // L11-T5 : aucune allocation au fil des contacts
     // D11-7 : appui long d'un doigt ; un seul minuteur, armé à l'appui, jamais par échantillon.
     m_holdTimer.setSingleShot(true);
     m_holdTimer.setInterval(kTouchHoldMs);
-    connect(&m_holdTimer, &QTimer::timeout, this,
-            [this] { emit touchHeld(m_holdPagePoint, mapToScene(m_holdViewPoint), int(m_holdUser)); });
+    connect(&m_holdTimer, &QTimer::timeout, this, [this] {
+        emit touchHeld(m_holdPagePoint, mapToScene(m_holdViewPoint), int(m_holdUser),
+                       effectiveToolId(m_tools, m_holdUser, m_holdFingerTool));
+    });
     // Bouton droit : menu contextuel par signal (contextMenuRequested), jamais à l'outil.
     setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
     setAcceptTouchEvents(true);
@@ -524,10 +543,15 @@ void PageView::setInk(render::InkItem* ink)
     if (ink == m_ink) {
         return;
     }
-    delete m_secondInk.data(); // celle de l'encre remplacée ; ses adaptateurs ne la retrouvent plus
+    // L11-C13 : l'encre du second, celle de l'encre remplacée, n'est détruite qu'après inkChanged. Ses
+    // adaptateurs (ToolHost::discardAdapters) versent d'abord le trait en cours tant qu'elle vit ; détruite
+    // avant, ils l'abandonnaient. Retirée d'abord : une demande pendant le signal en crée une neuve.
+    render::InkItem* const replacedSecondInk = m_secondInk.data();
+    m_secondInk = nullptr;
     m_ink = ink;
     rebuildPen();
     emit inkChanged();
+    delete replacedSecondInk;
 }
 
 render::InkItem* PageView::secondInk()
@@ -722,6 +746,7 @@ bool PageView::applyDecision(input::Sample& sample, const input::Decision& decis
             m_holdViewPoint = viewPos;
             m_holdPagePoint = pagePos;
             m_holdUser = decision.user;
+            m_holdFingerTool = decision.fingerTool;
             m_holdTimer.start();
         } else if (sample.pointer == m_holdPointer && m_holdTimer.isActive() &&
                    QLineF(viewPos, m_holdViewPoint).length() > kTouchHoldToleranceDp) {
@@ -833,11 +858,24 @@ void PageView::pushToTool(const input::Sample& sample, tools::Tool* tool)
 
 void PageView::finishStroke()
 {
+    endStrokes(false);
+}
+
+void PageView::endStrokes(bool secondUserToo)
+{
     // Report de L3-T14 : un geste d'un outil de ToolHost (glissement de la sélection, gomme) est d'abord
     // abandonné sans étape, comme au changement de page (Main.qml) ; le relâché synthétisé plus bas le
     // terminerait par un déplacement. Le stylo de ToolHost y verse son trait (Tool::cancel).
+    // L11-C13 : zoom et défilement (secondUserToo) terminent aussi le geste du second, versé là où il était.
+    // Appelée par Main.qml (finishStroke), la vue laisse ce geste à ToolHost, branché sur les mêmes annonces
+    // : versé avant un changement de page, abandonné avant une édition (L11-C9), et l'ordre des connexions
+    // n'y change rien (celle de Main.qml passe avant celle de ToolHost).
     if (m_tools) {
-        m_tools->cancelAllGestures(); // L11-C6 : celui du second utilisateur aussi
+        if (secondUserToo) {
+            m_tools->cancelAllGestures(); // L11-C6 : celui du second utilisateur aussi
+        } else {
+            m_tools->cancelGesture();
+        }
     }
     // L11-T5 : l'outil du contact qui écrivait (utilisateur et outil imposé de sa décision), lu avant qu'un
     // doigt ne soit rendu ; sans contact suivi, l'outil courant.
@@ -858,6 +896,9 @@ void PageView::finishStroke()
     // l'interface) ; ses points n'ajoutent rien, l'outil n'est plus occupé. Souris : idem par la saisie.
     if (!m_pipeline || !tool || !tool->isBusy()) {
         return;
+    }
+    if (!secondUserToo && user != input::kFirstUser && tool != m_pen.get() && tool != m_imposedPen.get()) {
+        return; // outil de ToolHost du second : laissé à ToolHost (voir plus haut)
     }
     input::Sample release;
     release.x = m_lastRawPagePoint.x(); // au dernier point brut, filtré comme lui : aucun point de plus
@@ -1638,7 +1679,7 @@ void PageView::apply(const ViewTransform& transform)
     if (zoomChangedNow || panChangedNow) {
         // La page va bouger sous le pointeur : le trait en cours se termine avant, là où il était (la suite,
         // placée avec la nouvelle transformation, sauterait).
-        finishStroke();
+        endStrokes(true);
     }
     m_transform = transform;
     if (zoomChangedNow || panChangedNow) {
@@ -1666,7 +1707,7 @@ void PageView::onContentSizeChanged(QSizeF oldPage)
     if (newPage == oldPage) {
         return;
     }
-    finishStroke(); // un trait en cours reste sur sa page (comme pour un zoom)
+    endStrokes(true); // un trait en cours reste sur sa page (comme pour un zoom)
     const ViewTransform old = m_transform;
     // Pas fitPage() ici : il demanderait lui-même un redessin du cache, et la fin de cette fonction un
     // second.

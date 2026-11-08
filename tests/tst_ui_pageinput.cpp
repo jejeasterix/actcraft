@@ -7,6 +7,7 @@
 #include <actcraft/input/twouserpolicy.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
+#include <actcraft/tools/tool.h>
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
@@ -586,11 +587,12 @@ private slots:
         QSignalSpy held(app.view, &ui::PageView::touchHeld);
         const QPointF page(300, 300);
         QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, page));
-        QTest::qWait(600);
-        QCOMPARE(held.count(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(held.count(), 1, 2000);
         QVERIFY(QLineF(held.at(0).at(0).toPointF(), page).length() <= 2.0);
         QVERIFY(QLineF(held.at(0).at(1).toPointF(), app.view->pageToScene(page)).length() <= 2.0);
         QCOMPARE(held.at(0).at(2).toInt(), 0);
+        QCOMPARE(held.at(0).at(3).toString(),
+                 app.tools->currentTool()); // L11-C13 : outil effectif du contact
         QTest::touchEvent(app.window, m_touch).release(0, scenePoint(app, page));
         QVERIFY(!app.view->touchHoldTimerActive());
 
@@ -607,8 +609,7 @@ private slots:
         const QPoint still = scenePoint(app, QPointF(300, 400));
         QTest::touchEvent(app.window, m_touch).press(0, still);
         QTest::touchEvent(app.window, m_touch).move(0, still + QPoint(5, 0));
-        QTest::qWait(600);
-        QCOMPARE(held.count(), 2);
+        QTRY_COMPARE_WITH_TIMEOUT(held.count(), 2, 2000);
         QTest::touchEvent(app.window, m_touch).release(0, still + QPoint(5, 0));
 
         // Mouvement de 20 dp : minuteur arrêté, aucun signal.
@@ -616,7 +617,8 @@ private slots:
         QTest::touchEvent(app.window, m_touch).press(0, at);
         QTest::touchEvent(app.window, m_touch).move(0, at + QPoint(20, 0));
         // Avant l'échéance de 500 ms : arrêté par le mouvement (Qt Quick livre les mouvements à l'image).
-        QTRY_VERIFY_WITH_TIMEOUT(!app.view->touchHoldTimerActive(), 200);
+        // Marge large : le compte ci-dessous prouve que le minuteur n'a pas abouti.
+        QTRY_VERIFY_WITH_TIMEOUT(!app.view->touchHoldTimerActive(), 2000);
         QTest::qWait(600);
         QTest::touchEvent(app.window, m_touch).release(0, at + QPoint(20, 0));
         QCOMPARE(held.count(), 2);
@@ -758,6 +760,104 @@ private slots:
         QCOMPARE(opened, 0);
         QCOMPARE(refused.count(), calls);
         QCOMPARE(refused.first().first().toString(), QStringLiteral("file.open"));
+    }
+    // L11-C13 (2) : un zoom pendant le trait du second termine ce trait là où il était (versé, une étape),
+    // comme celui du premier (finishStroke). Seul Annuler du premier l'abandonne (L11-C9).
+    void zoomVersesTheSecondUsersStroke()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DocumentController* controller = app.tools->documentController();
+        QVERIFY(controller);
+        const int before = controller->shownObjectCount();
+        tools::Tool* other = secondUserMidStroke(app);
+        QVERIFY(other);
+        QCOMPARE(controller->shownObjectCount(), before + 1); // trait du premier
+        app.view->setZoom(app.view->zoom() * 1.5);
+        QVERIFY(!other->isBusy());
+        QCOMPARE(controller->shownObjectCount(), before + 2); // celui du second, versé
+        tablet(app, m_stylus22.get(), QEvent::TabletMove, QPointF(340, 470));
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(340, 470));
+        QCOMPARE(controller->shownObjectCount(), before + 2);
+    }
+
+    // L11-C13 (2) : changement de page pendant le trait du second : versé à la page qu'il quitte. Main.qml
+    // (finishStroke) le laisse à ToolHost, qui le verse sur la même annonce, après lui.
+    void pageChangeVersesTheSecondUsersStroke()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DocumentController* controller = app.tools->documentController();
+        QVERIFY(controller);
+        controller->loadGeneratedPages(2);
+        QTRY_COMPARE(controller->pageCount(), 2);
+        QCOMPARE(controller->currentIndex(), 0);
+        const auto objectsOnFirstPage = [controller] {
+            return static_cast<int>(controller->document().page(0).objects.size());
+        };
+        const int before = objectsOnFirstPage();
+        const std::size_t onSecondPage = controller->document().page(1).objects.size();
+        tools::Tool* other = secondUserMidStroke(app);
+        QVERIFY(other);
+        QCOMPARE(objectsOnFirstPage(), before + 1);
+        controller->showPage(1);
+        QCOMPARE(controller->currentIndex(), 1);
+        QVERIFY(!other->isBusy());
+        QCOMPARE(objectsOnFirstPage(), before + 2);
+        tablet(app, m_stylus22.get(), QEvent::TabletMove, QPointF(340, 470));
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(340, 470));
+        QCOMPARE(objectsOnFirstPage(), before + 2);
+        QCOMPARE(controller->document().page(1).objects.size(), onSecondPage); // rien versé à l'autre page
+    }
+
+    // L11-C13 (3) : une encre remplacée pendant le trait du second : ses outils versent d'abord ce trait,
+    // leur encre encore vivante (détruite avant, l'abandon sautait le versement).
+    void replacingTheInkVersesTheSecondUsersStroke()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DocumentController* controller = app.tools->documentController();
+        QVERIFY(controller && app.ink && app.ink->parentItem());
+        const int before = controller->shownObjectCount();
+        QVERIFY(secondUserMidStroke(app));
+        QCOMPARE(controller->shownObjectCount(), before + 1);
+        auto* fresh = new render::InkItem;
+        fresh->setParent(app.ink->parentItem());
+        fresh->setParentItem(app.ink->parentItem());
+        app.view->setInk(fresh);
+        QCOMPARE(controller->shownObjectCount(), before + 2);
+        tablet(app, m_stylus22.get(), QEvent::TabletMove, QPointF(340, 470));
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(340, 470));
+        app.view->setInk(app.ink);
+        QCOMPARE(controller->shownObjectCount(), before + 2);
+    }
+
+private:
+    // Mode à deux, stylo pour chacun : un trait du premier (stylet 11) versé, puis le second (stylet 22) au
+    // milieu d'un trait ; rend son outil occupé, ou nul.
+    tools::Tool* secondUserMidStroke(App& app)
+    {
+        ui::Commands* commands = app.tools->commands();
+        if (!commands || !commands->trigger(QStringLiteral("users.dual")) ||
+            !commands->trigger(QStringLiteral("tool.pen")) ||
+            !commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1)) {
+            return nullptr;
+        }
+        tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
+        for (int i = 1; i <= 6; ++i) {
+            tablet(app, m_stylus11.get(), QEvent::TabletMove,
+                   QPointF(600 + 100.0 * i / 6, 200 + 40.0 * i / 6));
+        }
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(700, 240));
+        tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
+        for (int i = 1; i <= 5; ++i) {
+            tablet(app, m_stylus22.get(), QEvent::TabletMove, QPointF(100 + 40 * i, 400 + 10 * i));
+        }
+        if (app.view->lastContactUser() != 1) {
+            return nullptr;
+        }
+        tools::Tool* other = app.tools->activeTool(1);
+        return other && other->isBusy() ? other : nullptr;
     }
 };
 

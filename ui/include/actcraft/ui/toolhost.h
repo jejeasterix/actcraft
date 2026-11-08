@@ -132,6 +132,9 @@ public:
     Q_INVOKABLE void clearSelection();
     // H5-15 : active l'outil Sélection et sélectionne ces objets de la page affichée (ceux qui existent).
     void selectObjects(const std::vector<core::ObjectId>& ids);
+    // L11-C13 : objets désignés par l'appui long d'un doigt qui tient le sélecteur. Sélecteur imposé par le
+    // mode du toucher (D11-4) : l'outil courant ne change pas, le cadre est montré ; sinon selectObjects.
+    void selectObjectsForFinger(const std::vector<core::ObjectId>& ids);
     // Lot 8 (L8-T9) : sous l'outil de sélection, l'appui va d'abord à l'exécuteur, les déplacements tant
     // qu'il les prend, le relâché aussi ; sinon l'outil reçoit l'appui retenu puis les suivants (aucun
     // échantillon perdu). nullptr : l'outil reçoit tout.
@@ -143,9 +146,9 @@ public:
     Q_INVOKABLE void setSelectionTranslucency(int value);
     // Geste du premier utilisateur (Échap, changement de son outil ou de sa sélection).
     Q_INVOKABLE void cancelGesture();
-    // L11-C6 : gestes des deux utilisateurs (modification annoncée du document, changement de page, zoom,
-    // rebranchement). L11-C9 : ceux du second sont abandonnés (Tool::abandon) : ni déplacement ni trait
-    // versé.
+    // L11-C6 : gestes des deux utilisateurs (changement de page, zoom, défilement, rebranchement). L11-C13 :
+    // chacun se termine là où il était (Tool::cancel : le trait en cours est versé), celui du second comme
+    // celui du premier.
     Q_INVOKABLE void cancelAllGestures();
     Q_INVOKABLE void setConnectorStyle(int style);         // L5-T17
     Q_INVOKABLE void setConnectorCaps(int capA, int capB); // L5-C18 : rangs 0 aucune, 1 rayon, 2 flèche
@@ -217,6 +220,11 @@ signals:
     void dualUsersChanged();
 
 private:
+    // L11-C9 (I), L11-C13 : avant une modification annoncée du document (editAboutToApply : Annuler du
+    // premier, Effacer, Ouvrir…), le geste du premier s'interrompt (cancelGesture) et celui du second est
+    // abandonné (Tool::abandon) : versé, son trait serait une étape juste avant l'édition, qu'Annuler
+    // retirerait à la place de la dernière du premier.
+    void abandonGesturesBeforeEdit();
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
     ToolAdapters* adapters() const;
     void discardAdapters() const; // jette les adaptateurs, l'outil occupé abandonnant d'abord son geste

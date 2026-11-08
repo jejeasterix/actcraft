@@ -387,7 +387,8 @@ void ToolHost::setDocumentController(DocumentController* controller)
     if (m_controller) {
         // Annuler, Rétablir, Effacer, Ouvrir… et changement de page : l'outil abandonne d'abord son geste ;
         // la sélection et la gomme déposent sans étape (M2). Le soulèvement, lui, n'annonce rien (B1).
-        connect(m_controller, &DocumentController::editAboutToApply, this, &ToolHost::cancelAllGestures);
+        connect(m_controller, &DocumentController::editAboutToApply, this,
+                &ToolHost::abandonGesturesBeforeEdit);
         connect(m_controller, &DocumentController::pageAboutToChange, this, &ToolHost::cancelAllGestures);
         connect(m_controller, &DocumentController::pagesChanged, this, &ToolHost::refreshSelection);
         connect(m_controller, &DocumentController::documentChanged, this, &ToolHost::refreshSelection);
@@ -718,6 +719,27 @@ void ToolHost::selectObjects(const std::vector<core::ObjectId>& ids)
     }
 }
 
+void ToolHost::selectObjectsForFinger(const std::vector<core::ObjectId>& ids)
+{
+    if (currentTool() == QLatin1String("select")) {
+        selectObjects(ids);
+        return;
+    }
+    // Le geste du sélecteur imposé (appui du doigt tenu) s'interrompt, comme celui de l'outil courant dans
+    // selectObjects ; son cadre est montré (showSelection), comme pendant ses gestes.
+    tools::SelectTool* select = selectTool();
+    if (select && select->isBusy()) {
+        select->cancel();
+    }
+    m_fingerSelecting = true;
+    user().setSelection(ids);
+    if (select) {
+        select->refresh();
+    } else {
+        emit selectionChanged();
+    }
+}
+
 void ToolHost::deleteSelection()
 {
     cancelGesture();
@@ -919,7 +941,15 @@ void ToolHost::cancelGesture()
 void ToolHost::cancelAllGestures()
 {
     cancelGesture();
-    if (m_secondAdapters) { // L11-C6, L11-C9 : le geste du second est abandonné, sans étape
+    if (m_secondAdapters) { // L11-C6, L11-C13 : le trait du second est versé là où il était
+        cancelBusyTools(*m_secondAdapters);
+    }
+}
+
+void ToolHost::abandonGesturesBeforeEdit()
+{
+    cancelGesture();
+    if (m_secondAdapters) { // L11-C9 (I) : le geste du second est abandonné, sans étape
         abandonBusyTools(*m_secondAdapters);
     }
 }
