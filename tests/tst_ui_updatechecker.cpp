@@ -1,5 +1,6 @@
 #include "startup.h"
 
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/updatechecker.h>
 
@@ -8,6 +9,7 @@
 #include <QNetworkProxy>
 #include <QNetworkReply>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
 #include <QRegularExpression>
 #include <QScopeGuard>
@@ -115,10 +117,15 @@ private slots:
     void failureReported();
     void remoteOverrideRefused();
     void startCalledOnceByTheShell();
-    void dialogOpensOnlyForANewVersionAtStart();
+    void bannerShownOnlyForANewVersionAtStart();
+    void updateBannerTextAfterStartupDiscovery();
+    void updateBannerKeepsDiscoveryDuringManualCheck();
+    void updateBannerCloseHides();
+    void updateBannerDoesNotCoverMessageBanner();
 
 private:
     QString data(const char* name) const;
+    void enableCheckAtStart(const QByteArray& url) const;
     QString writeFile(const QString& name, const QByteArray& content) const;
 
     QTemporaryDir m_settings;
@@ -427,14 +434,15 @@ void TstUiUpdatechecker::startCalledOnceByTheShell()
 }
 
 // L11-C17 (L11-T22) : la recherche du démarrage n'ouvre jamais la boîte modale ; le bandeau non modal
-// n'apparaît que pour une nouvelle version (ni à jour, ni en erreur, ni quand le réglage est faux).
-void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
+// (bannerShown) n'apparaît que pour une nouvelle version (ni à jour, ni en erreur, ni quand le réglage est
+// faux).
+void TstUiUpdatechecker::bannerShownOnlyForANewVersionAtStart()
 {
     struct Case
     {
         QByteArray url;
         UpdateChecker::State expected;
-        bool opened;
+        bool bannerShown;
     };
     const QList<Case> cases{
         {fileUrl(data("newer.json")), UpdateChecker::State::Available, true},
@@ -461,7 +469,7 @@ void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
         QVERIFY(checker && dialog && banner);
         QTRY_COMPARE(checker->state(), c.expected);
         QCoreApplication::processEvents();
-        if (c.opened)
+        if (c.bannerShown)
             QTRY_VERIFY(banner->property("visible").toBool());
         else
             QVERIFY(!banner->property("visible").toBool());
@@ -488,6 +496,132 @@ void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
     QTest::qWait(100);
     QVERIFY(!dialog->property("visible").toBool());
     QVERIFY(!banner->property("visible").toBool());
+}
+
+void TstUiUpdatechecker::enableCheckAtStart(const QByteArray& url) const
+{
+    qputenv(kVariable, url);
+    QSettings settings;
+    settings.setValue(QStringLiteral("updates/check-at-start"), true);
+    settings.sync();
+}
+
+namespace {
+QString textOf(QQuickWindow* window, const char* name)
+{
+    auto* item = window->findChild<QObject*>(QString::fromLatin1(name));
+    return item ? item->property("text").toString() : QStringLiteral("<absent>");
+}
+} // namespace
+
+// L11-C20 : après la découverte du démarrage, le bandeau annonce la version trouvée.
+void TstUiUpdatechecker::updateBannerTextAfterStartupDiscovery()
+{
+    enableCheckAtStart(fileUrl(data("newer.json")));
+    QTemporaryDir profiles;
+    QVERIFY(profiles.isValid());
+    QQmlApplicationEngine engine;
+    StartupOptions options;
+    options.profileRoot = profiles.path();
+    QQuickWindow* window = loadMainWindow(engine, options);
+    QVERIFY(window);
+    auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
+    QVERIFY(banner);
+    QTRY_VERIFY(banner->property("visible").toBool());
+    QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("9.9.9")),
+             qPrintable(textOf(window, "updateBannerText")));
+}
+
+// L11-C20 : « Aide > Rechercher des mises à jour » après la découverte vide l'état du vérificateur ; le
+// bandeau garde ce qui a été découvert, que la recherche soit en cours, en échec ou « à jour ».
+void TstUiUpdatechecker::updateBannerKeepsDiscoveryDuringManualCheck()
+{
+    enableCheckAtStart(fileUrl(data("newer.json")));
+    QTemporaryDir profiles;
+    QVERIFY(profiles.isValid());
+    QQmlApplicationEngine engine;
+    StartupOptions options;
+    options.profileRoot = profiles.path();
+    QQuickWindow* window = loadMainWindow(engine, options);
+    QVERIFY(window);
+    auto* checker = window->findChild<UpdateChecker*>(QStringLiteral("appUpdates"));
+    auto* commands = window->findChild<actcraft::ui::Commands*>(QStringLiteral("commands"));
+    auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
+    QVERIFY(checker && commands && banner);
+    QTRY_VERIFY(banner->property("visible").toBool());
+
+    const QList<QPair<QByteArray, UpdateChecker::State>> rounds{
+        {fileUrl(m_settings.filePath(QStringLiteral("absent.json"))), UpdateChecker::State::Failed},
+        {fileUrl(data("prerelease.json")), UpdateChecker::State::UpToDate},
+    };
+    for (const auto& round : rounds) {
+        qputenv(kVariable, round.first);
+        QVERIFY(commands->trigger(QStringLiteral("help.check-updates")));
+        // Pendant la recherche : l'état du vérificateur est vide, le bandeau garde la version découverte.
+        QCOMPARE(checker->state(), UpdateChecker::State::Checking);
+        QVERIFY(checker->latestVersion().isEmpty());
+        QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("9.9.9")),
+                 qPrintable(textOf(window, "updateBannerText")));
+        QTRY_COMPARE(checker->state(), round.second);
+        QVERIFY2(textOf(window, "updateBannerText").contains(QStringLiteral("9.9.9")),
+                 qPrintable(textOf(window, "updateBannerText")));
+        QVERIFY(banner->property("visible").toBool());
+    }
+}
+
+// L11-C20 : « Fermer » masque le bandeau seulement.
+void TstUiUpdatechecker::updateBannerCloseHides()
+{
+    enableCheckAtStart(fileUrl(data("newer.json")));
+    QTemporaryDir profiles;
+    QVERIFY(profiles.isValid());
+    QQmlApplicationEngine engine;
+    StartupOptions options;
+    options.profileRoot = profiles.path();
+    QQuickWindow* window = loadMainWindow(engine, options);
+    QVERIFY(window);
+    auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
+    auto* close = window->findChild<QObject*>(QStringLiteral("updateBannerClose"));
+    auto* view = window->findChild<QObject*>(QStringLiteral("updateBannerView"));
+    QVERIFY(banner && close && view);
+    QTRY_VERIFY(banner->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(close, "click"));
+    QVERIFY(!banner->property("visible").toBool());
+}
+
+// L11-C20 : un message (avertissement de lecture, « Ouverture impossible ») ne passe pas sous le bandeau des
+// mises à jour : le message commence sous le bas du bandeau, son « Fermer » reste atteignable.
+void TstUiUpdatechecker::updateBannerDoesNotCoverMessageBanner()
+{
+    enableCheckAtStart(fileUrl(data("newer.json")));
+    QTemporaryDir profiles;
+    QVERIFY(profiles.isValid());
+    QQmlApplicationEngine engine;
+    StartupOptions options;
+    options.profileRoot = profiles.path();
+    QQuickWindow* window = loadMainWindow(engine, options);
+    QVERIFY(window);
+    auto* banner = qobject_cast<QQuickItem*>(window->findChild<QObject*>(QStringLiteral("updateBanner")));
+    auto* message = qobject_cast<QQuickItem*>(window->findChild<QObject*>(QStringLiteral("messageBanner")));
+    QVERIFY(banner && message);
+    QTRY_VERIFY(banner->isVisible());
+    QVERIFY(
+        QMetaObject::invokeMethod(message, "show", Q_ARG(QVariant, QStringLiteral("Ouverture impossible"))));
+    QTRY_VERIFY(message->isVisible());
+    QTRY_VERIFY(banner->height() > 0 && message->height() > 0);
+    const QRectF b = banner->mapRectToScene(QRectF(0, 0, banner->width(), banner->height()));
+    const QRectF m = message->mapRectToScene(QRectF(0, 0, message->width(), message->height()));
+    QTRY_VERIFY2(m.top() >= b.bottom() - 0.5, qPrintable(QStringLiteral("bandeau %1..%2, message %3..%4")
+                                                             .arg(b.top())
+                                                             .arg(b.bottom())
+                                                             .arg(m.top())
+                                                             .arg(m.bottom())));
+    // Le bandeau fermé, le message remonte en haut de la page.
+    auto* close = window->findChild<QObject*>(QStringLiteral("updateBannerClose"));
+    QVERIFY(close);
+    QVERIFY(QMetaObject::invokeMethod(close, "click"));
+    QTRY_VERIFY(!banner->isVisible());
+    QTRY_VERIFY(message->y() < b.bottom());
 }
 
 QTEST_MAIN(TstUiUpdatechecker)
