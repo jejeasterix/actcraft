@@ -426,8 +426,8 @@ void TstUiUpdatechecker::startCalledOnceByTheShell()
     }
 }
 
-// L11-C14 : la recherche du démarrage ouvre la boîte seulement si une nouvelle version existe (aucune boîte
-// au démarrage sans nouvelle version : ni à jour, ni en erreur, ni quand le réglage est faux).
+// L11-C17 (L11-T22) : la recherche du démarrage n'ouvre jamais la boîte modale ; le bandeau non modal
+// n'apparaît que pour une nouvelle version (ni à jour, ni en erreur, ni quand le réglage est faux).
 void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
 {
     struct Case
@@ -457,13 +457,16 @@ void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
         QVERIFY(window);
         auto* checker = window->findChild<UpdateChecker*>(QStringLiteral("appUpdates"));
         auto* dialog = window->findChild<QObject*>(QStringLiteral("updateDialog"));
-        QVERIFY(checker && dialog);
+        auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
+        QVERIFY(checker && dialog && banner);
         QTRY_COMPARE(checker->state(), c.expected);
         QCoreApplication::processEvents();
         if (c.opened)
-            QTRY_VERIFY(dialog->property("visible").toBool());
+            QTRY_VERIFY(banner->property("visible").toBool());
         else
-            QVERIFY(!dialog->property("visible").toBool());
+            QVERIFY(!banner->property("visible").toBool());
+        QTest::qWait(50);
+        QVERIFY(!dialog->property("visible").toBool()); // jamais de boîte au démarrage
     }
     // Réglage faux : aucune requête, aucune boîte.
     {
@@ -480,9 +483,11 @@ void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
     QQuickWindow* window = loadMainWindow(engine, options);
     QVERIFY(window);
     auto* dialog = window->findChild<QObject*>(QStringLiteral("updateDialog"));
-    QVERIFY(dialog);
+    auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
+    QVERIFY(dialog && banner);
     QTest::qWait(100);
     QVERIFY(!dialog->property("visible").toBool());
+    QVERIFY(!banner->property("visible").toBool());
 }
 
 QTEST_MAIN(TstUiUpdatechecker)

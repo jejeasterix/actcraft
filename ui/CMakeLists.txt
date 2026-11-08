@@ -134,6 +134,7 @@ qt_add_qml_module(actcraft_ui
         qml/TouchModeMenu.qml
         qml/FingerMenu.qml
         qml/RecoveryBanner.qml
+        qml/UpdateBanner.qml
         qml/UpdateDialog.qml
         qml/SelectionOverlay.qml
         qml/ObjectBar.qml
