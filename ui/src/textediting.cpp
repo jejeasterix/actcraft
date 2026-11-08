@@ -50,10 +50,6 @@ namespace {
 // propriétaire remettrait aussi l'objet que le second glisse.
 constexpr int kTextOwner = 0;
 
-} // namespace
-
-namespace {
-
 constexpr qreal kSizeStep = 2;     // D8 : taille ±2 points
 constexpr qreal kMinPointSize = 8; // D8 : minimum 8 (et non 4)
 constexpr qreal kSpacingStep = 2;  // D8 : 2 points d'espace au-dessus du paragraphe
