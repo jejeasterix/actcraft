@@ -287,7 +287,8 @@ pageChangeWindows(const std::vector<std::int64_t>& commandNs, const std::vector<
 int expectedPageEffects(const ScenarioPlan& plan);
 // Raison d'invalidité quand `played` (effets partis pendant la mesure : TransitionController::playedChanged,
 // jamais émis par le repli de capture, qui change la page sans effet) n'est pas expectedPageEffects(plan) ;
-// vide sinon.
+// vide sinon. Une partie seulement des effets partis (sous charge) : « page-effects-incomplete », mesure
+// invalide sans erreur du parcours ; aucun, ou plus qu'attendu : « error: ».
 QString pageEffectsCheck(const ScenarioPlan& plan, int played);
 // L7-T38 : raison d'invalidité quand un plan à effets (pageEffects) a encore un effet en cours (`playing` :
 // TransitionController::playing) après l'attente de fin de mesure ; vide sinon.

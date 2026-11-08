@@ -846,6 +846,12 @@ QString pageEffectsCheck(const ScenarioPlan& plan, int played)
     if (played == expected) {
         return {};
     }
+    if (played > 0 && played < expected) { // sous charge : mesure invalide, parcours sain (contrôles joués)
+        return QStringLiteral("page-effects-incomplete: played %1 of %2 in %3")
+            .arg(played)
+            .arg(expected)
+            .arg(plan.name);
+    }
     return QStringLiteral("error: page effects played %1 of %2 in %3")
         .arg(played)
         .arg(expected)

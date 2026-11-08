@@ -1169,9 +1169,16 @@ private slots:
         const bench::ScenarioPlan effects = bench::effectsScenario(bench::ScenarioSet::Court);
         QCOMPARE(bench::expectedPageEffects(effects), 16);
         QVERIFY(bench::pageEffectsCheck(effects, 16).isEmpty());
+        // Fusion des lots 7 et 8 : des effets partis mais pas tous (changement de page suivant arrivé pendant
+        // la capture, sous charge : la page change sans effet) rendent la mesure invalide sans être une
+        // erreur du parcours, comme page-flash-unverified ; aucun effet parti, ou plus qu'attendu, reste une
+        // erreur.
         QCOMPARE(bench::pageEffectsCheck(effects, 15),
-                 QStringLiteral("error: page effects played 15 of 16 in effets-page"));
-        QVERIFY(!bench::pageEffectsCheck(effects, 0).isEmpty());
+                 QStringLiteral("page-effects-incomplete: played 15 of 16 in effets-page"));
+        QVERIFY(
+            bench::pageEffectsCheck(effects, 0).startsWith(QLatin1String("error: page effects played 0")));
+        QVERIFY(
+            bench::pageEffectsCheck(effects, 17).startsWith(QLatin1String("error: page effects played 17")));
         const bench::ScenarioPlan page = bench::pageScenario(bench::ScenarioSet::Court);
         QCOMPARE(bench::expectedPageEffects(page), 0);
         QVERIFY(bench::pageEffectsCheck(page, 0).isEmpty());
