@@ -217,8 +217,26 @@ jobs:
       - name: Compiler
         run: cmake --build --preset debug
 
-      - name: Tester
-        run: ctest --preset debug --output-on-failure
+      # Journaux des tests rouges téléversés en cas d'échec (artefact journaux-tests-<plateforme>, docs/ci-ciblee.md).
+      - id: tester
+        name: Tester
+        run: |
+          cmake -E make_directory "${{ runner.temp }}/journaux-tests"
+          ctest --preset debug --output-on-failure --output-log "${{ runner.temp }}/journaux-tests/ctest-sortie.txt" --output-junit "${{ runner.temp }}/journaux-tests/ctest-junit.xml"
+
+      # Relances en direct plafonnées à 2 min : la suite Windows prend déjà 81 min sur 90 (run 42434070554).
+      - name: Journaux des tests rouges
+        if: failure() && steps.tester.outcome == 'failure'
+        run: cmake -DBUILD_DIR=build/debug "-DOUT_DIR=${{ runner.temp }}/journaux-tests" -DMAX_SECONDES=120 -P scripts/ci/journaux-tests.cmake
+
+      - name: Téléverser les journaux des tests
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: journaux-tests-${{ runner.os == 'Windows' && 'windows' || 'macos' }}
+          path: ${{ runner.temp }}/journaux-tests
+          if-no-files-found: warn
+          retention-days: 14
 
       # N1-8 : premier contact avec Metal ; informatif, ne bloque jamais la CI.
       - name: Banc sur la plateforme native (informatif)
