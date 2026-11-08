@@ -67,8 +67,8 @@ private:
     QPointF m_point;
     bool m_visible = false;
     QString m_text;
-    QString m_fontFamily;
-    qreal m_pointSize = 12;
+    QString m_typeface;
+    qreal m_textPoints = 12;
     QColor m_color = Qt::black;
     QColor m_outlineColor = Qt::transparent;
     QColor m_fill = Qt::transparent;

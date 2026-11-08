@@ -35,7 +35,9 @@ class Commands : public QObject
     Q_PROPERTY(int revision READ revision NOTIFY stateChanged)
     // Verrou de classe (D6-7), en lecture seule : seul ClassroomLock le pose et le lève (setLocked, C++).
     Q_PROPERTY(bool locked READ isLocked NOTIFY stateChanged)
-    // Commandes disponibles grisées par le verrou (0 hors du verrou), lue par les scénarios.
+    // Commandes verrouillables disponibles sur la plateforme, grisées par le verrou (0 hors du verrou), lue
+    // par les scénarios. Une commande cachée (setHidden) compte : elle reste grisée, et K ne dépend que des
+    // données (L11-T26).
     Q_PROPERTY(int lockedCount READ lockedCount NOTIFY stateChanged)
 
 public:

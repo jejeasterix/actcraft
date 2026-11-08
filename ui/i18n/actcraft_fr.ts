@@ -1867,14 +1867,24 @@
 <context>
     <name>SecondPalette</name>
     <message>
-        <location filename="../qml/SecondPalette.qml" line="87"/>
+        <location filename="../qml/SecondPalette.qml" line="92"/>
         <source>Couleur %1</source>
         <translation>Couleur %1</translation>
     </message>
     <message>
-        <location filename="../qml/SecondPalette.qml" line="105"/>
+        <location filename="../qml/SecondPalette.qml" line="110"/>
         <source>Épaisseur %1</source>
         <translation>Épaisseur %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/SecondPalette.qml" line="140"/>
+        <source>Aide du mode à deux utilisateurs</source>
+        <translation>Aide du mode à deux utilisateurs</translation>
+    </message>
+    <message>
+        <location filename="../qml/SecondPalette.qml" line="145"/>
+        <source>?</source>
+        <translation>?</translation>
     </message>
 </context>
 <context>
@@ -3688,1389 +3698,2232 @@
     </message>
 </context>
 <context>
-    <name>commandes</name>
+    <name>actions-objet</name>
     <message>
-        <location filename="../src/commandlabels.cpp" line="15"/>
-        <source>Créer un paperboard</source>
-        <translation>Créer un paperboard</translation>
+        <location filename="../src/commandlabels.cpp" line="304"/>
+        <source>Outil de sélection</source>
+        <translation>Outil de sélection</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="16"/>
-        <source>Paperboard à la taille de l&apos;écran</source>
-        <translation>Paperboard à la taille de l&apos;écran</translation>
+        <location filename="../src/commandlabels.cpp" line="305"/>
+        <source>Outil stylo</source>
+        <translation>Outil stylo</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="17"/>
-        <source>Paperboard 1024 × 768</source>
-        <translation>Paperboard 1024 × 768</translation>
+        <location filename="../src/commandlabels.cpp" line="306"/>
+        <source>Outil marqueur</source>
+        <translation>Outil marqueur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="18"/>
-        <source>Paperboard 1152 × 864</source>
-        <translation>Paperboard 1152 × 864</translation>
+        <location filename="../src/commandlabels.cpp" line="307"/>
+        <source>Outil gomme</source>
+        <translation>Outil gomme</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="19"/>
-        <source>Paperboard 1280 × 1024</source>
-        <translation>Paperboard 1280 × 1024</translation>
+        <location filename="../src/commandlabels.cpp" line="308"/>
+        <source>Outil texte</source>
+        <translation>Outil texte</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="20"/>
-        <source>Taille de paperboard personnalisée…</source>
-        <translation>Taille de paperboard personnalisée…</translation>
+        <location filename="../src/commandlabels.cpp" line="309"/>
+        <source>Outil texte vertical</source>
+        <translation>Outil texte vertical</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="21"/>
-        <source>Ouvrir…</source>
-        <translation>Ouvrir…</translation>
+        <location filename="../src/commandlabels.cpp" line="310"/>
+        <source>Outil formes</source>
+        <translation>Outil formes</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="22"/>
-        <source>Enregistrer</source>
-        <translation>Enregistrer</translation>
+        <location filename="../src/commandlabels.cpp" line="311"/>
+        <source>Outil pot de peinture</source>
+        <translation>Outil pot de peinture</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="23"/>
-        <source>Enregistrer sous…</source>
-        <translation>Enregistrer sous…</translation>
+        <location filename="../src/commandlabels.cpp" line="312"/>
+        <source>Outil connecteur</source>
+        <translation>Outil connecteur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="24"/>
-        <source>Fermer le paperboard</source>
-        <translation>Fermer le paperboard</translation>
+        <location filename="../src/commandlabels.cpp" line="313"/>
+        <source>Dé</source>
+        <translation>Dé</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="25"/>
-        <source>Quitter</source>
-        <translation>Quitter</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="26"/>
-        <source>Plein écran</source>
-        <translation>Plein écran</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="27"/>
-        <source>Ajuster la page</source>
-        <translation>Ajuster la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="28"/>
-        <source>Échelle</source>
-        <translation>Échelle</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="29"/>
-        <source>Page précédente</source>
-        <translation>Page précédente</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="30"/>
-        <source>Page suivante</source>
-        <translation>Page suivante</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="31"/>
-        <source>Stylo</source>
-        <translation>Stylo</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="32"/>
-        <source>Couleur du stylo</source>
-        <translation>Couleur du stylo</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="33"/>
-        <source>Épaisseur du stylo</source>
-        <translation>Épaisseur du stylo</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="34"/>
-        <source>Menu principal</source>
-        <translation>Menu principal</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="35"/>
-        <source>Outils</source>
-        <translation>Outils</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="36"/>
-        <source>Site du projet</source>
-        <translation>Site du projet</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="37"/>
-        <source>À propos d&apos;ActCraft</source>
-        <translation>À propos d&apos;ActCraft</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="38"/>
-        <source>Sélectionner</source>
-        <translation>Sélectionner</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="39"/>
-        <source>Marqueur</source>
-        <translation>Marqueur</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="40"/>
-        <source>Gomme</source>
-        <translation>Gomme</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="41"/>
-        <source>Annuler</source>
-        <translation>Annuler</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="42"/>
-        <source>Rétablir</source>
-        <translation>Rétablir</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="43"/>
-        <source>Supprimer</source>
-        <translation>Supprimer</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="44"/>
-        <source>Tout sélectionner</source>
-        <translation>Tout sélectionner</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="45"/>
-        <source>Annotations</source>
-        <translation>Annotations</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="46"/>
-        <source>Objets</source>
-        <translation>Objets</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="47"/>
-        <source>Grille</source>
-        <translation>Grille</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="48"/>
-        <source>Fond</source>
-        <translation>Fond</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="49"/>
-        <source>Page</source>
-        <translation>Page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="50"/>
-        <source>Rétablir la page</source>
-        <translation>Rétablir la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="51"/>
-        <source>Afficher la corbeille</source>
-        <translation>Afficher la corbeille</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="52"/>
-        <source>Déplacer librement</source>
-        <translation>Déplacer librement</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="53"/>
-        <source>Faire pivoter</source>
-        <translation>Faire pivoter</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="54"/>
-        <source>Translucidité</source>
-        <translation>Translucidité</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="55"/>
-        <source>Agrandir l&apos;objet</source>
-        <translation>Agrandir l&apos;objet</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="56"/>
-        <source>Réduire l&apos;objet</source>
-        <translation>Réduire l&apos;objet</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="57"/>
-        <source>Zoom de page</source>
-        <translation>Zoom de page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="58"/>
-        <source>Effets de changement de page…</source>
-        <translation>Effets de changement de page…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="59"/>
-        <source>Effet de changement de page pour tout le paperboard</source>
-        <translation>Effet de changement de page pour tout le paperboard</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="60"/>
-        <source>Durée de l&apos;effet (dixièmes de seconde)</source>
-        <translation>Durée de l&apos;effet (dixièmes de seconde)</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="61"/>
-        <source>Effet propre à cette page</source>
-        <translation>Effet propre à cette page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="62"/>
-        <source>Outils de présentation de la page</source>
-        <translation>Outils de présentation de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="63"/>
-        <source>Rideau de la page</source>
-        <translation>Rideau de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="64"/>
-        <source>Distance du rideau</source>
-        <translation>Distance du rideau</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="65"/>
-        <source>Spot de la page</source>
-        <translation>Spot de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="66"/>
-        <source>Rideau</source>
-        <translation>Rideau</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="67"/>
-        <source>Couleur du rideau</source>
-        <translation>Couleur du rideau</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="68"/>
-        <source>Spot rond</source>
-        <translation>Spot rond</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="69"/>
-        <source>Spot carré</source>
-        <translation>Spot carré</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="70"/>
-        <source>Cache rond</source>
-        <translation>Cache rond</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="71"/>
-        <source>Cache carré</source>
-        <translation>Cache carré</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="72"/>
-        <source>Règle</source>
-        <translation>Règle</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="73"/>
-        <source>Équerre</source>
-        <translation>Équerre</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="74"/>
-        <source>Rapporteur</source>
-        <translation>Rapporteur</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="75"/>
-        <source>Compas</source>
-        <translation>Compas</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="76"/>
-        <source>Origine XY</source>
-        <translation>Origine XY</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="77"/>
-        <source>Dés</source>
-        <translation>Dés</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="78"/>
+        <location filename="../src/commandlabels.cpp" line="314"/>
         <source>Calculatrice</source>
         <translation>Calculatrice</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="79"/>
+        <location filename="../src/commandlabels.cpp" line="315"/>
         <source>Horloge</source>
         <translation>Horloge</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="80"/>
-        <source>Message défilant…</source>
-        <translation>Message défilant…</translation>
+        <location filename="../src/commandlabels.cpp" line="316"/>
+        <source>Bandeau défilant</source>
+        <translation>Bandeau défilant</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="81"/>
+        <location filename="../src/commandlabels.cpp" line="317"/>
         <source>Navigateur web</source>
         <translation>Navigateur web</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="82"/>
-        <source>Date et heure</source>
-        <translation>Date et heure</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="83"/>
-        <source>Équation…</source>
-        <translation>Équation…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="84"/>
-        <source>Modifier l&apos;équation</source>
-        <translation>Modifier l&apos;équation</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="85"/>
-        <source>Reconnaissance de forme</source>
-        <translation>Reconnaissance de forme</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="86"/>
-        <source>Reconnaissance d&apos;écriture</source>
-        <translation>Reconnaissance d&apos;écriture</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="87"/>
-        <source>Convertir en forme</source>
-        <translation>Convertir en forme</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="88"/>
-        <source>Convertir en texte</source>
-        <translation>Convertir en texte</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="89"/>
+        <location filename="../src/commandlabels.cpp" line="318"/>
         <source>Capture d&apos;une zone</source>
         <translation>Capture d&apos;une zone</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="90"/>
-        <source>Capture point par point</source>
-        <translation>Capture point par point</translation>
+        <location filename="../src/commandlabels.cpp" line="319"/>
+        <source>Capture polygonale</source>
+        <translation>Capture polygonale</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="91"/>
+        <location filename="../src/commandlabels.cpp" line="320"/>
         <source>Capture à main levée</source>
         <translation>Capture à main levée</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="92"/>
+        <location filename="../src/commandlabels.cpp" line="321"/>
         <source>Capture d&apos;une fenêtre</source>
         <translation>Capture d&apos;une fenêtre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="93"/>
-        <source>Capture de l&apos;écran entier</source>
-        <translation>Capture de l&apos;écran entier</translation>
+        <location filename="../src/commandlabels.cpp" line="322"/>
+        <source>Capture de l&apos;écran</source>
+        <translation>Capture de l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="94"/>
+        <location filename="../src/commandlabels.cpp" line="323"/>
         <source>Clavier à l&apos;écran</source>
         <translation>Clavier à l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="95"/>
-        <source>Annoter le bureau</source>
-        <translation>Annoter le bureau</translation>
+        <location filename="../src/commandlabels.cpp" line="324"/>
+        <source>Reconnaissance des formes</source>
+        <translation>Reconnaissance des formes</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="96"/>
-        <source>Outils de bureau</source>
-        <translation>Outils de bureau</translation>
+        <location filename="../src/commandlabels.cpp" line="325"/>
+        <source>Reconnaissance de l&apos;écriture</source>
+        <translation>Reconnaissance de l&apos;écriture</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="97"/>
-        <source>Revenir à ActCraft</source>
-        <translation>Revenir à ActCraft</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="98"/>
-        <source>Fond : capture du bureau</source>
-        <translation>Fond : capture du bureau</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="99"/>
-        <source>Fond : bureau en transparence</source>
-        <translation>Fond : bureau en transparence</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="100"/>
-        <source>Formes</source>
-        <translation>Formes</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="101"/>
-        <source>Choisir une forme</source>
-        <translation>Choisir une forme</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="102"/>
-        <source>Forme remplie</source>
-        <translation>Forme remplie</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="103"/>
-        <source>Couleur de remplissage</source>
-        <translation>Couleur de remplissage</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="104"/>
-        <source>Tracer depuis le centre</source>
-        <translation>Tracer depuis le centre</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="105"/>
-        <source>Texte</source>
-        <translation>Texte</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="106"/>
-        <source>Texte de haut en bas</source>
-        <translation>Texte de haut en bas</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="107"/>
-        <source>Police</source>
-        <translation>Police</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="108"/>
-        <source>Taille</source>
-        <translation>Taille</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="109"/>
-        <source>Agrandir le texte</source>
-        <translation>Agrandir le texte</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="110"/>
-        <source>Réduire le texte</source>
-        <translation>Réduire le texte</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="111"/>
-        <source>Gras</source>
-        <translation>Gras</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="112"/>
-        <source>Italique</source>
-        <translation>Italique</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="113"/>
-        <source>Souligné</source>
-        <translation>Souligné</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="114"/>
-        <source>Exposant</source>
-        <translation>Exposant</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="115"/>
-        <source>Indice</source>
-        <translation>Indice</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="116"/>
-        <source>Couleur du texte</source>
-        <translation>Couleur du texte</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="117"/>
-        <source>Fond du texte</source>
-        <translation>Fond du texte</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="118"/>
-        <source>À gauche</source>
-        <translation>À gauche</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="119"/>
-        <source>Au centre</source>
-        <translation>Au centre</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="120"/>
-        <source>À droite</source>
-        <translation>À droite</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="121"/>
-        <source>Plus d&apos;interligne</source>
-        <translation>Plus d&apos;interligne</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="122"/>
-        <source>Moins d&apos;interligne</source>
-        <translation>Moins d&apos;interligne</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="123"/>
-        <source>Plus de retrait</source>
-        <translation>Plus de retrait</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="124"/>
-        <source>Moins de retrait</source>
-        <translation>Moins de retrait</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="125"/>
-        <source>Puces</source>
-        <translation>Puces</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="126"/>
-        <source>Tout le texte</source>
-        <translation>Tout le texte</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="127"/>
-        <source>Symboles</source>
-        <translation>Symboles</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="128"/>
-        <source>Écrire ici</source>
-        <translation>Écrire ici</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="129"/>
-        <source>Navigateurs</source>
-        <translation>Navigateurs</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="130"/>
-        <source>Aller à la page</source>
-        <translation>Aller à la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="131"/>
-        <source>Page vierge avant</source>
-        <translation>Page vierge avant</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="132"/>
-        <source>Page vierge après</source>
-        <translation>Page vierge après</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="133"/>
-        <source>Couper les pages</source>
-        <translation>Couper les pages</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="134"/>
-        <source>Copier les pages</source>
-        <translation>Copier les pages</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="135"/>
-        <source>Coller les pages</source>
-        <translation>Coller les pages</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="136"/>
-        <source>Dupliquer les pages</source>
-        <translation>Dupliquer les pages</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="137"/>
-        <source>Supprimer les pages</source>
-        <translation>Supprimer les pages</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="138"/>
-        <source>Fond de la page…</source>
-        <translation>Fond de la page…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="139"/>
-        <source>Grille…</source>
-        <translation>Grille…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="140"/>
-        <source>Cacher la grille</source>
-        <translation>Cacher la grille</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="141"/>
-        <source>Aimanter à la grille</source>
-        <translation>Aimanter à la grille</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="142"/>
-        <source>Poignée d&apos;allongement</source>
-        <translation>Poignée d&apos;allongement</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="143"/>
-        <source>Allonger la page</source>
-        <translation>Allonger la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="144"/>
-        <source>Zones de la page</source>
-        <translation>Zones de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="145"/>
-        <source>Couper</source>
-        <translation>Couper</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="146"/>
-        <source>Copier</source>
-        <translation>Copier</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="147"/>
-        <source>Coller</source>
-        <translation>Coller</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="148"/>
-        <source>Coller sur l&apos;objet</source>
-        <translation>Coller sur l&apos;objet</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="149"/>
-        <source>Dupliquer</source>
-        <translation>Dupliquer</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="150"/>
-        <source>Menu de l&apos;objet</source>
-        <translation>Menu de l&apos;objet</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="151"/>
-        <source>Grouper ou dégrouper</source>
-        <translation>Grouper ou dégrouper</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="152"/>
-        <source>Verrouiller</source>
-        <translation>Verrouiller</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="153"/>
-        <source>Masquer</source>
-        <translation>Masquer</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="154"/>
-        <source>Glisser une copie</source>
-        <translation>Glisser une copie</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="155"/>
-        <source>Modifier les points de la forme</source>
-        <translation>Modifier les points de la forme</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="156"/>
-        <source>Mettre au premier plan</source>
-        <translation>Mettre au premier plan</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="157"/>
-        <source>Mettre à l&apos;arrière-plan</source>
-        <translation>Mettre à l&apos;arrière-plan</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="158"/>
-        <source>Avancer d&apos;un cran</source>
-        <translation>Avancer d&apos;un cran</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="159"/>
-        <source>Reculer d&apos;un cran</source>
-        <translation>Reculer d&apos;un cran</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="160"/>
-        <source>Vers la couche du dessus</source>
-        <translation>Vers la couche du dessus</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="161"/>
-        <source>Vers la couche du milieu</source>
-        <translation>Vers la couche du milieu</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="162"/>
-        <source>Vers la couche du dessous</source>
-        <translation>Vers la couche du dessous</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="163"/>
-        <source>Bords gauches</source>
-        <translation>Bords gauches</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="164"/>
-        <source>Centres horizontaux</source>
-        <translation>Centres horizontaux</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="165"/>
-        <source>Bords droits</source>
-        <translation>Bords droits</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="166"/>
-        <source>Bords hauts</source>
-        <translation>Bords hauts</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="167"/>
-        <source>Centres verticaux</source>
-        <translation>Centres verticaux</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="168"/>
-        <source>Bords bas</source>
-        <translation>Bords bas</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="169"/>
-        <source>Même largeur</source>
-        <translation>Même largeur</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="170"/>
-        <source>Même hauteur</source>
-        <translation>Même hauteur</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="171"/>
-        <source>Même angle</source>
-        <translation>Même angle</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="172"/>
-        <source>Tout aligner sur le premier</source>
-        <translation>Tout aligner sur le premier</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="173"/>
-        <source>Taille initiale</source>
-        <translation>Taille initiale</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="174"/>
-        <source>Ajuster à la largeur de la page</source>
-        <translation>Ajuster à la largeur de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="175"/>
-        <source>Ajuster à la hauteur de la page</source>
-        <translation>Ajuster à la hauteur de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="176"/>
-        <source>Ajuster à la page</source>
-        <translation>Ajuster à la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="177"/>
-        <source>Copie miroir verticale</source>
-        <translation>Copie miroir verticale</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="178"/>
-        <source>Copie miroir horizontale</source>
-        <translation>Copie miroir horizontale</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="179"/>
-        <source>Retourner de haut en bas</source>
-        <translation>Retourner de haut en bas</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="180"/>
-        <source>Retourner de gauche à droite</source>
-        <translation>Retourner de gauche à droite</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="181"/>
-        <source>Symétrie par l&apos;axe horizontal de l&apos;origine</source>
-        <translation>Symétrie par l&apos;axe horizontal de l&apos;origine</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="182"/>
-        <source>Symétrie par l&apos;axe vertical de l&apos;origine</source>
-        <translation>Symétrie par l&apos;axe vertical de l&apos;origine</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="183"/>
-        <source>Pot de peinture</source>
-        <translation>Pot de peinture</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="184"/>
-        <source>Connecteur</source>
-        <translation>Connecteur</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="185"/>
-        <source>Style du connecteur</source>
-        <translation>Style du connecteur</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="186"/>
-        <source>Extrémités du connecteur</source>
-        <translation>Extrémités du connecteur</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="187"/>
-        <source>Modification du stylo</source>
-        <translation>Modification du stylo</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="188"/>
-        <source>Tracé du stylo</source>
-        <translation>Tracé du stylo</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="189"/>
-        <source>Image…</source>
-        <translation>Image…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="190"/>
-        <source>Média…</source>
-        <translation>Média…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="191"/>
-        <source>Paperboard suivant</source>
-        <translation>Paperboard suivant</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="192"/>
-        <source>Paperboard précédent</source>
-        <translation>Paperboard précédent</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="193"/>
-        <source>Onglets des paperboards</source>
-        <translation>Onglets des paperboards</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="194"/>
-        <source>Exporter la page en image…</source>
-        <translation>Exporter la page en image…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="195"/>
-        <source>Exporter en PDF…</source>
-        <translation>Exporter en PDF…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="196"/>
-        <source>PDF…</source>
-        <translation>PDF…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="197"/>
-        <source>Présentation en images…</source>
-        <translation>Présentation en images…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="198"/>
-        <source>Imprimer…</source>
-        <translation>Imprimer…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="199"/>
-        <source>Ancrer la palette à gauche</source>
-        <translation>Ancrer la palette à gauche</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="200"/>
-        <source>Ancrer la palette à droite</source>
-        <translation>Ancrer la palette à droite</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="201"/>
-        <source>Ancrer la palette en haut</source>
-        <translation>Ancrer la palette en haut</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="202"/>
-        <source>Ancrer la palette en bas</source>
-        <translation>Ancrer la palette en bas</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="203"/>
-        <source>Palette flottante</source>
-        <translation>Palette flottante</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="204"/>
-        <source>Réduire la palette</source>
-        <translation>Réduire la palette</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="205"/>
-        <source>Ne garder que la palette</source>
-        <translation>Ne garder que la palette</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="206"/>
-        <source>Garder la palette affichée</source>
-        <translation>Garder la palette affichée</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="207"/>
-        <source>Taille des icônes</source>
-        <translation>Taille des icônes</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="208"/>
-        <source>Plus de couleurs…</source>
-        <translation>Plus de couleurs…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="209"/>
-        <source>Prendre une couleur à l&apos;écran</source>
-        <translation>Prendre une couleur à l&apos;écran</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="210"/>
-        <source>Choisir une couleur…</source>
-        <translation>Choisir une couleur…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="211"/>
-        <source>Ajouter la couleur à la palette</source>
-        <translation>Ajouter la couleur à la palette</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="212"/>
-        <source>Objets de la page</source>
-        <translation>Objets de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="213"/>
-        <source>Propriétés</source>
-        <translation>Propriétés</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="214"/>
-        <source>Notes de la page</source>
-        <translation>Notes de la page</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="215"/>
-        <source>Bibliothèque</source>
-        <translation>Bibliothèque</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="216"/>
-        <source>Changer de profil…</source>
-        <translation>Changer de profil…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="217"/>
-        <source>Activer le profil</source>
-        <translation>Activer le profil</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="218"/>
-        <source>Profils et réglages…</source>
-        <translation>Profils et réglages…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="219"/>
-        <source>Enregistrer le profil sous…</source>
-        <translation>Enregistrer le profil sous…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="220"/>
-        <source>Importer un profil…</source>
-        <translation>Importer un profil…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="221"/>
-        <source>Exporter le profil…</source>
-        <translation>Exporter le profil…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="222"/>
-        <source>Supprimer le profil</source>
-        <translation>Supprimer le profil</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="223"/>
-        <source>Revenir au profil d&apos;origine</source>
-        <translation>Revenir au profil d&apos;origine</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="224"/>
-        <source>Mode conception</source>
-        <translation>Mode conception</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="225"/>
-        <source>Accueil</source>
-        <translation>Accueil</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="226"/>
-        <source>Vider la liste des documents récents</source>
-        <translation>Vider la liste des documents récents</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="227"/>
-        <source>Mes ressources</source>
-        <translation>Mes ressources</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="228"/>
-        <source>Ressources partagées</source>
-        <translation>Ressources partagées</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="229"/>
-        <source>Autre dossier…</source>
-        <translation>Autre dossier…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="230"/>
-        <source>Insérer dans le paperboard</source>
-        <translation>Insérer dans le paperboard</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="231"/>
-        <source>Ajouter la sélection à la bibliothèque</source>
-        <translation>Ajouter la sélection à la bibliothèque</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="232"/>
-        <source>Tampon</source>
-        <translation>Tampon</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="233"/>
-        <source>Nouveau dossier</source>
-        <translation>Nouveau dossier</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="234"/>
-        <source>Renommer…</source>
-        <translation>Renommer…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="235"/>
-        <source>Retirer de la bibliothèque</source>
-        <translation>Retirer de la bibliothèque</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="236"/>
-        <source>Verrouiller pour la classe</source>
-        <translation>Verrouiller pour la classe</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="237"/>
-        <source>Mot de passe de la classe…</source>
-        <translation>Mot de passe de la classe…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="238"/>
-        <source>Vérifier l&apos;orthographe</source>
-        <translation>Vérifier l&apos;orthographe</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="239"/>
-        <source>Lancer le raccourci</source>
-        <translation>Lancer le raccourci</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="240"/>
-        <source>Raccourcis vers des programmes…</source>
-        <translation>Raccourcis vers des programmes…</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="241"/>
-        <source>Aide</source>
-        <translation>Aide</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="242"/>
-        <source>Insérer l&apos;objet de la barre</source>
-        <translation>Insérer l&apos;objet de la barre</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="243"/>
-        <source>Ajouter à la barre de raccourcis</source>
-        <translation>Ajouter à la barre de raccourcis</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="244"/>
-        <source>Langue de l&apos;interface</source>
-        <translation>Langue de l&apos;interface</translation>
-    </message>
-    <message>
-        <location filename="../src/commandlabels.cpp" line="245"/>
+        <location filename="../src/commandlabels.cpp" line="326"/>
         <source>Encre révélatrice</source>
         <translation>Encre révélatrice</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="246"/>
-        <source>Navigateur d&apos;actions</source>
-        <translation>Navigateur d&apos;actions</translation>
+        <location filename="../src/commandlabels.cpp" line="327"/>
+        <source>Rideau</source>
+        <translation>Rideau</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="247"/>
-        <source>Appliquer l&apos;action</source>
-        <translation>Appliquer l&apos;action</translation>
+        <location filename="../src/commandlabels.cpp" line="328"/>
+        <source>Projecteur rond</source>
+        <translation>Projecteur rond</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="248"/>
-        <source>Retirer les actions</source>
-        <translation>Retirer les actions</translation>
+        <location filename="../src/commandlabels.cpp" line="329"/>
+        <source>Règle</source>
+        <translation>Règle</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="249"/>
-        <source>Choisir l&apos;objet visé</source>
-        <translation>Choisir l&apos;objet visé</translation>
+        <location filename="../src/commandlabels.cpp" line="330"/>
+        <source>Équerre</source>
+        <translation>Équerre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="250"/>
-        <source>Lien vers un fichier…</source>
-        <translation>Lien vers un fichier…</translation>
+        <location filename="../src/commandlabels.cpp" line="331"/>
+        <source>Rapporteur</source>
+        <translation>Rapporteur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="251"/>
-        <source>Lien vers un site…</source>
-        <translation>Lien vers un site…</translation>
+        <location filename="../src/commandlabels.cpp" line="332"/>
+        <source>Compas</source>
+        <translation>Compas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="252"/>
-        <source>Page vue avant</source>
-        <translation>Page vue avant</translation>
+        <location filename="../src/commandlabels.cpp" line="333"/>
+        <source>Nouveau paperboard</source>
+        <translation>Nouveau paperboard</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="253"/>
-        <source>Page vue après</source>
-        <translation>Page vue après</translation>
+        <location filename="../src/commandlabels.cpp" line="334"/>
+        <source>Nouveau paperboard à la taille de l&apos;écran</source>
+        <translation>Nouveau paperboard à la taille de l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="254"/>
-        <source>Lecteur de sons</source>
-        <translation>Lecteur de sons</translation>
+        <location filename="../src/commandlabels.cpp" line="335"/>
+        <source>Ouvrir un paperboard</source>
+        <translation>Ouvrir un paperboard</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="255"/>
-        <source>Enregistrer du son</source>
-        <translation>Enregistrer du son</translation>
+        <location filename="../src/commandlabels.cpp" line="336"/>
+        <source>Enregistrer</source>
+        <translation>Enregistrer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="256"/>
-        <source>Enregistrer tout l&apos;écran</source>
-        <translation>Enregistrer tout l&apos;écran</translation>
+        <location filename="../src/commandlabels.cpp" line="337"/>
+        <source>Imprimer</source>
+        <translation>Imprimer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="257"/>
+        <location filename="../src/commandlabels.cpp" line="338"/>
+        <source>Exporter en PDF</source>
+        <translation>Exporter en PDF</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="339"/>
+        <source>Quitter l&apos;application</source>
+        <translation>Quitter l&apos;application</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="340"/>
+        <source>Plein écran</source>
+        <translation>Plein écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="341"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="342"/>
+        <source>Rétablir</source>
+        <translation>Rétablir</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="343"/>
+        <source>Mode conception</source>
+        <translation>Mode conception</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="344"/>
+        <source>Enregistrer le son</source>
+        <translation>Enregistrer le son</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="345"/>
+        <source>Enregistrer l&apos;écran entier</source>
+        <translation>Enregistrer l&apos;écran entier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="346"/>
         <source>Enregistrer une zone de l&apos;écran</source>
         <translation>Enregistrer une zone de l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="258"/>
-        <source>Pause de l&apos;enregistrement</source>
-        <translation>Pause de l&apos;enregistrement</translation>
+        <location filename="../src/commandlabels.cpp" line="347"/>
+        <source>Mettre l&apos;enregistrement en pause</source>
+        <translation>Mettre l&apos;enregistrement en pause</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="259"/>
+        <location filename="../src/commandlabels.cpp" line="348"/>
         <source>Arrêter l&apos;enregistrement</source>
         <translation>Arrêter l&apos;enregistrement</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="260"/>
-        <source>Abandonner l&apos;enregistrement</source>
-        <translation>Abandonner l&apos;enregistrement</translation>
+        <location filename="../src/commandlabels.cpp" line="349"/>
+        <source>Lecteur de sons</source>
+        <translation>Lecteur de sons</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="261"/>
-        <source>Cadre web…</source>
-        <translation>Cadre web…</translation>
+        <location filename="../src/commandlabels.cpp" line="350"/>
+        <source>Accrochage à la grille</source>
+        <translation>Accrochage à la grille</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="262"/>
-        <source>Page web précédente</source>
-        <translation>Page web précédente</translation>
+        <location filename="../src/commandlabels.cpp" line="351"/>
+        <source>Masquer la grille</source>
+        <translation>Masquer la grille</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="263"/>
-        <source>Page web suivante</source>
-        <translation>Page web suivante</translation>
+        <location filename="../src/commandlabels.cpp" line="352"/>
+        <source>Navigateur de notes</source>
+        <translation>Navigateur de notes</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="264"/>
-        <source>Recharger le cadre</source>
-        <translation>Recharger le cadre</translation>
+        <location filename="../src/commandlabels.cpp" line="353"/>
+        <source>Navigateur d&apos;objets</source>
+        <translation>Navigateur d&apos;objets</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="265"/>
-        <source>Poser une image du cadre</source>
-        <translation>Poser une image du cadre</translation>
+        <location filename="../src/commandlabels.cpp" line="354"/>
+        <source>Navigateur de propriétés</source>
+        <translation>Navigateur de propriétés</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="266"/>
-        <source>Débloquer le contenu du cadre</source>
-        <translation>Débloquer le contenu du cadre</translation>
+        <location filename="../src/commandlabels.cpp" line="355"/>
+        <source>Navigateur de ressources</source>
+        <translation>Navigateur de ressources</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="267"/>
-        <source>Diffuser en protégé…</source>
-        <translation>Diffuser en protégé…</translation>
+        <location filename="../src/commandlabels.cpp" line="356"/>
+        <source>Navigateur d&apos;actions</source>
+        <translation>Navigateur d&apos;actions</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="268"/>
-        <source>Mode du toucher</source>
-        <translation>Mode du toucher</translation>
+        <location filename="../src/commandlabels.cpp" line="357"/>
+        <source>Afficher les navigateurs</source>
+        <translation>Afficher les navigateurs</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="269"/>
-        <source>Mode à deux utilisateurs</source>
-        <translation>Mode à deux utilisateurs</translation>
+        <location filename="../src/commandlabels.cpp" line="358"/>
+        <source>Annoter le bureau</source>
+        <translation>Annoter le bureau</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="270"/>
-        <source>Rechercher des mises à jour…</source>
-        <translation>Rechercher des mises à jour…</translation>
+        <location filename="../src/commandlabels.cpp" line="359"/>
+        <source>Revenir au paperboard</source>
+        <translation>Revenir au paperboard</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="271"/>
-        <source>Abandonner la copie de reprise</source>
-        <translation>Abandonner la copie de reprise</translation>
+        <location filename="../src/commandlabels.cpp" line="360"/>
+        <source>Insérer un cadre web</source>
+        <translation>Insérer un cadre web</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="272"/>
+        <location filename="../src/commandlabels.cpp" line="361"/>
+        <source>Aller à la page</source>
+        <translation>Aller à la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="362"/>
+        <source>Effacer la page</source>
+        <translation>Effacer la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="363"/>
+        <source>Copier la page</source>
+        <translation>Copier la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="364"/>
+        <source>Couper la page</source>
+        <translation>Couper la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="365"/>
         <source>Première page</source>
         <translation>Première page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="273"/>
+        <location filename="../src/commandlabels.cpp" line="366"/>
         <source>Dernière page</source>
         <translation>Dernière page</translation>
     </message>
     <message>
+        <location filename="../src/commandlabels.cpp" line="367"/>
+        <source>Insérer une page après</source>
+        <translation>Insérer une page après</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="368"/>
+        <source>Insérer une page avant</source>
+        <translation>Insérer une page avant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="369"/>
+        <source>Page suivante</source>
+        <translation>Page suivante</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="370"/>
+        <source>Page précédente</source>
+        <translation>Page précédente</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="371"/>
+        <source>Page vue précédemment</source>
+        <translation>Page vue précédemment</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="372"/>
+        <source>Page vue ensuite</source>
+        <translation>Page vue ensuite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="373"/>
+        <source>Rétablir la page</source>
+        <translation>Rétablir la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="374"/>
+        <source>Fond de la page</source>
+        <translation>Fond de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="375"/>
+        <source>Fixer l&apos;angle</source>
+        <translation>Fixer l&apos;angle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="376"/>
+        <source>Tourner d&apos;un angle</source>
+        <translation>Tourner d&apos;un angle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="377"/>
+        <source>Placer en haut à gauche</source>
+        <translation>Placer en haut à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="378"/>
+        <source>Placer en haut</source>
+        <translation>Placer en haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="379"/>
+        <source>Placer en haut à droite</source>
+        <translation>Placer en haut à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="380"/>
+        <source>Placer à gauche</source>
+        <translation>Placer à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="381"/>
+        <source>Placer au centre</source>
+        <translation>Placer au centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="382"/>
+        <source>Placer à droite</source>
+        <translation>Placer à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="383"/>
+        <source>Placer en bas à gauche</source>
+        <translation>Placer en bas à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="384"/>
+        <source>Placer en bas</source>
+        <translation>Placer en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="385"/>
+        <source>Placer en bas à droite</source>
+        <translation>Placer en bas à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="386"/>
+        <source>Redimensionner depuis le point du haut à gauche</source>
+        <translation>Redimensionner depuis le point du haut à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="387"/>
+        <source>Redimensionner depuis le point du haut</source>
+        <translation>Redimensionner depuis le point du haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="388"/>
+        <source>Redimensionner depuis le point du haut à droite</source>
+        <translation>Redimensionner depuis le point du haut à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="389"/>
+        <source>Redimensionner depuis le point à gauche</source>
+        <translation>Redimensionner depuis le point à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="390"/>
+        <source>Redimensionner depuis le point au centre</source>
+        <translation>Redimensionner depuis le point au centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="391"/>
+        <source>Redimensionner depuis le point à droite</source>
+        <translation>Redimensionner depuis le point à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="392"/>
+        <source>Redimensionner depuis le point du bas à gauche</source>
+        <translation>Redimensionner depuis le point du bas à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="393"/>
+        <source>Redimensionner depuis le point du bas</source>
+        <translation>Redimensionner depuis le point du bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="394"/>
+        <source>Redimensionner depuis le point du bas à droite</source>
+        <translation>Redimensionner depuis le point du bas à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="395"/>
+        <source>Agrandir ou réduire depuis le point en haut à gauche</source>
+        <translation>Agrandir ou réduire depuis le point en haut à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="396"/>
+        <source>Agrandir ou réduire depuis le point en haut</source>
+        <translation>Agrandir ou réduire depuis le point en haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="397"/>
+        <source>Agrandir ou réduire depuis le point en haut à droite</source>
+        <translation>Agrandir ou réduire depuis le point en haut à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="398"/>
+        <source>Agrandir ou réduire depuis le point à gauche</source>
+        <translation>Agrandir ou réduire depuis le point à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="399"/>
+        <source>Agrandir ou réduire depuis le point au centre</source>
+        <translation>Agrandir ou réduire depuis le point au centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="400"/>
+        <source>Agrandir ou réduire depuis le point à droite</source>
+        <translation>Agrandir ou réduire depuis le point à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="401"/>
+        <source>Agrandir ou réduire depuis le point en bas à gauche</source>
+        <translation>Agrandir ou réduire depuis le point en bas à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="402"/>
+        <source>Agrandir ou réduire depuis le point en bas</source>
+        <translation>Agrandir ou réduire depuis le point en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="403"/>
+        <source>Agrandir ou réduire depuis le point en bas à droite</source>
+        <translation>Agrandir ou réduire depuis le point en bas à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="404"/>
+        <source>Étirer depuis le point en haut à gauche</source>
+        <translation>Étirer depuis le point en haut à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="405"/>
+        <source>Étirer depuis le point en haut</source>
+        <translation>Étirer depuis le point en haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="406"/>
+        <source>Étirer depuis le point en haut à droite</source>
+        <translation>Étirer depuis le point en haut à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="407"/>
+        <source>Étirer depuis le point à gauche</source>
+        <translation>Étirer depuis le point à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="408"/>
+        <source>Étirer depuis le point au centre</source>
+        <translation>Étirer depuis le point au centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="409"/>
+        <source>Étirer depuis le point à droite</source>
+        <translation>Étirer depuis le point à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="410"/>
+        <source>Étirer depuis le point en bas à gauche</source>
+        <translation>Étirer depuis le point en bas à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="411"/>
+        <source>Étirer depuis le point en bas</source>
+        <translation>Étirer depuis le point en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="412"/>
+        <source>Étirer depuis le point en bas à droite</source>
+        <translation>Étirer depuis le point en bas à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="413"/>
+        <source>Étirer d&apos;un facteur depuis le point en haut à gauche</source>
+        <translation>Étirer d&apos;un facteur depuis le point en haut à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="414"/>
+        <source>Étirer d&apos;un facteur depuis le point en haut</source>
+        <translation>Étirer d&apos;un facteur depuis le point en haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="415"/>
+        <source>Étirer d&apos;un facteur depuis le point en haut à droite</source>
+        <translation>Étirer d&apos;un facteur depuis le point en haut à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="416"/>
+        <source>Étirer d&apos;un facteur depuis le point à gauche</source>
+        <translation>Étirer d&apos;un facteur depuis le point à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="417"/>
+        <source>Étirer d&apos;un facteur depuis le point au centre</source>
+        <translation>Étirer d&apos;un facteur depuis le point au centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="418"/>
+        <source>Étirer d&apos;un facteur depuis le point à droite</source>
+        <translation>Étirer d&apos;un facteur depuis le point à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="419"/>
+        <source>Étirer d&apos;un facteur depuis le point en bas à gauche</source>
+        <translation>Étirer d&apos;un facteur depuis le point en bas à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="420"/>
+        <source>Étirer d&apos;un facteur depuis le point en bas</source>
+        <translation>Étirer d&apos;un facteur depuis le point en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="421"/>
+        <source>Étirer d&apos;un facteur depuis le point en bas à droite</source>
+        <translation>Étirer d&apos;un facteur depuis le point en bas à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="422"/>
+        <source>Déplacer d&apos;un décalage</source>
+        <translation>Déplacer d&apos;un décalage</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="423"/>
+        <source>Copie miroir verticale</source>
+        <translation>Copie miroir verticale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="424"/>
+        <source>Copie miroir horizontale</source>
+        <translation>Copie miroir horizontale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="425"/>
+        <source>Retourner de haut en bas</source>
+        <translation>Retourner de haut en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="426"/>
+        <source>Retourner de gauche à droite</source>
+        <translation>Retourner de gauche à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="427"/>
+        <source>Taille d&apos;origine</source>
+        <translation>Taille d&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="428"/>
+        <source>Ajuster à la hauteur</source>
+        <translation>Ajuster à la hauteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="429"/>
+        <source>Ajuster à la page</source>
+        <translation>Ajuster à la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="430"/>
+        <source>Ajuster à la largeur</source>
+        <translation>Ajuster à la largeur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="431"/>
+        <source>Aligner à gauche</source>
+        <translation>Aligner à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="432"/>
+        <source>Aligner au centre horizontalement</source>
+        <translation>Aligner au centre horizontalement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="433"/>
+        <source>Aligner à droite</source>
+        <translation>Aligner à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="434"/>
+        <source>Aligner en haut</source>
+        <translation>Aligner en haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="435"/>
+        <source>Aligner au centre verticalement</source>
+        <translation>Aligner au centre verticalement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="436"/>
+        <source>Aligner en bas</source>
+        <translation>Aligner en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="437"/>
+        <source>Aligner à la largeur de la page</source>
+        <translation>Aligner à la largeur de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="438"/>
+        <source>Aligner à la hauteur de la page</source>
+        <translation>Aligner à la hauteur de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="439"/>
+        <source>Aligner sur l&apos;angle</source>
+        <translation>Aligner sur l&apos;angle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="440"/>
+        <source>Aligner sur tous les côtés</source>
+        <translation>Aligner sur tous les côtés</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="441"/>
+        <source>Avancer d&apos;un plan</source>
+        <translation>Avancer d&apos;un plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="442"/>
+        <source>Reculer d&apos;un plan</source>
+        <translation>Reculer d&apos;un plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="443"/>
+        <source>Mettre au premier plan</source>
+        <translation>Mettre au premier plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="444"/>
+        <source>Mettre à l&apos;arrière-plan</source>
+        <translation>Mettre à l&apos;arrière-plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="445"/>
+        <source>Couche du dessus</source>
+        <translation>Couche du dessus</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="446"/>
+        <source>Couche du milieu</source>
+        <translation>Couche du milieu</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="447"/>
+        <source>Couche du dessous</source>
+        <translation>Couche du dessous</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="448"/>
+        <source>Masquer ou afficher</source>
+        <translation>Masquer ou afficher</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="449"/>
+        <source>Verrouiller ou déverrouiller</source>
+        <translation>Verrouiller ou déverrouiller</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="450"/>
+        <source>Grouper ou dégrouper</source>
+        <translation>Grouper ou dégrouper</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="451"/>
+        <source>Fixer la translucidité</source>
+        <translation>Fixer la translucidité</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="452"/>
+        <source>Plus translucide</source>
+        <translation>Plus translucide</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="453"/>
+        <source>Moins translucide</source>
+        <translation>Moins translucide</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="454"/>
+        <source>Ajouter du texte</source>
+        <translation>Ajouter du texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="455"/>
+        <source>Remplacer le texte</source>
+        <translation>Remplacer le texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="456"/>
+        <source>Ajouter une valeur au texte</source>
+        <translation>Ajouter une valeur au texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="457"/>
+        <source>Nouveau texte</source>
+        <translation>Nouveau texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="458"/>
+        <source>Extraire les mots</source>
+        <translation>Extraire les mots</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="459"/>
+        <source>Effacer les annotations</source>
+        <translation>Effacer les annotations</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="460"/>
+        <source>Effacer le fond</source>
+        <translation>Effacer le fond</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="461"/>
+        <source>Effacer la grille</source>
+        <translation>Effacer la grille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="462"/>
+        <source>Effacer les objets</source>
+        <translation>Effacer les objets</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="463"/>
+        <source>Copier</source>
+        <translation>Copier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="464"/>
+        <source>Couper</source>
+        <translation>Couper</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="465"/>
+        <source>Coller</source>
+        <translation>Coller</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="466"/>
+        <source>Supprimer</source>
+        <translation>Supprimer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="467"/>
+        <source>Dupliquer</source>
+        <translation>Dupliquer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="468"/>
+        <source>Tout sélectionner</source>
+        <translation>Tout sélectionner</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="469"/>
+        <source>Ouvrir un fichier</source>
+        <translation>Ouvrir un fichier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="470"/>
+        <source>Ouvrir un site web</source>
+        <translation>Ouvrir un site web</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="471"/>
+        <source>Jouer un son</source>
+        <translation>Jouer un son</translation>
+    </message>
+</context>
+<context>
+    <name>commandes</name>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="16"/>
+        <source>Créer un paperboard</source>
+        <translation>Créer un paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="17"/>
+        <source>Paperboard à la taille de l&apos;écran</source>
+        <translation>Paperboard à la taille de l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="18"/>
+        <source>Paperboard 1024 × 768</source>
+        <translation>Paperboard 1024 × 768</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="19"/>
+        <source>Paperboard 1152 × 864</source>
+        <translation>Paperboard 1152 × 864</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="20"/>
+        <source>Paperboard 1280 × 1024</source>
+        <translation>Paperboard 1280 × 1024</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="21"/>
+        <source>Taille de paperboard personnalisée…</source>
+        <translation>Taille de paperboard personnalisée…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="22"/>
+        <source>Ouvrir…</source>
+        <translation>Ouvrir…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="23"/>
+        <source>Enregistrer</source>
+        <translation>Enregistrer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="24"/>
+        <source>Enregistrer sous…</source>
+        <translation>Enregistrer sous…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="25"/>
+        <source>Fermer le paperboard</source>
+        <translation>Fermer le paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="26"/>
+        <source>Quitter</source>
+        <translation>Quitter</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="27"/>
+        <source>Plein écran</source>
+        <translation>Plein écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="28"/>
+        <source>Ajuster la page</source>
+        <translation>Ajuster la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="29"/>
+        <source>Échelle</source>
+        <translation>Échelle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="30"/>
+        <source>Page précédente</source>
+        <translation>Page précédente</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="31"/>
+        <source>Page suivante</source>
+        <translation>Page suivante</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="32"/>
+        <source>Stylo</source>
+        <translation>Stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="33"/>
+        <source>Couleur du stylo</source>
+        <translation>Couleur du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="34"/>
+        <source>Épaisseur du stylo</source>
+        <translation>Épaisseur du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="35"/>
+        <source>Menu principal</source>
+        <translation>Menu principal</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="36"/>
+        <source>Outils</source>
+        <translation>Outils</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="37"/>
+        <source>Site du projet</source>
+        <translation>Site du projet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="38"/>
+        <source>À propos d&apos;ActCraft</source>
+        <translation>À propos d&apos;ActCraft</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="39"/>
+        <source>Sélectionner</source>
+        <translation>Sélectionner</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="40"/>
+        <source>Marqueur</source>
+        <translation>Marqueur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="41"/>
+        <source>Gomme</source>
+        <translation>Gomme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="42"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="43"/>
+        <source>Rétablir</source>
+        <translation>Rétablir</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="44"/>
+        <source>Supprimer</source>
+        <translation>Supprimer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="45"/>
+        <source>Tout sélectionner</source>
+        <translation>Tout sélectionner</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="46"/>
+        <source>Annotations</source>
+        <translation>Annotations</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="47"/>
+        <source>Objets</source>
+        <translation>Objets</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="48"/>
+        <source>Grille</source>
+        <translation>Grille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="49"/>
+        <source>Fond</source>
+        <translation>Fond</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="50"/>
+        <source>Page</source>
+        <translation>Page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="51"/>
+        <source>Rétablir la page</source>
+        <translation>Rétablir la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="52"/>
+        <source>Afficher la corbeille</source>
+        <translation>Afficher la corbeille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="53"/>
+        <source>Déplacer librement</source>
+        <translation>Déplacer librement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="54"/>
+        <source>Faire pivoter</source>
+        <translation>Faire pivoter</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="55"/>
+        <source>Translucidité</source>
+        <translation>Translucidité</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="56"/>
+        <source>Agrandir l&apos;objet</source>
+        <translation>Agrandir l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="57"/>
+        <source>Réduire l&apos;objet</source>
+        <translation>Réduire l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="58"/>
+        <source>Zoom de page</source>
+        <translation>Zoom de page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="59"/>
+        <source>Effets de changement de page…</source>
+        <translation>Effets de changement de page…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="60"/>
+        <source>Effet de changement de page pour tout le paperboard</source>
+        <translation>Effet de changement de page pour tout le paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="61"/>
+        <source>Durée de l&apos;effet (dixièmes de seconde)</source>
+        <translation>Durée de l&apos;effet (dixièmes de seconde)</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="62"/>
+        <source>Effet propre à cette page</source>
+        <translation>Effet propre à cette page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="63"/>
+        <source>Outils de présentation de la page</source>
+        <translation>Outils de présentation de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="64"/>
+        <source>Rideau de la page</source>
+        <translation>Rideau de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="65"/>
+        <source>Distance du rideau</source>
+        <translation>Distance du rideau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="66"/>
+        <source>Spot de la page</source>
+        <translation>Spot de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="67"/>
+        <source>Rideau</source>
+        <translation>Rideau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="68"/>
+        <source>Couleur du rideau</source>
+        <translation>Couleur du rideau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="69"/>
+        <source>Spot rond</source>
+        <translation>Spot rond</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="70"/>
+        <source>Spot carré</source>
+        <translation>Spot carré</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="71"/>
+        <source>Cache rond</source>
+        <translation>Cache rond</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="72"/>
+        <source>Cache carré</source>
+        <translation>Cache carré</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="73"/>
+        <source>Règle</source>
+        <translation>Règle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="74"/>
+        <source>Équerre</source>
+        <translation>Équerre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="75"/>
+        <source>Rapporteur</source>
+        <translation>Rapporteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="76"/>
+        <source>Compas</source>
+        <translation>Compas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="77"/>
+        <source>Origine XY</source>
+        <translation>Origine XY</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="78"/>
+        <source>Dés</source>
+        <translation>Dés</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="79"/>
+        <source>Calculatrice</source>
+        <translation>Calculatrice</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="80"/>
+        <source>Horloge</source>
+        <translation>Horloge</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="81"/>
+        <source>Message défilant…</source>
+        <translation>Message défilant…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="82"/>
+        <source>Navigateur web</source>
+        <translation>Navigateur web</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="83"/>
+        <source>Date et heure</source>
+        <translation>Date et heure</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="84"/>
+        <source>Équation…</source>
+        <translation>Équation…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="85"/>
+        <source>Modifier l&apos;équation</source>
+        <translation>Modifier l&apos;équation</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="86"/>
+        <source>Reconnaissance de forme</source>
+        <translation>Reconnaissance de forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="87"/>
+        <source>Reconnaissance d&apos;écriture</source>
+        <translation>Reconnaissance d&apos;écriture</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="88"/>
+        <source>Convertir en forme</source>
+        <translation>Convertir en forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="89"/>
+        <source>Convertir en texte</source>
+        <translation>Convertir en texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="90"/>
+        <source>Capture d&apos;une zone</source>
+        <translation>Capture d&apos;une zone</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="91"/>
+        <source>Capture point par point</source>
+        <translation>Capture point par point</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="92"/>
+        <source>Capture à main levée</source>
+        <translation>Capture à main levée</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="93"/>
+        <source>Capture d&apos;une fenêtre</source>
+        <translation>Capture d&apos;une fenêtre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="94"/>
+        <source>Capture de l&apos;écran entier</source>
+        <translation>Capture de l&apos;écran entier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="95"/>
+        <source>Clavier à l&apos;écran</source>
+        <translation>Clavier à l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="96"/>
+        <source>Annoter le bureau</source>
+        <translation>Annoter le bureau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="97"/>
+        <source>Outils de bureau</source>
+        <translation>Outils de bureau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="98"/>
+        <source>Revenir à ActCraft</source>
+        <translation>Revenir à ActCraft</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="99"/>
+        <source>Fond : capture du bureau</source>
+        <translation>Fond : capture du bureau</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="100"/>
+        <source>Fond : bureau en transparence</source>
+        <translation>Fond : bureau en transparence</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="101"/>
+        <source>Formes</source>
+        <translation>Formes</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="102"/>
+        <source>Choisir une forme</source>
+        <translation>Choisir une forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="103"/>
+        <source>Forme remplie</source>
+        <translation>Forme remplie</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="104"/>
+        <source>Couleur de remplissage</source>
+        <translation>Couleur de remplissage</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="105"/>
+        <source>Tracer depuis le centre</source>
+        <translation>Tracer depuis le centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="106"/>
+        <source>Texte</source>
+        <translation>Texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="107"/>
+        <source>Texte de haut en bas</source>
+        <translation>Texte de haut en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="108"/>
+        <source>Police</source>
+        <translation>Police</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="109"/>
+        <source>Taille</source>
+        <translation>Taille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="110"/>
+        <source>Agrandir le texte</source>
+        <translation>Agrandir le texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="111"/>
+        <source>Réduire le texte</source>
+        <translation>Réduire le texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="112"/>
+        <source>Gras</source>
+        <translation>Gras</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="113"/>
+        <source>Italique</source>
+        <translation>Italique</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="114"/>
+        <source>Souligné</source>
+        <translation>Souligné</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="115"/>
+        <source>Exposant</source>
+        <translation>Exposant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="116"/>
+        <source>Indice</source>
+        <translation>Indice</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="117"/>
+        <source>Couleur du texte</source>
+        <translation>Couleur du texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="118"/>
+        <source>Fond du texte</source>
+        <translation>Fond du texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="119"/>
+        <source>À gauche</source>
+        <translation>À gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="120"/>
+        <source>Au centre</source>
+        <translation>Au centre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="121"/>
+        <source>À droite</source>
+        <translation>À droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="122"/>
+        <source>Plus d&apos;interligne</source>
+        <translation>Plus d&apos;interligne</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="123"/>
+        <source>Moins d&apos;interligne</source>
+        <translation>Moins d&apos;interligne</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="124"/>
+        <source>Plus de retrait</source>
+        <translation>Plus de retrait</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="125"/>
+        <source>Moins de retrait</source>
+        <translation>Moins de retrait</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="126"/>
+        <source>Puces</source>
+        <translation>Puces</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="127"/>
+        <source>Tout le texte</source>
+        <translation>Tout le texte</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="128"/>
+        <source>Symboles</source>
+        <translation>Symboles</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="129"/>
+        <source>Écrire ici</source>
+        <translation>Écrire ici</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="130"/>
+        <source>Navigateurs</source>
+        <translation>Navigateurs</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="131"/>
+        <source>Aller à la page</source>
+        <translation>Aller à la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="132"/>
+        <source>Page vierge avant</source>
+        <translation>Page vierge avant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="133"/>
+        <source>Page vierge après</source>
+        <translation>Page vierge après</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="134"/>
+        <source>Couper les pages</source>
+        <translation>Couper les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="135"/>
+        <source>Copier les pages</source>
+        <translation>Copier les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="136"/>
+        <source>Coller les pages</source>
+        <translation>Coller les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="137"/>
+        <source>Dupliquer les pages</source>
+        <translation>Dupliquer les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="138"/>
+        <source>Supprimer les pages</source>
+        <translation>Supprimer les pages</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="139"/>
+        <source>Fond de la page…</source>
+        <translation>Fond de la page…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="140"/>
+        <source>Grille…</source>
+        <translation>Grille…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="141"/>
+        <source>Cacher la grille</source>
+        <translation>Cacher la grille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="142"/>
+        <source>Aimanter à la grille</source>
+        <translation>Aimanter à la grille</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="143"/>
+        <source>Poignée d&apos;allongement</source>
+        <translation>Poignée d&apos;allongement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="144"/>
+        <source>Allonger la page</source>
+        <translation>Allonger la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="145"/>
+        <source>Zones de la page</source>
+        <translation>Zones de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="146"/>
+        <source>Couper</source>
+        <translation>Couper</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="147"/>
+        <source>Copier</source>
+        <translation>Copier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="148"/>
+        <source>Coller</source>
+        <translation>Coller</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="149"/>
+        <source>Coller sur l&apos;objet</source>
+        <translation>Coller sur l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="150"/>
+        <source>Dupliquer</source>
+        <translation>Dupliquer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="151"/>
+        <source>Menu de l&apos;objet</source>
+        <translation>Menu de l&apos;objet</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="152"/>
+        <source>Grouper ou dégrouper</source>
+        <translation>Grouper ou dégrouper</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="153"/>
+        <source>Verrouiller</source>
+        <translation>Verrouiller</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="154"/>
+        <source>Masquer</source>
+        <translation>Masquer</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="155"/>
+        <source>Glisser une copie</source>
+        <translation>Glisser une copie</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="156"/>
+        <source>Modifier les points de la forme</source>
+        <translation>Modifier les points de la forme</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="157"/>
+        <source>Mettre au premier plan</source>
+        <translation>Mettre au premier plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="158"/>
+        <source>Mettre à l&apos;arrière-plan</source>
+        <translation>Mettre à l&apos;arrière-plan</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="159"/>
+        <source>Avancer d&apos;un cran</source>
+        <translation>Avancer d&apos;un cran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="160"/>
+        <source>Reculer d&apos;un cran</source>
+        <translation>Reculer d&apos;un cran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="161"/>
+        <source>Vers la couche du dessus</source>
+        <translation>Vers la couche du dessus</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="162"/>
+        <source>Vers la couche du milieu</source>
+        <translation>Vers la couche du milieu</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="163"/>
+        <source>Vers la couche du dessous</source>
+        <translation>Vers la couche du dessous</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="164"/>
+        <source>Bords gauches</source>
+        <translation>Bords gauches</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="165"/>
+        <source>Centres horizontaux</source>
+        <translation>Centres horizontaux</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="166"/>
+        <source>Bords droits</source>
+        <translation>Bords droits</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="167"/>
+        <source>Bords hauts</source>
+        <translation>Bords hauts</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="168"/>
+        <source>Centres verticaux</source>
+        <translation>Centres verticaux</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="169"/>
+        <source>Bords bas</source>
+        <translation>Bords bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="170"/>
+        <source>Même largeur</source>
+        <translation>Même largeur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="171"/>
+        <source>Même hauteur</source>
+        <translation>Même hauteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="172"/>
+        <source>Même angle</source>
+        <translation>Même angle</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="173"/>
+        <source>Tout aligner sur le premier</source>
+        <translation>Tout aligner sur le premier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="174"/>
+        <source>Taille initiale</source>
+        <translation>Taille initiale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="175"/>
+        <source>Ajuster à la largeur de la page</source>
+        <translation>Ajuster à la largeur de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="176"/>
+        <source>Ajuster à la hauteur de la page</source>
+        <translation>Ajuster à la hauteur de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="177"/>
+        <source>Ajuster à la page</source>
+        <translation>Ajuster à la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="178"/>
+        <source>Copie miroir verticale</source>
+        <translation>Copie miroir verticale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="179"/>
+        <source>Copie miroir horizontale</source>
+        <translation>Copie miroir horizontale</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="180"/>
+        <source>Retourner de haut en bas</source>
+        <translation>Retourner de haut en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="181"/>
+        <source>Retourner de gauche à droite</source>
+        <translation>Retourner de gauche à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="182"/>
+        <source>Symétrie par l&apos;axe horizontal de l&apos;origine</source>
+        <translation>Symétrie par l&apos;axe horizontal de l&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="183"/>
+        <source>Symétrie par l&apos;axe vertical de l&apos;origine</source>
+        <translation>Symétrie par l&apos;axe vertical de l&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="184"/>
+        <source>Pot de peinture</source>
+        <translation>Pot de peinture</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="185"/>
+        <source>Connecteur</source>
+        <translation>Connecteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="186"/>
+        <source>Style du connecteur</source>
+        <translation>Style du connecteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="187"/>
+        <source>Extrémités du connecteur</source>
+        <translation>Extrémités du connecteur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="188"/>
+        <source>Modification du stylo</source>
+        <translation>Modification du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="189"/>
+        <source>Tracé du stylo</source>
+        <translation>Tracé du stylo</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="190"/>
+        <source>Image…</source>
+        <translation>Image…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="191"/>
+        <source>Média…</source>
+        <translation>Média…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="192"/>
+        <source>Paperboard suivant</source>
+        <translation>Paperboard suivant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="193"/>
+        <source>Paperboard précédent</source>
+        <translation>Paperboard précédent</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="194"/>
+        <source>Onglets des paperboards</source>
+        <translation>Onglets des paperboards</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="195"/>
+        <source>Exporter la page en image…</source>
+        <translation>Exporter la page en image…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="196"/>
+        <source>Exporter en PDF…</source>
+        <translation>Exporter en PDF…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="197"/>
+        <source>PDF…</source>
+        <translation>PDF…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="198"/>
+        <source>Présentation en images…</source>
+        <translation>Présentation en images…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="199"/>
+        <source>Imprimer…</source>
+        <translation>Imprimer…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="200"/>
+        <source>Ancrer la palette à gauche</source>
+        <translation>Ancrer la palette à gauche</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="201"/>
+        <source>Ancrer la palette à droite</source>
+        <translation>Ancrer la palette à droite</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="202"/>
+        <source>Ancrer la palette en haut</source>
+        <translation>Ancrer la palette en haut</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="203"/>
+        <source>Ancrer la palette en bas</source>
+        <translation>Ancrer la palette en bas</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="204"/>
+        <source>Palette flottante</source>
+        <translation>Palette flottante</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="205"/>
+        <source>Réduire la palette</source>
+        <translation>Réduire la palette</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="206"/>
+        <source>Ne garder que la palette</source>
+        <translation>Ne garder que la palette</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="207"/>
+        <source>Garder la palette affichée</source>
+        <translation>Garder la palette affichée</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="208"/>
+        <source>Taille des icônes</source>
+        <translation>Taille des icônes</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="209"/>
+        <source>Plus de couleurs…</source>
+        <translation>Plus de couleurs…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="210"/>
+        <source>Prendre une couleur à l&apos;écran</source>
+        <translation>Prendre une couleur à l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="211"/>
+        <source>Choisir une couleur…</source>
+        <translation>Choisir une couleur…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="212"/>
+        <source>Ajouter la couleur à la palette</source>
+        <translation>Ajouter la couleur à la palette</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="213"/>
+        <source>Objets de la page</source>
+        <translation>Objets de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="214"/>
+        <source>Propriétés</source>
+        <translation>Propriétés</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="215"/>
+        <source>Notes de la page</source>
+        <translation>Notes de la page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="216"/>
+        <source>Bibliothèque</source>
+        <translation>Bibliothèque</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="217"/>
+        <source>Changer de profil…</source>
+        <translation>Changer de profil…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="218"/>
+        <source>Activer le profil</source>
+        <translation>Activer le profil</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="219"/>
+        <source>Profils et réglages…</source>
+        <translation>Profils et réglages…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="220"/>
+        <source>Enregistrer le profil sous…</source>
+        <translation>Enregistrer le profil sous…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="221"/>
+        <source>Importer un profil…</source>
+        <translation>Importer un profil…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="222"/>
+        <source>Exporter le profil…</source>
+        <translation>Exporter le profil…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="223"/>
+        <source>Supprimer le profil</source>
+        <translation>Supprimer le profil</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="224"/>
+        <source>Revenir au profil d&apos;origine</source>
+        <translation>Revenir au profil d&apos;origine</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="225"/>
+        <source>Mode conception</source>
+        <translation>Mode conception</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="226"/>
+        <source>Accueil</source>
+        <translation>Accueil</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="227"/>
+        <source>Vider la liste des documents récents</source>
+        <translation>Vider la liste des documents récents</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="228"/>
+        <source>Mes ressources</source>
+        <translation>Mes ressources</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="229"/>
+        <source>Ressources partagées</source>
+        <translation>Ressources partagées</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="230"/>
+        <source>Autre dossier…</source>
+        <translation>Autre dossier…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="231"/>
+        <source>Insérer dans le paperboard</source>
+        <translation>Insérer dans le paperboard</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="232"/>
+        <source>Ajouter la sélection à la bibliothèque</source>
+        <translation>Ajouter la sélection à la bibliothèque</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="233"/>
+        <source>Tampon</source>
+        <translation>Tampon</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="234"/>
+        <source>Nouveau dossier</source>
+        <translation>Nouveau dossier</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="235"/>
+        <source>Renommer…</source>
+        <translation>Renommer…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="236"/>
+        <source>Retirer de la bibliothèque</source>
+        <translation>Retirer de la bibliothèque</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="237"/>
+        <source>Verrouiller pour la classe</source>
+        <translation>Verrouiller pour la classe</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="238"/>
+        <source>Mot de passe de la classe…</source>
+        <translation>Mot de passe de la classe…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="239"/>
+        <source>Vérifier l&apos;orthographe</source>
+        <translation>Vérifier l&apos;orthographe</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="240"/>
+        <source>Lancer le raccourci</source>
+        <translation>Lancer le raccourci</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="241"/>
+        <source>Raccourcis vers des programmes…</source>
+        <translation>Raccourcis vers des programmes…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="242"/>
+        <source>Aide</source>
+        <translation>Aide</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="243"/>
+        <source>Insérer l&apos;objet de la barre</source>
+        <translation>Insérer l&apos;objet de la barre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="244"/>
+        <source>Ajouter à la barre de raccourcis</source>
+        <translation>Ajouter à la barre de raccourcis</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="245"/>
+        <source>Langue de l&apos;interface</source>
+        <translation>Langue de l&apos;interface</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="246"/>
+        <source>Encre révélatrice</source>
+        <translation>Encre révélatrice</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="247"/>
+        <source>Navigateur d&apos;actions</source>
+        <translation>Navigateur d&apos;actions</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="248"/>
+        <source>Appliquer l&apos;action</source>
+        <translation>Appliquer l&apos;action</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="249"/>
+        <source>Retirer les actions</source>
+        <translation>Retirer les actions</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="250"/>
+        <source>Choisir l&apos;objet visé</source>
+        <translation>Choisir l&apos;objet visé</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="251"/>
+        <source>Lien vers un fichier…</source>
+        <translation>Lien vers un fichier…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="252"/>
+        <source>Lien vers un site…</source>
+        <translation>Lien vers un site…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="253"/>
+        <source>Page vue avant</source>
+        <translation>Page vue avant</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="254"/>
+        <source>Page vue après</source>
+        <translation>Page vue après</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="255"/>
+        <source>Lecteur de sons</source>
+        <translation>Lecteur de sons</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="256"/>
+        <source>Enregistrer du son</source>
+        <translation>Enregistrer du son</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="257"/>
+        <source>Enregistrer tout l&apos;écran</source>
+        <translation>Enregistrer tout l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="258"/>
+        <source>Enregistrer une zone de l&apos;écran</source>
+        <translation>Enregistrer une zone de l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="259"/>
+        <source>Pause de l&apos;enregistrement</source>
+        <translation>Pause de l&apos;enregistrement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="260"/>
+        <source>Arrêter l&apos;enregistrement</source>
+        <translation>Arrêter l&apos;enregistrement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="261"/>
+        <source>Abandonner l&apos;enregistrement</source>
+        <translation>Abandonner l&apos;enregistrement</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="262"/>
+        <source>Cadre web…</source>
+        <translation>Cadre web…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="263"/>
+        <source>Page web précédente</source>
+        <translation>Page web précédente</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="264"/>
+        <source>Page web suivante</source>
+        <translation>Page web suivante</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="265"/>
+        <source>Recharger le cadre</source>
+        <translation>Recharger le cadre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="266"/>
+        <source>Poser une image du cadre</source>
+        <translation>Poser une image du cadre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="267"/>
+        <source>Débloquer le contenu du cadre</source>
+        <translation>Débloquer le contenu du cadre</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="268"/>
+        <source>Diffuser en protégé…</source>
+        <translation>Diffuser en protégé…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="269"/>
+        <source>Mode du toucher</source>
+        <translation>Mode du toucher</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="270"/>
+        <source>Mode à deux utilisateurs</source>
+        <translation>Mode à deux utilisateurs</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="271"/>
+        <source>Rechercher des mises à jour…</source>
+        <translation>Rechercher des mises à jour…</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="272"/>
+        <source>Abandonner la copie de reprise</source>
+        <translation>Abandonner la copie de reprise</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="273"/>
+        <source>Première page</source>
+        <translation>Première page</translation>
+    </message>
+    <message>
         <location filename="../src/commandlabels.cpp" line="274"/>
+        <source>Dernière page</source>
+        <translation>Dernière page</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="275"/>
         <source>Fichier</source>
         <translation>Fichier</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="275"/>
+        <location filename="../src/commandlabels.cpp" line="276"/>
         <source>Importer</source>
         <translation>Importer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="276"/>
+        <location filename="../src/commandlabels.cpp" line="277"/>
         <source>Exporter</source>
         <translation>Exporter</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="277"/>
+        <location filename="../src/commandlabels.cpp" line="278"/>
         <source>Éditer</source>
         <translation>Éditer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="278"/>
+        <location filename="../src/commandlabels.cpp" line="279"/>
         <source>Effacer</source>
         <translation>Effacer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="279"/>
+        <location filename="../src/commandlabels.cpp" line="280"/>
         <source>Transformer</source>
         <translation>Transformer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="280"/>
+        <location filename="../src/commandlabels.cpp" line="281"/>
         <source>Aligner</source>
         <translation>Aligner</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="281"/>
+        <location filename="../src/commandlabels.cpp" line="282"/>
         <source>Organiser</source>
         <translation>Organiser</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="282"/>
+        <location filename="../src/commandlabels.cpp" line="283"/>
         <source>Affichage</source>
         <translation>Affichage</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="283"/>
+        <location filename="../src/commandlabels.cpp" line="284"/>
         <source>Palette</source>
         <translation>Palette</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="284"/>
+        <location filename="../src/commandlabels.cpp" line="285"/>
         <source>Insérer</source>
         <translation>Insérer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="285"/>
+        <location filename="../src/commandlabels.cpp" line="286"/>
         <source>Lien</source>
         <translation>Lien</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="286"/>
+        <location filename="../src/commandlabels.cpp" line="287"/>
         <source>Spot</source>
         <translation>Spot</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="287"/>
+        <location filename="../src/commandlabels.cpp" line="288"/>
         <source>Caméra</source>
         <translation>Caméra</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="288"/>
+        <location filename="../src/commandlabels.cpp" line="289"/>
         <source>Outils de maths</source>
         <translation>Outils de maths</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="289"/>
+        <location filename="../src/commandlabels.cpp" line="290"/>
         <source>Autres outils</source>
         <translation>Autres outils</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="290"/>
+        <location filename="../src/commandlabels.cpp" line="291"/>
         <source>Enregistreurs</source>
         <translation>Enregistreurs</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="291"/>
+        <location filename="../src/commandlabels.cpp" line="292"/>
         <source>Insérer une page</source>
         <translation>Insérer une page</translation>
     </message>
@@ -5078,27 +5931,27 @@
 <context>
     <name>profils</name>
     <message>
-        <location filename="../src/commandlabels.cpp" line="295"/>
+        <location filename="../src/commandlabels.cpp" line="296"/>
         <source>Compter et construire</source>
         <translation>Compter et construire</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="295"/>
+        <location filename="../src/commandlabels.cpp" line="296"/>
         <source>Faire la classe</source>
         <translation>Faire la classe</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="296"/>
+        <location filename="../src/commandlabels.cpp" line="297"/>
         <source>Lire et écrire</source>
         <translation>Lire et écrire</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="296"/>
+        <location filename="../src/commandlabels.cpp" line="297"/>
         <source>Préparer un cours</source>
         <translation>Préparer un cours</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="297"/>
+        <location filename="../src/commandlabels.cpp" line="298"/>
         <source>Sons et images</source>
         <translation>Sons et images</translation>
     </message>
