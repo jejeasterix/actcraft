@@ -258,7 +258,7 @@
   { "id": "file.publish", "label": "Diffuser en protégé…", "icon": "diffuser", "opensDialog": true, "lockable": true, "restrictable": true },
   { "id": "touch.mode", "label": "Mode du toucher", "argument": "text", "optional": true, "icon": "toucher", "lockable": true, "restrictable": false },
   { "id": "users.dual", "label": "Mode à deux utilisateurs", "icon": "deux-utilisateurs", "checkable": true, "lockable": true, "restrictable": false },
-  { "id": "help.check-updates", "label": "Rechercher des mises à jour…", "icon": "mises-a-jour", "platforms": ["windows"], "opensDialog": true, "lockable": true, "restrictable": false },
+  { "id": "help.check-updates", "label": "Rechercher des mises à jour…", "icon": "mises-a-jour", "platforms": ["windows", "macos"], "opensDialog": true, "lockable": true, "restrictable": false },
   { "id": "recovery.discard", "label": "Abandonner la copie de reprise", "lockable": false, "restrictable": false },
   { "id": "page.first", "label": "Première page", "lockable": true, "restrictable": false },
   { "id": "page.last", "label": "Dernière page", "lockable": true, "restrictable": false }

@@ -54,6 +54,7 @@ MenuItem {
                 color: entry.enabled ? Theme.texte : Theme.texteDesactive
             }
             Label {
+                objectName: "commandShortcut"
                 text: entry.isSeparator || !commands ? "" : commands.shortcut(entry.commandId)
                 font.pixelSize: Theme.taillePolice
                 color: entry.enabled ? Theme.texteDiscret : Theme.texteDesactive
