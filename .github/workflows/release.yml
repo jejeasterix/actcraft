@@ -236,17 +236,20 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret. Exécuteur choisi selon la visibilité du dépôt,
-  # comme runner_macos de ci.yml : privé → runner auto-hébergé du Mac mini (macos-latest y coûterait des minutes
-  # payantes) ; public → macos-latest (gratuit ; un runner auto-hébergé est exclu d'un dépôt public). Aucun arrêt sur
-  # « public ». Image téléversée en mode réel seulement.
+  # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret. Exécuteur choisi selon la visibilité du dépôt :
+  # privé → runner auto-hébergé du Mac mini, comme la valeur par défaut de l'entrée runner_macos de ci.yml
+  # (macos-latest y coûterait des minutes payantes) ; public → macos-latest (gratuit ; un runner auto-hébergé est exclu
+  # d'un dépôt public). Contrairement au job « build » de ci.yml, qui reste sur le Mac mini par défaut et ne passe sur
+  # macos-latest que par l'entrée runner_macos de workflow_dispatch, ce job n'a pas d'entrée : la visibilité décide.
+  # Aucun arrêt sur « public ». Image téléversée en mode réel seulement.
   macos:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || 'macos-latest' }}
     timeout-minutes: 60
     steps:
-      # Mac mini : garde de mémoire de ci.yml:79-91 (sa garde de visibilité n'a plus d'objet ici : runs-on la tient).
+      # Mac mini : garde de mémoire de l'étape « Gardes du runner auto-hébergé (visibilité, mémoire) » du job build de ci.yml
+      # (sa garde de visibilité n'a plus d'objet ici : runs-on la tient).
       - name: Garde du runner auto-hébergé (mémoire)
         if: runner.environment != 'github-hosted'
         run: |
@@ -266,7 +269,8 @@ jobs:
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # macos-latest : Qt par aqtinstall, comme ci.yml:117-136, avec Qt Multimedia et Qt WebView (requis).
+      # macos-latest : Qt par aqtinstall, comme les étapes « Installer Ninja et aqtinstall » et « Installer Qt » du job build
+      # de ci.yml, avec Qt Multimedia et Qt WebView (requis).
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         if: runner.environment == 'github-hosted'
         with:
@@ -287,7 +291,7 @@ jobs:
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
 
-      # Mac mini : copie de ci.yml:138-174, sans « matrix » ; le repli aqt prend aussi qtmultimedia et qtwebview, sous
+      # Mac mini : copie de l'étape « Qt, Ninja et ccache du Mac » du job build de ci.yml, sans « matrix » ; le repli aqt prend aussi qtmultimedia et qtwebview, sous
       # un témoin qui nomme les modules. Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une
       # fois dans le cache du runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à
       # l'autre.
@@ -305,7 +309,7 @@ jobs:
             echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
             qt_dir="$cache/Qt/$QT_VERSION/macos"
             # Témoin écrit en dernier : une installation interrompue est refaite au run suivant. Le cache est celui de
-            # ci.yml:154-159, dont le témoin « .complet » ne garantit pas Qt Multimedia ni Qt WebView : ce job a son
+            # l'étape « Qt, Ninja et ccache du Mac » de ci.yml, dont le témoin « .complet » ne garantit pas Qt Multimedia ni Qt WebView : ce job a son
             # témoin, qui nomme les modules ; il pose aussi « .complet » (sur-ensemble des modules de ci.yml).
             modules="qtshadertools qtimageformats qtpdf qtmultimedia qtwebview"
             temoin="$cache/Qt/$QT_VERSION/.complet-$(echo "$modules" | tr ' ' '-')"

@@ -107,32 +107,32 @@
         <translation>Couleur</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="140"/>
+        <location filename="../qml/BackgroundDialog.qml" line="137"/>
         <source>Dégradé</source>
         <translation>Dégradé</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="157"/>
+        <location filename="../qml/BackgroundDialog.qml" line="151"/>
         <source>Haut-bas</source>
         <translation>Haut-bas</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="166"/>
+        <location filename="../qml/BackgroundDialog.qml" line="160"/>
         <source>Côtés</source>
         <translation>Côtés</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="193"/>
+        <location filename="../qml/BackgroundDialog.qml" line="187"/>
         <source>Annuler</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="200"/>
+        <location filename="../qml/BackgroundDialog.qml" line="194"/>
         <source>Appliquer</source>
         <translation>Appliquer</translation>
     </message>
     <message>
-        <location filename="../qml/BackgroundDialog.qml" line="207"/>
+        <location filename="../qml/BackgroundDialog.qml" line="201"/>
         <source>Valider</source>
         <translation>Valider</translation>
     </message>
@@ -168,6 +168,70 @@
         <location filename="../qml/BrowserPanel.qml" line="141"/>
         <source>Actions</source>
         <translation>Actions</translation>
+    </message>
+</context>
+<context>
+    <name>CalculatorPanel</name>
+    <message>
+        <location filename="../qml/CalculatorPanel.qml" line="17"/>
+        <source>Calculatrice</source>
+        <translation>Calculatrice</translation>
+    </message>
+    <message>
+        <location filename="../qml/CalculatorPanel.qml" line="177"/>
+        <source>Poser sur la page</source>
+        <translation>Poser sur la page</translation>
+    </message>
+</context>
+<context>
+    <name>CameraOverlay</name>
+    <message>
+        <location filename="../qml/CameraOverlay.qml" line="74"/>
+        <source>Caméra</source>
+        <translation>Caméra</translation>
+    </message>
+</context>
+<context>
+    <name>CameraPalette</name>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="17"/>
+        <source>Caméra</source>
+        <translation>Caméra</translation>
+    </message>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="45"/>
+        <source>Gauche</source>
+        <translation>Gauche</translation>
+    </message>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="57"/>
+        <source>Haut</source>
+        <translation>Haut</translation>
+    </message>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="69"/>
+        <source>Largeur</source>
+        <translation>Largeur</translation>
+    </message>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="81"/>
+        <source>Hauteur</source>
+        <translation>Hauteur</translation>
+    </message>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="100"/>
+        <source>Page actuelle</source>
+        <translation>Page actuelle</translation>
+    </message>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="106"/>
+        <source>Nouvelle page</source>
+        <translation>Nouvelle page</translation>
+    </message>
+    <message>
+        <location filename="../qml/CameraPalette.qml" line="112"/>
+        <source>Presse-papiers</source>
+        <translation>Presse-papiers</translation>
     </message>
 </context>
 <context>
@@ -245,6 +309,64 @@
     </message>
 </context>
 <context>
+    <name>ClockPanel</name>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="24"/>
+        <source>Horloge</source>
+        <translation>Horloge</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="156"/>
+        <source>Minuterie</source>
+        <translation>Minuterie</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="157"/>
+        <source>Compte à rebours</source>
+        <translation>Compte à rebours</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="158"/>
+        <source>Heure</source>
+        <translation>Heure</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="180"/>
+        <source>Cadran</source>
+        <translation>Cadran</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="190"/>
+        <source>Source</source>
+        <translation>Source</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="200"/>
+        <source>Reprise</source>
+        <translation>Reprise</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="200"/>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="210"/>
+        <source>Réglage</source>
+        <translation>Réglage</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="228"/>
+        <source>Masquer la barre</source>
+        <translation>Masquer la barre</translation>
+    </message>
+    <message>
+        <location filename="../qml/ClockPanel.qml" line="228"/>
+        <source>Afficher la barre</source>
+        <translation>Afficher la barre</translation>
+    </message>
+</context>
+<context>
     <name>ColorSwatches</name>
     <message>
         <location filename="../qml/ColorSwatches.qml" line="42"/>
@@ -304,6 +426,49 @@
         <location filename="../qml/CommandsPage.qml" line="152"/>
         <source>Appliquer</source>
         <translation>Appliquer</translation>
+    </message>
+</context>
+<context>
+    <name>CompassTool</name>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="190"/>
+        <source>Réfléchi</source>
+        <translation>Réfléchi</translation>
+    </message>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="196"/>
+        <source>Afficher l&apos;angle</source>
+        <translation>Afficher l&apos;angle</translation>
+    </message>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="202"/>
+        <source>Afficher le rayon</source>
+        <translation>Afficher le rayon</translation>
+    </message>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="208"/>
+        <source>Marquer le centre</source>
+        <translation>Marquer le centre</translation>
+    </message>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="215"/>
+        <source>Augmenter la longueur</source>
+        <translation>Augmenter la longueur</translation>
+    </message>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="219"/>
+        <source>Réduire la longueur</source>
+        <translation>Réduire la longueur</translation>
+    </message>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="223"/>
+        <source>Réinitialiser la longueur</source>
+        <translation>Réinitialiser la longueur</translation>
+    </message>
+    <message>
+        <location filename="../qml/CompassTool.qml" line="228"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
     </message>
 </context>
 <context>
@@ -419,6 +584,52 @@
     </message>
 </context>
 <context>
+    <name>CountdownDialog</name>
+    <message>
+        <location filename="../qml/CountdownDialog.qml" line="15"/>
+        <source>Compte à rebours</source>
+        <translation>Compte à rebours</translation>
+    </message>
+    <message>
+        <location filename="../qml/CountdownDialog.qml" line="60"/>
+        <source>Durée (hh:mm:ss)</source>
+        <translation>Durée (hh:mm:ss)</translation>
+    </message>
+    <message>
+        <location filename="../qml/CountdownDialog.qml" line="93"/>
+        <source>Durée invalide : saisir heures, minutes et secondes, par exemple 00:05:00.</source>
+        <translation>Durée invalide : saisir heures, minutes et secondes, par exemple 00:05:00.</translation>
+    </message>
+    <message>
+        <location filename="../qml/CountdownDialog.qml" line="106"/>
+        <source>Action de fin</source>
+        <translation>Action de fin</translation>
+    </message>
+    <message>
+        <location filename="../qml/CountdownDialog.qml" line="133"/>
+        <source>Répéter</source>
+        <translation>Répéter</translation>
+    </message>
+    <message>
+        <location filename="../qml/CountdownDialog.qml" line="148"/>
+        <source>Réinitialiser</source>
+        <translation>Réinitialiser</translation>
+    </message>
+    <message>
+        <location filename="../qml/CountdownDialog.qml" line="163"/>
+        <source>Démarrer</source>
+        <translation>Démarrer</translation>
+    </message>
+</context>
+<context>
+    <name>CurtainOverlay</name>
+    <message>
+        <location filename="../qml/CurtainOverlay.qml" line="142"/>
+        <source>Mémoriser pour cette page</source>
+        <translation>Mémoriser pour cette page</translation>
+    </message>
+</context>
+<context>
     <name>Dashboard</name>
     <message>
         <location filename="../qml/Dashboard.qml" line="80"/>
@@ -468,6 +679,101 @@
     </message>
 </context>
 <context>
+    <name>DesktopAnnotation</name>
+    <message>
+        <location filename="../qml/DesktopAnnotation.qml" line="58"/>
+        <location filename="../qml/DesktopAnnotation.qml" line="63"/>
+        <source>Reprendre l&apos;annotation</source>
+        <translation>Reprendre l&apos;annotation</translation>
+    </message>
+    <message>
+        <location filename="../qml/DesktopAnnotation.qml" line="99"/>
+        <source>Annotation du bureau</source>
+        <translation>Annotation du bureau</translation>
+    </message>
+    <message>
+        <location filename="../qml/DesktopAnnotation.qml" line="153"/>
+        <source>Page précédente</source>
+        <translation>Page précédente</translation>
+    </message>
+    <message>
+        <location filename="../qml/DesktopAnnotation.qml" line="158"/>
+        <source>Page suivante</source>
+        <translation>Page suivante</translation>
+    </message>
+    <message>
+        <location filename="../qml/DesktopAnnotation.qml" line="163"/>
+        <source>Laisser passer les clics</source>
+        <translation>Laisser passer les clics</translation>
+    </message>
+    <message>
+        <location filename="../qml/DesktopAnnotation.qml" line="169"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
+    </message>
+</context>
+<context>
+    <name>DesktopToolsWheel</name>
+    <message>
+        <location filename="../qml/DesktopToolsWheel.qml" line="28"/>
+        <source>Outils de bureau</source>
+        <translation>Outils de bureau</translation>
+    </message>
+    <message>
+        <location filename="../qml/DesktopToolsWheel.qml" line="77"/>
+        <source>Outils</source>
+        <translation>Outils</translation>
+    </message>
+</context>
+<context>
+    <name>DicePanel</name>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="16"/>
+        <source>Dés</source>
+        <translation>Dés</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="79"/>
+        <source>Diminuer</source>
+        <translation>Diminuer</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="98"/>
+        <source>Augmenter</source>
+        <translation>Augmenter</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="125"/>
+        <source>Nombre de dés</source>
+        <translation>Nombre de dés</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="134"/>
+        <source>Durée du lancer (s)</source>
+        <translation>Durée du lancer (s)</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="147"/>
+        <source>Arrêter</source>
+        <translation>Arrêter</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="147"/>
+        <source>Lancer</source>
+        <translation>Lancer</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="154"/>
+        <source>Écrire sur la page</source>
+        <translation>Écrire sur la page</translation>
+    </message>
+    <message>
+        <location filename="../qml/DicePanel.qml" line="165"/>
+        <source>Total : %1</source>
+        <translation>Total : %1</translation>
+    </message>
+</context>
+<context>
     <name>DocumentTabBar</name>
     <message>
         <location filename="../qml/DocumentTabBar.qml" line="159"/>
@@ -492,6 +798,64 @@
         <location filename="../qml/DragDropActions.qml" line="54"/>
         <source>Glisser-déposer</source>
         <translation>Glisser-déposer</translation>
+    </message>
+</context>
+<context>
+    <name>EquationEditor</name>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="20"/>
+        <source>Équation</source>
+        <translation>Équation</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="58"/>
+        <source>Case précédente</source>
+        <translation>Case précédente</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="59"/>
+        <source>Case suivante</source>
+        <translation>Case suivante</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="60"/>
+        <source>Case au-dessus</source>
+        <translation>Case au-dessus</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="61"/>
+        <source>Case au-dessous</source>
+        <translation>Case au-dessous</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="62"/>
+        <source>Effacer</source>
+        <translation>Effacer</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="195"/>
+        <source>Choisissez un modèle, puis écrivez dans la case surlignée.</source>
+        <translation>Choisissez un modèle, puis écrivez dans la case surlignée.</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="280"/>
+        <source>Saisie de l&apos;équation</source>
+        <translation>Saisie de l&apos;équation</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="342"/>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="342"/>
+        <source>Insérer</source>
+        <translation>Insérer</translation>
+    </message>
+    <message>
+        <location filename="../qml/EquationEditor.qml" line="351"/>
+        <source>Annuler</source>
+        <translation>Annuler</translation>
     </message>
 </context>
 <context>
@@ -616,6 +980,14 @@
     </message>
 </context>
 <context>
+    <name>FloatingPanel</name>
+    <message>
+        <location filename="../qml/FloatingPanel.qml" line="80"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
+    </message>
+</context>
+<context>
     <name>FormatPage</name>
     <message>
         <location filename="../qml/FormatPage.qml" line="28"/>
@@ -623,84 +995,84 @@
         <translation>Taille des icônes : %1 px</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="50"/>
+        <location filename="../qml/FormatPage.qml" line="46"/>
         <source>Palette d&apos;outils</source>
         <translation>Palette d&apos;outils</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="52"/>
+        <location filename="../qml/FormatPage.qml" line="48"/>
         <source>Ancrage</source>
         <translation>Ancrage</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="57"/>
-        <location filename="../qml/FormatPage.qml" line="93"/>
+        <location filename="../qml/FormatPage.qml" line="53"/>
+        <location filename="../qml/FormatPage.qml" line="89"/>
         <source>Gauche</source>
         <translation>Gauche</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="57"/>
-        <location filename="../qml/FormatPage.qml" line="93"/>
+        <location filename="../qml/FormatPage.qml" line="53"/>
+        <location filename="../qml/FormatPage.qml" line="89"/>
         <source>Droite</source>
         <translation>Droite</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="58"/>
+        <location filename="../qml/FormatPage.qml" line="54"/>
         <source>Haut</source>
         <translation>Haut</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="58"/>
+        <location filename="../qml/FormatPage.qml" line="54"/>
         <source>Bas</source>
         <translation>Bas</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="62"/>
+        <location filename="../qml/FormatPage.qml" line="58"/>
         <source>Couleurs</source>
         <translation>Couleurs</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="71"/>
+        <location filename="../qml/FormatPage.qml" line="67"/>
         <source>Palette épinglée</source>
         <translation>Palette épinglée</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="76"/>
+        <location filename="../qml/FormatPage.qml" line="72"/>
         <source>Palette réduite</source>
         <translation>Palette réduite</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="81"/>
+        <location filename="../qml/FormatPage.qml" line="77"/>
         <source>Palette réduite au maximum</source>
         <translation>Palette réduite au maximum</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="86"/>
+        <location filename="../qml/FormatPage.qml" line="82"/>
         <source>Navigateurs</source>
         <translation>Navigateurs</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="88"/>
+        <location filename="../qml/FormatPage.qml" line="84"/>
         <source>Côté</source>
         <translation>Côté</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="99"/>
+        <location filename="../qml/FormatPage.qml" line="95"/>
         <source>Navigateurs épinglés</source>
         <translation>Navigateurs épinglés</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="104"/>
+        <location filename="../qml/FormatPage.qml" line="100"/>
         <source>Navigateurs visibles</source>
         <translation>Navigateurs visibles</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="110"/>
+        <location filename="../qml/FormatPage.qml" line="106"/>
         <source>Corbeille visible</source>
         <translation>Corbeille visible</translation>
     </message>
     <message>
-        <location filename="../qml/FormatPage.qml" line="115"/>
+        <location filename="../qml/FormatPage.qml" line="111"/>
         <source>Plein écran au démarrage</source>
         <translation>Plein écran au démarrage</translation>
     </message>
@@ -748,97 +1120,97 @@
         <translation>Niveau %1</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="197"/>
+        <location filename="../qml/GridDesigner.qml" line="194"/>
         <source>Ajouter</source>
         <translation>Ajouter</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="202"/>
+        <location filename="../qml/GridDesigner.qml" line="199"/>
         <source>Retirer</source>
         <translation>Retirer</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="211"/>
+        <location filename="../qml/GridDesigner.qml" line="208"/>
         <source>Niveau courant</source>
         <translation>Niveau courant</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="222"/>
+        <location filename="../qml/GridDesigner.qml" line="219"/>
         <source>Pas horizontal</source>
         <translation>Pas horizontal</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="230"/>
+        <location filename="../qml/GridDesigner.qml" line="227"/>
         <source>Pas vertical</source>
         <translation>Pas vertical</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="239"/>
+        <location filename="../qml/GridDesigner.qml" line="236"/>
         <source>Style</source>
         <translation>Style</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="240"/>
         <source>Normal</source>
         <translation>Normal</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="240"/>
         <source>Diagonal à 45°</source>
         <translation>Diagonal à 45°</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="243"/>
+        <location filename="../qml/GridDesigner.qml" line="240"/>
         <source>Angle libre</source>
         <translation>Angle libre</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="247"/>
+        <location filename="../qml/GridDesigner.qml" line="244"/>
         <source>Ligne</source>
         <translation>Ligne</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="251"/>
+        <location filename="../qml/GridDesigner.qml" line="248"/>
         <source>Points</source>
         <translation>Points</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="251"/>
+        <location filename="../qml/GridDesigner.qml" line="248"/>
         <source>Croix</source>
         <translation>Croix</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="251"/>
+        <location filename="../qml/GridDesigner.qml" line="248"/>
         <source>Trait plein</source>
         <translation>Trait plein</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="251"/>
+        <location filename="../qml/GridDesigner.qml" line="248"/>
         <source>Pointillés</source>
         <translation>Pointillés</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="251"/>
+        <location filename="../qml/GridDesigner.qml" line="248"/>
         <source>Tirets</source>
         <translation>Tirets</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="251"/>
+        <location filename="../qml/GridDesigner.qml" line="248"/>
         <source>Gros points</source>
         <translation>Gros points</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="257"/>
+        <location filename="../qml/GridDesigner.qml" line="254"/>
         <source>Angle</source>
         <translation>Angle</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="268"/>
+        <location filename="../qml/GridDesigner.qml" line="265"/>
         <source>Couleur</source>
         <translation>Couleur</translation>
     </message>
     <message>
-        <location filename="../qml/GridDesigner.qml" line="294"/>
+        <location filename="../qml/GridDesigner.qml" line="291"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
     </message>
@@ -1043,22 +1415,22 @@
         <translation>« %1 » n&apos;est plus accessible : l&apos;accès au document est perdu ou le fournisseur ne répond pas.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="886"/>
+        <location filename="../qml/Main.qml" line="883"/>
         <source>Ouverture impossible : %1</source>
         <translation>Ouverture impossible : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="888"/>
+        <location filename="../qml/Main.qml" line="885"/>
         <source>1 avertissement de lecture : %1</source>
         <translation>1 avertissement de lecture : %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="890"/>
+        <location filename="../qml/Main.qml" line="887"/>
         <source>%1 avertissements de lecture : %2</source>
         <translation>%1 avertissements de lecture : %2</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="897"/>
+        <location filename="../qml/Main.qml" line="894"/>
         <source>Enregistrement impossible : %1</source>
         <translation>Enregistrement impossible : %1</translation>
     </message>
@@ -1178,6 +1550,29 @@
         <location filename="../qml/ObjectBrowser.qml" line="174"/>
         <source>Verrouiller</source>
         <translation>Verrouiller</translation>
+    </message>
+</context>
+<context>
+    <name>PageEffectsPicker</name>
+    <message>
+        <location filename="../qml/PageEffectsPicker.qml" line="28"/>
+        <source>Effets de changement de page</source>
+        <translation>Effets de changement de page</translation>
+    </message>
+    <message>
+        <location filename="../qml/PageEffectsPicker.qml" line="74"/>
+        <source>Survolez une vignette pour voir l&apos;effet, touchez-la pour le choisir.</source>
+        <translation>Survolez une vignette pour voir l&apos;effet, touchez-la pour le choisir.</translation>
+    </message>
+    <message>
+        <location filename="../qml/PageEffectsPicker.qml" line="214"/>
+        <source>Pour cette page seulement</source>
+        <translation>Pour cette page seulement</translation>
+    </message>
+    <message>
+        <location filename="../qml/PageEffectsPicker.qml" line="224"/>
+        <source>Terminé</source>
+        <translation>Terminé</translation>
     </message>
 </context>
 <context>
@@ -1440,12 +1835,12 @@
         <translation>Imprimer</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="245"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="242"/>
         <source>Enregistrer les réglages et quitter</source>
         <translation>Enregistrer les réglages et quitter</translation>
     </message>
     <message>
-        <location filename="../qml/PrintSetupDialog.qml" line="253"/>
+        <location filename="../qml/PrintSetupDialog.qml" line="250"/>
         <source>Annuler</source>
         <translation>Annuler</translation>
     </message>
@@ -1496,53 +1891,53 @@
         <translation>Format</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="90"/>
+        <location filename="../qml/ProfileEditor.qml" line="84"/>
         <source>Commandes</source>
         <translation>Commandes</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="101"/>
+        <location filename="../qml/ProfileEditor.qml" line="89"/>
         <source>Raccourcis vers des programmes</source>
         <translation>Raccourcis vers des programmes</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="112"/>
+        <location filename="../qml/ProfileEditor.qml" line="94"/>
         <source>Paramètres</source>
         <translation>Paramètres</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="146"/>
+        <location filename="../qml/ProfileEditor.qml" line="122"/>
         <source>Terminé</source>
         <translation>Terminé</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="164"/>
+        <location filename="../qml/ProfileEditor.qml" line="140"/>
         <source>Nom du profil</source>
         <translation>Nom du profil</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="168"/>
+        <location filename="../qml/ProfileEditor.qml" line="144"/>
         <source>OK</source>
         <translation>OK</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="181"/>
+        <location filename="../qml/ProfileEditor.qml" line="157"/>
         <source>Importer un profil</source>
         <translation>Importer un profil</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="183"/>
-        <location filename="../qml/ProfileEditor.qml" line="192"/>
+        <location filename="../qml/ProfileEditor.qml" line="159"/>
+        <location filename="../qml/ProfileEditor.qml" line="168"/>
         <source>Profils ActCraft (*.json)</source>
         <translation>Profils ActCraft (*.json)</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="183"/>
+        <location filename="../qml/ProfileEditor.qml" line="159"/>
         <source>Tous les fichiers (*)</source>
         <translation>Tous les fichiers (*)</translation>
     </message>
     <message>
-        <location filename="../qml/ProfileEditor.qml" line="189"/>
+        <location filename="../qml/ProfileEditor.qml" line="165"/>
         <source>Exporter le profil</source>
         <translation>Exporter le profil</translation>
     </message>
@@ -1563,6 +1958,44 @@
         <location filename="../qml/PropertyEditor.qml" line="310"/>
         <source>Modifier…</source>
         <translation>Modifier…</translation>
+    </message>
+</context>
+<context>
+    <name>ProtractorTool</name>
+    <message>
+        <location filename="../qml/ProtractorTool.qml" line="183"/>
+        <source>Rapporteur complet</source>
+        <translation>Rapporteur complet</translation>
+    </message>
+    <message>
+        <location filename="../qml/ProtractorTool.qml" line="190"/>
+        <source>Demi-rapporteur</source>
+        <translation>Demi-rapporteur</translation>
+    </message>
+    <message>
+        <location filename="../qml/ProtractorTool.qml" line="198"/>
+        <source>Arc</source>
+        <translation>Arc</translation>
+    </message>
+    <message>
+        <location filename="../qml/ProtractorTool.qml" line="205"/>
+        <source>Arc fermé</source>
+        <translation>Arc fermé</translation>
+    </message>
+    <message>
+        <location filename="../qml/ProtractorTool.qml" line="212"/>
+        <source>Arc plein</source>
+        <translation>Arc plein</translation>
+    </message>
+    <message>
+        <location filename="../qml/ProtractorTool.qml" line="220"/>
+        <source>Afficher l&apos;angle</source>
+        <translation>Afficher l&apos;angle</translation>
+    </message>
+    <message>
+        <location filename="../qml/ProtractorTool.qml" line="226"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
     </message>
 </context>
 <context>
@@ -1631,6 +2064,14 @@
         <location filename="../qml/PublishDialog.qml" line="103"/>
         <source>Document ActCraft (*.actcraft)</source>
         <translation>Document ActCraft (*.actcraft)</translation>
+    </message>
+</context>
+<context>
+    <name>RecognitionAlternatives</name>
+    <message>
+        <location filename="../qml/RecognitionAlternatives.qml" line="34"/>
+        <source>Autres lectures</source>
+        <translation>Autres lectures</translation>
     </message>
 </context>
 <context>
@@ -1709,7 +2150,7 @@
     <message>
         <location filename="../qml/RecoveryBanner.qml" line="44"/>
         <source>Fermer</source>
-        <translation type="unfinished">Fermer</translation>
+        <translation>Fermer</translation>
     </message>
 </context>
 <context>
@@ -1812,6 +2253,53 @@
     </message>
 </context>
 <context>
+    <name>RulerTool</name>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="122"/>
+        <source>Unités du bord haut</source>
+        <translation>Unités du bord haut</translation>
+    </message>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="123"/>
+        <location filename="../qml/RulerTool.qml" line="130"/>
+        <source>Centimètres</source>
+        <translation>Centimètres</translation>
+    </message>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="124"/>
+        <location filename="../qml/RulerTool.qml" line="131"/>
+        <source>Millimètres</source>
+        <translation>Millimètres</translation>
+    </message>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="125"/>
+        <location filename="../qml/RulerTool.qml" line="132"/>
+        <source>Pouces</source>
+        <translation>Pouces</translation>
+    </message>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="126"/>
+        <location filename="../qml/RulerTool.qml" line="133"/>
+        <source>Aucune</source>
+        <translation>Aucune</translation>
+    </message>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="129"/>
+        <source>Unités du bord bas</source>
+        <translation>Unités du bord bas</translation>
+    </message>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="136"/>
+        <source>Afficher l&apos;angle</source>
+        <translation>Afficher l&apos;angle</translation>
+    </message>
+    <message>
+        <location filename="../qml/RulerTool.qml" line="142"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
+    </message>
+</context>
+<context>
     <name>SaveChangesDialog</name>
     <message>
         <location filename="../qml/SaveChangesDialog.qml" line="14"/>
@@ -1888,6 +2376,29 @@
     </message>
 </context>
 <context>
+    <name>ScreenKeyboard</name>
+    <message>
+        <location filename="../qml/ScreenKeyboard.qml" line="94"/>
+        <source>Clavier à l&apos;écran</source>
+        <translation>Clavier à l&apos;écran</translation>
+    </message>
+    <message>
+        <location filename="../qml/ScreenKeyboard.qml" line="124"/>
+        <source>Compact</source>
+        <translation>Compact</translation>
+    </message>
+    <message>
+        <location filename="../qml/ScreenKeyboard.qml" line="132"/>
+        <source>Complet</source>
+        <translation>Complet</translation>
+    </message>
+    <message>
+        <location filename="../qml/ScreenKeyboard.qml" line="140"/>
+        <source>Étendu</source>
+        <translation>Étendu</translation>
+    </message>
+</context>
+<context>
     <name>SecondPalette</name>
     <message>
         <location filename="../qml/SecondPalette.qml" line="87"/>
@@ -1908,6 +2419,19 @@
         <location filename="../qml/SecondPalette.qml" line="136"/>
         <source>?</source>
         <translation>?</translation>
+    </message>
+</context>
+<context>
+    <name>SetSquareTool</name>
+    <message>
+        <location filename="../qml/SetSquareTool.qml" line="142"/>
+        <source>Afficher l&apos;angle</source>
+        <translation>Afficher l&apos;angle</translation>
+    </message>
+    <message>
+        <location filename="../qml/SetSquareTool.qml" line="148"/>
+        <source>Fermer</source>
+        <translation>Fermer</translation>
     </message>
 </context>
 <context>
@@ -2372,11 +2896,153 @@
     </message>
 </context>
 <context>
+    <name>SpotlightOverlay</name>
+    <message>
+        <location filename="../qml/SpotlightOverlay.qml" line="149"/>
+        <source>Capturer la zone éclairée</source>
+        <translation>Capturer la zone éclairée</translation>
+    </message>
+</context>
+<context>
     <name>TextFormatBar</name>
     <message>
         <location filename="../qml/TextFormatBar.qml" line="166"/>
         <source>Couleur %1</source>
         <translation>Couleur %1</translation>
+    </message>
+</context>
+<context>
+    <name>TickerDialog</name>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="19"/>
+        <source>Police de l&apos;interface</source>
+        <translation>Police de l&apos;interface</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="21"/>
+        <source>Message défilant</source>
+        <translation>Message défilant</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="88"/>
+        <source>Ouvrir un message</source>
+        <translation>Ouvrir un message</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="90"/>
+        <location filename="../qml/TickerDialog.qml" line="98"/>
+        <source>Messages ActCraft (*.json)</source>
+        <translation>Messages ActCraft (*.json)</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="90"/>
+        <source>Tous les fichiers (*)</source>
+        <translation>Tous les fichiers (*)</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="95"/>
+        <source>Enregistrer le message sous</source>
+        <translation>Enregistrer le message sous</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="145"/>
+        <source>Message</source>
+        <translation>Message</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="177"/>
+        <source>Position</source>
+        <translation>Position</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="183"/>
+        <source>Haut</source>
+        <translation>Haut</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="183"/>
+        <source>Centre</source>
+        <translation>Centre</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="183"/>
+        <source>Bas</source>
+        <translation>Bas</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="193"/>
+        <source>En boucle</source>
+        <translation>En boucle</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="204"/>
+        <source>Vitesse</source>
+        <translation>Vitesse</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="220"/>
+        <source>Police</source>
+        <translation>Police</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="236"/>
+        <source>Taille</source>
+        <translation>Taille</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="252"/>
+        <source>Ombre (px)</source>
+        <translation>Ombre (px)</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="268"/>
+        <source>Texte</source>
+        <translation>Texte</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="279"/>
+        <source>Ombre</source>
+        <translation>Ombre</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="293"/>
+        <source>Fond : l&apos;écran (transparent)</source>
+        <translation>Fond : l&apos;écran (transparent)</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="305"/>
+        <source>Fond</source>
+        <translation>Fond</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="321"/>
+        <source>Essayer</source>
+        <translation>Essayer</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="331"/>
+        <source>Appliquer</source>
+        <translation>Appliquer</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="341"/>
+        <source>Reprendre</source>
+        <translation>Reprendre</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="341"/>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="356"/>
+        <source>Ouvrir un message…</source>
+        <translation>Ouvrir un message…</translation>
+    </message>
+    <message>
+        <location filename="../qml/TickerDialog.qml" line="366"/>
+        <source>Enregistrer le message…</source>
+        <translation>Enregistrer le message…</translation>
     </message>
 </context>
 <context>
@@ -2646,31 +3312,98 @@
     </message>
 </context>
 <context>
+    <name>actcraft::ui::CameraController</name>
+    <message>
+        <location filename="../src/cameracontroller.cpp" line="482"/>
+        <source>La caméra n&apos;a reçu aucune image de l&apos;écran. Vérifiez que l&apos;enregistrement de l&apos;écran est autorisé pour ActCraft, puis recommencez.</source>
+        <translation>La caméra n&apos;a reçu aucune image de l&apos;écran. Vérifiez que l&apos;enregistrement de l&apos;écran est autorisé pour ActCraft, puis recommencez.</translation>
+    </message>
+    <message>
+        <location filename="../src/cameracontroller.cpp" line="495"/>
+        <source>La caméra n&apos;a pas pu poser l&apos;image de l&apos;écran sur la page. Ouvrez un document, puis recommencez.</source>
+        <translation>La caméra n&apos;a pas pu poser l&apos;image de l&apos;écran sur la page. Ouvrez un document, puis recommencez.</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::ClockController</name>
+    <message>
+        <location filename="../src/clockcontroller.cpp" line="158"/>
+        <source>Aucune</source>
+        <translation>Aucune</translation>
+    </message>
+    <message>
+        <location filename="../src/clockcontroller.cpp" line="158"/>
+        <source>Page suivante</source>
+        <translation>Page suivante</translation>
+    </message>
+    <message>
+        <location filename="../src/clockcontroller.cpp" line="159"/>
+        <source>Page précédente</source>
+        <translation>Page précédente</translation>
+    </message>
+    <message>
+        <location filename="../src/clockcontroller.cpp" line="160"/>
+        <source>Rétablir la page</source>
+        <translation>Rétablir la page</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::DesktopController</name>
+    <message>
+        <location filename="../src/desktopcontroller.cpp" line="196"/>
+        <source>Annotation du bureau</source>
+        <translation>Annotation du bureau</translation>
+    </message>
+</context>
+<context>
     <name>actcraft::ui::DocumentController</name>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="966"/>
+        <location filename="../src/documentcontroller.cpp" line="968"/>
         <source>Une opération est déjà en cours : ouverture refusée.</source>
         <translation>Une opération est déjà en cours : ouverture refusée.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="999"/>
+        <location filename="../src/documentcontroller.cpp" line="1001"/>
         <source>Le paperboard a changé pendant l&apos;ouverture : ouverture annulée, rien n&apos;est perdu.</source>
         <translation>Le paperboard a changé pendant l&apos;ouverture : ouverture annulée, rien n&apos;est perdu.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1055"/>
+        <location filename="../src/documentcontroller.cpp" line="1057"/>
         <source>Une opération est déjà en cours : enregistrement refusé.</source>
         <translation>Une opération est déjà en cours : enregistrement refusé.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1130"/>
+        <location filename="../src/documentcontroller.cpp" line="1132"/>
         <source>Une opération est déjà en cours : diffusion refusée.</source>
         <translation>Une opération est déjà en cours : diffusion refusée.</translation>
     </message>
     <message>
-        <location filename="../src/documentcontroller.cpp" line="1138"/>
+        <location filename="../src/documentcontroller.cpp" line="1140"/>
         <source>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</source>
         <translation>La copie protégée doit être un nouveau fichier : choisissez un autre nom.</translation>
+    </message>
+</context>
+<context>
+    <name>actcraft::ui::EquationController</name>
+    <message>
+        <location filename="../src/equationcontroller.cpp" line="295"/>
+        <source>Une case est encore vide : remplissez-la ou effacez-la avant d&apos;insérer l&apos;équation.</source>
+        <translation>Une case est encore vide : remplissez-la ou effacez-la avant d&apos;insérer l&apos;équation.</translation>
+    </message>
+    <message>
+        <location filename="../src/equationcontroller.cpp" line="307"/>
+        <source>Aucune page n&apos;est montrée : l&apos;équation n&apos;a pas été posée.</source>
+        <translation>Aucune page n&apos;est montrée : l&apos;équation n&apos;a pas été posée.</translation>
+    </message>
+    <message>
+        <location filename="../src/equationcontroller.cpp" line="326"/>
+        <source>L&apos;équation n&apos;a pas pu être posée sur la page.</source>
+        <translation>L&apos;équation n&apos;a pas pu être posée sur la page.</translation>
+    </message>
+    <message>
+        <location filename="../src/equationcontroller.cpp" line="339"/>
+        <source>L&apos;équation n&apos;est plus sur la page affichée : rien n&apos;a été modifié.</source>
+        <translation>L&apos;équation n&apos;est plus sur la page affichée : rien n&apos;a été modifié.</translation>
     </message>
 </context>
 <context>
@@ -3260,6 +3993,19 @@
     </message>
 </context>
 <context>
+    <name>actcraft::ui::PresentationCommands</name>
+    <message>
+        <location filename="../src/presentationcommands.cpp" line="94"/>
+        <source>Adresse refusée : seules les adresses http et https sont ouvertes (%1).</source>
+        <translation>Adresse refusée : seules les adresses http et https sont ouvertes (%1).</translation>
+    </message>
+    <message>
+        <location filename="../src/presentationcommands.cpp" line="98"/>
+        <source>Le navigateur du système n’a pas pu ouvrir %1.</source>
+        <translation>Le navigateur du système n’a pas pu ouvrir %1.</translation>
+    </message>
+</context>
+<context>
     <name>actcraft::ui::PrintController</name>
     <message>
         <location filename="../src/printcontroller.cpp" line="458"/>
@@ -3711,6 +4457,24 @@
     </message>
 </context>
 <context>
+    <name>actcraft::ui::TickerController</name>
+    <message>
+        <location filename="../src/tickercontroller.cpp" line="354"/>
+        <source>Ce fichier ne peut pas être lu.</source>
+        <translation>Ce fichier ne peut pas être lu.</translation>
+    </message>
+    <message>
+        <location filename="../src/tickercontroller.cpp" line="360"/>
+        <source>Ce fichier n&apos;est pas un message ActCraft lisible (64 Kio au plus).</source>
+        <translation>Ce fichier n&apos;est pas un message ActCraft lisible (64 Kio au plus).</translation>
+    </message>
+    <message>
+        <location filename="../src/tickercontroller.cpp" line="372"/>
+        <source>Ce fichier ne peut pas être écrit.</source>
+        <translation>Ce fichier ne peut pas être écrit.</translation>
+    </message>
+</context>
+<context>
     <name>actcraft::ui::WebFrameItems</name>
     <message>
         <location filename="../src/webframeitem.cpp" line="1324"/>
@@ -3741,842 +4505,842 @@
 <context>
     <name>actions-objet</name>
     <message>
-        <location filename="../src/commandlabels.cpp" line="304"/>
+        <location filename="../src/commandlabels.cpp" line="307"/>
         <source>Outil de sélection</source>
         <translation>Outil de sélection</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="305"/>
+        <location filename="../src/commandlabels.cpp" line="308"/>
         <source>Outil stylo</source>
         <translation>Outil stylo</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="306"/>
+        <location filename="../src/commandlabels.cpp" line="309"/>
         <source>Outil marqueur</source>
         <translation>Outil marqueur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="307"/>
+        <location filename="../src/commandlabels.cpp" line="310"/>
         <source>Outil gomme</source>
         <translation>Outil gomme</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="308"/>
+        <location filename="../src/commandlabels.cpp" line="311"/>
         <source>Outil texte</source>
         <translation>Outil texte</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="309"/>
+        <location filename="../src/commandlabels.cpp" line="312"/>
         <source>Outil texte vertical</source>
         <translation>Outil texte vertical</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="310"/>
+        <location filename="../src/commandlabels.cpp" line="313"/>
         <source>Outil formes</source>
         <translation>Outil formes</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="311"/>
+        <location filename="../src/commandlabels.cpp" line="314"/>
         <source>Outil pot de peinture</source>
         <translation>Outil pot de peinture</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="312"/>
+        <location filename="../src/commandlabels.cpp" line="315"/>
         <source>Outil connecteur</source>
         <translation>Outil connecteur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="313"/>
+        <location filename="../src/commandlabels.cpp" line="316"/>
         <source>Dé</source>
         <translation>Dé</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="314"/>
+        <location filename="../src/commandlabels.cpp" line="317"/>
         <source>Calculatrice</source>
         <translation>Calculatrice</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="315"/>
+        <location filename="../src/commandlabels.cpp" line="318"/>
         <source>Horloge</source>
         <translation>Horloge</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="316"/>
+        <location filename="../src/commandlabels.cpp" line="319"/>
         <source>Bandeau défilant</source>
         <translation>Bandeau défilant</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="317"/>
+        <location filename="../src/commandlabels.cpp" line="320"/>
         <source>Navigateur web</source>
         <translation>Navigateur web</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="318"/>
+        <location filename="../src/commandlabels.cpp" line="321"/>
         <source>Capture d&apos;une zone</source>
         <translation>Capture d&apos;une zone</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="319"/>
+        <location filename="../src/commandlabels.cpp" line="322"/>
         <source>Capture polygonale</source>
         <translation>Capture polygonale</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="320"/>
+        <location filename="../src/commandlabels.cpp" line="323"/>
         <source>Capture à main levée</source>
         <translation>Capture à main levée</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="321"/>
+        <location filename="../src/commandlabels.cpp" line="324"/>
         <source>Capture d&apos;une fenêtre</source>
         <translation>Capture d&apos;une fenêtre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="322"/>
+        <location filename="../src/commandlabels.cpp" line="325"/>
         <source>Capture de l&apos;écran</source>
         <translation>Capture de l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="323"/>
+        <location filename="../src/commandlabels.cpp" line="326"/>
         <source>Clavier à l&apos;écran</source>
         <translation>Clavier à l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="324"/>
+        <location filename="../src/commandlabels.cpp" line="327"/>
         <source>Reconnaissance des formes</source>
         <translation>Reconnaissance des formes</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="325"/>
+        <location filename="../src/commandlabels.cpp" line="328"/>
         <source>Reconnaissance de l&apos;écriture</source>
         <translation>Reconnaissance de l&apos;écriture</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="326"/>
+        <location filename="../src/commandlabels.cpp" line="329"/>
         <source>Encre révélatrice</source>
         <translation>Encre révélatrice</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="327"/>
+        <location filename="../src/commandlabels.cpp" line="330"/>
         <source>Rideau</source>
         <translation>Rideau</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="328"/>
+        <location filename="../src/commandlabels.cpp" line="331"/>
         <source>Projecteur rond</source>
         <translation>Projecteur rond</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="329"/>
+        <location filename="../src/commandlabels.cpp" line="332"/>
         <source>Règle</source>
         <translation>Règle</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="330"/>
+        <location filename="../src/commandlabels.cpp" line="333"/>
         <source>Équerre</source>
         <translation>Équerre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="331"/>
+        <location filename="../src/commandlabels.cpp" line="334"/>
         <source>Rapporteur</source>
         <translation>Rapporteur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="332"/>
+        <location filename="../src/commandlabels.cpp" line="335"/>
         <source>Compas</source>
         <translation>Compas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="333"/>
+        <location filename="../src/commandlabels.cpp" line="336"/>
         <source>Nouveau paperboard</source>
         <translation>Nouveau paperboard</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="334"/>
+        <location filename="../src/commandlabels.cpp" line="337"/>
         <source>Nouveau paperboard à la taille de l&apos;écran</source>
         <translation>Nouveau paperboard à la taille de l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="335"/>
+        <location filename="../src/commandlabels.cpp" line="338"/>
         <source>Ouvrir un paperboard</source>
         <translation>Ouvrir un paperboard</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="336"/>
+        <location filename="../src/commandlabels.cpp" line="339"/>
         <source>Enregistrer</source>
         <translation>Enregistrer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="337"/>
+        <location filename="../src/commandlabels.cpp" line="340"/>
         <source>Imprimer</source>
         <translation>Imprimer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="338"/>
+        <location filename="../src/commandlabels.cpp" line="341"/>
         <source>Exporter en PDF</source>
         <translation>Exporter en PDF</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="339"/>
+        <location filename="../src/commandlabels.cpp" line="342"/>
         <source>Quitter l&apos;application</source>
         <translation>Quitter l&apos;application</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="340"/>
+        <location filename="../src/commandlabels.cpp" line="343"/>
         <source>Plein écran</source>
         <translation>Plein écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="341"/>
+        <location filename="../src/commandlabels.cpp" line="344"/>
         <source>Annuler</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="342"/>
+        <location filename="../src/commandlabels.cpp" line="345"/>
         <source>Rétablir</source>
         <translation>Rétablir</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="343"/>
+        <location filename="../src/commandlabels.cpp" line="346"/>
         <source>Mode conception</source>
         <translation>Mode conception</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="344"/>
+        <location filename="../src/commandlabels.cpp" line="347"/>
         <source>Enregistrer le son</source>
         <translation>Enregistrer le son</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="345"/>
+        <location filename="../src/commandlabels.cpp" line="348"/>
         <source>Enregistrer l&apos;écran entier</source>
         <translation>Enregistrer l&apos;écran entier</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="346"/>
+        <location filename="../src/commandlabels.cpp" line="349"/>
         <source>Enregistrer une zone de l&apos;écran</source>
         <translation>Enregistrer une zone de l&apos;écran</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="347"/>
+        <location filename="../src/commandlabels.cpp" line="350"/>
         <source>Mettre l&apos;enregistrement en pause</source>
         <translation>Mettre l&apos;enregistrement en pause</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="348"/>
+        <location filename="../src/commandlabels.cpp" line="351"/>
         <source>Arrêter l&apos;enregistrement</source>
         <translation>Arrêter l&apos;enregistrement</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="349"/>
+        <location filename="../src/commandlabels.cpp" line="352"/>
         <source>Lecteur de sons</source>
         <translation>Lecteur de sons</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="350"/>
+        <location filename="../src/commandlabels.cpp" line="353"/>
         <source>Accrochage à la grille</source>
         <translation>Accrochage à la grille</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="351"/>
+        <location filename="../src/commandlabels.cpp" line="354"/>
         <source>Masquer la grille</source>
         <translation>Masquer la grille</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="352"/>
+        <location filename="../src/commandlabels.cpp" line="355"/>
         <source>Navigateur de notes</source>
         <translation>Navigateur de notes</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="353"/>
+        <location filename="../src/commandlabels.cpp" line="356"/>
         <source>Navigateur d&apos;objets</source>
         <translation>Navigateur d&apos;objets</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="354"/>
+        <location filename="../src/commandlabels.cpp" line="357"/>
         <source>Navigateur de propriétés</source>
         <translation>Navigateur de propriétés</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="355"/>
+        <location filename="../src/commandlabels.cpp" line="358"/>
         <source>Navigateur de ressources</source>
         <translation>Navigateur de ressources</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="356"/>
+        <location filename="../src/commandlabels.cpp" line="359"/>
         <source>Navigateur d&apos;actions</source>
         <translation>Navigateur d&apos;actions</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="357"/>
+        <location filename="../src/commandlabels.cpp" line="360"/>
         <source>Afficher les navigateurs</source>
         <translation>Afficher les navigateurs</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="358"/>
+        <location filename="../src/commandlabels.cpp" line="361"/>
         <source>Annoter le bureau</source>
         <translation>Annoter le bureau</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="359"/>
+        <location filename="../src/commandlabels.cpp" line="362"/>
         <source>Revenir au paperboard</source>
         <translation>Revenir au paperboard</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="360"/>
+        <location filename="../src/commandlabels.cpp" line="363"/>
         <source>Insérer un cadre web</source>
         <translation>Insérer un cadre web</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="361"/>
+        <location filename="../src/commandlabels.cpp" line="364"/>
         <source>Aller à la page</source>
         <translation>Aller à la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="362"/>
+        <location filename="../src/commandlabels.cpp" line="365"/>
         <source>Effacer la page</source>
         <translation>Effacer la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="363"/>
+        <location filename="../src/commandlabels.cpp" line="366"/>
         <source>Copier la page</source>
         <translation>Copier la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="364"/>
+        <location filename="../src/commandlabels.cpp" line="367"/>
         <source>Couper la page</source>
         <translation>Couper la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="365"/>
+        <location filename="../src/commandlabels.cpp" line="368"/>
         <source>Première page</source>
         <translation>Première page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="366"/>
+        <location filename="../src/commandlabels.cpp" line="369"/>
         <source>Dernière page</source>
         <translation>Dernière page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="367"/>
+        <location filename="../src/commandlabels.cpp" line="370"/>
         <source>Insérer une page après</source>
         <translation>Insérer une page après</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="368"/>
+        <location filename="../src/commandlabels.cpp" line="371"/>
         <source>Insérer une page avant</source>
         <translation>Insérer une page avant</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="369"/>
+        <location filename="../src/commandlabels.cpp" line="372"/>
         <source>Page suivante</source>
         <translation>Page suivante</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="370"/>
+        <location filename="../src/commandlabels.cpp" line="373"/>
         <source>Page précédente</source>
         <translation>Page précédente</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="371"/>
+        <location filename="../src/commandlabels.cpp" line="374"/>
         <source>Page vue précédemment</source>
         <translation>Page vue précédemment</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="372"/>
+        <location filename="../src/commandlabels.cpp" line="375"/>
         <source>Page vue ensuite</source>
         <translation>Page vue ensuite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="373"/>
+        <location filename="../src/commandlabels.cpp" line="376"/>
         <source>Rétablir la page</source>
         <translation>Rétablir la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="374"/>
+        <location filename="../src/commandlabels.cpp" line="377"/>
         <source>Fond de la page</source>
         <translation>Fond de la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="375"/>
+        <location filename="../src/commandlabels.cpp" line="378"/>
         <source>Fixer l&apos;angle</source>
         <translation>Fixer l&apos;angle</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="376"/>
+        <location filename="../src/commandlabels.cpp" line="379"/>
         <source>Tourner d&apos;un angle</source>
         <translation>Tourner d&apos;un angle</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="377"/>
+        <location filename="../src/commandlabels.cpp" line="380"/>
         <source>Placer en haut à gauche</source>
         <translation>Placer en haut à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="378"/>
+        <location filename="../src/commandlabels.cpp" line="381"/>
         <source>Placer en haut</source>
         <translation>Placer en haut</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="379"/>
+        <location filename="../src/commandlabels.cpp" line="382"/>
         <source>Placer en haut à droite</source>
         <translation>Placer en haut à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="380"/>
+        <location filename="../src/commandlabels.cpp" line="383"/>
         <source>Placer à gauche</source>
         <translation>Placer à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="381"/>
+        <location filename="../src/commandlabels.cpp" line="384"/>
         <source>Placer au centre</source>
         <translation>Placer au centre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="382"/>
+        <location filename="../src/commandlabels.cpp" line="385"/>
         <source>Placer à droite</source>
         <translation>Placer à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="383"/>
+        <location filename="../src/commandlabels.cpp" line="386"/>
         <source>Placer en bas à gauche</source>
         <translation>Placer en bas à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="384"/>
+        <location filename="../src/commandlabels.cpp" line="387"/>
         <source>Placer en bas</source>
         <translation>Placer en bas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="385"/>
+        <location filename="../src/commandlabels.cpp" line="388"/>
         <source>Placer en bas à droite</source>
         <translation>Placer en bas à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="386"/>
+        <location filename="../src/commandlabels.cpp" line="389"/>
         <source>Redimensionner depuis le point du haut à gauche</source>
         <translation>Redimensionner depuis le point du haut à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="387"/>
+        <location filename="../src/commandlabels.cpp" line="390"/>
         <source>Redimensionner depuis le point du haut</source>
         <translation>Redimensionner depuis le point du haut</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="388"/>
+        <location filename="../src/commandlabels.cpp" line="391"/>
         <source>Redimensionner depuis le point du haut à droite</source>
         <translation>Redimensionner depuis le point du haut à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="389"/>
+        <location filename="../src/commandlabels.cpp" line="392"/>
         <source>Redimensionner depuis le point à gauche</source>
         <translation>Redimensionner depuis le point à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="390"/>
+        <location filename="../src/commandlabels.cpp" line="393"/>
         <source>Redimensionner depuis le point au centre</source>
         <translation>Redimensionner depuis le point au centre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="391"/>
+        <location filename="../src/commandlabels.cpp" line="394"/>
         <source>Redimensionner depuis le point à droite</source>
         <translation>Redimensionner depuis le point à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="392"/>
+        <location filename="../src/commandlabels.cpp" line="395"/>
         <source>Redimensionner depuis le point du bas à gauche</source>
         <translation>Redimensionner depuis le point du bas à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="393"/>
+        <location filename="../src/commandlabels.cpp" line="396"/>
         <source>Redimensionner depuis le point du bas</source>
         <translation>Redimensionner depuis le point du bas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="394"/>
+        <location filename="../src/commandlabels.cpp" line="397"/>
         <source>Redimensionner depuis le point du bas à droite</source>
         <translation>Redimensionner depuis le point du bas à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="395"/>
+        <location filename="../src/commandlabels.cpp" line="398"/>
         <source>Agrandir ou réduire depuis le point en haut à gauche</source>
         <translation>Agrandir ou réduire depuis le point en haut à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="396"/>
+        <location filename="../src/commandlabels.cpp" line="399"/>
         <source>Agrandir ou réduire depuis le point en haut</source>
         <translation>Agrandir ou réduire depuis le point en haut</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="397"/>
+        <location filename="../src/commandlabels.cpp" line="400"/>
         <source>Agrandir ou réduire depuis le point en haut à droite</source>
         <translation>Agrandir ou réduire depuis le point en haut à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="398"/>
+        <location filename="../src/commandlabels.cpp" line="401"/>
         <source>Agrandir ou réduire depuis le point à gauche</source>
         <translation>Agrandir ou réduire depuis le point à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="399"/>
+        <location filename="../src/commandlabels.cpp" line="402"/>
         <source>Agrandir ou réduire depuis le point au centre</source>
         <translation>Agrandir ou réduire depuis le point au centre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="400"/>
+        <location filename="../src/commandlabels.cpp" line="403"/>
         <source>Agrandir ou réduire depuis le point à droite</source>
         <translation>Agrandir ou réduire depuis le point à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="401"/>
+        <location filename="../src/commandlabels.cpp" line="404"/>
         <source>Agrandir ou réduire depuis le point en bas à gauche</source>
         <translation>Agrandir ou réduire depuis le point en bas à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="402"/>
+        <location filename="../src/commandlabels.cpp" line="405"/>
         <source>Agrandir ou réduire depuis le point en bas</source>
         <translation>Agrandir ou réduire depuis le point en bas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="403"/>
+        <location filename="../src/commandlabels.cpp" line="406"/>
         <source>Agrandir ou réduire depuis le point en bas à droite</source>
         <translation>Agrandir ou réduire depuis le point en bas à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="404"/>
+        <location filename="../src/commandlabels.cpp" line="407"/>
         <source>Étirer depuis le point en haut à gauche</source>
         <translation>Étirer depuis le point en haut à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="405"/>
+        <location filename="../src/commandlabels.cpp" line="408"/>
         <source>Étirer depuis le point en haut</source>
         <translation>Étirer depuis le point en haut</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="406"/>
+        <location filename="../src/commandlabels.cpp" line="409"/>
         <source>Étirer depuis le point en haut à droite</source>
         <translation>Étirer depuis le point en haut à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="407"/>
+        <location filename="../src/commandlabels.cpp" line="410"/>
         <source>Étirer depuis le point à gauche</source>
         <translation>Étirer depuis le point à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="408"/>
+        <location filename="../src/commandlabels.cpp" line="411"/>
         <source>Étirer depuis le point au centre</source>
         <translation>Étirer depuis le point au centre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="409"/>
+        <location filename="../src/commandlabels.cpp" line="412"/>
         <source>Étirer depuis le point à droite</source>
         <translation>Étirer depuis le point à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="410"/>
+        <location filename="../src/commandlabels.cpp" line="413"/>
         <source>Étirer depuis le point en bas à gauche</source>
         <translation>Étirer depuis le point en bas à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="411"/>
+        <location filename="../src/commandlabels.cpp" line="414"/>
         <source>Étirer depuis le point en bas</source>
         <translation>Étirer depuis le point en bas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="412"/>
+        <location filename="../src/commandlabels.cpp" line="415"/>
         <source>Étirer depuis le point en bas à droite</source>
         <translation>Étirer depuis le point en bas à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="413"/>
+        <location filename="../src/commandlabels.cpp" line="416"/>
         <source>Étirer d&apos;un facteur depuis le point en haut à gauche</source>
         <translation>Étirer d&apos;un facteur depuis le point en haut à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="414"/>
+        <location filename="../src/commandlabels.cpp" line="417"/>
         <source>Étirer d&apos;un facteur depuis le point en haut</source>
         <translation>Étirer d&apos;un facteur depuis le point en haut</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="415"/>
+        <location filename="../src/commandlabels.cpp" line="418"/>
         <source>Étirer d&apos;un facteur depuis le point en haut à droite</source>
         <translation>Étirer d&apos;un facteur depuis le point en haut à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="416"/>
+        <location filename="../src/commandlabels.cpp" line="419"/>
         <source>Étirer d&apos;un facteur depuis le point à gauche</source>
         <translation>Étirer d&apos;un facteur depuis le point à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="417"/>
+        <location filename="../src/commandlabels.cpp" line="420"/>
         <source>Étirer d&apos;un facteur depuis le point au centre</source>
         <translation>Étirer d&apos;un facteur depuis le point au centre</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="418"/>
+        <location filename="../src/commandlabels.cpp" line="421"/>
         <source>Étirer d&apos;un facteur depuis le point à droite</source>
         <translation>Étirer d&apos;un facteur depuis le point à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="419"/>
+        <location filename="../src/commandlabels.cpp" line="422"/>
         <source>Étirer d&apos;un facteur depuis le point en bas à gauche</source>
         <translation>Étirer d&apos;un facteur depuis le point en bas à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="420"/>
+        <location filename="../src/commandlabels.cpp" line="423"/>
         <source>Étirer d&apos;un facteur depuis le point en bas</source>
         <translation>Étirer d&apos;un facteur depuis le point en bas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="421"/>
+        <location filename="../src/commandlabels.cpp" line="424"/>
         <source>Étirer d&apos;un facteur depuis le point en bas à droite</source>
         <translation>Étirer d&apos;un facteur depuis le point en bas à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="422"/>
+        <location filename="../src/commandlabels.cpp" line="425"/>
         <source>Déplacer d&apos;un décalage</source>
         <translation>Déplacer d&apos;un décalage</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="423"/>
+        <location filename="../src/commandlabels.cpp" line="426"/>
         <source>Copie miroir verticale</source>
         <translation>Copie miroir verticale</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="424"/>
+        <location filename="../src/commandlabels.cpp" line="427"/>
         <source>Copie miroir horizontale</source>
         <translation>Copie miroir horizontale</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="425"/>
+        <location filename="../src/commandlabels.cpp" line="428"/>
         <source>Retourner de haut en bas</source>
         <translation>Retourner de haut en bas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="426"/>
+        <location filename="../src/commandlabels.cpp" line="429"/>
         <source>Retourner de gauche à droite</source>
         <translation>Retourner de gauche à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="427"/>
+        <location filename="../src/commandlabels.cpp" line="430"/>
         <source>Taille d&apos;origine</source>
         <translation>Taille d&apos;origine</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="428"/>
+        <location filename="../src/commandlabels.cpp" line="431"/>
         <source>Ajuster à la hauteur</source>
         <translation>Ajuster à la hauteur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="429"/>
+        <location filename="../src/commandlabels.cpp" line="432"/>
         <source>Ajuster à la page</source>
         <translation>Ajuster à la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="430"/>
+        <location filename="../src/commandlabels.cpp" line="433"/>
         <source>Ajuster à la largeur</source>
         <translation>Ajuster à la largeur</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="431"/>
+        <location filename="../src/commandlabels.cpp" line="434"/>
         <source>Aligner à gauche</source>
         <translation>Aligner à gauche</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="432"/>
+        <location filename="../src/commandlabels.cpp" line="435"/>
         <source>Aligner au centre horizontalement</source>
         <translation>Aligner au centre horizontalement</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="433"/>
+        <location filename="../src/commandlabels.cpp" line="436"/>
         <source>Aligner à droite</source>
         <translation>Aligner à droite</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="434"/>
+        <location filename="../src/commandlabels.cpp" line="437"/>
         <source>Aligner en haut</source>
         <translation>Aligner en haut</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="435"/>
+        <location filename="../src/commandlabels.cpp" line="438"/>
         <source>Aligner au centre verticalement</source>
         <translation>Aligner au centre verticalement</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="436"/>
+        <location filename="../src/commandlabels.cpp" line="439"/>
         <source>Aligner en bas</source>
         <translation>Aligner en bas</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="437"/>
+        <location filename="../src/commandlabels.cpp" line="440"/>
         <source>Aligner à la largeur de la page</source>
         <translation>Aligner à la largeur de la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="438"/>
+        <location filename="../src/commandlabels.cpp" line="441"/>
         <source>Aligner à la hauteur de la page</source>
         <translation>Aligner à la hauteur de la page</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="439"/>
+        <location filename="../src/commandlabels.cpp" line="442"/>
         <source>Aligner sur l&apos;angle</source>
         <translation>Aligner sur l&apos;angle</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="440"/>
+        <location filename="../src/commandlabels.cpp" line="443"/>
         <source>Aligner sur tous les côtés</source>
         <translation>Aligner sur tous les côtés</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="441"/>
+        <location filename="../src/commandlabels.cpp" line="444"/>
         <source>Avancer d&apos;un plan</source>
         <translation>Avancer d&apos;un plan</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="442"/>
+        <location filename="../src/commandlabels.cpp" line="445"/>
         <source>Reculer d&apos;un plan</source>
         <translation>Reculer d&apos;un plan</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="443"/>
+        <location filename="../src/commandlabels.cpp" line="446"/>
         <source>Mettre au premier plan</source>
         <translation>Mettre au premier plan</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="444"/>
+        <location filename="../src/commandlabels.cpp" line="447"/>
         <source>Mettre à l&apos;arrière-plan</source>
         <translation>Mettre à l&apos;arrière-plan</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="445"/>
+        <location filename="../src/commandlabels.cpp" line="448"/>
         <source>Couche du dessus</source>
         <translation>Couche du dessus</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="446"/>
+        <location filename="../src/commandlabels.cpp" line="449"/>
         <source>Couche du milieu</source>
         <translation>Couche du milieu</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="447"/>
+        <location filename="../src/commandlabels.cpp" line="450"/>
         <source>Couche du dessous</source>
         <translation>Couche du dessous</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="448"/>
+        <location filename="../src/commandlabels.cpp" line="451"/>
         <source>Masquer ou afficher</source>
         <translation>Masquer ou afficher</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="449"/>
+        <location filename="../src/commandlabels.cpp" line="452"/>
         <source>Verrouiller ou déverrouiller</source>
         <translation>Verrouiller ou déverrouiller</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="450"/>
+        <location filename="../src/commandlabels.cpp" line="453"/>
         <source>Grouper ou dégrouper</source>
         <translation>Grouper ou dégrouper</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="451"/>
+        <location filename="../src/commandlabels.cpp" line="454"/>
         <source>Fixer la translucidité</source>
         <translation>Fixer la translucidité</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="452"/>
+        <location filename="../src/commandlabels.cpp" line="455"/>
         <source>Plus translucide</source>
         <translation>Plus translucide</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="453"/>
+        <location filename="../src/commandlabels.cpp" line="456"/>
         <source>Moins translucide</source>
         <translation>Moins translucide</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="454"/>
+        <location filename="../src/commandlabels.cpp" line="457"/>
         <source>Ajouter du texte</source>
         <translation>Ajouter du texte</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="455"/>
+        <location filename="../src/commandlabels.cpp" line="458"/>
         <source>Remplacer le texte</source>
         <translation>Remplacer le texte</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="456"/>
+        <location filename="../src/commandlabels.cpp" line="459"/>
         <source>Ajouter une valeur au texte</source>
         <translation>Ajouter une valeur au texte</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="457"/>
+        <location filename="../src/commandlabels.cpp" line="460"/>
         <source>Nouveau texte</source>
         <translation>Nouveau texte</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="458"/>
+        <location filename="../src/commandlabels.cpp" line="461"/>
         <source>Extraire les mots</source>
         <translation>Extraire les mots</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="459"/>
+        <location filename="../src/commandlabels.cpp" line="462"/>
         <source>Effacer les annotations</source>
         <translation>Effacer les annotations</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="460"/>
+        <location filename="../src/commandlabels.cpp" line="463"/>
         <source>Effacer le fond</source>
         <translation>Effacer le fond</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="461"/>
+        <location filename="../src/commandlabels.cpp" line="464"/>
         <source>Effacer la grille</source>
         <translation>Effacer la grille</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="462"/>
+        <location filename="../src/commandlabels.cpp" line="465"/>
         <source>Effacer les objets</source>
         <translation>Effacer les objets</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="463"/>
+        <location filename="../src/commandlabels.cpp" line="466"/>
         <source>Copier</source>
         <translation>Copier</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="464"/>
+        <location filename="../src/commandlabels.cpp" line="467"/>
         <source>Couper</source>
         <translation>Couper</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="465"/>
+        <location filename="../src/commandlabels.cpp" line="468"/>
         <source>Coller</source>
         <translation>Coller</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="466"/>
+        <location filename="../src/commandlabels.cpp" line="469"/>
         <source>Supprimer</source>
         <translation>Supprimer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="467"/>
+        <location filename="../src/commandlabels.cpp" line="470"/>
         <source>Dupliquer</source>
         <translation>Dupliquer</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="468"/>
+        <location filename="../src/commandlabels.cpp" line="471"/>
         <source>Tout sélectionner</source>
         <translation>Tout sélectionner</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="469"/>
+        <location filename="../src/commandlabels.cpp" line="472"/>
         <source>Ouvrir un fichier</source>
         <translation>Ouvrir un fichier</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="470"/>
+        <location filename="../src/commandlabels.cpp" line="473"/>
         <source>Ouvrir un site web</source>
         <translation>Ouvrir un site web</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="471"/>
+        <location filename="../src/commandlabels.cpp" line="474"/>
         <source>Jouer un son</source>
         <translation>Jouer un son</translation>
     </message>
@@ -5968,31 +6732,46 @@
         <source>Insérer une page</source>
         <translation>Insérer une page</translation>
     </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="293"/>
+        <source>Page suivante de l&apos;annotation</source>
+        <translation>Page suivante de l&apos;annotation</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="294"/>
+        <source>Page précédente de l&apos;annotation</source>
+        <translation>Page précédente de l&apos;annotation</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="295"/>
+        <source>Laisser passer les clics</source>
+        <translation>Laisser passer les clics</translation>
+    </message>
 </context>
 <context>
     <name>profils</name>
     <message>
-        <location filename="../src/commandlabels.cpp" line="296"/>
+        <location filename="../src/commandlabels.cpp" line="299"/>
         <source>Compter et construire</source>
         <translation>Compter et construire</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="296"/>
+        <location filename="../src/commandlabels.cpp" line="299"/>
         <source>Faire la classe</source>
         <translation>Faire la classe</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="297"/>
+        <location filename="../src/commandlabels.cpp" line="300"/>
         <source>Lire et écrire</source>
         <translation>Lire et écrire</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="297"/>
+        <location filename="../src/commandlabels.cpp" line="300"/>
         <source>Préparer un cours</source>
         <translation>Préparer un cours</translation>
     </message>
     <message>
-        <location filename="../src/commandlabels.cpp" line="298"/>
+        <location filename="../src/commandlabels.cpp" line="301"/>
         <source>Sons et images</source>
         <translation>Sons et images</translation>
     </message>

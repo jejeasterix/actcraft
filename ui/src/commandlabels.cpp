@@ -290,6 +290,9 @@ namespace {
     QT_TRANSLATE_NOOP("commandes", "Autres outils"),
     QT_TRANSLATE_NOOP("commandes", "Enregistreurs"),
     QT_TRANSLATE_NOOP("commandes", "Insérer une page"),
+    QT_TRANSLATE_NOOP("commandes", "Page suivante de l'annotation"),
+    QT_TRANSLATE_NOOP("commandes", "Page précédente de l'annotation"),
+    QT_TRANSLATE_NOOP("commandes", "Laisser passer les clics"),
 };
 
 [[maybe_unused]] const char* const kProfileLabels[] = {

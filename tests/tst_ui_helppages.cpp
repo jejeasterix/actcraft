@@ -19,7 +19,9 @@ const QStringList kLots1To5Tools = {
 const QStringList kLots6To11Tools = {QStringLiteral("tool.reveal-ink")};
 const QStringList kAllTools = kLots1To5Tools + kLots6To11Tools;
 
-// Commandes tool.* déclarées mais sans gestionnaire à la tête : pas de page tant qu'elles n'agissent pas.
+// Commandes tool.* sans page d'aide. Avant le lot 7 elles n'avaient pas de gestionnaire ; le lot 7 les fait
+// agir (panneaux QML) : une page d'aide reste À ÉCRIRE pour chacune (consigné au rapport L11-C19), puis la
+// retirer de cette liste.
 // Une commande tool.* nouvelle, absente de cette liste et de kAllTools, fait échouer everyToolHasAPage.
 const QStringList kToolsWithoutHandler = {
     QStringLiteral("tool.dice"),           QStringLiteral("tool.calculator"),
