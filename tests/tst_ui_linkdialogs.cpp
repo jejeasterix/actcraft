@@ -473,8 +473,10 @@ void TstUiLinkdialogs::resultDroppedWhenTheObjectIsGone()
 // nom. Le patron écarté rendait le texte de l'URL (`file:///…a%23b`), échappé, qui n'est pas ce fichier.
 void TstUiLinkdialogs::localPathKeepsUrlSyntaxCharacters()
 {
-    const QStringList names{QStringLiteral("a#b.txt"), QStringLiteral("c%23d.txt"), QStringLiteral("e?f.txt"),
-                            QStringLiteral("100%.txt")};
+    QStringList names{QStringLiteral("a#b.txt"), QStringLiteral("c%23d.txt"), QStringLiteral("100%.txt")};
+#ifndef Q_OS_WIN
+    names.append(QStringLiteral("e?f.txt")); // « ? » est interdit dans un nom de fichier sous Windows
+#endif
     QSignalSpy created(m_dialogs.get(), &ui::LinkDialogs::created);
     for (const QString& name : names) {
         const QString path = makeFile(name, "bonjour");

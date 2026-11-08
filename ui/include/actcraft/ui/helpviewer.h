@@ -24,6 +24,10 @@ public:
 
     // Page de l'outil (« pen » ou « tool.pen ») si elle existe, sinon l'index.
     Q_INVOKABLE void openFor(QString toolId);
+    // L11-C11 (K) : page (nom sans extension ; vide : aucune) que la prochaine ouverture montre à la place de
+    // celle de l'outil, puis oubliée. Partagée par toutes les instances : la deuxième palette n'atteint pas
+    // le lecteur de Main.qml, elle pose la demande puis déclenche help.contents.
+    Q_INVOKABLE void requestNextPage(const QString& name);
     // Lien interne (qrc ou relatif à la page courante) : change de page ; sinon : signal externalLink.
     Q_INVOKABLE void follow(QUrl link);
 

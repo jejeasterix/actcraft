@@ -46,6 +46,14 @@ namespace actcraft::ui {
 
 namespace {
 
+// L11-C11 (J2) : l'édition de texte soulève et dépose au nom du premier utilisateur ; un dépôt sans
+// propriétaire remettrait aussi l'objet que le second glisse.
+constexpr int kTextOwner = 0;
+
+} // namespace
+
+namespace {
+
 constexpr qreal kSizeStep = 2;     // D8 : taille ±2 points
 constexpr qreal kMinPointSize = 8; // D8 : minimum 8 (et non 4)
 constexpr qreal kSpacingStep = 2;  // D8 : 2 points d'espace au-dessus du paragraphe
@@ -642,7 +650,7 @@ bool TextEditing::beginAt(QPointF pagePoint, bool vertical)
         m_objectBounds = existing->bounds;
         m_fixedWidth = existing->bounds.width;
         m_frame = QRectF(onPage.x, onPage.y, onPage.width, onPage.height);
-        m_controller->liftObjects({*hit});
+        m_controller->liftObjects({*hit}, kTextOwner);
         const int end = std::max(0, doc->characterCount() - 1);
         m_selectionStart = end;
         m_selectionEnd = end;
@@ -782,11 +790,13 @@ void TextEditing::commit()
                 m_controller->execute(std::make_unique<core::AddObjectCommand>(page, std::move(object)));
             }
         } else if (unchanged) {
-            m_controller->dropLifted(nullptr);
+            m_controller->dropLifted(nullptr, kTextOwner);
         } else if (empty && edited) {
-            m_controller->dropLifted(std::make_unique<core::RemoveObjectsCommand>(page, std::vector{id}));
+            m_controller->dropLifted(std::make_unique<core::RemoveObjectsCommand>(page, std::vector{id}),
+                                     kTextOwner);
         } else {
-            m_controller->dropLifted(std::make_unique<core::SetTextCommand>(page, id, std::move(text)));
+            m_controller->dropLifted(std::make_unique<core::SetTextCommand>(page, id, std::move(text)),
+                                     kTextOwner);
         }
     }
     if (doc) {
@@ -806,7 +816,7 @@ void TextEditing::cancel()
     const core::ObjectId id = m_editing;
     finish();
     if (id != 0 && m_controller) {
-        m_controller->dropLifted(nullptr);
+        m_controller->dropLifted(nullptr, kTextOwner);
     }
     if (QTextDocument* doc = editDocument()) {
         doc->clear();

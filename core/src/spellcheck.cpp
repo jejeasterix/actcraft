@@ -149,7 +149,7 @@ bool isWordChar(QChar c)
 }
 // Apostrophes (droite, typographique, modificatrice) et traits d'union : gardés dans le mot entre deux
 // lettres.
-bool isConnector(QChar c)
+bool isJoiner(QChar c)
 {
     return c == QLatin1Char('\'') || c == QChar(0x2019) || c == QChar(0x02BC) || c == QLatin1Char('-') ||
            c == QChar(0x2010);
@@ -175,7 +175,7 @@ std::vector<Word> splitWords(const QString& text)
         while (j < n) {
             if (isWordChar(text[j])) {
                 ++j;
-            } else if (isConnector(text[j]) && j + 1 < n && isWordChar(text[j + 1])) {
+            } else if (isJoiner(text[j]) && j + 1 < n && isWordChar(text[j + 1])) {
                 ++j;
             } else {
                 break;

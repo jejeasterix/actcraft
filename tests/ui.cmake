@@ -34,6 +34,7 @@ actcraft_add_test(tst_ui_shell
     SOURCES tst_ui_shell.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_include_directories(tst_ui_shell PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_compile_definitions(tst_ui_shell PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 actcraft_add_test(tst_ui_police
     SOURCES tst_ui_police.cpp

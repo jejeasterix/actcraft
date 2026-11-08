@@ -1452,6 +1452,45 @@ private slots:
         h.controller.undo(); // l'édition est sa propre étape
         QCOMPARE(h.plainOf(0, 0), QStringLiteral("un"));
     }
+    // L11-C11 (J2) : l'édition de texte soulève et dépose ses objets à son propriétaire (le premier
+    // utilisateur). Un dépôt sans propriétaire remet aussi l'objet que le second glisse : son soulèvement
+    // cesse sous son doigt. Trois issues : abandon, validation sans changement, validation modifiée.
+    void textEditKeepsTheOtherUsersLift_data()
+    {
+        QTest::addColumn<int>("ending");
+        QTest::newRow("cancel") << 0;
+        QTest::newRow("commit-unchanged") << 1;
+        QTest::newRow("commit-edited") << 2;
+    }
+    void textEditKeepsTheOtherUsersLift()
+    {
+        QFETCH(int, ending);
+        Harness h;
+        h.addText(QStringLiteral("un"), {200, 200, 120, 30});
+        h.addText(QStringLiteral("glissé"), {500, 400, 120, 30});
+        const auto page = static_cast<std::size_t>(h.controller.currentIndex());
+        const core::ObjectId dragged = h.controller.document().page(page).objects.back().common.id;
+        QCOMPARE(h.controller.liftObjects({dragged}, 1).size(), std::size_t(1)); // glisser du second
+        QVERIFY(h.controller.isLifting(1));
+
+        QVERIFY(h.editing.beginAt({210, 210}, false));
+        QVERIFY(h.controller.isLifting(0));
+        if (ending == 0) {
+            h.editing.cancel();
+        } else {
+            if (ending == 2) {
+                h.replaceAllText(QStringLiteral("deux"));
+            }
+            h.editing.commit();
+        }
+        QVERIFY(!h.editing.isActive());
+        QVERIFY(!h.controller.isLifting(0));
+        QVERIFY(h.controller.isLifting(1)); // le second glisse encore son objet
+        QCOMPARE(h.htmlPlainOfFirst(), ending == 2 ? QStringLiteral("deux") : QStringLiteral("un"));
+        h.controller.dropLifted(nullptr, 1);
+        QVERIFY(!h.controller.isLifting());
+        QCOMPARE(h.controller.document().page(page).objects.size(), std::size_t(2));
+    }
 };
 
 QTEST_MAIN(TstUiText)

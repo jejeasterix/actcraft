@@ -288,7 +288,7 @@ private slots:
         addText(
             d, 0, 1,
             "<html><head><style>p { color:red; fontt-size:12px }</style></head><body>"
-            "<p style=\"color:#ff0000; fontfamily:zzz\"><b>bonjour</b> <i><span style=\"font-size:12px\">"
+            "<p style=\"color:#ff0000; letterfamily:zzz\"><b>bonjour</b> <i><span style=\"font-size:12px\">"
             "monsieur</span></i></p><p>bon<b>jour</b></p><p>chat&nbsp;&amp;&nbsp;chien</p></body></html>");
         SpellChecker checker(*m_engine, SpellRules{});
         const auto hit = checker.next(d);
