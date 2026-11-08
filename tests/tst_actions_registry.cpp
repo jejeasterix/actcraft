@@ -423,6 +423,36 @@ private slots:
             error));
         QVERIFY2(error.contains(QStringLiteral("facultatif")), qPrintable(error));
     }
+
+    // Valeurs fixes d'un argument texte : une valeur hors liste est refusée par trigger().
+    void fixedValuesRefuseOthers()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY2(r.loadDeclarations(R"({"format":"actcraft-commands/1","commands":[
+            {"id":"m.mode","label":"Mode","argument":"text","optional":true,"values":["a","b"]}]})",
+                                    error),
+                 qPrintable(error));
+        QCOMPARE(r.find(QStringLiteral("m.mode"))->argumentValues, QStringList({"a", "b"}));
+        QVariantList seen;
+        r.setHandler(QStringLiteral("m.mode"), [&seen](const QVariant& a) { seen << a; });
+        const Platform here = currentPlatform();
+        QVERIFY(r.trigger(QStringLiteral("m.mode"), QStringLiteral("b"), here));
+        QVERIFY(r.trigger(QStringLiteral("m.mode"), QVariant(), here));
+        QVERIFY(!r.trigger(QStringLiteral("m.mode"), QStringLiteral("zzz"), here));
+        QVERIFY(!r.trigger(QStringLiteral("m.mode"), QStringLiteral(""), here));
+        QCOMPARE(seen.size(), 2);
+    }
+
+    void fixedValuesNeedTextArgument()
+    {
+        CommandRegistry r;
+        QString error;
+        QVERIFY(!r.loadDeclarations(
+            R"({"format":"actcraft-commands/1","commands":[{"id":"a.b","label":"A","argument":"url","values":["x"]}]})",
+            error));
+        QVERIFY2(error.contains(QStringLiteral("values")), qPrintable(error));
+    }
 };
 
 QTEST_GUILESS_MAIN(TstActionsRegistry)

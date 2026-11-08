@@ -699,6 +699,26 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!overlay->isVisible(), 3000);
     }
 
+    // L11-C16 (2) : chemin réel du second en appui long : un doigt dans la zone du second, immobile 500 ms,
+    // émet touchHeld avec l'utilisateur 1 (et son outil effectif), pas 0.
+    void touchHeldCarriesTheSecondUser()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(0, 0, 500, 5000)));
+        QSignalSpy held(app.view, &ui::PageView::touchHeld);
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(100, 400)));
+        QTRY_COMPARE_WITH_TIMEOUT(held.count(), 1, 2000);
+        QCOMPARE(held.at(0).at(2).toInt(), 1);
+        QTest::touchEvent(app.window, m_touch).release(0, scenePoint(app, QPointF(100, 400)));
+        // Le doigt du premier (hors de la zone du second) garde l'utilisateur 0.
+        QTest::touchEvent(app.window, m_touch).press(0, scenePoint(app, QPointF(700, 400)));
+        QTRY_COMPARE_WITH_TIMEOUT(held.count(), 2, 2000);
+        QCOMPARE(held.at(1).at(2).toInt(), 0);
+        QTest::touchEvent(app.window, m_touch).release(0, scenePoint(app, QPointF(700, 400)));
+    }
+
     // L11-C10 (G, H11-13) : le second pose son stylet sur un objet que le premier a sélectionné, sans bouger
     // (tenu dès l'appui) ; un panneau des propriétés ouvert ensuite par le premier ne voit plus que la page.
     // Ancien patron (sélection brute du premier) : il affiche « Trait » et éditerait un objet tenu par

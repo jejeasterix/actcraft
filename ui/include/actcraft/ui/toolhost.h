@@ -231,6 +231,7 @@ private:
     tools::Tool* toolFor(const QString& id) const;      // créé à la première demande
     tools::Tool* existingTool(const QString& id) const; // jamais créé
     tools::SelectTool* selectTool() const;              // l'outil Sélectionner, créé à la première demande
+    void applySelection(const std::vector<core::ObjectId>& ids); // pose la sélection et rafraîchit le cadre
     // L11-T9 : outils du second utilisateur (mode allumé), dans leurs propres adaptateurs (contexte de son
     // UserState, surface d'encre et de sélection à lui) ; nullptr tant que le branchement manque.
     bool isSecond(input::UserId user) const noexcept;

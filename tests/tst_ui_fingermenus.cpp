@@ -97,6 +97,7 @@ private slots:
     void longPressOnEmptyPageOpensPageMenu();
     void noMenuWithInkTool();
     void paletteLongPressShowsLabelOnly();
+    void paletteLabelStaysInWindow();
     void menuRowsFollowTargetSize();
     void submenuOpensOnTap();
     void imposedSelectorOpensTheMenu();
@@ -250,6 +251,52 @@ void TstUiFingermenus::paletteLongPressShowsLabelOnly()
     QCOMPARE(triggers.count(), 0);
     QCOMPARE(s.tools->currentTool(), QStringLiteral("select"));
     QTRY_VERIFY_WITH_TIMEOUT(!label->isVisible(), 4000); // bulle de 1,5 s
+}
+
+// L11-C16 : la palette est ancrée à droite ; la bulle de l'appui long, large de plus que la palette, reste
+// entière dans la fenêtre (un calcul borné dans la palette la ferait déborder à droite).
+void TstUiFingermenus::paletteLabelStaysInWindow()
+{
+    Shell s;
+    QVERIFY(start(s));
+    QQuickItem* flick = nullptr;
+    QTRY_VERIFY((flick = item(s, "paletteFlick")) && flick->isVisible());
+    // Le bouton visible dont le libellé est le plus long : plus large que la palette, il déborderait si la
+    // bulle n'était bornée que dans la palette.
+    QQuickItem* longest = nullptr;
+    qsizetype longestSize = 0;
+    const QRectF visible(flick->mapToScene(QPointF(0, 0)), QSizeF(flick->width(), flick->height()));
+    const auto walk = [&](auto&& self, QQuickItem* from) -> void {
+        const QString id = from->property("commandId").toString();
+        if (from->objectName().startsWith(QLatin1String("button-")) && from->isVisible() && !id.isEmpty() &&
+            visible.contains(from->mapToScene(QPointF(from->width() / 2, from->height() / 2))) &&
+            s.commands->label(id).size() > longestSize) {
+            longest = from;
+            longestSize = s.commands->label(id).size();
+        }
+        for (QQuickItem* child : from->childItems()) {
+            self(self, child);
+        }
+    };
+    walk(walk, flick);
+    QVERIFY(longest);
+    QQuickItem* label = item(s, "paletteLabel");
+    QVERIFY(label);
+    QPointingDevice* screen = QTest::createTouchDevice();
+    const QPoint at = sceneCenter(longest);
+    QTest::touchEvent(s.window, screen).press(0, at, s.window);
+    QTest::qWait(700);
+    QTest::touchEvent(s.window, screen).release(0, at, s.window);
+    QTRY_VERIFY(label->isVisible());
+    const QRectF box(label->mapToScene(QPointF(0, 0)), QSizeF(label->width(), label->height()));
+    const QRectF win(0, 0, s.window->width(), s.window->height());
+    QVERIFY2(win.contains(box), qPrintable(QStringLiteral("bulle %1,%2 %3x%4 hors de la fenêtre %5x%6")
+                                               .arg(box.x())
+                                               .arg(box.y())
+                                               .arg(box.width())
+                                               .arg(box.height())
+                                               .arg(win.width())
+                                               .arg(win.height())));
 }
 
 void TstUiFingermenus::menuRowsFollowTargetSize()
