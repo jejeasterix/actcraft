@@ -890,9 +890,9 @@ void TstUiSecondpalette::twoFingersInPenModeStayApart()
     QTest::touchEvent(app.window, touch).press(0, touchPoint(app, QPointF(600, 200)));
     QTest::touchEvent(app.window, touch).move(0, touchPoint(app, QPointF(640, 210)));
     QTest::touchEvent(app.window, touch).move(0, touchPoint(app, QPointF(680, 220)));
+    QTRY_VERIFY_WITH_TIMEOUT(first->pointCount() >= 2, 3000); // livraison du toucher par la boucle
     QCOMPARE(app.view->lastContactUser(), 0);
     const std::size_t n0 = first->pointCount();
-    QVERIFY(n0 >= 2);
     QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
 
     QTest::touchEvent(app.window, touch).stationary(0).press(1, touchPoint(app, QPointF(100, 400)));
@@ -901,22 +901,23 @@ void TstUiSecondpalette::twoFingersInPenModeStayApart()
             .stationary(0)
             .move(1, touchPoint(app, QPointF(100 + 40 * i, 400 + 10 * i)));
     }
-    QCOMPARE(app.view->lastContactUser(), 1);
-    QCOMPARE(first->pointCount(), n0); // le trait vif du premier n'a pas bougé
-    QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
+    QTRY_COMPARE_WITH_TIMEOUT(app.view->lastContactUser(), 1, 3000);
     render::InkItem* second = app.view->secondInk();
     QVERIFY(second && second != first);
-    QVERIFY2(second->pointCount() > n0, qPrintable(QString::number(second->pointCount())));
+    QTRY_VERIFY2_WITH_TIMEOUT(second->pointCount() > n0, qPrintable(QString::number(second->pointCount())),
+                              3000);
+    QCOMPARE(first->pointCount(), n0); // le trait vif du premier n'a pas bougé
+    QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
     QCOMPARE(QColor::fromRgba(second->drawnColor()), QColor(QStringLiteral("#1E88E5")));
 
     QTest::touchEvent(app.window, touch).move(0, touchPoint(app, QPointF(720, 230))).stationary(1);
-    QVERIFY(first->pointCount() > n0);
+    QTRY_VERIFY_WITH_TIMEOUT(first->pointCount() > n0, 3000);
     QCOMPARE(QColor::fromRgba(first->drawnColor()), QColor(QStringLiteral("#E53935")));
     QTest::touchEvent(app.window, touch).stationary(0).release(1, touchPoint(app, QPointF(300, 450)));
-    QCOMPARE(second->pointCount(), std::size_t(0));
+    QTRY_COMPARE_WITH_TIMEOUT(second->pointCount(), std::size_t(0), 3000);
     QVERIFY(first->pointCount() > n0); // le versement du second n'interrompt pas le premier
     QTest::touchEvent(app.window, touch).release(0, touchPoint(app, QPointF(760, 240)));
-    QCOMPARE(first->pointCount(), std::size_t(0));
+    QTRY_COMPARE_WITH_TIMEOUT(first->pointCount(), std::size_t(0), 3000);
     QCOMPARE(controller->shownObjectCount(), before + 2);
 }
 
