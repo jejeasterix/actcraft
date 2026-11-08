@@ -20,6 +20,10 @@ Item {
         const onThisPlatform = section.platforms.length === 0 || section.platforms.indexOf(Qt.platform.os) >= 0
         return onThisPlatform && (section.id === "network" || schema.entries(section.id).length > 0)
     })
+    // L11-C12 : la case suit les plateformes de help.check-updates (Windows et macOS) ; sans commandes
+    // (page seule), le système de la fenêtre.
+    readonly property bool updatesAvailable: commands ? commands.isAvailable("help.check-updates")
+                                                      : (Qt.platform.os === "windows" || Qt.platform.os === "osx" || Qt.platform.os === "macos")
     property string currentSection: shownSections.length > 0 ? shownSections[0].id : ""
     // Incrémentée à chaque changement des magasins : un éditeur relit sa valeur après une écriture, un
     // changement de profil ou « Revenir à l'origine » (le profil rechargé sous le même identifiant).
@@ -105,7 +109,7 @@ Item {
                 preferences: root.preferences
             }
 
-            // Recherche de mises à jour au démarrage (F-930, D11-13) : réglage du poste, Windows seulement, faux par
+            // Recherche de mises à jour au démarrage (F-930, D11-13) : réglage du poste, Windows et macOS, faux par
             // défaut. Cette instance ne fait aucune requête : elle lit et écrit `updates/check-at-start`, que lit la
             // coquille (appUpdates) au prochain démarrage. Rangé sous la page réseau : la recherche suit son mandataire.
             UpdateChecker {
@@ -119,7 +123,7 @@ Item {
                 anchors.right: parent.right
                 anchors.top: networkPage.bottom
                 anchors.topMargin: 8
-                visible: root.currentSection === "network" && Qt.platform.os === "windows"
+                visible: root.currentSection === "network" && root.updatesAvailable
                 text: qsTr("Rechercher les mises à jour au démarrage")
                 checked: updateSetting.checkAtStart
                 onToggled: updateSetting.checkAtStart = checked
