@@ -39,9 +39,12 @@ actcraft_add_test(tst_bench_options
     LIBS ActCraft::bench)
 
 # Verdict et validité ; les contrôles de la chaîne réelle chargent la vraie interface (startup.cpp).
+# Sortie de Qt Test aussi écrite dans <build>/tests/tst_bench_verdict.txt : sous ctest, la sortie standard de ce test
+# n'apparaît pas (journal du runner vide, même en échec), et ses échecs sous charge ne se reproduisent pas seuls.
 actcraft_add_test(tst_bench_verdict
     SOURCES tst_bench_verdict.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
-    LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
+    LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick
+    ARGS -o tst_bench_verdict.txt,txt -o -,txt)
 target_include_directories(tst_bench_verdict PRIVATE ${PROJECT_SOURCE_DIR}/app)
 # Chien de garde de Qt Test : 300 s par fonction par défaut (QTEST_FUNCTION_TIMEOUT). Les fonctions qui jouent le
 # vrai banc (runBench) le dépassaient sous charge : abandon par qFatal (« Test function timed out »), rien dans la

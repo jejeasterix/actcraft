@@ -1018,7 +1018,8 @@ private slots:
         const BenchResult r = runBench(options);
         QCOMPARE(r.windowMode, QStringLiteral("window"));
         QCOMPARE(r.windowSize, QSize(1366, 768));
-        QCOMPARE(r.contentChecks.size(), std::size_t{5}); // L10-T4 : stroke-folded
+        QVERIFY2(r.contentChecks.size() == std::size_t{5}, // L10-T4 : stroke-folded
+                 qPrintable(describeChecks(r)));           // raisons d'invalidité comprises
         const bool allOk = std::all_of(r.contentChecks.begin(), r.contentChecks.end(),
                                        [](const ContentCheck& c) { return c.ok; });
         QVERIFY2(allOk, qPrintable(describeChecks(r)));
