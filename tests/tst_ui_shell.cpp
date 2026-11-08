@@ -1881,9 +1881,9 @@ private slots:
 
     void lot11StubsGone()
     {
-        // Clôture du lot 11 (L11-T30) : aucun talon du lot ne reste, ni dans les sources de la liste R2, ni dans les
-        // 21 tests unitaires de R1, ni dans les 11 scénarios de R3. Le marqueur est construit ici pour que ce test
-        // ne se compte pas lui-même.
+        // Clôture du lot 11 (L11-T30) : aucun talon du lot ne reste, ni dans les sources de la liste R2, ni
+        // dans les 21 tests unitaires de R1, ni dans les 11 scénarios de R3. Le marqueur est construit ici
+        // pour que ce test ne se compte pas lui-même.
         const QString marker = QStringLiteral("Talon ") + QStringLiteral("L11");
         const QStringList files = {
             "input/include/actcraft/input/touchmodes.h",
