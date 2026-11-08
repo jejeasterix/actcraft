@@ -426,8 +426,8 @@ void TstUiUpdatechecker::startCalledOnceByTheShell()
     }
 }
 
-// L11-C17 (L11-T22) : la recherche du démarrage n'ouvre jamais la boîte modale ; le bandeau non modal apparaît
-// seulement pour une nouvelle version (ni à jour, ni en erreur, ni quand le réglage est faux).
+// L11-C17 (L11-T22) : la recherche du démarrage n'ouvre jamais la boîte modale ; le bandeau non modal
+// n'apparaît que pour une nouvelle version (ni à jour, ni en erreur, ni quand le réglage est faux).
 void TstUiUpdatechecker::dialogOpensOnlyForANewVersionAtStart()
 {
     struct Case
