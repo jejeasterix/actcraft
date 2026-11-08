@@ -173,9 +173,11 @@ public:
     Q_INVOKABLE void notifyCacheUpdated();
     Q_INVOKABLE QPointF pageToScene(QPointF pagePoint) const;
     // Termine le trait en cours (stylet, doigt ou souris) à son dernier point et le verse à la page affichée
-    // ; la suite du même contact ne dessine plus. Appelé avant tout changement de page
-    // (DocumentController::pageAboutToChange, branché dans Main.qml) et, par la vue elle-même, avant tout
-    // changement de zoom ou de défilement : un trait n'est jamais perdu ni versé à une autre page.
+    // ; la suite du même contact ne dessine plus. Appelé avant tout changement de page et toute édition
+    // annoncée (pageAboutToChange, editAboutToApply, branchés dans Main.qml) : le geste du second utilisateur
+    // y est laissé à ToolHost, branché sur les mêmes annonces (L11-C13). La vue elle-même, avant tout
+    // changement de zoom ou de défilement, termine aussi celui du second (endStrokes) : un trait n'est jamais
+    // perdu ni versé à une autre page.
     Q_INVOKABLE void finishStroke();
     // Pendant un scénario du banc, seuls ces périphériques sont écoutés ; liste vide = tous.
     void setExclusiveDevices(QList<const QInputDevice*> devices);
@@ -286,6 +288,8 @@ private:
     // Termine le trait de chaque doigt routé vers l'outil (annulation, saisie volée) par un relâché à son
     // dernier point brut, et rend son contact au routeur.
     void finishTouchStroke();
+    // Corps de finishStroke ; secondUserToo : le geste du second se termine aussi, versé (zoom, défilement).
+    void endStrokes(bool secondUserToo);
     // Voie Tool : filtre d'échantillons s'il est posé, puis Pipeline (numérotation, sonde, doublons), puis
     // `tool` (Pipeline::push est synchrone).
     void pushToTool(const input::Sample& sample, tools::Tool* tool);

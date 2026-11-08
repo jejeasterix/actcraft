@@ -362,9 +362,9 @@ void TstUiFingermenus::imposedPenOpensNoMenu()
 void TstUiFingermenus::secondUserHoldOpensNoMenu()
 {
     // L11-C13 (c), F-303 : mode à deux, premier au sélecteur sans rien de sélectionné. L'appui long du second
-    // n'ouvre aucun menu, quel que soit son outil (les entrées à boîte du menu partiraient au nom du premier),
-    // et ne touche pas la sélection du premier. Décidé sur l'outil et la sélection du premier, il ouvrirait le
-    // menu de l'objet et y sélectionnerait le trait.
+    // n'ouvre aucun menu, quel que soit son outil (les entrées à boîte du menu partiraient au nom du
+    // premier), et ne touche pas la sélection du premier. Décidé sur l'outil et la sélection du premier, il
+    // ouvrirait le menu de l'objet et y sélectionnerait le trait.
     Shell s;
     QVERIFY(start(s));
     const QPointF center = drawAndSelect(s);
