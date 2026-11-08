@@ -1,16 +1,16 @@
-# Graph Report - livraison-complete  (2026-11-05)
+# Graph Report - lot7-vers-main  (2026-11-08)
 
 ## Corpus Check
-- 583 files · ~1,003,578 words
+- 834 files · ~1,366,516 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 11741 nodes · 24791 edges · 596 communities (493 shown, 103 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 1125 edges (avg confidence: 0.8)
+- 17412 nodes · 37083 edges · 797 communities (656 shown, 141 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 1598 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7993b1ba`
+- Built from commit: `15826842`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,6 +26,7 @@
 - [[_COMMUNITY_Community 8|Community 8]]
 - [[_COMMUNITY_Community 9|Community 9]]
 - [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 19|Community 19]]
 - [[_COMMUNITY_Community 20|Community 20]]
 - [[_COMMUNITY_Community 21|Community 21]]
@@ -273,6 +274,7 @@
 - [[_COMMUNITY_Community 274|Community 274]]
 - [[_COMMUNITY_Community 275|Community 275]]
 - [[_COMMUNITY_Community 276|Community 276]]
+- [[_COMMUNITY_Community 277|Community 277]]
 - [[_COMMUNITY_Community 278|Community 278]]
 - [[_COMMUNITY_Community 279|Community 279]]
 - [[_COMMUNITY_Community 280|Community 280]]
@@ -360,6 +362,7 @@
 - [[_COMMUNITY_Community 362|Community 362]]
 - [[_COMMUNITY_Community 363|Community 363]]
 - [[_COMMUNITY_Community 364|Community 364]]
+- [[_COMMUNITY_Community 365|Community 365]]
 - [[_COMMUNITY_Community 367|Community 367]]
 - [[_COMMUNITY_Community 368|Community 368]]
 - [[_COMMUNITY_Community 369|Community 369]]
@@ -465,6 +468,7 @@
 - [[_COMMUNITY_Community 474|Community 474]]
 - [[_COMMUNITY_Community 475|Community 475]]
 - [[_COMMUNITY_Community 476|Community 476]]
+- [[_COMMUNITY_Community 479|Community 479]]
 - [[_COMMUNITY_Community 483|Community 483]]
 - [[_COMMUNITY_Community 484|Community 484]]
 - [[_COMMUNITY_Community 485|Community 485]]
@@ -519,6 +523,7 @@
 - [[_COMMUNITY_Community 534|Community 534]]
 - [[_COMMUNITY_Community 535|Community 535]]
 - [[_COMMUNITY_Community 536|Community 536]]
+- [[_COMMUNITY_Community 537|Community 537]]
 - [[_COMMUNITY_Community 538|Community 538]]
 - [[_COMMUNITY_Community 539|Community 539]]
 - [[_COMMUNITY_Community 541|Community 541]]
@@ -570,124 +575,320 @@
 - [[_COMMUNITY_Community 588|Community 588]]
 - [[_COMMUNITY_Community 589|Community 589]]
 - [[_COMMUNITY_Community 590|Community 590]]
+- [[_COMMUNITY_Community 591|Community 591]]
+- [[_COMMUNITY_Community 592|Community 592]]
 - [[_COMMUNITY_Community 593|Community 593]]
 - [[_COMMUNITY_Community 594|Community 594]]
 - [[_COMMUNITY_Community 595|Community 595]]
+- [[_COMMUNITY_Community 596|Community 596]]
 - [[_COMMUNITY_Community 597|Community 597]]
+- [[_COMMUNITY_Community 598|Community 598]]
+- [[_COMMUNITY_Community 599|Community 599]]
+- [[_COMMUNITY_Community 600|Community 600]]
+- [[_COMMUNITY_Community 601|Community 601]]
+- [[_COMMUNITY_Community 602|Community 602]]
 - [[_COMMUNITY_Community 603|Community 603]]
+- [[_COMMUNITY_Community 604|Community 604]]
+- [[_COMMUNITY_Community 605|Community 605]]
+- [[_COMMUNITY_Community 606|Community 606]]
+- [[_COMMUNITY_Community 607|Community 607]]
+- [[_COMMUNITY_Community 608|Community 608]]
+- [[_COMMUNITY_Community 609|Community 609]]
+- [[_COMMUNITY_Community 610|Community 610]]
+- [[_COMMUNITY_Community 611|Community 611]]
+- [[_COMMUNITY_Community 612|Community 612]]
+- [[_COMMUNITY_Community 613|Community 613]]
+- [[_COMMUNITY_Community 614|Community 614]]
+- [[_COMMUNITY_Community 615|Community 615]]
+- [[_COMMUNITY_Community 616|Community 616]]
+- [[_COMMUNITY_Community 617|Community 617]]
+- [[_COMMUNITY_Community 618|Community 618]]
+- [[_COMMUNITY_Community 619|Community 619]]
+- [[_COMMUNITY_Community 620|Community 620]]
+- [[_COMMUNITY_Community 621|Community 621]]
+- [[_COMMUNITY_Community 622|Community 622]]
+- [[_COMMUNITY_Community 623|Community 623]]
+- [[_COMMUNITY_Community 624|Community 624]]
+- [[_COMMUNITY_Community 625|Community 625]]
+- [[_COMMUNITY_Community 626|Community 626]]
+- [[_COMMUNITY_Community 627|Community 627]]
+- [[_COMMUNITY_Community 628|Community 628]]
+- [[_COMMUNITY_Community 629|Community 629]]
+- [[_COMMUNITY_Community 630|Community 630]]
+- [[_COMMUNITY_Community 631|Community 631]]
+- [[_COMMUNITY_Community 632|Community 632]]
+- [[_COMMUNITY_Community 633|Community 633]]
+- [[_COMMUNITY_Community 634|Community 634]]
+- [[_COMMUNITY_Community 635|Community 635]]
+- [[_COMMUNITY_Community 636|Community 636]]
+- [[_COMMUNITY_Community 637|Community 637]]
+- [[_COMMUNITY_Community 638|Community 638]]
+- [[_COMMUNITY_Community 639|Community 639]]
+- [[_COMMUNITY_Community 640|Community 640]]
+- [[_COMMUNITY_Community 641|Community 641]]
+- [[_COMMUNITY_Community 642|Community 642]]
+- [[_COMMUNITY_Community 643|Community 643]]
+- [[_COMMUNITY_Community 644|Community 644]]
+- [[_COMMUNITY_Community 645|Community 645]]
+- [[_COMMUNITY_Community 646|Community 646]]
+- [[_COMMUNITY_Community 647|Community 647]]
+- [[_COMMUNITY_Community 648|Community 648]]
+- [[_COMMUNITY_Community 649|Community 649]]
+- [[_COMMUNITY_Community 650|Community 650]]
+- [[_COMMUNITY_Community 651|Community 651]]
+- [[_COMMUNITY_Community 652|Community 652]]
+- [[_COMMUNITY_Community 653|Community 653]]
+- [[_COMMUNITY_Community 654|Community 654]]
+- [[_COMMUNITY_Community 655|Community 655]]
+- [[_COMMUNITY_Community 656|Community 656]]
+- [[_COMMUNITY_Community 657|Community 657]]
+- [[_COMMUNITY_Community 658|Community 658]]
+- [[_COMMUNITY_Community 659|Community 659]]
+- [[_COMMUNITY_Community 660|Community 660]]
+- [[_COMMUNITY_Community 661|Community 661]]
+- [[_COMMUNITY_Community 662|Community 662]]
+- [[_COMMUNITY_Community 663|Community 663]]
+- [[_COMMUNITY_Community 664|Community 664]]
+- [[_COMMUNITY_Community 665|Community 665]]
+- [[_COMMUNITY_Community 666|Community 666]]
+- [[_COMMUNITY_Community 667|Community 667]]
+- [[_COMMUNITY_Community 668|Community 668]]
+- [[_COMMUNITY_Community 669|Community 669]]
+- [[_COMMUNITY_Community 670|Community 670]]
+- [[_COMMUNITY_Community 671|Community 671]]
+- [[_COMMUNITY_Community 672|Community 672]]
+- [[_COMMUNITY_Community 673|Community 673]]
+- [[_COMMUNITY_Community 674|Community 674]]
+- [[_COMMUNITY_Community 675|Community 675]]
+- [[_COMMUNITY_Community 676|Community 676]]
+- [[_COMMUNITY_Community 677|Community 677]]
+- [[_COMMUNITY_Community 678|Community 678]]
+- [[_COMMUNITY_Community 679|Community 679]]
+- [[_COMMUNITY_Community 680|Community 680]]
+- [[_COMMUNITY_Community 681|Community 681]]
+- [[_COMMUNITY_Community 682|Community 682]]
+- [[_COMMUNITY_Community 683|Community 683]]
+- [[_COMMUNITY_Community 684|Community 684]]
+- [[_COMMUNITY_Community 685|Community 685]]
+- [[_COMMUNITY_Community 686|Community 686]]
+- [[_COMMUNITY_Community 687|Community 687]]
+- [[_COMMUNITY_Community 688|Community 688]]
+- [[_COMMUNITY_Community 689|Community 689]]
+- [[_COMMUNITY_Community 690|Community 690]]
+- [[_COMMUNITY_Community 691|Community 691]]
+- [[_COMMUNITY_Community 692|Community 692]]
+- [[_COMMUNITY_Community 693|Community 693]]
+- [[_COMMUNITY_Community 694|Community 694]]
+- [[_COMMUNITY_Community 695|Community 695]]
+- [[_COMMUNITY_Community 696|Community 696]]
+- [[_COMMUNITY_Community 697|Community 697]]
+- [[_COMMUNITY_Community 698|Community 698]]
+- [[_COMMUNITY_Community 699|Community 699]]
+- [[_COMMUNITY_Community 700|Community 700]]
+- [[_COMMUNITY_Community 701|Community 701]]
+- [[_COMMUNITY_Community 702|Community 702]]
+- [[_COMMUNITY_Community 703|Community 703]]
+- [[_COMMUNITY_Community 704|Community 704]]
+- [[_COMMUNITY_Community 705|Community 705]]
+- [[_COMMUNITY_Community 706|Community 706]]
+- [[_COMMUNITY_Community 707|Community 707]]
+- [[_COMMUNITY_Community 708|Community 708]]
+- [[_COMMUNITY_Community 709|Community 709]]
+- [[_COMMUNITY_Community 710|Community 710]]
+- [[_COMMUNITY_Community 711|Community 711]]
+- [[_COMMUNITY_Community 712|Community 712]]
+- [[_COMMUNITY_Community 713|Community 713]]
+- [[_COMMUNITY_Community 714|Community 714]]
+- [[_COMMUNITY_Community 715|Community 715]]
+- [[_COMMUNITY_Community 716|Community 716]]
+- [[_COMMUNITY_Community 717|Community 717]]
+- [[_COMMUNITY_Community 718|Community 718]]
+- [[_COMMUNITY_Community 719|Community 719]]
+- [[_COMMUNITY_Community 720|Community 720]]
+- [[_COMMUNITY_Community 721|Community 721]]
+- [[_COMMUNITY_Community 722|Community 722]]
+- [[_COMMUNITY_Community 723|Community 723]]
+- [[_COMMUNITY_Community 724|Community 724]]
+- [[_COMMUNITY_Community 725|Community 725]]
+- [[_COMMUNITY_Community 726|Community 726]]
+- [[_COMMUNITY_Community 727|Community 727]]
+- [[_COMMUNITY_Community 728|Community 728]]
+- [[_COMMUNITY_Community 729|Community 729]]
+- [[_COMMUNITY_Community 730|Community 730]]
+- [[_COMMUNITY_Community 731|Community 731]]
+- [[_COMMUNITY_Community 732|Community 732]]
+- [[_COMMUNITY_Community 733|Community 733]]
+- [[_COMMUNITY_Community 734|Community 734]]
+- [[_COMMUNITY_Community 735|Community 735]]
+- [[_COMMUNITY_Community 736|Community 736]]
+- [[_COMMUNITY_Community 737|Community 737]]
+- [[_COMMUNITY_Community 738|Community 738]]
+- [[_COMMUNITY_Community 739|Community 739]]
+- [[_COMMUNITY_Community 740|Community 740]]
+- [[_COMMUNITY_Community 741|Community 741]]
+- [[_COMMUNITY_Community 742|Community 742]]
+- [[_COMMUNITY_Community 743|Community 743]]
+- [[_COMMUNITY_Community 744|Community 744]]
+- [[_COMMUNITY_Community 745|Community 745]]
+- [[_COMMUNITY_Community 746|Community 746]]
+- [[_COMMUNITY_Community 747|Community 747]]
+- [[_COMMUNITY_Community 748|Community 748]]
+- [[_COMMUNITY_Community 749|Community 749]]
+- [[_COMMUNITY_Community 750|Community 750]]
+- [[_COMMUNITY_Community 751|Community 751]]
+- [[_COMMUNITY_Community 752|Community 752]]
+- [[_COMMUNITY_Community 753|Community 753]]
+- [[_COMMUNITY_Community 754|Community 754]]
+- [[_COMMUNITY_Community 755|Community 755]]
+- [[_COMMUNITY_Community 756|Community 756]]
+- [[_COMMUNITY_Community 757|Community 757]]
+- [[_COMMUNITY_Community 758|Community 758]]
+- [[_COMMUNITY_Community 759|Community 759]]
+- [[_COMMUNITY_Community 760|Community 760]]
+- [[_COMMUNITY_Community 761|Community 761]]
+- [[_COMMUNITY_Community 762|Community 762]]
+- [[_COMMUNITY_Community 763|Community 763]]
+- [[_COMMUNITY_Community 764|Community 764]]
+- [[_COMMUNITY_Community 765|Community 765]]
+- [[_COMMUNITY_Community 766|Community 766]]
+- [[_COMMUNITY_Community 767|Community 767]]
+- [[_COMMUNITY_Community 768|Community 768]]
+- [[_COMMUNITY_Community 769|Community 769]]
+- [[_COMMUNITY_Community 770|Community 770]]
+- [[_COMMUNITY_Community 771|Community 771]]
+- [[_COMMUNITY_Community 772|Community 772]]
+- [[_COMMUNITY_Community 773|Community 773]]
+- [[_COMMUNITY_Community 774|Community 774]]
+- [[_COMMUNITY_Community 775|Community 775]]
+- [[_COMMUNITY_Community 776|Community 776]]
+- [[_COMMUNITY_Community 777|Community 777]]
+- [[_COMMUNITY_Community 778|Community 778]]
+- [[_COMMUNITY_Community 779|Community 779]]
+- [[_COMMUNITY_Community 784|Community 784]]
+- [[_COMMUNITY_Community 785|Community 785]]
+- [[_COMMUNITY_Community 786|Community 786]]
+- [[_COMMUNITY_Community 787|Community 787]]
+- [[_COMMUNITY_Community 793|Community 793]]
+- [[_COMMUNITY_Community 794|Community 794]]
+- [[_COMMUNITY_Community 795|Community 795]]
+- [[_COMMUNITY_Community 796|Community 796]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `QLatin1String` - 149 edges
-2. `TstPageView` - 71 edges
-3. `QFileInfo` - 67 edges
-4. `boundsOnPage()` - 63 edges
-5. `TstBenchUiScenario` - 63 edges
-6. `TstRenderPainter` - 59 edges
-7. `TstToolsSelect` - 59 edges
-8. `QJsonObject` - 53 edges
-9. `TstUiLaunchers` - 52 edges
-10. `TstUiFileMenu` - 51 edges
+1. `QLatin1String` - 234 edges
+2. `boundsOnPage()` - 77 edges
+3. `TstPageView` - 71 edges
+4. `TstBenchUiScenario` - 67 edges
+5. `QSignalSpy` - 67 edges
+6. `TstRenderPainter` - 62 edges
+7. `TstUiShell` - 62 edges
+8. `TstUiActionrunner` - 61 edges
+9. `TstToolsSelect` - 59 edges
+10. `QJsonObject` - 58 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `layoutBar()` --calls--> `length`  [INFERRED]
-  tools/src/selectiongeometry.cpp → core/src/spellcheck.cpp
+- `runEditionGesture()` --calls--> `Pick`  [INFERRED]
+  bench/src/runner.cpp → core/src/pageedits.cpp
+- `emitFrom()` --calls--> `m_sink`  [INFERRED]
+  bench/src/uiscenario.cpp → media/src/displayrecorder_win.cpp
+- `length` --calls--> `layoutBar()`  [INFERRED]
+  core/src/spellcheck.cpp → tools/src/selectiongeometry.cpp
 - `documentFromJson()` --calls--> `LoadedResource`  [INFERRED]
   formats/src/nativejson.cpp → tests/tst_formats_lot6.cpp
 - `followsTheCurrentPage()` --calls--> `QLatin1String`  [INFERRED]
   tests/tst_ui_notes.cpp → ui/src/launchers.cpp
-- `parseArgumentKind()` --calls--> `QLatin1String`  [INFERRED]
-  actions/src/commandregistry.cpp → ui/src/launchers.cpp
-- `platformBit()` --calls--> `QLatin1String`  [INFERRED]
-  actions/src/commandregistry.cpp → ui/src/launchers.cpp
 
 ## Import Cycles
 - None detected.
 
-## Communities (596 total, 103 thin omitted)
+## Communities (797 total, 141 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.13
-Nodes (23): int64_t, optional, pair, QJsonArray, QJsonObject, QJsonValue, QString, ScenarioResult (+15 more)
+Cohesion: 0.11
+Nodes (27): App, engine, fixed, ink, profiles, view, window, FixedPageItem (+19 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (5): Q_OBJECT, QByteArray, TstBenchResult, m_text, private
 
 ### Community 2 - "Community 2"
-Cohesion: 0.12
-Nodes (18): ExitCode, Budget, Criterion, applyVerdict(), exitCodeFor(), after(), BenchOptions, BenchResult (+10 more)
+Cohesion: 0.05
+Nodes (54): BenchResult, ExitCode, int64_t, PlannedInput, QString, QStringList, ScenarioResult, SyncRecord (+46 more)
+
+### Community 16 - "Community 16"
+Cohesion: 0.08
+Nodes (46): CameraController(), cancel(), clearMessage(), closeWindow(), cropped(), deliver(), documentController(), eventFilter() (+38 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.11
-Nodes (38): BenchOptions, BenchResult, DocumentTabs, FixedPageItem, function, int64_t, PageView, PlannedInput (+30 more)
+Cohesion: 0.05
+Nodes (81): BenchOptions, BenchResult, DocumentController, DocumentTabs, ExportResult, FixedPageItem, function, int64_t (+73 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.11
-Nodes (34): atomic_bool, allEqual(), allPoison(), blockNode(), capAt(), copyOf(), InkBuffer, int64_t (+26 more)
+Cohesion: 0.24
+Nodes (23): allEqual(), allPoison(), blockNode(), capAt(), copyOf(), InkBuffer, PointF, QSGGeometryNode (+15 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.18
-Nodes (21): Argb, Document, ObjectId, PageObject, QByteArray, QString, QStringList, vector (+13 more)
+Cohesion: 0.07
+Nodes (50): Argb, Document, ObjectId, PageObject, QByteArray, QLatin1StringView, QString, QStringList (+42 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.19
-Nodes (11): BenchResult, contentCheckOk(), resultFileName(), toJson(), writeResult(), BenchResult, int64_t, Q_OBJECT (+3 more)
+Cohesion: 0.06
+Nodes (45): actcraft(), namespace, namespace, QString, BenchResult, int64_t, optional, pair (+37 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.09
-Nodes (14): colorNear(), RenderHostItem(), class, QColor, Argb, PageObject, Q_OBJECT, QImage (+6 more)
+Cohesion: 0.05
+Nodes (91): Compass, PendingAddition, add(), applyProtractorFrame(), ArcGuide::capture(), ArcGuide::follow(), ArcGuide::project(), arcObject() (+83 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.17
-Nodes (12): Phase, Tool, drag(), line(), moveAlong(), Point, x, y (+4 more)
+Cohesion: 0.20
+Nodes (7): Phase, Tool, moveAlong(), press(), release(), sample(), TstToolsEraser
 
 ### Community 25 - "Community 25"
-Cohesion: 0.15
-Nodes (25): Argb, ImageObject, int32_t, RectF, Shape, Stroke, uint32_t, PortableRng (+17 more)
+Cohesion: 0.14
+Nodes (26): Argb, ImageObject, int32_t, RectF, Shape, Stroke, uint32_t, PortableRng (+18 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.13
-Nodes (17): addPoint(), cancel(), color(), finish(), id(), inkColor(), kind(), onSample() (+9 more)
+Cohesion: 0.11
+Nodes (18): addPoint(), cancel(), color(), finish(), id(), inkColor(), kind(), onSample() (+10 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.05
 Nodes (40): Banc de fluidité — mode d'emploi, Carte des fichiers, Ce que la latence mesurée ne prouve pas, Ce qui est joué, Clôture — passages au banc (orchestrateur), Commandes, Contrats partagés entre tâches (noms figés), Couverture des scénarios (+32 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.13
-Nodes (13): atomic_int, QRectF, QSGNode, RenderingFlags, RenderState, StateFlags, UpdatePaintNodeData, SpyItem (+5 more)
+Cohesion: 0.08
+Nodes (19): atomic_int, Q_OBJECT, QPoint, QRectF, QSGNode, RenderingFlags, RenderState, StateFlags (+11 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.22
-Nodes (9): FrameSeries, IntervalStats, classifyIntervals(), at60Hz(), FrameSeries, int64_t, ms(), near() (+1 more)
+Cohesion: 0.13
+Nodes (19): FrameSeries, int64_t, SyncRecord, vector, IntervalStats, LatencyStats, Percentiles, classifyIntervals() (+11 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.12
-Nodes (14): namespace, actcraft(), InkProbe, namespace, actcraft(), namespace, actcraft(), int64_t (+6 more)
+Cohesion: 0.15
+Nodes (9): namespace, actcraft(), InkProbe, namespace, actcraft(), namespace, actcraft(), namespace (+1 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.12
 Nodes (19): int64_t, MemorySummary, pair, QObject, QQuickWindow, QString, SyncRecord, uint64_t (+11 more)
 
 ### Community 32 - "Community 32"
-Cohesion: 0.10
-Nodes (36): Connector, E, Equation, Fill, Group, ImageObject, int32_t, LabelStyle (+28 more)
+Cohesion: 0.17
+Nodes (22): E, Fill, int32_t, LabelStyle, ObjectCommon, Outline, Page, RectF (+14 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.10
-Nodes (20): QPen, Equation, QPainter, namespace, PageObject, PointF, QPainter, QQuickWindow (+12 more)
+Cohesion: 0.09
+Nodes (25): QSGFlatColorMaterial, QSGGeometryNode, Argb, QColor, QSGGeometryNode, vector, Vertex2D, namespace (+17 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.06
-Nodes (52): initializer_list, backgroundUnder(), checkPair(), checkStateIndicator(), collectRenderedPairs(), colorProperty(), contrastRatio(), controlEnabled() (+44 more)
+Cohesion: 0.09
+Nodes (9): Q_OBJECT, QVariantList, findItem(), item(), run(), start(), TstUiShell, m_settingsDir (+1 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.09
-Nodes (26): KeyboardModifiers, MouseButton, MouseButtons, QJsonValue, QPointF, QPointingDevice, QWindow, Type (+18 more)
+Cohesion: 0.13
+Nodes (15): MouseButton, QPointingDevice, vector, GesturePhase, deliverFingers(), GestureWitness, doubleClick, m_window (+7 more)
 
 ### Community 36 - "Community 36"
-Cohesion: 0.07
-Nodes (42): SampleFilter, addInputCover(), applyDeferral(), content(), coveredAt(), documentController(), fixedPage(), holdRequestsOfThisTurn() (+34 more)
+Cohesion: 0.05
+Nodes (77): QInputDevice, SampleFilter, isVisible(), abandonTouchStroke(), acceptsDevice(), addGestureContact(), addInputCover(), canStartStroke() (+69 more)
 
 ### Community 37 - "Community 37"
 Cohesion: 0.08
@@ -695,47 +896,47 @@ Nodes (14): window, cachedStroke(), Q_OBJECT, QString, Stroke, content, line(), 
 
 ### Community 38 - "Community 38"
 Cohesion: 0.05
-Nodes (36): Amendement 1 (relecture du tour 1), Amendement 2 (relecture du tour 2), API supposées (posées par les lots précédents ; chacune **à revérifier par L8-T0** sauf mention « vérifié »), Cache (règles du lot 10), Commandes de preuve communes, Couverture (relecture de 8a), Décisions appliquées (tranchées par ce plan ; L8-T0 peut les amender), Hypothèses pour Jérôme (créées par ce plan) (+28 more)
+Nodes (37): Amendement 1 (relecture du tour 1), Amendement 2 (relecture du tour 2), Amendement 3 (L8-T0, 2026-11-06, Mac), API supposées (posées par les lots précédents ; chacune **à revérifier par L8-T0** sauf mention « vérifié »), Cache (règles du lot 10), Commandes de preuve communes, Couverture (relecture de 8a), Décisions appliquées (tranchées par ce plan ; L8-T0 peut les amender) (+29 more)
 
 ### Community 39 - "Community 39"
 Cohesion: 0.11
 Nodes (16): cacheMaxSide(), cacheTextureSize(), clampZoom(), fitPage(), panForScrollPosition(), wheelScrollDelta(), wheelZoomFactor(), zoomAt() (+8 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.13
-Nodes (15): GpuMemoryReader, QQuickWindow, unique_ptr, optional, QQuickWindow, QString, uint64_t, unique_ptr (+7 more)
+Cohesion: 0.16
+Nodes (13): GpuMemoryReader, QQuickWindow, unique_ptr, ComPtr, QQuickWindow, QString, unique_ptr, IDXGIAdapter3 (+5 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.16
-Nodes (16): Argb, RectF, size_t, span, StrokePoint, add(), begin(), block() (+8 more)
+Cohesion: 0.07
+Nodes (32): DesktopController, beginStylusStroke(), captureDesktop(), clickRingEntry(), DocumentController, Fill, MainWindow, Pointer (+24 more)
 
 ### Community 42 - "Community 42"
 Cohesion: 0.18
 Nodes (8): BenchOptions, QString, QStringList, outputAccepted(), parseBenchOptions(), resolveOutputPath(), Q_OBJECT, TstBenchOptions
 
 ### Community 43 - "Community 43"
-Cohesion: 0.07
-Nodes (32): Document, ImageObject, Page, QImage, QObject, size_t, string, uint64_t (+24 more)
+Cohesion: 0.14
+Nodes (8): QRegularExpression, argb(), Fixture, Q_OBJECT, QColor, Stroke, TstRenderFixedPage, private
 
 ### Community 44 - "Community 44"
-Cohesion: 0.08
-Nodes (31): Decode, CacheArea, Document, ObjectId, Page, PageObject, QQuickItem, RectF (+23 more)
+Cohesion: 0.04
+Nodes (67): Decode, GestureStep, Point2, CacheArea, DecodedImages, Document, ImageStore, ObjectId (+59 more)
 
 ### Community 45 - "Community 45"
 Cohesion: 0.14
 Nodes (24): collectButtons(), commandsOf(), Commands, m_settingsDir, ProfileController, Q_OBJECT, QList, QPointF (+16 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.11
-Nodes (43): allowsWhileLocked(), bindHandler(), bumpState(), colors(), Commands(), contextMenu(), defaultProfileDir(), errors() (+35 more)
+Cohesion: 0.10
+Nodes (48): allowsWhileLocked(), bindHandler(), bumpState(), colors(), Commands(), contextMenu(), defaultProfileDir(), errors() (+40 more)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.16
-Nodes (31): ItemChangeData, QWheelEvent, size_t, apply(), applyGesture(), cacheTextureSize(), finishStroke(), fitPage() (+23 more)
+Cohesion: 0.15
+Nodes (34): ItemChangeData, size_t, height, width(), apply(), applyGesture(), cacheTextureSize(), fitPage() (+26 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.10
-Nodes (20): actcraft(), addPoint(), beginStroke(), commitAnnotation(), commitStroke(), ControllerSink(), FixedPageSink(), InkSurfaceAdapter() (+12 more)
+Cohesion: 0.11
+Nodes (18): actcraft(), addPoint(), beginStroke(), commitAnnotation(), commitStroke(), ControllerSink(), FixedPageSink(), InkSurfaceAdapter() (+10 more)
 
 ### Community 49 - "Community 49"
 Cohesion: 0.06
@@ -746,16 +947,16 @@ Cohesion: 0.14
 Nodes (13): Avant tout passage, Banc de fluidité — mode d'emploi, Ce qu'il faut renvoyer, Ce qui est joué, Commandes, Fichier de résultats, `gommer` et `soulever` (L3-T19, H10-8 e, S36), Limites connues (+5 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.06
-Nodes (40): QSGGeometry, QSGMaterial, QSGMaterialType, optional, PointF, QColor, QPainter, QQuickWindow (+32 more)
+Cohesion: 0.20
+Nodes (26): backgroundUnder(), checkPair(), checkStateIndicator(), collectRenderedPairs(), colorProperty(), contrastRatio(), controlEnabled(), initializer_list (+18 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.16
+Cohesion: 0.18
 Nodes (7): CountingCache, inserts, invalidates, removes, CacheArea, ObjectId, RectF
 
 ### Community 53 - "Community 53"
-Cohesion: 0.11
-Nodes (22): CommandRegistry, Layout, MenuSpec, QByteArray, QJsonValue, QString, QStringList, vector (+14 more)
+Cohesion: 0.15
+Nodes (13): CommandRegistry, Layout, QByteArray, QString, dataResourceDir(), parseLayout(), readLayeredFile(), unknownCommands() (+5 more)
 
 ### Community 54 - "Community 54"
 Cohesion: 0.05
@@ -774,40 +975,44 @@ Cohesion: 0.25
 Nodes (7): 1. Objectif, 2. Décisions, 3. Matériel cible et budget, 4. Architecture, 5. Plan, 6. Points ouverts, BRIEF — ActCraft (réécriture C++ / Qt 6 Quick)
 
 ### Community 58 - "Community 58"
-Cohesion: 0.08
-Nodes (19): commands(), documentController(), liftLayer(), RecolorDocument, refreshSelection(), setCommands(), setDocumentController(), setLiftLayer() (+11 more)
+Cohesion: 0.07
+Nodes (25): armGate(), commands(), designMode(), documentController(), eventFilter(), liftLayer(), RecolorDocument, relayModifiers() (+17 more)
 
 ### Community 59 - "Community 59"
-Cohesion: 0.33
-Nodes (5): PageObject, QSGNode, RenderContext, size_t, createNode()
+Cohesion: 0.07
+Nodes (40): QMatrix4x4, QSGImageNode, QSGNode, PageObject, QSGNode, RenderContext, size_t, FixedPageItem (+32 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.10
-Nodes (61): function, PageView, QImage, QJsonObject, QQuickItem, QQuickWindow, qsizetype, QString (+53 more)
+Cohesion: 0.08
+Nodes (75): function, KeyboardModifiers, MouseButtons, PageView, QImage, QJsonObject, QJsonValue, QPointF (+67 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.19
-Nodes (19): Changes, Kind, LiftedObject, ObjectId, Page, size_t, vector, changesAfterLift() (+11 more)
+Cohesion: 0.11
+Nodes (30): Changes, Kind, LiftedObject, ObjectId, Page, size_t, vector, changesAfterLift() (+22 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.13
-Nodes (16): printLine(), applyRenderBackend(), QString, QStringList, parseRenderBackend(), main(), QString, QString (+8 more)
+Cohesion: 0.40
+Nodes (4): namespace, actcraft(), Injector, setInjector()
 
 ### Community 65 - "Community 65"
 Cohesion: 0.04
-Nodes (43): PenShapeTool, Argb, Document, ObjectId, PageObject, PointF, QString, QStringList (+35 more)
+Nodes (40): Argb, Document, ObjectId, PageObject, PointF, QString, QStringList, QVariant (+32 more)
 
 ### Community 67 - "Community 67"
-Cohesion: 0.09
-Nodes (54): align(), arrange(), canPaste(), clipboardObjects(), copy(), cut(), document(), duplicate() (+46 more)
+Cohesion: 0.12
+Nodes (50): align(), arrange(), canPaste(), clipboardObjects(), copy(), cut(), document(), duplicate() (+42 more)
 
 ### Community 78 - "Community 78"
+Cohesion: 0.06
+Nodes (37): Calls, CacheModel, controller, faults, ids, CacheSpy, calls, origins (+29 more)
+
+### Community 79 - "Community 79"
 Cohesion: 0.07
-Nodes (35): Calls, CacheModel, controller, faults, ids, CacheSpy, calls, origins (+27 more)
+Nodes (21): actcraft(), activeTool(), Tool, actcraft(), actcraft(), actcraft(), namespace, namespace (+13 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.16
-Nodes (27): Argb, Document, Fill, FlipchartReadResult, GridLevel, ObjectId, Outline, PageObject (+19 more)
+Cohesion: 0.08
+Nodes (42): Argb, Document, Fill, FlipchartReadResult, GridLevel, ObjectId, Outline, PageObject (+34 more)
 
 ### Community 86 - "Community 86"
 Cohesion: 0.06
@@ -823,51 +1028,51 @@ Nodes (24): Amendements à porter une fois le socle mergé (entrée des planific
 
 ### Community 91 - "Community 91"
 Cohesion: 0.05
-Nodes (26): countPixels(), Argb, Connector, ConnectorCap, function, GridLevel, Page, PageObject (+18 more)
+Nodes (29): countPixels(), Argb, Connector, ConnectorCap, function, GridLevel, Page, PageObject (+21 more)
 
 ### Community 93 - "Community 93"
-Cohesion: 0.15
-Nodes (3): Q_OBJECT, string, TstCoreUndo
+Cohesion: 0.08
+Nodes (12): Append, m_mergeKey, m_steps, Counted, m_mergeKey, m_redos, m_undos, Changes (+4 more)
 
 ### Community 94 - "Community 94"
-Cohesion: 0.08
-Nodes (3): Stroke, redStroke(), TstUiDocument
+Cohesion: 0.06
+Nodes (8): PageObject, Q_OBJECT, QString, Stroke, redStroke(), saveAndWait(), topSquare(), TstUiDocument
 
 ### Community 95 - "Community 95"
-Cohesion: 0.08
-Nodes (12): QByteArray, QLatin1String, parseUiScenario(), Q_OBJECT, QByteArray, QString, UiScenario, load() (+4 more)
+Cohesion: 0.07
+Nodes (16): QByteArray, QLatin1String, parseUiScenario(), KeyboardModifiers, Q_OBJECT, QByteArray, QString, QWindow (+8 more)
 
 ### Community 96 - "Community 96"
 Cohesion: 0.07
-Nodes (37): int64_t, PlannedInput, QEvent, QObject, QPointF, QPointingDevice, QWindow, size_t (+29 more)
+Nodes (43): catalogue(), documentController(), effect(), finished(), frozen(), globalEffect(), grid(), known() (+35 more)
 
 ### Community 97 - "Community 97"
 Cohesion: 0.21
 Nodes (35): optional, PointF, QPainterPath, RectF, size_t, span, StrokePoint, vector (+27 more)
 
 ### Community 98 - "Community 98"
-Cohesion: 0.25
-Nodes (14): defaultFolderUrl(), fileUrl(), forgetStaleLift(), loadGeneratedPages(), newDocument(), newDocumentWithFrames(), parkSession(), replaceDocument() (+6 more)
+Cohesion: 0.20
+Nodes (25): fingerprintHex(), fingerprintText(), forgetStaleLift(), freshDocumentKey(), loadGeneratedPages(), newDocument(), newDocumentWithFrames(), openUrl() (+17 more)
 
 ### Community 99 - "Community 99"
-Cohesion: 0.16
-Nodes (10): controller(), m_settingsDir, Q_OBJECT, QObject, namedObject(), run(), start(), tabsOf() (+2 more)
+Cohesion: 0.07
+Nodes (45): controller(), DocumentController, DocumentTabs, FixedPageItem, m_settingsDir, PageView, Q_OBJECT, QByteArray (+37 more)
 
 ### Community 100 - "Community 100"
 Cohesion: 0.06
 Nodes (35): Amendement 1 (relecture tour 1), Amendement 2 (relecture tour 2), Amendement 3 (relecture tour 3), Amendement 4 (ouverture L6-T0), API supposées (posées par les lots précédents ; L6-T0 les revérifie une par une), Commandes de preuve communes, Décisions appliquées (tranchées par ce plan, amendement 1 faisant autorité ; L6-T0 peut les amender), Hypothèses pour Jérôme (créées par ce plan) (+27 more)
 
 ### Community 101 - "Community 101"
-Cohesion: 0.05
-Nodes (33): QEvent, QObject, TextEditing(), KeyWitness, ambiguous, receiver, shortcut, QEvent (+25 more)
+Cohesion: 0.02
+Nodes (66): actcraft(), namespace, namespace, actcraft(), NOTIFY, QObject, actcraft(), actcraft() (+58 more)
 
 ### Community 102 - "Community 102"
-Cohesion: 0.06
-Nodes (32): Clôture du lot 1 (orchestrateur), Compteurs, Demande, Fin du lot 2 (étage 3.8), Hors périmètre, Hypothèses à revoir (niveau 1 d'abord), Lot 6 — exécution sur le Mac (session « Mac 6 », depuis le 2026-11-04), Pièges trouvés (+24 more)
+Cohesion: 0.04
+Nodes (46): CI de la PR #16 (2026-11-07), Clôture du lot 1 (orchestrateur), Compteurs, Demande, Fin du lot 2 (étage 3.8), Hors périmètre, Hypothèses à revoir (niveau 1 d'abord), Lot 11 — exécution sur le Mac (session « ActCraft A — lot 11 », depuis le 2026-11-07) (+38 more)
 
 ### Community 103 - "Community 103"
-Cohesion: 0.09
-Nodes (32): CachedFixture, fixed, stylus, view, DocumentController, FixedPageItem, PageView, PendingLayerItem (+24 more)
+Cohesion: 0.14
+Nodes (23): centerOf(), collectDelegates(), DocumentController, MainWindow, Q_OBJECT, QObject, QPoint, QQuickItem (+15 more)
 
 ### Community 104 - "Community 104"
 Cohesion: 0.06
@@ -883,7 +1088,7 @@ Nodes (33): countPixels(), Argb, Fixture, function, ImageStore, Page, PageObject
 
 ### Community 107 - "Community 107"
 Cohesion: 0.06
-Nodes (52): PropertyModel, addObject(), Commands, DocumentController, FixedPageItem, Layer, ObjectId, ObjectProperty (+44 more)
+Nodes (56): addObject(), Commands, DocumentController, FixedPageItem, Layer, ObjectId, ObjectProperty, optional (+48 more)
 
 ### Community 108 - "Community 108"
 Cohesion: 0.26
@@ -902,16 +1107,16 @@ Cohesion: 0.18
 Nodes (10): 1. Demande et gabarit, 2. Décisions, 3. Hypothèses à revoir, 4. Décisions d'architecture, 5. Scénarios d'acceptation, 6. Hors périmètre, 7. Portes immédiates, Cadrage — livraison complète (étapes 3 et 4 du BRIEF, installateur Windows, APK Android) (+2 more)
 
 ### Community 112 - "Community 112"
-Cohesion: 0.15
-Nodes (8): Entry, Node, Q_OBJECT, QByteArray, vector, nearlyEqual(), onePage(), TstFormatsFlipchart
+Cohesion: 0.33
+Nodes (5): Frame, cx, cy, length, thickness
 
 ### Community 113 - "Community 113"
 Cohesion: 0.33
 Nodes (8): AppInfo(), initNoticesResource(), licenseName(), notices(), projectUrl(), version(), QObject, QString
 
 ### Community 114 - "Community 114"
-Cohesion: 0.07
-Nodes (45): ArchiveWriterOverride, contentTitlesAreDecodedOnce(), controllerDestroyedDuringIoReceivesNothing(), ArchiveWriter, Argb, QByteArray, QString, QTemporaryDir (+37 more)
+Cohesion: 0.12
+Nodes (27): contentTitlesAreDecodedOnce(), Argb, QTemporaryDir, QUrl, failedSaveKeepsTheDocumentModified(), ioRunsOffTheMainThread(), loadComputesTheFingerprintOfTheDocumentRead(), newDocumentDuringOpenRefusesTheOpening() (+19 more)
 
 ### Community 115 - "Community 115"
 Cohesion: 0.11
@@ -922,32 +1127,28 @@ Cohesion: 0.08
 Nodes (18): actcraft(), namespace, namespace, QIODevice, actcraft(), QIODevice, Q_OBJECT, QByteArray (+10 more)
 
 ### Community 117 - "Community 117"
-Cohesion: 0.11
-Nodes (33): QTextCursor, apply(), bold(), cancel(), changeBlocks(), columnDocument(), commit(), currentCharFormat() (+25 more)
+Cohesion: 0.09
+Nodes (39): beginAt(), cancel(), columnDocument(), columnSize(), commit(), documentController(), editDocument(), finish() (+31 more)
 
 ### Community 118 - "Community 118"
 Cohesion: 0.07
 Nodes (44): App, commands, document, engine, journal, lift, tools, view (+36 more)
 
 ### Community 119 - "Community 119"
-Cohesion: 0.10
-Nodes (24): compact(), array, Document, N, optional, PointF, Q_OBJECT, QByteArray (+16 more)
+Cohesion: 0.06
+Nodes (35): actcraft, richdoc(), richInteractiveDocument(), namespace, Document, initializer_list, Q_OBJECT, QByteArray (+27 more)
 
 ### Community 120 - "Community 120"
-Cohesion: 0.31
-Nodes (4): Q_OBJECT, QString, TstUi, private
-
-### Community 121 - "Community 121"
-Cohesion: 0.24
-Nodes (3): Q_OBJECT, string, selection
+Cohesion: 0.21
+Nodes (12): optional, uint64_t, askFile(), chooseOpen(), chooseSave(), failed(), fontFamily(), openUrl() (+4 more)
 
 ### Community 122 - "Community 122"
-Cohesion: 0.07
-Nodes (26): Amendement 4 (ouverture L6-T0), Commandes de preuve communes, Livraison complète — lot 6 « Navigateurs, propriétés, profils », sous-lot 6b — plan d'exécution, Sections des tâches, Table des tâches, Talons : règle d'honnêteté, Tâche L6-T19 — `formats` : fragment de ressource, Tâche L6-T20 — `ui` : bibliothèque de ressources (+18 more)
+Cohesion: 0.04
+Nodes (46): Compte de tests, Couverture des scénarios du cadrage, Décisions de cet amendement, Hypothèses ajoutées (porte de fin du lot 7), Lecture des sections amendées (lot P2-A et P2-B), Livraison complète — lot 7 « Présentation et outils » — amendement « phase 2 » (après le socle) — plan d'exécution, Risques, Règles communes à toutes les tâches (à joindre à chaque section) (+38 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.12
-Nodes (41): optional, QByteArray, QImage, QString, QStringList, vector, asThumbnailJpeg(), compareThumbnails() (+33 more)
+Cohesion: 0.10
+Nodes (47): optional, QByteArray, QImage, QString, QStringList, Variant, vector, asThumbnailJpeg() (+39 more)
 
 ### Community 124 - "Community 124"
 Cohesion: 0.07
@@ -962,64 +1163,64 @@ Cohesion: 0.50
 Nodes (3): Conséquences, Outillage des paquets — vérifications du 2026-10-14, Résultats
 
 ### Community 128 - "Community 128"
-Cohesion: 0.16
-Nodes (12): RectF, Shape, dragBox(), findShapePreset(), makeShapeObject(), rebuildShape(), smartPoints(), PointF (+4 more)
+Cohesion: 0.23
+Nodes (21): pair, PointF, Shape, size_t, vector, ShapeFamily, ShapePreset, addArc() (+13 more)
 
 ### Community 129 - "Community 129"
-Cohesion: 0.15
-Nodes (19): BambooContainer, IndexNode, optional, QByteArray, qsizetype, QString, QStringList, quint16 (+11 more)
+Cohesion: 0.05
+Nodes (53): ArcStyle, Kind, optional, QLineF, QPointF, QSizeF, QString, RulerUnit (+45 more)
 
 ### Community 130 - "Community 130"
 Cohesion: 0.08
 Nodes (24): Carte des fichiers, Ce que l'ancien dépôt dit déjà (relevé pour ce plan, reformulé), Clôture du lot 10 (orchestrateur, hors tâches), Contrats partagés entre tâches (noms figés), Couverture des scénarios, Décisions tranchées par ce plan, Hypothèses à revoir (porte de fin du lot 10), Livraison complète — lot 10 « Cache incrémental » (H-mes-1) — plan d'exécution (+16 more)
 
 ### Community 131 - "Community 131"
-Cohesion: 0.09
-Nodes (23): Action, PageObject, Polyline, Value, vector, drawsBefore(), Pending, actions (+15 more)
+Cohesion: 0.12
+Nodes (17): Action, PageObject, drawsBefore(), Pending, actions, children, connectorA, connectorB (+9 more)
 
 ### Community 135 - "Community 135"
-Cohesion: 0.08
-Nodes (30): FlipchartLimits, Document, FlipchartReadResult, map, ObjectId, pair, QByteArray, qint64 (+22 more)
+Cohesion: 0.11
+Nodes (33): FlipchartLimits, BambooContainer, Document, FlipchartReadResult, map, ObjectId, optional, Page (+25 more)
 
 ### Community 136 - "Community 136"
-Cohesion: 0.05
-Nodes (40): ConnectorTool, Document, ObjectId, PageObject, QString, QVariant, RectF, SelectionView (+32 more)
+Cohesion: 0.13
+Nodes (12): ConnectorTool, Document, QString, QVariant, size_t, UndoCommand, unique_ptr, UserState (+4 more)
 
 ### Community 137 - "Community 137"
 Cohesion: 0.25
 Nodes (7): Ce qui amende le plan (pour l'orchestrateur), Constats, Décisions, Hypothèses nouvelles ou modifiées, Lot 3 — principes confrontés (vidéos, ancien dépôt, binaire), Méthode et limites, Point tranché par l'orchestrateur (reporté tel quel)
 
 ### Community 138 - "Community 138"
-Cohesion: 0.05
-Nodes (31): Factory, ObjectId, PageObject, PointF, Q_OBJECT, QString, QStringList, QVariant (+23 more)
+Cohesion: 0.04
+Nodes (43): CommandSink, DocumentEditor, InkSurface, LiftSurface, Argb, Factory, ObjectId, Page (+35 more)
 
 ### Community 139 - "Community 139"
 Cohesion: 0.14
 Nodes (11): KeyboardModifiers, MouseButtons, QPoint, QPointF, Type, onOneLine(), openDrawing(), settleTouch() (+3 more)
 
 ### Community 142 - "Community 142"
-Cohesion: 0.12
-Nodes (27): Color, optional, PointF, Polyline, RectF, ResourceItem, SizeF, StreamObject (+19 more)
+Cohesion: 0.11
+Nodes (28): PagePresentation, Color, optional, Pointer, PointF, Polyline, RectF, ResourceItem (+20 more)
 
 ### Community 145 - "Community 145"
 Cohesion: 0.13
 Nodes (12): Page, PointF, appendWitnesses(), generatePage(), hitsWitness(), Argb, PointF, Q_OBJECT (+4 more)
 
 ### Community 146 - "Community 146"
-Cohesion: 0.15
-Nodes (30): BambooContainer, Color, Fill, GradientKind, IndexNode, int32_t, optional, Outline (+22 more)
+Cohesion: 0.11
+Nodes (34): Color, Fill, GradientKind, IndexNode, int32_t, Outline, Polyline, quint16 (+26 more)
 
 ### Community 147 - "Community 147"
-Cohesion: 0.10
-Nodes (37): Action, Document, JsonReadResult, ObjectCommon, ObjectId, Page, PagePresentation, ResourceLoader (+29 more)
+Cohesion: 0.14
+Nodes (20): CalculatorController, calculatorOf(), centreOf(), clickKeys(), controllerOf(), DocumentController, MainWindow, Q_OBJECT (+12 more)
 
 ### Community 148 - "Community 148"
 Cohesion: 0.17
-Nodes (23): Bytes, Obj, std, box(), container(), fctest(), fillsAndPens(), fonts() (+15 more)
+Nodes (28): Bytes, std, box(), container(), fctest(), fillsAndPens(), fonts(), ink() (+20 more)
 
 ### Community 149 - "Community 149"
-Cohesion: 0.27
-Nodes (21): QJsonObject, QStringView, value, readAction(), readCommon(), readEnum(), Reader, known (+13 more)
+Cohesion: 0.25
+Nodes (24): QJsonObject, QStringView, value, readAction(), readBroadcast(), readCommon(), readContainer(), readEnum() (+16 more)
 
 ### Community 150 - "Community 150"
 Cohesion: 0.12
@@ -1038,32 +1239,32 @@ Cohesion: 0.08
 Nodes (24): Carte des fichiers, Clôture du lot 2 (orchestrateur, hors tâches), Contrats partagés entre tâches (noms figés), Couverture des scénarios, Hypothèses nouvelles de 2b (à revoir, porte de fin du lot 2), Livraison complète — lot 2, sous-lot 2b « Rendu, document ouvert, fichiers, S4 et S5 » — plan d'exécution, Règles communes à toutes les tâches (rappelées dans chaque section), Table des tâches (+16 more)
 
 ### Community 154 - "Community 154"
-Cohesion: 0.19
-Nodes (16): Connector, Equation, Group, ImageObject, Line, Media, PointF, Shape (+8 more)
+Cohesion: 0.16
+Nodes (19): Connector, Equation, Group, ImageObject, Line, Media, PointF, QJsonValue (+11 more)
 
 ### Community 155 - "Community 155"
 Cohesion: 0.09
 Nodes (21): Carte des fichiers, Contrats partagés entre tâches (noms figés), Couverture des scénarios, Hypothèses nouvelles de 2a (à revoir, reprises à la porte de fin du lot 2), Livraison complète — lot 2, sous-lot 2a « Modèle, format natif et lecteur `.flipchart` » — plan d'exécution, Point d'étape 2a (orchestrateur, hors tâches), Règles communes à toutes les tâches (rappelées dans chaque section), Table des tâches (+13 more)
 
 ### Community 156 - "Community 156"
-Cohesion: 0.08
-Nodes (22): ObjectRenderer, PaintedRenderer, actcraft(), actcraft(), namespace, namespace, namespace, namespace (+14 more)
+Cohesion: 0.07
+Nodes (24): ObjectRenderer, PaintedRenderer, actcraft(), actcraft(), namespace, namespace, namespace, namespace (+16 more)
 
 ### Community 157 - "Community 157"
-Cohesion: 0.06
-Nodes (35): CommandSink, Document, ObjectId, PageObject, QStringList, SelectionView, SelectTool, Stroke (+27 more)
+Cohesion: 0.05
+Nodes (36): Document, HandleKind, ObjectId, PageObject, PointF, QString, QStringList, QVariant (+28 more)
 
 ### Community 158 - "Community 158"
-Cohesion: 0.25
-Nodes (11): Document, Fixture, Grid, Q_OBJECT, QColor, QImage, documentWithGrid(), near() (+3 more)
+Cohesion: 0.13
+Nodes (23): Change, Changes, Document, ObjectId, Page, PageProperty, PropertyValue, RectF (+15 more)
 
 ### Community 159 - "Community 159"
-Cohesion: 0.23
-Nodes (10): addRectangle(), addStroke(), Document, Layer, ObjectId, Q_OBJECT, RectF, pageHas() (+2 more)
+Cohesion: 0.19
+Nodes (11): addStroke(), Layer, Q_OBJECT, drag(), line(), pageHas(), Point, x (+3 more)
 
 ### Community 160 - "Community 160"
-Cohesion: 0.17
-Nodes (21): array, E, N, optional, PageObject, QJsonValue, QStringList, size_t (+13 more)
+Cohesion: 0.07
+Nodes (56): Action, BroadcastRules, ContainerRule, Document, Fill, Grid, GridLevel, JsonReadResult (+48 more)
 
 ### Community 161 - "Community 161"
 Cohesion: 0.12
@@ -1071,31 +1272,31 @@ Nodes (15): 1. Le principe et ce qu'il change, 2.1 Exclusions reprises (14 exige
 
 ### Community 162 - "Community 162"
 Cohesion: 0.13
-Nodes (29): ClearKind, Change, Changes, Document, ObjectId, Page, PageObject, PointF (+21 more)
+Nodes (29): Change, Changes, ClearKind, Document, ObjectId, Page, PageObject, PointF (+21 more)
 
 ### Community 163 - "Community 163"
-Cohesion: 0.17
-Nodes (8): namespace, actcraft(), QString, MachineInfo, readMachineInfo(), sanitizeForFileName(), sysctlString(), TstBenchMemory
+Cohesion: 0.24
+Nodes (11): documentController(), message(), openWebHome(), PresentationCommands(), setDocumentController(), setMessage(), setUrlOpener(), webHome() (+3 more)
 
 ### Community 164 - "Community 164"
 Cohesion: 0.05
 Nodes (73): activate(), addColor(), applyLayoutDir(), assignFlag(), bindCommands(), browsersCurrent(), browsersSide(), builtinOrder() (+65 more)
 
 ### Community 165 - "Community 165"
-Cohesion: 0.11
-Nodes (42): Part, RenderContext, Argb, DecodedImages, ImageLookup, ImageStore, Page, PageObject (+34 more)
+Cohesion: 0.13
+Nodes (38): Part, Argb, DecodedImages, ImageLookup, ImageStore, Page, PageObject, QColor (+30 more)
 
 ### Community 166 - "Community 166"
-Cohesion: 0.12
-Nodes (17): ActionKind, CurtainMode, FillKind, ConnectorCap, GridPattern, Layer, ObjectKind, PenCap (+9 more)
+Cohesion: 0.09
+Nodes (22): Accepts, ActionKind, FillKind, FitRule, ConnectorCap, CurtainMode, GridPattern, Layer (+14 more)
 
 ### Community 167 - "Community 167"
-Cohesion: 0.08
-Nodes (25): ChangeObserver, addChangeObserver(), blankLike(), canRedo(), canRevertPage(), canUndo(), DocumentController(), fixedPage() (+17 more)
+Cohesion: 0.07
+Nodes (26): ChangeObserver, addChangeObserver(), canRedo(), canUndo(), DocumentController(), fileUrl(), fixedPage(), IoRelay (+18 more)
 
 ### Community 168 - "Community 168"
-Cohesion: 0.12
-Nodes (33): PaintOptions, Argb, QImage, DecodedImages, Document, ImageLookup, ImageObject, Media (+25 more)
+Cohesion: 0.08
+Nodes (25): Carte des fichiers (7b), Clôture du lot 7 (orchestrateur, hors tâches), Couverture des scénarios (7b), Décisions tranchées par ce plan, Dépendances déclarées, Hypothèses à revoir (porte de fin du lot 7), Livraison complète — lot 7 « Présentation et outils » — sous-lot 7b — plan d'exécution, Table des tâches (sous-lot 7b) (+17 more)
 
 ### Community 169 - "Community 169"
 Cohesion: 0.17
@@ -1110,20 +1311,20 @@ Cohesion: 0.20
 Nodes (9): 🔑 Accès, ✅ Fait cette session, 🔧 Git, Handoff — Reprise sur livraison-complete (lot 2b) en NOUVELLE session, MODE DE TRAVAIL (source : `.claude/chantier.md` de la branche du chantier, qui fait autorité), 🧩 Pièges, ⏭️ Prochain, ♻️ Reliquats hors chantier (+1 more)
 
 ### Community 172 - "Community 172"
-Cohesion: 0.20
-Nodes (15): EraserTool, add(), contains(), create(), ids(), inkTool(), registerBuiltinTools(), ToolRegistry (+7 more)
+Cohesion: 0.09
+Nodes (21): Candidats écartés ou réduits, Ce que la phase 2 reprend (entrée de l'amendement de phase 2), Compte de tests, Couverture des scénarios du cadrage, Décisions de cet amendement, Livraison complète — lot 7 « Présentation et outils » — amendement « phase 1 » (logique pure) — plan d'exécution, Risques, Règles communes à toutes les tâches (à joindre à chaque section) (+13 more)
 
 ### Community 173 - "Community 173"
-Cohesion: 0.10
-Nodes (19): KeyboardModifiers, QQmlApplicationEngine, QQuickWindow, QTemporaryDir, QWindow, Type, ulong, unique_ptr (+11 more)
+Cohesion: 0.14
+Nodes (15): QQmlApplicationEngine, QQuickWindow, QTemporaryDir, UiScenario, unique_ptr, EnvironmentGuard, m_had, m_name (+7 more)
 
 ### Community 174 - "Community 174"
 Cohesion: 0.12
 Nodes (43): compact(), ClipboardPayload, Document, map, PageObject, Q_OBJECT, QByteArray, QJsonArray (+35 more)
 
 ### Community 175 - "Community 175"
-Cohesion: 0.12
-Nodes (22): DocumentController, DocumentTabs, FixedPageItem, PageView, QColor, QQmlApplicationEngine, QQuickItem, QQuickWindow (+14 more)
+Cohesion: 0.20
+Nodes (6): Q_OBJECT, MotionHold, m_motion, PlayinglessTransition, playedChanged, signals
 
 ### Community 176 - "Community 176"
 Cohesion: 0.43
@@ -1138,8 +1339,8 @@ Cohesion: 0.08
 Nodes (24): AnnotationDocument, lastTranslucency, Argb, Phase, Q_OBJECT, Sample, string, Stroke (+16 more)
 
 ### Community 179 - "Community 179"
-Cohesion: 0.23
-Nodes (21): announcePageChange(), attach(), commitStroke(), dropLifted(), execute(), executeAs(), nextPage(), notifyObservers() (+13 more)
+Cohesion: 0.24
+Nodes (22): FlaggedObject, commitStroke(), dropLifted(), execute(), executeAs(), flaggedObjects(), notifyFlags(), notifyObservers() (+14 more)
 
 ### Community 180 - "Community 180"
 Cohesion: 0.40
@@ -1154,20 +1355,20 @@ Cohesion: 0.67
 Nodes (3): class, GpuMemoryReader(), MemoryTracker()
 
 ### Community 191 - "Community 191"
-Cohesion: 0.19
-Nodes (10): hasUniqueIds(), withFreshIds(), Document, PageObject, Q_OBJECT, string, names(), pages() (+2 more)
+Cohesion: 0.14
+Nodes (18): DiceController, centreOf(), clickOn(), controllerOf(), DocumentController, MainWindow, Q_OBJECT, QPointF (+10 more)
 
 ### Community 193 - "Community 193"
-Cohesion: 0.14
-Nodes (13): main(), QQmlApplicationEngine, QQuickWindow, QString, QStringList, loadMainWindow(), openFileArgument(), parseStartupOptions() (+5 more)
+Cohesion: 0.05
+Nodes (40): main(), printLine(), applyRenderBackend(), QString, QStringList, parseRenderBackend(), QQmlApplicationEngine, QQuickWindow (+32 more)
 
 ### Community 194 - "Community 194"
-Cohesion: 0.16
-Nodes (9): firstPage(), DocumentController, Q_OBJECT, QString, QTemporaryDir, T, lastAs(), TestInsertion (+1 more)
+Cohesion: 0.12
+Nodes (28): centreOf(), clickItem(), MainWindow, Pointer, Q_OBJECT, QByteArray, QImage, QPointF (+20 more)
 
 ### Community 196 - "Community 196"
-Cohesion: 0.13
-Nodes (17): App, engine, profiles, view, window, int64_t, PageView, pair (+9 more)
+Cohesion: 0.09
+Nodes (40): Travel, Turning, Mark, ObjectId, Page, PageObject, pair, PointF (+32 more)
 
 ### Community 197 - "Community 197"
 Cohesion: 0.11
@@ -1187,11 +1388,11 @@ Nodes (25): translation(), addTo(), count(), Changes, Document, ImageObject, Kin
 
 ### Community 201 - "Community 201"
 Cohesion: 0.07
-Nodes (61): QBrush, QLineF, QPolygonF, QTextObjectInterface, Argb, Connector, Fill, GridLevel (+53 more)
+Nodes (77): QBrush, QPen, Argb, Connector, DecodedImages, Document, Fill, GridLevel (+69 more)
 
 ### Community 202 - "Community 202"
-Cohesion: 0.21
-Nodes (20): LoadOutcome, SaveOutcome, actcraftTarget(), currentTestWriter(), defaultDocumentsFolder(), flipchartRefusal(), isFlipchartName(), loadDocument() (+12 more)
+Cohesion: 0.19
+Nodes (21): LoadOutcome, SaveOutcome, defaultFolderUrl(), actcraftTarget(), currentTestWriter(), defaultDocumentsFolder(), flipchartRefusal(), isFlipchartName() (+13 more)
 
 ### Community 203 - "Community 203"
 Cohesion: 0.22
@@ -1202,124 +1403,124 @@ Cohesion: 0.12
 Nodes (15): Attribution des figements et reprises hors limite, Condition « machine calme », Critères perdus hors S13, Décision sur L10-T7 : non requise, Fichiers, Mesure S13 du cache incrémental (lot 10, L10-T6) — machine de développement, Modèle et prédictions, écrits avant la mesure, Méthode (+7 more)
 
 ### Community 205 - "Community 205"
-Cohesion: 0.05
-Nodes (35): LiftSurface, SelectionSurface, Argb, ObjectId, PageObject, pair, QString, QVariant (+27 more)
+Cohesion: 0.04
+Nodes (46): SelectionSurface, at(), Argb, ObjectId, Page, PageObject, pair, Phase (+38 more)
 
 ### Community 206 - "Community 206"
-Cohesion: 0.11
-Nodes (13): DocumentEditor, Page, size_t, UndoCommand, unique_ptr, NullEditor, m_page, Page (+5 more)
+Cohesion: 0.18
+Nodes (14): angleOf(), closePoint(), closeTo(), ObjectId, Phase, Q_OBJECT, RectF, Sample (+6 more)
 
 ### Community 207 - "Community 207"
-Cohesion: 0.05
-Nodes (70): acceptedForeignIsResigned(), addShowsThePath(), argumentsNeedANamedProgram(), bareNameOnlyOffWindows(), batAndCmdRefused(), changedSinceRequestRunsNothing(), colonAndSeparatorRefused(), confirmationShowsPathAndArguments() (+62 more)
+Cohesion: 0.15
+Nodes (7): confirmationShowsPathAndArguments(), Preferences, ProfileController, QJsonArray, QTemporaryDir, randomKey(), signatureIsUnambiguous()
 
 ### Community 208 - "Community 208"
-Cohesion: 0.20
+Cohesion: 0.18
 Nodes (5): Rig, controller, options, spy, token
 
 ### Community 209 - "Community 209"
-Cohesion: 0.09
-Nodes (32): core::PageCache, QLatin1StringView, isLayerOrdered(), FixtureEntry, name, add(), call(), CacheArea (+24 more)
+Cohesion: 0.10
+Nodes (29): core::PageCache, isLayerOrdered(), add(), call(), CacheArea, Document, Layer, ObjectId (+21 more)
 
 ### Community 211 - "Community 211"
-Cohesion: 0.10
-Nodes (40): activate(), canSwitch(), closeWithoutSaving(), commands(), copyPagesToTab(), data(), document(), DocumentTabs() (+32 more)
+Cohesion: 0.09
+Nodes (42): activate(), canSwitch(), closeWithoutSaving(), commands(), copyPagesToTab(), data(), document(), DocumentTabs() (+34 more)
 
 ### Community 213 - "Community 213"
 Cohesion: 0.13
 Nodes (24): blueRectangle(), Argb, Fixture, ObjectId, Page, PageObject, Q_OBJECT, QByteArray (+16 more)
 
 ### Community 214 - "Community 214"
-Cohesion: 0.14
-Nodes (13): QByteArray, QSemaphore, QString, shared_ptr, size_t, fileBytes(), pagesIn(), PoolHold (+5 more)
+Cohesion: 0.18
+Nodes (11): int64_t, QString, elapsedSeconds(), formatHms(), parseHms(), pause(), poll(), remainingSeconds() (+3 more)
 
 ### Community 215 - "Community 215"
-Cohesion: 0.11
-Nodes (25): QColor, QImage, QPoint, QPointF, qreal, QString, QStringList, QImage (+17 more)
+Cohesion: 0.14
+Nodes (20): QColor, QImage, QPoint, QPointF, qreal, QString, QStringList, ContentCheck (+12 more)
 
 ### Community 216 - "Community 216"
-Cohesion: 0.13
-Nodes (20): attachController(), data(), detachController(), documentController(), onChanges(), onDocumentChanged(), onPagesChanged(), PageThumbnails() (+12 more)
+Cohesion: 0.06
+Nodes (48): ResourceMap, attachController(), contactInProgress(), data(), detachController(), documentController(), finish(), image() (+40 more)
 
 ### Community 217 - "Community 217"
-Cohesion: 0.13
-Nodes (13): LiftedObject, size_t, UndoCommand, unique_ptr, FakeEditor, dropCalls, dropNullCalls, dropped (+5 more)
+Cohesion: 0.06
+Nodes (54): activeDocument(), captureBackground(), closeWindow(), commands(), DesktopController(), desktopDocument(), finishCapture(), finishStroke() (+46 more)
 
 ### Community 218 - "Community 218"
 Cohesion: 0.08
 Nodes (42): changedButton(), closeTo(), coverPresses(), DocumentController, FixedPageItem, MouseButton, MouseButtons, PageView (+34 more)
 
 ### Community 219 - "Community 219"
-Cohesion: 0.24
-Nodes (10): int64_t, SyncRecord, vector, LatencyStats, Percentiles, computeLatency(), percentile(), summarize() (+2 more)
+Cohesion: 0.08
+Nodes (57): actionsShowCatalogLabels(), addObject(), asList(), commandRefusals(), Change, Commands, DocumentController, InteractivityRow (+49 more)
 
 ### Community 220 - "Community 220"
 Cohesion: 0.11
 Nodes (11): Commands, Q_OBJECT, QByteArray, QString, QStringList, QVariant, itemIds(), menuLabels() (+3 more)
 
 ### Community 221 - "Community 221"
-Cohesion: 0.16
-Nodes (26): Handler, Platform, Platforms, QString, QStringList, QVariant, ArgumentKind, CommandInfo (+18 more)
+Cohesion: 0.15
+Nodes (27): Handler, Platform, Platforms, QString, QStringList, QVariant, ArgumentKind, CommandInfo (+19 more)
 
 ### Community 222 - "Community 222"
 Cohesion: 0.10
 Nodes (8): QByteArray, currentPlatform(), defaultCommandsJson(), bits(), Platform, Platforms, Q_OBJECT, TstActionsRegistry
 
 ### Community 223 - "Community 223"
-Cohesion: 0.20
-Nodes (18): DecodeResult, Extracted, ArchiveLimits, Document, QByteArray, QString, size_t, string (+10 more)
+Cohesion: 0.12
+Nodes (37): EquationController, shown, addEquation(), atScaleOne(), centreOf(), clickIn(), controllerOf(), DocumentController (+29 more)
 
 ### Community 224 - "Community 224"
-Cohesion: 0.12
-Nodes (47): activate(), beginDrag(), beginShapePoint(), beginSmartPoint(), beginTransform(), cancel(), clearSelection(), contains() (+39 more)
+Cohesion: 0.05
+Nodes (99): BarSpot, ContainerAccepted, SelectionHit, hitSelection(), insideQuad(), layoutBar(), layoutSelection(), middle() (+91 more)
 
 ### Community 225 - "Community 225"
-Cohesion: 0.08
-Nodes (26): QQuickItem, height, width(), checkStaticLayer(), ColorPainterItem, m_color, Q_PROPERTY, Q_OBJECT (+18 more)
+Cohesion: 0.06
+Nodes (31): QQuickItem, QSGRenderNode, actcraft(), namespace, namespace, actcraft(), checkStaticLayer(), ColorPainterItem (+23 more)
 
 ### Community 226 - "Community 226"
 Cohesion: 0.09
 Nodes (55): Attachment, ConnectorTip, Changes, Connector, Document, ObjectId, optional, Page (+47 more)
 
 ### Community 227 - "Community 227"
-Cohesion: 0.11
-Nodes (18): CacheArea, Changes, optional, PageCache, RectF, size_t, applyToCache(), changedArea() (+10 more)
+Cohesion: 0.08
+Nodes (20): CacheArea, Changes, optional, PageCache, RectF, size_t, applyToCache(), changedArea() (+12 more)
 
 ### Community 228 - "Community 228"
-Cohesion: 0.14
-Nodes (16): FixedPageItem, PageObject, QQuickItem, QSGNode, Transform, UpdatePaintNodeData, vector, clear() (+8 more)
+Cohesion: 0.10
+Nodes (13): Direction, int64_t, QPointF, anchor(), isDoubleClick(), move(), PageZoom(), panDelta() (+5 more)
 
 ### Community 229 - "Community 229"
 Cohesion: 0.07
-Nodes (25): DeviceKind, Decision, function, RouterState, RoutingPolicy, Sample, uint64_t, unique_ptr (+17 more)
+Nodes (26): DeviceKind, Decision, function, RouterState, RoutingPolicy, Sample, uint64_t, unique_ptr (+18 more)
 
 ### Community 230 - "Community 230"
-Cohesion: 0.13
-Nodes (26): ObjectId, optional, Page, PageObject, PointF, RectF, Stroke, vector (+18 more)
+Cohesion: 0.09
+Nodes (58): optional, Points, QPointF, QRectF, RecognizedShape, size_t, vector, Axes (+50 more)
 
 ### Community 231 - "Community 231"
-Cohesion: 0.06
-Nodes (39): ResourceLibrary, addStroke(), cacheDir(), atomic, Commands, DocumentController, function, ObjectId (+31 more)
+Cohesion: 0.05
+Nodes (43): QString, ResourceLibrary, useIsolatedResourceRoots(), Q_OBJECT, TstBenchIsolation, addStroke(), cacheDir(), atomic (+35 more)
 
 ### Community 232 - "Community 232"
 Cohesion: 0.13
 Nodes (25): Launchers, m_settingsDir, ProfileController, Q_OBJECT, QObject, QQmlApplicationEngine, QQuickItem, QQuickWindow (+17 more)
 
 ### Community 233 - "Community 233"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (17): defaultSettings(), id(), setCurrentTool(), setOpenMathTools(), setSelection(), setSettings(), setShapeSettings(), setTextSettings() (+9 more)
 
 ### Community 234 - "Community 234"
-Cohesion: 0.19
-Nodes (11): RecentDocuments, archive(), Q_OBJECT, QString, QStringList, QTemporaryDir, QUrl, names() (+3 more)
+Cohesion: 0.07
+Nodes (54): ActionParameter, ActionBrowserModel(), allowed(), apply(), attachDocument(), cancelPick(), categoryLabels(), commands() (+46 more)
 
 ### Community 235 - "Community 235"
-Cohesion: 0.18
-Nodes (6): angleOf(), around(), Phase, Sample, last, sampleAt()
+Cohesion: 0.20
+Nodes (5): angleOf(), around(), Phase, Sample, sampleAt()
 
 ### Community 236 - "Community 236"
-Cohesion: 0.20
-Nodes (9): Banc de clôture commune des lots 10 et 3 — machine de développement, Condition machine, Critères perdus hors S13, Fichiers, Mémoire, Non-régression 0.2.0 → 0.4.0 : tenue, P6 `-Rendu tous` : `gommer` et `soulever`, `pauses.over_25ms_ratio` (L10-T9, étape 2) : encore perdu à P3 et P4 (+1 more)
+Cohesion: 0.13
+Nodes (20): condition_variable, mutex, QThread, shared_ptr, size_t, vector, currentThreadIsSta(), FakeRecognizer (+12 more)
 
 ### Community 237 - "Community 237"
 Cohesion: 0.13
@@ -1330,8 +1531,8 @@ Cohesion: 0.17
 Nodes (13): PageObject, PointF, StrokePoint, vector, closePiece(), cutByDisk(), cutBySweep(), insideDisk() (+5 more)
 
 ### Community 239 - "Community 239"
-Cohesion: 0.13
-Nodes (15): QJsonValue, QStringList, compare(), compareCanonical(), text(), Document, Q_OBJECT, QJsonObject (+7 more)
+Cohesion: 0.11
+Nodes (32): BroadcastRules, ObjectId, Page, QByteArray, size_t, string, uint64_t, vector (+24 more)
 
 ### Community 240 - "Community 240"
 Cohesion: 0.42
@@ -1343,15 +1544,23 @@ Nodes (5): class, DocumentEditor(), LiftSurface(), SelectionSurface(), ViewInfo(
 
 ### Community 243 - "Community 243"
 Cohesion: 0.10
-Nodes (6): ObjectKind, PageObject, kindOf(), Page, Q_OBJECT, TstCoreModel
+Nodes (4): kindOf(), Page, Q_OBJECT, TstCoreModel
+
+### Community 246 - "Community 246"
+Cohesion: 0.17
+Nodes (14): core::UndoCommand, Changes, Document, initializer_list, Layer, size_t, vector, documentController() (+6 more)
+
+### Community 248 - "Community 248"
+Cohesion: 0.27
+Nodes (8): int64_t, ObjectId, vector, addStroke(), due(), RecognitionSession(), remove(), setDelayMs()
 
 ### Community 249 - "Community 249"
 Cohesion: 0.11
 Nodes (15): Argb, LiftedObject, StrokePoint, uint64_t, UndoCommand, unique_ptr, FakeEditor, calls (+7 more)
 
 ### Community 250 - "Community 250"
-Cohesion: 0.14
-Nodes (12): closePoint(), closeTo(), PointF, QString, QStringList, QVariant, SelectTool, UserState (+4 more)
+Cohesion: 0.26
+Nodes (13): CurtainController, closeTo(), controllerOf(), DocumentController, MainWindow, Q_OBJECT, QPointF, SpotlightController (+5 more)
 
 ### Community 252 - "Community 252"
 Cohesion: 0.10
@@ -1362,80 +1571,100 @@ Cohesion: 0.12
 Nodes (19): bigStroke(), DocumentController, FixedPageItem, PageView, Q_OBJECT, QImage, QQuickWindow, Stroke (+11 more)
 
 ### Community 254 - "Community 254"
-Cohesion: 0.16
-Nodes (17): bytes(), Document, JsonReadResult, Q_OBJECT, QByteArray, QJsonObject, qsizetype, QString (+9 more)
+Cohesion: 0.06
+Nodes (40): bytes(), Document, JsonReadResult, Q_OBJECT, QByteArray, QJsonObject, qsizetype, QString (+32 more)
 
 ### Community 255 - "Community 255"
-Cohesion: 0.21
-Nodes (5): Q_OBJECT, QByteArray, qint64, TstFormatsBamboo, zlibOfZeros()
+Cohesion: 0.16
+Nodes (15): ShortcutBar, Commands, DocumentController, Preferences, ProfileController, QTemporaryDir, ToolHost, unique_ptr (+7 more)
 
 ### Community 256 - "Community 256"
-Cohesion: 0.21
-Nodes (23): Changes, Document, map, ObjectId, Page, Resource, size_t, string (+15 more)
+Cohesion: 0.18
+Nodes (27): Changes, Document, map, ObjectId, Page, Resource, set, size_t (+19 more)
 
 ### Community 257 - "Community 257"
-Cohesion: 0.16
-Nodes (16): Changes, Document, size_t, UndoCommand, unique_ptr, canRedo(), canUndo(), count() (+8 more)
+Cohesion: 0.17
+Nodes (15): Changes, Document, size_t, UndoCommand, unique_ptr, canRedo(), canUndo(), count() (+7 more)
 
 ### Community 258 - "Community 258"
 Cohesion: 0.10
 Nodes (21): Ajout à `ui/include/actcraft/ui/documentcontroller.h` (A5), en public, Annexe A — en-têtes figés (écrits par L5-T1, mot pour mot), Autres en-têtes de `ui/` (même forme : `QObject` ou `QAbstractListModel`, `QML_ELEMENT`), `core/include/actcraft/core/alignment.h`, `core/include/actcraft/core/arrange.h`, `core/include/actcraft/core/clipboardedits.h`, `core/include/actcraft/core/connectors.h`, `core/include/actcraft/core/fill.h` (+13 more)
 
 ### Community 260 - "Community 260"
-Cohesion: 0.20
-Nodes (17): fingerprintHex(), fingerprintText(), lastError(), openUrl(), pageLabel(), post(), refuseWhileBusy(), saveToUrl() (+9 more)
+Cohesion: 0.18
+Nodes (14): QPointF, QRectF, QSizeF, Shape, defaultFrame(), frame(), hidesInside(), keepInside() (+6 more)
 
 ### Community 261 - "Community 261"
 Cohesion: 0.10
 Nodes (21): Tâche L5-T0 — Ouverture : vidéos, REA et ancien dépôt confrontés au lot ; API revérifiées, Tâche L5-T10 — `core` : connecteurs et leur suivi, Tâche L5-T11 — `core` : modification de stylo, Tâche L5-T12 — `tools` : pot de peinture et modification de stylo, Tâche L5-T13 — `tools` : outil connecteur, Tâche L5-T14 — `ui` : contrôleur d'édition d'objet, Tâche L5-T15 — `ui` : insérer une image ou un média, Tâche L5-T16 — `tools` : sélection, glisser une copie et points de forme (+13 more)
 
 ### Community 262 - "Community 262"
-Cohesion: 0.20
-Nodes (11): SettingsSchema, allKeys(), QSet, QString, QStringList, QVariant, QVariantMap, entryOf() (+3 more)
+Cohesion: 0.09
+Nodes (51): Kind, N, Node, optional, QString, size_t, string, vector (+43 more)
 
 ### Community 263 - "Community 263"
-Cohesion: 0.16
-Nodes (46): Document, int64_t, Page, pair, PlannedInput, QPointF, ScenarioPlan, Stroke (+38 more)
+Cohesion: 0.12
+Nodes (59): Document, int64_t, Page, pair, PlannedInput, QPointF, QString, ScenarioPlan (+51 more)
 
 ### Community 264 - "Community 264"
-Cohesion: 0.09
-Nodes (35): Changes, Document, ObjectId, optional, Page, PageObject, PointF, RectF (+27 more)
+Cohesion: 0.08
+Nodes (38): Changes, Document, ObjectId, optional, Page, PageObject, PointF, RectF (+30 more)
 
 ### Community 265 - "Community 265"
-Cohesion: 0.13
-Nodes (15): aboveGrid(), CacheArea, Changes, Grid, ObjectId, Q_OBJECT, RectF, isIgnoredByTheCache() (+7 more)
+Cohesion: 0.08
+Nodes (36): Background, Change, Changes, Document, Grid, Page, size_t, UndoCommand (+28 more)
 
 ### Community 266 - "Community 266"
-Cohesion: 0.18
-Nodes (12): InkProbe, Sample, SampleSink, uint64_t, ToolDispatch, accept(), nextSequence(), Pipeline() (+4 more)
+Cohesion: 0.29
+Nodes (8): InkProbe, Sample, uint64_t, accept(), nextSequence(), push(), resetSequence(), setProbe()
 
 ### Community 267 - "Community 267"
 Cohesion: 0.10
 Nodes (20): Amendement 1 (relecture tour 1), Amendement 2 (relecture tour 2), Amendement 3 (relecture tour 3), Livraison complète — lot 5 « Édition et fichiers », sous-lot 5b (onglets, export, impression, imports) — plan d'exécution, Table des tâches, Tâche L5-T20 — `ui` : onglets, sessions garées, une seule vue, Tâche L5-T21 — QML : barre d'onglets ; scénario `onglets`, Tâche L5-T22 — Qt PDF : installation, CI, licences, option automatique (+12 more)
 
 ### Community 268 - "Community 268"
-Cohesion: 0.07
-Nodes (33): Stroke, QColor, QPainter, QQuickWindow, QRectF, RenderingFlags, RenderState, span (+25 more)
+Cohesion: 0.09
+Nodes (14): colorNear(), RenderHostItem(), class, QColor, Argb, PageObject, Q_OBJECT, QImage (+6 more)
+
+### Community 269 - "Community 269"
+Cohesion: 0.16
+Nodes (22): Attributes, EquationNode, Kind, QLatin1StringView, string, string_view, vector, QXmlStreamReader (+14 more)
+
+### Community 271 - "Community 271"
+Cohesion: 0.17
+Nodes (8): setInteractionPolicy(), FakePolicy, actions, blockers, restrictions, QString, id(), InteractionPolicy
+
+### Community 272 - "Community 272"
+Cohesion: 0.13
+Nodes (15): Connector, Equation, Group, ImageObject, Line, Media, PointF, Shape (+7 more)
+
+### Community 274 - "Community 274"
+Cohesion: 0.10
+Nodes (56): MediaItems, Player, actionCarrier(), addingAMediaKeepsThePlayingVideoDelegate(), bigTone(), channelOf(), chimePlaysOnAcceptedDrop(), clickOnLoopingSoundKeepsTheLoop() (+48 more)
 
 ### Community 275 - "Community 275"
-Cohesion: 0.13
-Nodes (18): gestureTransform(), horizontalSign(), MoveAndPasteCommand, m_move, m_paste, publish(), showBand(), toDegrees() (+10 more)
+Cohesion: 0.23
+Nodes (12): closeTo(), controllerOf(), DocumentController, MainWindow, Q_OBJECT, QObject, QPointF, imageCount() (+4 more)
 
 ### Community 276 - "Community 276"
-Cohesion: 0.17
-Nodes (18): addRect(), addRotatedRect(), blank(), boundsOf(), boundsWith(), Document, ObjectId, PageObject (+10 more)
+Cohesion: 0.06
+Nodes (70): alternatives(), alternativesAnchor(), chooseAlternative(), closeAlternatives(), convertPending(), convertToShape(), convertToText(), delayMs() (+62 more)
+
+### Community 277 - "Community 277"
+Cohesion: 0.16
+Nodes (25): accept(), acceptEdit(), backspace(), documentController(), edit(), edited(), editorMathml(), editorSize() (+17 more)
 
 ### Community 278 - "Community 278"
 Cohesion: 0.06
-Nodes (49): Argb, QImage, QPoint, floodFill(), CommandSinkAdapter(), DocumentEditorAdapter(), drop(), execute() (+41 more)
+Nodes (51): Argb, QImage, QPoint, floodFill(), CommandSinkAdapter(), DocumentEditorAdapter(), drop(), execute() (+43 more)
 
 ### Community 279 - "Community 279"
-Cohesion: 0.15
-Nodes (16): ObjectNode, QMatrix4x4, QSGNode, UpdatePaintNodeData, ImageStore, ObjectCommon, PageObject, QQuickWindow (+8 more)
+Cohesion: 0.22
+Nodes (7): Document, size_t, UndoCommand, unique_ptr, FakeDocument, document, executed
 
 ### Community 280 - "Community 280"
-Cohesion: 0.10
-Nodes (31): QSGFlatColorMaterial, QSGGeometryNode, Argb, InkBuffer, InkProbe, PenCap, QSGNode, uint64_t (+23 more)
+Cohesion: 0.14
+Nodes (12): ActionGate, m_done, m_held, m_inner, m_owning, m_pointer, m_runner, setActionRunner() (+4 more)
 
 ### Community 281 - "Community 281"
 Cohesion: 0.15
@@ -1446,95 +1675,95 @@ Cohesion: 0.14
 Nodes (37): add(), addConnector(), addGroup(), addRect(), addStroke(), blank(), boundsOf(), connectorEndsRemapped() (+29 more)
 
 ### Community 283 - "Community 283"
-Cohesion: 0.20
-Nodes (20): ObjectId, QByteArray, string, uint64_t, vector, addResource(), allocateId(), Document() (+12 more)
+Cohesion: 0.10
+Nodes (5): hasUniqueIds(), Q_OBJECT, Stroke, redStroke(), TstCoreDocument
 
 ### Community 284 - "Community 284"
 Cohesion: 0.09
 Nodes (39): addObject(), Commands, DocumentController, Layer, ObjectId, ObjectTreeModel, PageObject, Q_OBJECT (+31 more)
 
 ### Community 285 - "Community 285"
-Cohesion: 0.10
-Nodes (50): Before, conditional_t, Change, Changes, Document, ObjectId, ObjectProperty, optional (+42 more)
+Cohesion: 0.16
+Nodes (28): Before, conditional_t, ObjectProperty, optional, Outline, PageObject, Transform, uint32_t (+20 more)
 
 ### Community 286 - "Community 286"
 Cohesion: 0.25
-Nodes (7): QElapsedTimer, qint64, EventLoopProbe, m_clock, m_last, m_max, m_timer
+Nodes (7): QElapsedTimer, qint64, QTimer, EventLoopProbe, m_last, m_max, m_timer
 
 ### Community 287 - "Community 287"
-Cohesion: 0.09
-Nodes (37): QInputDevice, abandonTouchStroke(), acceptsDevice(), addGestureContact(), canStartStroke(), contactActive(), currentTool(), endGesture() (+29 more)
+Cohesion: 0.16
+Nodes (17): Callback, Factory, InkStrokes, optional, QObject, QString, QStringList, unique_ptr (+9 more)
 
 ### Community 288 - "Community 288"
-Cohesion: 0.10
-Nodes (34): Mode, acceptDrop(), centeredRect(), document(), insertImage(), insertImageData(), Insertion(), InsertionJob (+26 more)
+Cohesion: 0.06
+Nodes (58): Mode, acceptDrop(), centeredRect(), document(), InsertCommand, m_entries, m_inner, m_page (+50 more)
 
 ### Community 289 - "Community 289"
-Cohesion: 0.08
-Nodes (23): QString, QVariant, SelectionView, Stroke, ToolContext, UserState, FakeCommands, FakeSelection (+15 more)
+Cohesion: 0.25
+Nodes (28): EquationBox, EquationNode, initializer_list, string, string_view, cell(), Context, baseEm (+20 more)
 
 ### Community 290 - "Community 290"
 Cohesion: 0.18
 Nodes (25): Engine, channelGap(), Argb, Page, PageObject, Q_OBJECT, QColor, QImage (+17 more)
 
 ### Community 291 - "Community 291"
-Cohesion: 0.06
-Nodes (42): Changes, Document, ObjectFlag, ObjectId, Page, PageObject, size_t, vector (+34 more)
+Cohesion: 0.13
+Nodes (17): cacheTouches(), Changes, Kind, ObjectId, ObjectProperty, PageProperty, PropertyValue, Q_OBJECT (+9 more)
 
 ### Community 292 - "Community 292"
-Cohesion: 0.11
-Nodes (28): Commands, DocumentController, DocumentTabs, FileExchange, Q_OBJECT, QByteArray, QQmlApplicationEngine, QQuickWindow (+20 more)
+Cohesion: 0.09
+Nodes (33): array, Commands, DocumentController, DocumentTabs, FileExchange, optional, Q_OBJECT, QByteArray (+25 more)
 
 ### Community 293 - "Community 293"
-Cohesion: 0.12
-Nodes (19): boolean(), choice(), Entry, defaultValue, key, label, max, min (+11 more)
+Cohesion: 0.11
+Nodes (29): adopt(), backgroundColor(), clampedSpeed(), durationMs(), fits(), fontPointSize(), nowMs(), pixelsPerSecond() (+21 more)
 
 ### Community 294 - "Community 294"
 Cohesion: 0.12
 Nodes (23): SheetCell, colouredDocument(), countMatches(), countPdfImages(), countPdfPages(), Document, PrintJob, Q_OBJECT (+15 more)
 
 ### Community 295 - "Community 295"
-Cohesion: 0.15
-Nodes (6): closeRect(), closeTo(), RectF, size_t, snappingGrid(), TstToolsSelect
+Cohesion: 0.14
+Nodes (8): closeRect(), closeTo(), Q_OBJECT, RectF, size_t, last, snappingGrid(), TstToolsSelect
 
 ### Community 296 - "Community 296"
-Cohesion: 0.04
-Nodes (37): QPointer, actcraft(), namespace, actcraft(), actcraft(), actcraft(), actcraft(), namespace (+29 more)
+Cohesion: 0.08
+Nodes (50): RecognitionController, atMs(), circlePoints(), closedPolyline(), controllerOf(), countOf(), DocumentController, InkStrokes (+42 more)
 
 ### Community 297 - "Community 297"
 Cohesion: 0.13
 Nodes (26): addConnectorAt(), addRect(), blank(), changedCount(), contains(), Changes, Connector, Document (+18 more)
 
 ### Community 298 - "Community 298"
-Cohesion: 0.11
-Nodes (27): App, engine, fixed, ink, profiles, view, window, FixedPageItem (+19 more)
+Cohesion: 0.13
+Nodes (10): SampleSink, Pipeline(), Phase, Q_OBJECT, Sample, vector, make(), RecordingSink (+2 more)
 
 ### Community 299 - "Community 299"
-Cohesion: 0.18
-Nodes (15): beginAt(), columnSize(), frame(), insertPreedit(), moveFrame(), narrowestAdvance(), NoImageHandler, Q_INTERFACES (+7 more)
+Cohesion: 0.13
+Nodes (18): InkStrokes, QPointF, QStringList, unique_ptr, VARIANT, vector, IInkDisp, IInkRecognitionAlternate (+10 more)
 
 ### Community 300 - "Community 300"
-Cohesion: 0.13
-Nodes (14): namespace, FixedPageItem, ObjectId, pair, QQuickItem, QSGNode, UpdatePaintNodeData, vector (+6 more)
+Cohesion: 0.09
+Nodes (27): ObjectNode, DecodedImages, ImageStore, ObjectCommon, PageObject, QQuickWindow, QSGNode, RendererRegistry (+19 more)
 
 ### Community 301 - "Community 301"
 Cohesion: 0.10
 Nodes (11): Commands, Preferences, ProfileController, Q_OBJECT, QQmlEngine, QString, QTemporaryDir, unique_ptr (+3 more)
 
 ### Community 302 - "Community 302"
-Cohesion: 0.12
-Nodes (20): BenchResult, int64_t, PlannedInput, QString, QStringList, ScenarioResult, SyncRecord, vector (+12 more)
+Cohesion: 0.40
+Nodes (5): finished(), setPaused(), start(), stop(), togglePause()
 
 ### Community 303 - "Community 303"
-Cohesion: 0.06
-Nodes (50): Document, optional, QChar, QString, QStringList, size_t, SpellEngine, SpellHit (+42 more)
+Cohesion: 0.14
+Nodes (27): Document, optional, QChar, QString, SpellHit, UndoCommand, unique_ptr, vector (+19 more)
 
 ### Community 304 - "Community 304"
-Cohesion: 0.27
-Nodes (7): PageObject, Transform, vector, FakeLift, clearCalls, showCalls, shown
+Cohesion: 0.12
+Nodes (13): addRectangle(), Argb, ObjectId, PageObject, RectF, StrokePoint, Transform, uint64_t (+5 more)
 
 ### Community 305 - "Community 305"
-Cohesion: 0.25
+Cohesion: 0.23
 Nodes (4): QString, size_t, string, plainOfHtml()
 
 ### Community 306 - "Community 306"
@@ -1542,47 +1771,43 @@ Cohesion: 0.33
 Nodes (5): input::RoutingPolicy, Decision, RouterState, Sample, FingerKeepsThePen
 
 ### Community 307 - "Community 307"
-Cohesion: 0.19
-Nodes (32): Done, begin(), document(), exportPageImage(), exportPdf(), fail(), FileExchange(), fileName() (+24 more)
+Cohesion: 0.29
+Nodes (8): optional, Sample, StrokeGuide, add(), filter(), nearest(), remove(), snapPreview()
 
 ### Community 308 - "Community 308"
-Cohesion: 0.13
-Nodes (15): DocumentController, ExportResult, QElapsedTimer, QFutureWatcher, QTemporaryDir, BackgroundExports, m_active, m_clock (+7 more)
-
-### Community 309 - "Community 309"
-Cohesion: 0.15
-Nodes (12): Architecture et règles, Base de connaissance — l'ancien dépôt et la rétro-ingénierie, CLAUDE.md — ActCraft (C++ / Qt 6 Quick), Démarrer une fonctionnalité — chaîne `nouvelle-feature`, Git, Knowledge graph (graphify), Langue, Mode autonome (+4 more)
+Cohesion: 0.14
+Nodes (5): ObjectId, Q_OBJECT, QObject, document, TestTabs
 
 ### Community 310 - "Community 310"
-Cohesion: 0.17
-Nodes (14): FixedPageItem, Grid, GridLevel, QQuickItem, qreal, fixedPage(), GridOverlayItem(), readGrid() (+6 more)
+Cohesion: 0.14
+Nodes (17): FixedPageItem, Grid, GridLevel, QQuickItem, qreal, QSGNode, UpdatePaintNodeData, fixedPage() (+9 more)
 
 ### Community 311 - "Community 311"
-Cohesion: 0.09
-Nodes (23): PageThumbnails, contactInProgress(), finish(), image(), lastRenderThread(), mark(), markAll(), onContactChanged() (+15 more)
+Cohesion: 0.14
+Nodes (7): qint64, QString, QVideoFrame, FakeScreen, m_path, FakeSound, m_path
 
 ### Community 312 - "Community 312"
-Cohesion: 0.12
-Nodes (17): Preferences, ProfileController, Q_OBJECT, QObject, QQmlEngine, QQuickItem, QTemporaryDir, unique_ptr (+9 more)
+Cohesion: 0.14
+Nodes (18): SettingsSchema, allKeys(), Preferences, ProfileController, QObject, QQmlEngine, QSet, QStringList (+10 more)
 
 ### Community 313 - "Community 313"
 Cohesion: 0.15
-Nodes (41): AlignMode, Axis, Changes, Document, ObjectId, Page, PageObject, PointF (+33 more)
+Nodes (41): AlignMode, Axis, Changes, Document, FitMode, ObjectId, Page, PageObject (+33 more)
 
 ### Community 314 - "Community 314"
 Cohesion: 0.12
 Nodes (36): DecodedImages, Document, Page, PrintJob, PrintSettings, QImage, QPainter, QRectF (+28 more)
 
 ### Community 315 - "Community 315"
-Cohesion: 0.22
-Nodes (17): BarSpot, SelectionHit, hitSelection(), insideQuad(), layoutBar(), layoutSelection(), middle(), smartPointsOnPage() (+9 more)
+Cohesion: 0.09
+Nodes (36): applyRows(), chimeWave(), collect(), document(), entryById(), isSoundResource(), links(), MediaItems() (+28 more)
 
 ### Community 316 - "Community 316"
 Cohesion: 0.13
-Nodes (24): abandon(), boxGesture(), cancel(), chainExtentReached(), currentObject(), dragged(), finishChain(), id() (+16 more)
+Nodes (25): ShapeTool, abandon(), boxGesture(), cancel(), chainExtentReached(), currentObject(), dragged(), finishChain() (+17 more)
 
 ### Community 317 - "Community 317"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (3): Q_OBJECT, qreal, TstUiText
 
 ### Community 318 - "Community 318"
@@ -1590,24 +1815,24 @@ Cohesion: 0.12
 Nodes (12): QEvent, QMouseEvent, QPointF, qreal, TabletFilter, firstPosition, firstPressure, tabletEvents (+4 more)
 
 ### Community 319 - "Community 319"
-Cohesion: 0.18
-Nodes (13): GestureStep, Point2, QRectF, geometryChange(), setForceRasterized(), setRasterScale(), setShowHiddenTranslucent(), begin() (+5 more)
+Cohesion: 0.04
+Nodes (53): Q_OBJECT, TstUiActionrunner, alignGroupAndSelectAllUseRegistry, cleanup, click, clickRunsEveryActionInOrder, clickSlopInScreenPixels, commandWithoutHandlerIsUnsupported (+45 more)
 
 ### Community 320 - "Community 320"
 Cohesion: 0.17
-Nodes (11): at(), atTime(), click(), int64_t, Phase, Q_OBJECT, Sample, ShapeSettings (+3 more)
+Nodes (10): at(), atTime(), click(), int64_t, Phase, Q_OBJECT, Sample, ShapeSettings (+2 more)
 
 ### Community 321 - "Community 321"
 Cohesion: 0.10
-Nodes (24): FillTool, ImageFiller, computeImageFill(), fillImage(), FillTool(), finishImageFill(), id(), onSample() (+16 more)
+Nodes (23): ImageFiller, computeImageFill(), fillImage(), FillTool(), finishImageFill(), id(), onSample(), setColor() (+15 more)
 
 ### Community 322 - "Community 322"
-Cohesion: 0.14
-Nodes (11): ShapeTool, Document, size_t, Stroke, UndoCommand, unique_ptr, UserState, FakeDocument (+3 more)
+Cohesion: 0.15
+Nodes (11): ObjectId, PageObject, PointF, QStringList, Transform, vector, distanceToSegment(), FakeLift (+3 more)
 
 ### Community 323 - "Community 323"
 Cohesion: 0.11
-Nodes (16): QString, QVariant, SelectionView, ToolContext, FakeCommands, FakeSelection, Harness, commands (+8 more)
+Nodes (17): QString, QVariant, SelectionView, ToolContext, UserState, FakeCommands, FakeSelection, Harness (+9 more)
 
 ### Community 324 - "Community 324"
 Cohesion: 0.29
@@ -1618,92 +1843,92 @@ Cohesion: 0.21
 Nodes (25): ArrangeMove, Changes, Document, Group, Layer, ObjectId, Page, set (+17 more)
 
 ### Community 326 - "Community 326"
-Cohesion: 0.12
-Nodes (4): Q_OBJECT, document, TstUiPagesettings, private
+Cohesion: 0.10
+Nodes (5): Argb, Q_OBJECT, document, TstUiPagesettings, private
 
 ### Community 327 - "Community 327"
-Cohesion: 0.14
-Nodes (16): ObjectEditing, ObjectId, Page, ToolHost, EditionRefreshes, EditionGear, document, editing (+8 more)
+Cohesion: 0.33
+Nodes (7): MenuSpec, QJsonValue, QStringList, vector, ItemsStatus, readMenuItems(), readStringList()
 
 ### Community 328 - "Community 328"
-Cohesion: 0.14
-Nodes (20): PrintNotes, PrintRange, loadSettings(), notesName(), notesOrNone(), openSettings(), previewSource(), printer() (+12 more)
+Cohesion: 0.07
+Nodes (57): PrintNotes, PrintRange, changed(), columns(), copies(), document(), frames(), from() (+49 more)
 
 ### Community 329 - "Community 329"
-Cohesion: 0.12
-Nodes (9): Argb, StrokePoint, uint64_t, FakeInk, Argb, StrokePoint, uint64_t, NullInk (+1 more)
+Cohesion: 0.25
+Nodes (4): Argb, StrokePoint, uint64_t, FakeInk
 
 ### Community 330 - "Community 330"
-Cohesion: 0.20
-Nodes (6): id(), onSample(), TextTool(), QString, Sample, ToolContext
+Cohesion: 0.40
+Nodes (10): coverageIs(), MainWindow, Q_OBJECT, QObject, QPointF, curtainOf(), inWindow(), middleOf() (+2 more)
 
 ### Community 331 - "Community 331"
-Cohesion: 0.18
-Nodes (8): Fixture, Q_OBJECT, QColor, Stroke, lineAt(), near(), TstRenderPendingLayer, private
+Cohesion: 0.07
+Nodes (28): BOOL, QImage, QPointF, QPolygonF, qreal, QRect, QRectF, QRect (+20 more)
 
 ### Community 332 - "Community 332"
-Cohesion: 0.21
-Nodes (10): ReplaceObjectsCommand, InsertCommand, m_entries, m_inner, m_page, Changes, Document, Entry (+2 more)
+Cohesion: 0.14
+Nodes (21): Equation, EquationPaintMode, QPainter, QPainterPath, QPointF, QRectF, RectF, vector (+13 more)
 
 ### Community 333 - "Community 333"
-Cohesion: 0.18
-Nodes (15): PageOptions, DocumentController, PagesController, PageView, QQmlApplicationEngine, QQuickWindow, ToolHost, MainRig (+7 more)
+Cohesion: 0.15
+Nodes (18): PageOptions, DocumentController, PagesController, PageView, QObject, QQmlApplicationEngine, QQuickWindow, QString (+10 more)
 
 ### Community 334 - "Community 334"
-Cohesion: 0.20
-Nodes (16): addRect(), addSmartShape(), blank(), boundsOf(), contains(), Document, ObjectId, PageObject (+8 more)
+Cohesion: 0.09
+Nodes (18): int64_t, optional, Position, QByteArray, QColor, QJsonValue, QString, TickerSettings (+10 more)
 
 ### Community 335 - "Community 335"
 Cohesion: 0.22
 Nodes (8): API des lots 3, 7 et L0-S, Ce qui amende le plan (pour l'orchestrateur), Constats, Décisions, Hypothèses nouvelles ou modifiées, Lot 4 — principes confrontés (vidéos, ancien dépôt, binaire) et API revérifiées, Méthode et limites, Tests au départ du lot
 
 ### Community 336 - "Community 336"
-Cohesion: 0.12
-Nodes (16): DocumentController, PageView, Q_OBJECT, QObject, QQmlApplicationEngine, QQuickWindow, QString, ToolHost (+8 more)
+Cohesion: 0.10
+Nodes (18): DocumentController, PageView, Q_OBJECT, QObject, QQmlApplicationEngine, QQuickWindow, QString, QVideoFrame (+10 more)
 
 ### Community 337 - "Community 337"
 Cohesion: 0.21
 Nodes (13): countKind(), Changes, Document, Kind, ObjectId, Q_OBJECT, vector, hasObject() (+5 more)
 
 ### Community 338 - "Community 338"
-Cohesion: 0.21
-Nodes (11): CacheArea, Document, ObjectId, Page, QStringList, RectF, set, idsOf() (+3 more)
+Cohesion: 0.33
+Nodes (5): Transform, FakeLift, clears, shows, transforms
 
 ### Community 339 - "Community 339"
-Cohesion: 0.19
-Nodes (8): PageObject, Transform, vector, FakeLift, clears, shown, shows, rectangle()
+Cohesion: 0.20
+Nodes (9): string, unique_ptr, vector, Hunspell, SpellEngine, HunspellEngine, m_hunspell, hunspellPath() (+1 more)
 
 ### Community 341 - "Community 341"
-Cohesion: 0.13
-Nodes (14): Stroke, ToolContext, FakeStrokes, Rig, commands, context, editor, ink (+6 more)
+Cohesion: 0.10
+Nodes (18): DocumentSink, Stroke, FakeStrokes, Stroke, FakeStrokes, Stroke, FakeStrokes, Stroke (+10 more)
 
 ### Community 342 - "Community 342"
-Cohesion: 0.24
-Nodes (5): at(), Phase, Q_OBJECT, Sample, TstToolsText
+Cohesion: 0.09
+Nodes (51): InteractivityEditor, InteractivityValue, MediaOptions, appliesTo(), centerInObject(), centerOnPage(), find(), interactivityChoices() (+43 more)
 
 ### Community 343 - "Community 343"
-Cohesion: 0.47
-Nodes (12): document(), drawnIds(), groupIds(), hiddenIds(), move(), rebuild(), rowSelected(), select() (+4 more)
+Cohesion: 0.12
+Nodes (27): ContainerRule, DropResult, ObjectId, Page, PageObject, RectF, size_t, string (+19 more)
 
 ### Community 344 - "Community 344"
 Cohesion: 0.13
 Nodes (8): DocumentController, PagesController, Q_OBJECT, QString, Fixture, document, pagesController, TstUiPages
 
 ### Community 345 - "Community 345"
-Cohesion: 0.18
-Nodes (15): QCoreApplication, available(), change(), effective(), install(), Language(), onPreferencesChanged(), preferences() (+7 more)
+Cohesion: 0.23
+Nodes (14): available(), change(), effective(), install(), Language(), onPreferencesChanged(), preferences(), resolve() (+6 more)
 
 ### Community 346 - "Community 346"
 Cohesion: 0.40
 Nodes (4): Lot 4 — observation de l'original à l'écran (L4-O1), Réserves, Suite, Verdicts
 
 ### Community 347 - "Community 347"
-Cohesion: 0.40
-Nodes (3): PagePresentation, PageZones, isDefault()
+Cohesion: 0.17
+Nodes (15): active(), fromCore(), hidesInside(), insertCapture(), isRound(), litPolygon(), shape(), toCore() (+7 more)
 
 ### Community 348 - "Community 348"
-Cohesion: 0.18
-Nodes (7): HandleKind, PointF, QString, QVariant, EdgeCoords, along, out
+Cohesion: 0.09
+Nodes (44): FrameProbe, allowed(), Box, height, width, card(), commands(), document() (+36 more)
 
 ### Community 350 - "Community 350"
 Cohesion: 0.20
@@ -1721,105 +1946,133 @@ Nodes (33): App, commands, document, engine, tools, view, window, argb() (+25 mo
 Cohesion: 0.50
 Nodes (3): Lot 4 — seconde observation de l'original à l'écran (L4-O2), Réserves, Verdicts
 
+### Community 354 - "Community 354"
+Cohesion: 0.14
+Nodes (9): namespace, namespace, actcraft(), actcraft(), QDateTime, actcraft(), nowOverride(), setNowOverride() (+1 more)
+
+### Community 355 - "Community 355"
+Cohesion: 0.08
+Nodes (31): collectIds(), commandsOf(), controllerOf(), Commands, Document, DocumentController, function, MainWindow (+23 more)
+
+### Community 357 - "Community 357"
+Cohesion: 0.15
+Nodes (11): CurtainMode, PagePresentation, Start, PageToolsResult, PageToolsSettings, PresentationState, resolvePageTools(), startOf() (+3 more)
+
+### Community 358 - "Community 358"
+Cohesion: 0.22
+Nodes (8): ✅ Fait, 🔧 Git, Handoff — Reprise sur livraison-complete-b (lot 7, phase 2) en NOUVELLE session, Mode de travail, ⏭️ Prochain, 🛠️ Skills utiles, Travail en vol, État au 2026-10-26 vers 11 h (arrêt propre pour bascule)
+
+### Community 359 - "Community 359"
+Cohesion: 0.28
+Nodes (16): parseMathml(), attributesAndPlaceholderKept(), carriageReturnKept(), EquationNode, QString, string, indentedInputIsCanonical(), leadingFeffInTextKept() (+8 more)
+
 ### Community 361 - "Community 361"
-Cohesion: 0.10
-Nodes (15): cacheTouches(), CacheArea, Changes, ObjectId, Q_OBJECT, QString, QStringList, RectF (+7 more)
+Cohesion: 0.13
+Nodes (26): blank(), count(), EquationNode, EquationPaintMode, optional, Q_OBJECT, QColor, QImage (+18 more)
+
+### Community 362 - "Community 362"
+Cohesion: 0.09
+Nodes (24): DesktopCaptureCommand, m_added, m_before, m_key, m_page, m_png, InsertPageCommand, m_index (+16 more)
+
+### Community 363 - "Community 363"
+Cohesion: 0.11
+Nodes (43): Axis, Builder, FitMode, ObjectId, Page, PageObject, PointF, QJsonObject (+35 more)
 
 ### Community 364 - "Community 364"
-Cohesion: 0.23
-Nodes (19): pair, PointF, size_t, vector, ShapeFamily, ShapePreset, addArc(), buildCatalog() (+11 more)
+Cohesion: 0.11
+Nodes (33): IdCell, InsertImage, m_data, m_extension, m_height, m_ids, m_inserted, m_key (+25 more)
+
+### Community 365 - "Community 365"
+Cohesion: 0.18
+Nodes (15): actcraft(), move(), PageZoomController(), panning(), press(), release(), setActive(), setView() (+7 more)
 
 ### Community 367 - "Community 367"
-Cohesion: 0.20
-Nodes (10): Item, center, data, extension, fileName, hasCenter, isMedia, name (+2 more)
+Cohesion: 0.09
+Nodes (33): addShape(), Commands, DocumentController, FixedPageItem, ObjectId, PageObject, PageView, QObject (+25 more)
 
 ### Community 368 - "Community 368"
-Cohesion: 0.18
+Cohesion: 0.20
 Nodes (8): CacheSpy, inserts, invalidates, removes, wholePage, CacheArea, ObjectId, RectF
 
 ### Community 369 - "Community 369"
-Cohesion: 0.18
-Nodes (10): commitAnnotation(), flagsOf(), liftObjects(), NoCache, CacheArea, ObjectId, PageObject, RectF (+2 more)
+Cohesion: 0.38
+Nodes (4): NoCache, CacheArea, ObjectId, RectF
 
 ### Community 370 - "Community 370"
-Cohesion: 0.20
-Nodes (19): Changes, Document, ObjectId, PageObject, PointF, Shape, size_t, vector (+11 more)
+Cohesion: 0.18
+Nodes (20): optional, Changes, Document, ObjectId, PageObject, PointF, Shape, size_t (+12 more)
 
 ### Community 371 - "Community 371"
-Cohesion: 0.16
-Nodes (17): ClipboardPayload, Document, F, map, optional, PageObject, QByteArray, QJsonValue (+9 more)
+Cohesion: 0.13
+Nodes (19): ClipboardPayload, Document, F, map, optional, PageObject, QByteArray, QJsonValue (+11 more)
 
 ### Community 372 - "Community 372"
-Cohesion: 0.16
-Nodes (19): cancel(), commit(), dragged(), id(), onKey(), onSample(), PenShapeTool(), reset() (+11 more)
+Cohesion: 0.15
+Nodes (20): PenShapeTool, cancel(), commit(), dragged(), id(), onKey(), onSample(), PenShapeTool() (+12 more)
 
 ### Community 373 - "Community 373"
-Cohesion: 0.25
-Nodes (7): closeRect(), ObjectId, Q_OBJECT, RectF, size_t, string, TstToolsSelectCopy
+Cohesion: 0.15
+Nodes (41): CameraController, cameraAbsentOnAndroid(), cameraCommands(), cameraOf(), cameraWindowTakesEveryPointer(), captureAreaKeptForTheNextCapture(), captureAtPixelRatioTwoKeepsTheLogicalSize(), captureToClipboard() (+33 more)
 
 ### Community 375 - "Community 375"
-Cohesion: 0.14
-Nodes (13): Change, Changes, Document, PageZones, size_t, clampFrameSide(), clampZones(), pageSettingsChanged() (+5 more)
+Cohesion: 0.29
+Nodes (11): Change, Changes, Document, PageZones, size_t, clampFrameSide(), clampZones(), pageSettingsChanged() (+3 more)
 
 ### Community 376 - "Community 376"
-Cohesion: 0.33
-Nodes (6): LiftTarget, bandFrom, bandTo, dx, grab, taken
+Cohesion: 0.20
+Nodes (21): MathToolsController, chooseFromMenu(), clickEntry(), MainWindow, QObject, QQuickItem, QString, QVariant (+13 more)
 
 ### Community 377 - "Community 377"
 Cohesion: 0.19
 Nodes (14): DocumentController, DocumentTabs, FixedPageItem, PageView, QQmlEngine, QQuickWindow, unique_ptr, Fixture (+6 more)
 
 ### Community 378 - "Community 378"
-Cohesion: 0.26
-Nodes (5): QColor, QPointF, Stroke, near(), redStroke()
+Cohesion: 0.19
+Nodes (15): allOnRim(), Pointer, QPointF, Type, Dial, angle, cx, cy (+7 more)
 
 ### Community 379 - "Community 379"
-Cohesion: 0.17
-Nodes (19): Argb, Page, PointF, Polyline, unique_ptr, vector, FillHit, distanceToLines() (+11 more)
+Cohesion: 0.09
+Nodes (36): Argb, Changes, Document, ObjectId, Page, PageObject, PointF, Polyline (+28 more)
 
 ### Community 380 - "Community 380"
-Cohesion: 0.11
-Nodes (29): changed(), columns(), copies(), frames(), from(), gray(), marginMm(), noteBreak() (+21 more)
+Cohesion: 0.06
+Nodes (65): Engines, applyFolders(), begin(), bindCommands(), cancel(), cancelAreaSelection(), chooseScreenArea(), commands() (+57 more)
 
 ### Community 381 - "Community 381"
 Cohesion: 0.21
 Nodes (9): columnTextEdit(), QChar, QObject, QRectF, QTextDocument, documentOf(), laidOutLines(), lineOf() (+1 more)
 
 ### Community 382 - "Community 382"
-Cohesion: 0.16
-Nodes (21): GridLevel, ObjectId, optional, Page, PageObject, PointF, vector, dot() (+13 more)
+Cohesion: 0.17
+Nodes (18): addRect(), addRotatedRect(), blank(), boundsOf(), boundsWith(), Document, ObjectId, PageObject (+10 more)
 
 ### Community 383 - "Community 383"
-Cohesion: 0.16
-Nodes (25): Changes, Document, ObjectId, Page, PageObject, RectF, size_t, UndoCommand (+17 more)
-
-### Community 384 - "Community 384"
-Cohesion: 0.14
-Nodes (10): Append, m_mergeKey, m_steps, Counted, m_mergeKey, m_redos, m_undos, Changes (+2 more)
+Cohesion: 0.25
+Nodes (20): Changes, Document, ObjectId, Page, PageObject, RectF, size_t, UndoCommand (+12 more)
 
 ### Community 385 - "Community 385"
-Cohesion: 0.19
-Nodes (12): Q_OBJECT, QJsonObject, QString, QTemporaryDir, dumpAndExit(), EnvGuard, libreOfficeGetsItsOwnProfile(), main() (+4 more)
+Cohesion: 0.18
+Nodes (13): ClockController, centreOf(), clockOf(), controllerOf(), DocumentController, MainWindow, Q_OBJECT, QPointF (+5 more)
 
 ### Community 386 - "Community 386"
 Cohesion: 0.32
 Nodes (5): CacheArea, ObjectId, RectF, Spy, calls
 
 ### Community 387 - "Community 387"
-Cohesion: 0.28
-Nodes (6): CacheArea, ObjectId, QStringList, RectF, RecordingCache, calls
+Cohesion: 0.13
+Nodes (16): CacheArea, Changes, DocumentController, ObjectId, Origin, QStringList, RectF, vector (+8 more)
 
 ### Community 388 - "Community 388"
-Cohesion: 0.20
-Nodes (8): QImage, QString, Stroke, hasRed(), redStroke(), document, TestUiFileExchange, QTemporaryDir
+Cohesion: 0.26
+Nodes (3): QString, TestUiFileExchange, QTemporaryDir
 
 ### Community 389 - "Community 389"
-Cohesion: 0.15
-Nodes (17): Converter, ConvertResult, optional, QFuture, QString, QFileInfo, convertToPdf(), findConverter() (+9 more)
+Cohesion: 0.28
+Nodes (13): Converter, ConvertResult, optional, QFuture, QString, convertToPdf(), findConverter(), libreOfficeProgram() (+5 more)
 
 ### Community 390 - "Community 390"
-Cohesion: 0.18
-Nodes (21): Background, Change, Changes, Document, Grid, Page, size_t, UndoCommand (+13 more)
+Cohesion: 0.05
+Nodes (39): LinkLauncher, Q_OBJECT, TstUiMediaitems, addingAMediaKeepsThePlayingVideoDelegate, chimePlaysOnAcceptedDrop, cleanup, clickOnLoopingSoundKeepsTheLoop, clickOnVideoPlaysItInItsFrame (+31 more)
 
 ### Community 391 - "Community 391"
 Cohesion: 0.15
@@ -1835,15 +2088,15 @@ Nodes (4): PointF, Q_OBJECT, same(), TestPenModifiers
 
 ### Community 394 - "Community 394"
 Cohesion: 0.13
-Nodes (22): clear(), color(), document(), fill(), fontFamily(), hoverAt(), isVisible(), LabelTips() (+14 more)
+Nodes (21): clear(), color(), document(), fill(), fontFamily(), hoverAt(), LabelTips(), leave() (+13 more)
 
 ### Community 395 - "Community 395"
-Cohesion: 0.12
-Nodes (22): QImage, QQmlEngine, QQuickItem, QQuickTextDocument, QQuickWindow, QVariant, unique_ptr, EditorHarness (+14 more)
+Cohesion: 0.13
+Nodes (18): QImage, QQmlEngine, QQuickItem, QQuickTextDocument, QQuickWindow, QVariant, unique_ptr, EditorHarness (+10 more)
 
 ### Community 396 - "Community 396"
-Cohesion: 0.12
-Nodes (4): Q_OBJECT, Stroke, redStroke(), TstCoreDocument
+Cohesion: 0.16
+Nodes (22): area(), centerX(), centerY(), color(), covers(), cursorAt(), dragging(), frame() (+14 more)
 
 ### Community 397 - "Community 397"
 Cohesion: 0.26
@@ -1854,16 +2107,16 @@ Cohesion: 0.20
 Nodes (7): Document, Q_OBJECT, QByteArray, QString, documentOfPages(), exportedBytes(), TestExportPdf
 
 ### Community 399 - "Community 399"
-Cohesion: 0.14
-Nodes (11): Document, QByteArray, QImage, size_t, string, UndoCommand, unique_ptr, UserState (+3 more)
+Cohesion: 0.04
+Nodes (44): FillTool, Argb, Document, ObjectId, PageObject, Q_OBJECT, QByteArray, QImage (+36 more)
 
 ### Community 400 - "Community 400"
-Cohesion: 0.15
-Nodes (13): Document, LiftedObject, UndoCommand, UndoStack, unique_ptr, FakeEditor, calls, document (+5 more)
+Cohesion: 0.13
+Nodes (27): ObjectId, optional, Page, PageObject, PointF, RectF, Stroke, vector (+19 more)
 
 ### Community 401 - "Community 401"
-Cohesion: 0.22
-Nodes (8): Banc de clôture du lot 5 (version 0.6.0) — Direct3D 11, plein écran, Critères de la référence (P2), H5-28 : export en fond, Passages, Pertes déjà présentes dans la référence, Reliquat, Scénarios hors référence (relevés), Verdict
+Cohesion: 0.26
+Nodes (15): Changes, Document, ObjectFlag, ObjectId, Page, PageObject, size_t, vector (+7 more)
 
 ### Community 402 - "Community 402"
 Cohesion: 0.27
@@ -1878,40 +2131,36 @@ Cohesion: 0.20
 Nodes (4): Connector, Phase, Q_OBJECT, TestToolsConnector
 
 ### Community 405 - "Community 405"
-Cohesion: 0.12
-Nodes (14): Stroke, ToolContext, FakeStrokes, Harness, commands, context, doc, ink (+6 more)
+Cohesion: 0.09
+Nodes (59): ActionContext, ArrangeMove, Builder, ClearKind, ObjectFlag, ObjectId, optional, Page (+51 more)
 
 ### Community 406 - "Community 406"
-Cohesion: 0.09
-Nodes (10): PointF, QStringList, FakeView, PointF, QStringList, FakeView, PointF, QStringList (+2 more)
+Cohesion: 0.04
+Nodes (62): closePoint(), closeRect(), closeTo(), Argb, Document, LiftedObject, ObjectId, PageObject (+54 more)
 
 ### Community 407 - "Community 407"
-Cohesion: 0.28
-Nodes (9): ResourceMap, launch(), page(), post(), renderThumbnail(), resourcesOf(), Document, F (+1 more)
+Cohesion: 0.16
+Nodes (10): CacheArea, optional, PageObject, QStringList, RectF, vector, shapeWithOutline(), SpyCache (+2 more)
 
 ### Community 408 - "Community 408"
 Cohesion: 0.24
 Nodes (10): addRect(), blank(), countKind(), Changes, Document, Kind, ObjectId, Q_OBJECT (+2 more)
 
 ### Community 409 - "Community 409"
-Cohesion: 0.19
-Nodes (4): Document, Q_OBJECT, documentWithARedRect(), TestExportImage
-
-### Community 410 - "Community 410"
-Cohesion: 0.25
-Nodes (4): ObjectId, Q_OBJECT, RectF, TestToolsFill
+Cohesion: 0.12
+Nodes (28): curtain(), CurtainPageMemory(), documentController(), followShownPage(), lookUp(), Named, name, value (+20 more)
 
 ### Community 411 - "Community 411"
-Cohesion: 0.19
+Cohesion: 0.21
 Nodes (5): int64_t, Phase, Q_OBJECT, size_t, TestToolsPenShape
 
 ### Community 412 - "Community 412"
 Cohesion: 0.14
-Nodes (18): Item, folders(), isImageSuffix(), itemOf(), kindOf(), listFolders(), ListingJob, folders (+10 more)
+Nodes (18): Item, folders(), itemCount(), itemOf(), listFolders(), ListingJob, folders, items (+10 more)
 
 ### Community 413 - "Community 413"
-Cohesion: 0.27
-Nodes (7): CommandRegistry, QByteArray, QJsonArray, QJsonObject, inlineSubmenu(), layoutWith(), registryFromResources()
+Cohesion: 0.24
+Nodes (8): CommandRegistry, Layout, QByteArray, QJsonArray, QJsonObject, inlineSubmenu(), layoutWith(), registryFromResources()
 
 ### Community 414 - "Community 414"
 Cohesion: 0.25
@@ -1922,20 +2171,20 @@ Cohesion: 0.21
 Nodes (5): Q_OBJECT, QTemporaryDir, QUrl, TestExportPdfImport, writePdf()
 
 ### Community 416 - "Community 416"
-Cohesion: 0.14
-Nodes (9): Argb, Fill, PageObject, body(), ObjectVariant(), solidFill(), namespace, flipchart() (+1 more)
+Cohesion: 0.25
+Nodes (6): Argb, Fill, PageObject, body(), ObjectVariant(), solidFill()
 
 ### Community 417 - "Community 417"
-Cohesion: 0.67
-Nodes (3): SelectionView, FakeSelection, views
+Cohesion: 0.11
+Nodes (33): LinkDialogs, centered(), commit(), compactJson(), createFileLink(), createWebsiteLink(), LinkDialogs(), localPath() (+25 more)
 
 ### Community 418 - "Community 418"
-Cohesion: 0.67
-Nodes (3): roleNames(), QByteArray, QHash
+Cohesion: 0.05
+Nodes (38): Q_OBJECT, QStringList, unique_ptr, TstUiLaunchers, acceptedForeignIsResigned, addShowsThePath, argumentsNeedANamedProgram, bareNameOnlyOffWindows (+30 more)
 
 ### Community 419 - "Community 419"
-Cohesion: 0.15
-Nodes (17): Changes, Document, ObjectId, PageObject, size_t, string, ImageFillCommand, m_before (+9 more)
+Cohesion: 0.11
+Nodes (34): allowed(), attachDocument(), commands(), currentPage(), data(), detachDocument(), document(), DragDropActions() (+26 more)
 
 ### Community 420 - "Community 420"
 Cohesion: 0.17
@@ -1954,28 +2203,28 @@ Cohesion: 0.20
 Nodes (9): Amendement 2, Banc hors écran (résultat, pas porte), Captures hors écran (`tst_captures_*` en debug, `ctest -V`), Construction propre (release à neuf), Mesure de fin du lot 6 (L6-T37), version Mac, Points de porte de fin (constatés, non corrigés), Restes pour le PC, Suites (+1 more)
 
 ### Community 424 - "Community 424"
-Cohesion: 0.28
-Nodes (7): QQuickImageProvider, PreviewProvider, m_owner, previewSheet(), PrintController, QImage, QSize
+Cohesion: 0.24
+Nodes (8): QQuickImageProvider, PreviewProvider, m_owner, previewSheet(), PrintController, QImage, QPointer, QSize
 
 ### Community 426 - "Community 426"
-Cohesion: 0.31
-Nodes (9): inkWidth(), scrollPositionX(), scrollPositionY(), scrollSizeX(), scrollSizeY(), setInkWidth(), zoom(), scrollAxis() (+1 more)
+Cohesion: 0.38
+Nodes (4): IndexOnlyCache, CacheArea, ObjectId, RectF
 
 ### Community 429 - "Community 429"
-Cohesion: 0.42
-Nodes (6): StrokePoint, vector, line(), near(), sixteenSegments(), twoPiecesAroundTheDisk()
+Cohesion: 0.14
+Nodes (21): KeyboardController, MainWindow, Q_OBJECT, QEvent, QPointF, QQmlEngine, QQuickItem, QQuickWindow (+13 more)
 
 ### Community 430 - "Community 430"
-Cohesion: 0.23
-Nodes (12): DocumentController, DocumentTabs, FileExchange, QQmlApplicationEngine, QQuickWindow, QTemporaryDir, Shell, engine (+4 more)
+Cohesion: 0.16
+Nodes (17): DocumentController, DocumentTabs, FileExchange, QImage, QQmlApplicationEngine, QQuickWindow, QTemporaryDir, Stroke (+9 more)
 
 ### Community 431 - "Community 431"
-Cohesion: 0.12
-Nodes (28): Argb, Fill, GradientKind, Grid, GridLevel, LabelStyle, Outline, PageZones (+20 more)
+Cohesion: 0.11
+Nodes (38): Argb, array, E, GradientKind, N, optional, Outline, PageObject (+30 more)
 
 ### Community 432 - "Community 432"
-Cohesion: 0.17
-Nodes (19): attachDocument(), commands(), data(), detachDocument(), flush(), ObjectTreeModel(), requestReset(), rowCount() (+11 more)
+Cohesion: 0.10
+Nodes (46): attachDocument(), canEdit(), commands(), data(), detachDocument(), document(), drawnIds(), flush() (+38 more)
 
 ### Community 433 - "Community 433"
 Cohesion: 0.20
@@ -1986,20 +2235,20 @@ Cohesion: 0.20
 Nodes (9): 🔑 Accès, ✅ Fait cette session (2026-11-02 et 2026-11-03), 🔧 Git, Handoff — Reprise sur livraison-complete (lot 5) en NOUVELLE session, MODE DE TRAVAIL, 🧩 Pièges, ⏭️ Prochain, dans l'ordre, ♻️ Reliquats hors chantier (+1 more)
 
 ### Community 435 - "Community 435"
-Cohesion: 0.22
-Nodes (4): Argb, StrokePoint, uint64_t, FakeInk
+Cohesion: 0.08
+Nodes (15): Q_OBJECT, QList, QString, QUrl, hasAudioOutput(), OpenTrap, urls, TstMediaPlayer (+7 more)
 
 ### Community 436 - "Community 436"
-Cohesion: 0.31
-Nodes (6): PageObject, Transform, vector, FakeLift, clears, shown
+Cohesion: 0.11
+Nodes (9): LinkLauncher, Q_OBJECT, QString, QStringList, QUrl, TstUiLinkLauncher, m_catcher, UrlCatcher (+1 more)
 
 ### Community 437 - "Community 437"
 Cohesion: 0.22
 Nodes (8): API, Ce qui amende le plan (pour l'orchestrateur), Constats, Décisions, Hypothèses nouvelles ou modifiées, Lot 5 — principes, décisions D1 à D21 et API revérifiées (ouverture sur le Mac), Méthode et limites, Tests au départ du lot
 
 ### Community 438 - "Community 438"
-Cohesion: 0.22
-Nodes (4): DocumentController, QString, vector, saveAndWait()
+Cohesion: 0.21
+Nodes (22): argb(), Layer, Page, PageObject, Q_OBJECT, QColor, QImage, Stroke (+14 more)
 
 ### Community 439 - "Community 439"
 Cohesion: 0.32
@@ -2010,48 +2259,60 @@ Cohesion: 0.23
 Nodes (13): LoadedResource, Document, JsonReadResult, Q_OBJECT, QJsonObject, qsizetype, string, noResource() (+5 more)
 
 ### Community 441 - "Community 441"
-Cohesion: 0.31
-Nodes (6): ObjectId, PageObject, Transform, vector, FakeLift, shown
+Cohesion: 0.11
+Nodes (28): Argb, QImage, Document, ImageObject, Page, QImage, QObject, size_t (+20 more)
 
 ### Community 442 - "Community 442"
-Cohesion: 0.29
-Nodes (3): PointF, QStringList, FakeView
+Cohesion: 0.14
+Nodes (8): Entry, Node, Q_OBJECT, QByteArray, vector, nearlyEqual(), onePage(), TstFormatsFlipchart
 
 ### Community 443 - "Community 443"
-Cohesion: 0.25
-Nodes (20): activate(), applyToView(), color(), currentTool(), existingTool(), isInkTool(), ownsColor(), setColor() (+12 more)
+Cohesion: 0.19
+Nodes (32): Done, begin(), document(), exportPageImage(), exportPdf(), fail(), FileExchange(), fileName() (+24 more)
 
 ### Community 444 - "Community 444"
-Cohesion: 0.17
-Nodes (17): commands(), document(), html(), NotesController(), refresh(), setCommands(), setContactActive(), setDocument() (+9 more)
+Cohesion: 0.11
+Nodes (22): QTextDocument, actcraft(), commands(), document(), html(), NotesController(), refresh(), setCommands() (+14 more)
 
 ### Community 445 - "Community 445"
-Cohesion: 0.22
-Nodes (7): QTextCharFormat, QTextDocument, actcraft(), newTextFormat(), namespace, namespace, actcraft()
+Cohesion: 0.06
+Nodes (34): Bascule en mode Mac seul (2026-11-03, 11 h) — levée, Compteurs, Contrôles réservés à Windows et à l'écran (relevés le 2026-10-27), Fin du lot 7 (3.8) — double relecture, tour 1 (2026-11-03), Fin du lot 7 côté Mac (2026-11-05), Lot 3 livré (2026-10-21), Lot 4 livré (2026-11-02), Lot 5 de A dans main (2026-11-04, message du Pilote) (+26 more)
+
+### Community 446 - "Community 446"
+Cohesion: 0.10
+Nodes (28): apply(), BroadcastGate(), commands(), document(), eventFilter(), message(), notesEditor(), onRefused() (+20 more)
 
 ### Community 447 - "Community 447"
 Cohesion: 0.40
 Nodes (4): Q_OBJECT, QUrl, UrlCatcher, public
 
 ### Community 448 - "Community 448"
-Cohesion: 0.50
-Nodes (3): QString, QVariant, FakeCommands
+Cohesion: 0.09
+Nodes (32): CachedFixture, fixed, stylus, view, DocumentController, FixedPageItem, PageView, PendingLayerItem (+24 more)
 
 ### Community 449 - "Community 449"
-Cohesion: 0.67
-Nodes (3): SelectionView, FakeSelection, last
+Cohesion: 0.06
+Nodes (34): Q_OBJECT, QList, unique_ptr, TstUiLinkdialogs, cleanup, click, closedWithoutSourcesOrUnderLock, commandLineArgumentsNeverPassed (+26 more)
 
 ### Community 465 - "Community 465"
-Cohesion: 0.16
-Nodes (17): DesignMode, App, commands, design, document, engine, profile, tools (+9 more)
+Cohesion: 0.08
+Nodes (32): App, commands, design, document, engine, profile, tools, view (+24 more)
 
-### Community 469 - "Community 469"
-Cohesion: 0.12
-Nodes (17): mz_zip_archive, QHash, qint64, QList, QStringList, mz_uint, archiveEntryNames(), ZipReader (+9 more)
+### Community 466 - "Community 466"
+Cohesion: 0.10
+Nodes (21): canonicalFolder(), QElapsedTimer, qint64, QPointer, QString, QTemporaryDir, SoundRecorder, microphoneUnavailable() (+13 more)
+
+### Community 467 - "Community 467"
+Cohesion: 0.06
+Nodes (31): Carte des fichiers (7a), Ce que l'ancien dépôt dit déjà (relevé pour ce plan, reformulé), Contrats partagés entre tâches (noms figés), Couverture des scénarios, Fin du sous-lot 7a (orchestrateur, hors tâches), Livraison complète — lot 7 « Présentation et outils » — sous-lot 7a — plan d'exécution, Règles communes à toutes les tâches (rappelées dans chaque section), Table des tâches (sous-lot 7a) (+23 more)
+
+### Community 468 - "Community 468"
+Cohesion: 0.17
+Nodes (12): ActionContext, Document, objectActionCommand(), Document, ObjectId, Q_OBJECT, RectF, Transform (+4 more)
 
 ### Community 470 - "Community 470"
-Cohesion: 0.18
-Nodes (13): attachDocument(), commands(), detachDocument(), onObjectFlagsChanged(), PropertyModel(), requestRefresh(), schedule(), setCommands() (+5 more)
+Cohesion: 0.07
+Nodes (57): attachDocument(), choiceLabels(), commands(), data(), page, detachDocument(), document(), editable() (+49 more)
 
 ### Community 473 - "Community 473"
 Cohesion: 0.18
@@ -2059,55 +2320,59 @@ Nodes (6): ObjectId, Q_OBJECT, QStringList, QVariantMap, profile, TstUiShortcutb
 
 ### Community 474 - "Community 474"
 Cohesion: 0.22
-Nodes (5): array, optional, SavedEnvironment, kNames, saved
+Nodes (13): acceptedForeignIsResigned(), changedSinceRequestRunsNothing(), QByteArray, QJsonValue, duplicateIdKeepsFirst(), fakeExeRefusedOnWindowsOnly(), foreignSignatureAsksFirst(), readFile() (+5 more)
 
 ### Community 476 - "Community 476"
 Cohesion: 0.17
 Nodes (16): add(), colorAt(), ColorPalette(), containsColor(), extended(), extendedGrid(), grabFrom(), setProfile() (+8 more)
 
+### Community 479 - "Community 479"
+Cohesion: 0.10
+Nodes (13): Q_OBJECT, QStringList, unique_ptr, TstMediaSoundrecorder, Answer, m_asked, m_case, m_elsewhere (+5 more)
+
 ### Community 483 - "Community 483"
-Cohesion: 0.16
-Nodes (15): ShortcutBar, Commands, DocumentController, Preferences, ProfileController, QTemporaryDir, ToolHost, unique_ptr (+7 more)
+Cohesion: 0.15
+Nodes (8): Action, ContainerRule, Restrictions, isDefault(), isSupported(), normalize(), Q_OBJECT, TstCoreInteractivity
 
 ### Community 484 - "Community 484"
-Cohesion: 0.17
-Nodes (15): Editor, Descriptor, choices, editor, key, label, max, min (+7 more)
+Cohesion: 0.10
+Nodes (23): Choices, Editor, Descriptor, choices, editor, key, label, max (+15 more)
 
 ### Community 485 - "Community 485"
 Cohesion: 0.25
 Nodes (15): allKeys(), currentProfile(), dashboardAtStart(), language(), Preferences(), remove(), setCurrentProfile(), setDashboardAtStart() (+7 more)
 
 ### Community 486 - "Community 486"
-Cohesion: 0.25
-Nodes (7): Avis concernant les composants tiers, Bibliothèques d'exécution de Microsoft Visual C++ (Windows), Composants tiers inclus dans Qt, Dictionnaire français (Grammalecte), Hunspell 1.7.2, miniz 3.0.2, Qt 6.12
+Cohesion: 0.06
+Nodes (32): Q_OBJECT, TstUiWebFrame, dialogRefusesEmptyFields, engineNavigationAlwaysReturnsToTheModel, hrefOutsideSvgResourceBecomesALink, insertFromTypedHtml, navigationToLocalContentDropsTheInFlightReply, navigationToLocalContentDropsTheInFlightReply_data (+24 more)
 
 ### Community 487 - "Community 487"
 Cohesion: 0.30
 Nodes (14): Change, Changes, Document, ObjectId, pair, size_t, Text, vector (+6 more)
 
 ### Community 488 - "Community 488"
-Cohesion: 0.20
+Cohesion: 0.18
 Nodes (5): Q_OBJECT, QSet, QString, TstActionsLockable, QByteArray
 
 ### Community 489 - "Community 489"
-Cohesion: 0.25
-Nodes (5): QTimer, namespace, namespace, actcraft(), actcraft()
+Cohesion: 0.13
+Nodes (21): BroadcastRules, Document, optional, Restriction, string_view, forbids(), published(), restrictionFor() (+13 more)
 
 ### Community 490 - "Community 490"
 Cohesion: 0.25
 Nodes (13): Document, ExportResult, QFuture, QUrl, size_t, ImageFormat, RenderObserver, exportPageImage() (+5 more)
 
 ### Community 491 - "Community 491"
-Cohesion: 0.19
-Nodes (4): Argb, QObject, QString, findItem()
+Cohesion: 0.15
+Nodes (29): Opener, answer(), ask(), diskInfo(), displayed(), extractFile(), extractionDir(), fileNameOf() (+21 more)
 
 ### Community 492 - "Community 492"
-Cohesion: 0.27
-Nodes (12): optional, QByteArray, qint64, QString, QUrl, QVariant, isContent(), readBounded() (+4 more)
+Cohesion: 0.22
+Nodes (10): Document, ObjectId, PageObject, Q_OBJECT, QString, string, UndoCommand, unique_ptr (+2 more)
 
 ### Community 493 - "Community 493"
-Cohesion: 0.19
-Nodes (10): PasteWithResources, m_inner, m_payload, Changes, ClipboardPayload, Document, PageObject, PasteObjectsCommand (+2 more)
+Cohesion: 0.12
+Nodes (16): ObjectId, RectF, ToolContext, Harness, commands, context, doc, ink (+8 more)
 
 ### Community 494 - "Community 494"
 Cohesion: 0.24
@@ -2118,8 +2383,8 @@ Cohesion: 0.11
 Nodes (27): NotesController, ResourceSpy, contactDefersTheRefresh(), Commands, DocumentController, Q_OBJECT, QByteArray, QString (+19 more)
 
 ### Community 496 - "Community 496"
-Cohesion: 0.15
-Nodes (12): API, `appCommands` n'est pas un objectName, Ce qui amende le plan (pour l'orchestrateur), Constats, Décisions, Hypothèses nouvelles ou modifiées, Identifiants de la caméra (D10 du lot 7), Lot 6 — principes, décisions D1 à D14 et API revérifiées (ouverture sur le Mac) (+4 more)
+Cohesion: 0.11
+Nodes (18): API, `appCommands` n'est pas un objectName, Ce qui amende le plan ou le livré (pour l'orchestrateur), Ce qui amende le plan (pour l'orchestrateur), Confrontation au PC (2026-11-06), Constats, D1 à D14, Décisions (+10 more)
 
 ### Community 497 - "Community 497"
 Cohesion: 0.18
@@ -2131,95 +2396,103 @@ Nodes (10): 🔑 Accès, ✅ Fait cette session (2026-11-03, Mac seul), 🔧 Git
 
 ### Community 499 - "Community 499"
 Cohesion: 0.06
-Nodes (62): add(), addSeparator(), apply(), buildCatalog(), buildItems(), catalog(), categoryLabel(), commands() (+54 more)
+Nodes (61): add(), addSeparator(), apply(), buildCatalog(), buildItems(), categoryLabel(), commands(), error() (+53 more)
 
 ### Community 500 - "Community 500"
 Cohesion: 0.27
 Nodes (7): namespace, ImportResult, QFuture, QUrl, detail(), importFrom(), importPdf()
 
 ### Community 501 - "Community 501"
-Cohesion: 0.25
-Nodes (4): Argb, StrokePoint, uint64_t, FakeInk
+Cohesion: 0.11
+Nodes (14): DisplayRecorder, Q_OBJECT, QPointer, QStringList, unique_ptr, TstMediaDisplayrecorder, m_case, m_elsewhere (+6 more)
 
 ### Community 502 - "Community 502"
-Cohesion: 0.47
-Nodes (6): data(), rowCount(), setTools(), tools(), QModelIndex, ToolHost
+Cohesion: 0.18
+Nodes (8): Fixture, Q_OBJECT, QColor, Stroke, lineAt(), near(), TstRenderPendingLayer, private
 
 ### Community 503 - "Community 503"
-Cohesion: 0.29
-Nodes (7): editable(), objectCommand(), setValue(), ObjectId, size_t, UndoCommand, unique_ptr
+Cohesion: 0.12
+Nodes (25): canWrite(), clampedSpeed(), count(), DiceController(), documentController(), faces(), finish(), maxSpeed() (+17 more)
 
 ### Community 504 - "Community 504"
-Cohesion: 0.10
-Nodes (26): DataImages, Format, QTextFrame, ResourceObserver, AnalysisDocument, m_images, m_observer, cleanFrames() (+18 more)
+Cohesion: 0.11
+Nodes (23): EngineFactory, function, QObject, QString, quint64, PermissionRequest, answered(), begin() (+15 more)
 
 ### Community 505 - "Community 505"
-Cohesion: 0.23
-Nodes (9): Page, size_t, appendPage(), blankPage(), formerPageIndex(), insertPage(), nextPageIndex(), pageCount() (+1 more)
+Cohesion: 0.05
+Nodes (62): QSGGeometry, QSGMaterial, QSGMaterialType, Argb, InkBuffer, InkProbe, optional, PenCap (+54 more)
 
 ### Community 506 - "Community 506"
-Cohesion: 0.18
-Nodes (15): Choices, choiceLabels(), fromVariant(), keywordsOf(), PropertyModel::Row, descriptor, value, toStringList() (+7 more)
+Cohesion: 0.15
+Nodes (12): Document, ObjectId, Q_OBJECT, QString, size_t, SpellEngine, string, unique_ptr (+4 more)
 
 ### Community 507 - "Community 507"
-Cohesion: 0.16
-Nodes (18): createFolder(), folder(), hasItem(), leaveFolder(), mineRoot(), openFolder(), remove(), rename() (+10 more)
+Cohesion: 0.15
+Nodes (21): createFolder(), folder(), hasItem(), isImageSuffix(), kindOf(), leaveFolder(), mineRoot(), openFolder() (+13 more)
 
 ### Community 508 - "Community 508"
-Cohesion: 0.24
-Nodes (13): addObject(), DocumentController, Layer, ObjectId, ObjectTreeModel, PageObject, vector, everyLot6ControllerRefuses() (+5 more)
+Cohesion: 0.15
+Nodes (6): actionsOf(), Q_OBJECT, QStringList, TstUiActionbrowser, Q_OBJECT, TstUiDragdropactions
 
 ### Community 509 - "Community 509"
-Cohesion: 0.24
-Nodes (8): centerOf(), ObjectId, PageObject, QColor, QImage, RectF, hiddenRedRectangle(), tinted()
+Cohesion: 0.13
+Nodes (18): bigPage(), DocumentController, qsizetype, QVariant, dialogRefusesEmptyFields(), Fixture, document, frames (+10 more)
 
 ### Community 510 - "Community 510"
-Cohesion: 0.25
-Nodes (8): QQuickItem, InkItem(), canEdit(), objectRow(), setFlag(), setHidden(), setLocked(), Row
+Cohesion: 0.13
+Nodes (25): capsLocked(), focusTarget(), fromFeatures(), hasCapsLockKey(), injectedText(), KeyboardController(), layout(), onFocusWindowChanged() (+17 more)
+
+### Community 511 - "Community 511"
+Cohesion: 0.08
+Nodes (26): BambooContainer, IndexNode, optional, QByteArray, qsizetype, QString, QStringList, quint16 (+18 more)
 
 ### Community 512 - "Community 512"
-Cohesion: 0.18
-Nodes (7): actcraft(), namespace, namespace, namespace, actcraft(), actcraft(), Result
+Cohesion: 0.09
+Nodes (12): PointF, QStringList, FakeView, optional, PointF, QStringList, FakeView, origin (+4 more)
 
 ### Community 513 - "Community 513"
-Cohesion: 0.33
-Nodes (6): page, document(), flush(), rebuild(), DocumentController, Row
+Cohesion: 0.22
+Nodes (9): actcraft(), EquationPreview(), mathml(), paint(), setMathml(), QPainter, QQuickItem, QString (+1 more)
 
 ### Community 514 - "Community 514"
-Cohesion: 0.29
-Nodes (7): editorKey(), kindLabel(), rowOf(), sectionLabel(), title(), ObjectKind, QString
+Cohesion: 0.14
+Nodes (25): abandonEngine(), actcraft(), begin(), cancel(), cropFrame(), DisplayRecorder(), end(), engineFailed() (+17 more)
 
 ### Community 515 - "Community 515"
-Cohesion: 0.36
-Nodes (3): Phase, Sample, sampleAt()
+Cohesion: 0.14
+Nodes (20): Launcher, CalculatorController(), display(), documentController(), endsWithOperator(), entersANumber(), expression(), open() (+12 more)
+
+### Community 516 - "Community 516"
+Cohesion: 0.07
+Nodes (26): Amendement 4 (ouverture L6-T0), Commandes de preuve communes, Livraison complète — lot 6 « Navigateurs, propriétés, profils », sous-lot 6b — plan d'exécution, Sections des tâches, Table des tâches, Talons : règle d'honnêteté, Tâche L6-T19 — `formats` : fragment de ressource, Tâche L6-T20 — `ui` : bibliothèque de ressources (+18 more)
 
 ### Community 517 - "Community 517"
-Cohesion: 0.17
-Nodes (12): InsertFragmentCommand, m_dx, m_dy, m_fragment, m_inner, m_page, Changes, Document (+4 more)
+Cohesion: 0.18
+Nodes (11): InsertFragmentCommand, m_dx, m_dy, m_fragment, m_inner, m_page, Changes, Document (+3 more)
 
 ### Community 518 - "Community 518"
-Cohesion: 0.14
-Nodes (9): QSGRenderNode, namespace, actcraft(), Q_OBJECT, QPoint, StrokePoint, midSegment(), pointAt() (+1 more)
+Cohesion: 0.13
+Nodes (24): ActionRunner(), bindHistoryHandlers(), cancel(), commands(), designMode(), historyBack(), historyForward(), links() (+16 more)
 
 ### Community 519 - "Community 519"
-Cohesion: 0.15
-Nodes (25): ClassroomLock, Commands, Preferences, QQuickItem, QString, QTemporaryDir, unique_ptr, disabledDuringLockStaysDisabled() (+17 more)
+Cohesion: 0.11
+Nodes (38): ClassroomLock, addObject(), Commands, DocumentController, Layer, ObjectId, ObjectTreeModel, PageObject (+30 more)
 
 ### Community 520 - "Community 520"
 Cohesion: 0.09
 Nodes (49): addButton(), Document, Fragment, ObjectId, optional, PageObject, Q_OBJECT, QByteArray (+41 more)
 
 ### Community 521 - "Community 521"
-Cohesion: 0.22
-Nodes (5): Q_OBJECT, unique_ptr, TstUiDesignmode, m_app, private
+Cohesion: 0.09
+Nodes (21): QString, QVariant, SelectionView, ToolContext, UserState, FakeCommands, FakeSelection, Rig (+13 more)
 
 ### Community 522 - "Community 522"
 Cohesion: 0.29
 Nodes (4): Q_OBJECT, QString, indexText(), TstUiHelp
 
 ### Community 523 - "Community 523"
-Cohesion: 0.15
-Nodes (7): Preferences, Q_OBJECT, QLocale, unique_ptr, TstUiLanguage, m_prefs, QTemporaryDir
+Cohesion: 0.14
+Nodes (8): QCoreApplication, Preferences, Q_OBJECT, QLocale, unique_ptr, TstUiLanguage, m_prefs, QTemporaryDir
 
 ### Community 524 - "Community 524"
 Cohesion: 0.09
@@ -2234,48 +2507,52 @@ Cohesion: 0.14
 Nodes (24): click(), m_settingsDir, Q_OBJECT, QObject, QQmlApplicationEngine, QQuickItem, QQuickWindow, QString (+16 more)
 
 ### Community 527 - "Community 527"
-Cohesion: 0.29
-Nodes (4): Argb, StrokePoint, uint64_t, FakeInk
+Cohesion: 0.28
+Nodes (27): action(), alignGroupAndSelectAllUseRegistry(), click(), clickRunsEveryActionInOrder(), commandWithoutHandlerIsUnsupported(), designModeSelectsInstead(), diagonalStrokeBlocksOnlyItsLine(), documentWith() (+19 more)
 
 ### Community 528 - "Community 528"
 Cohesion: 0.12
 Nodes (13): Mounted, Session, Document, DocumentController, ObjectId, Q_OBJECT, QQuickItem, QString (+5 more)
 
 ### Community 532 - "Community 532"
-Cohesion: 0.15
-Nodes (5): ObjectId, Q_OBJECT, QObject, document, TestTabs
+Cohesion: 0.04
+Nodes (49): Accepted, chime, container, Argb, Document, LiftedObject, PageObject, QString (+41 more)
 
 ### Community 533 - "Community 533"
-Cohesion: 0.25
-Nodes (4): Argb, StrokePoint, uint64_t, FakeInk
+Cohesion: 0.12
+Nodes (18): QMediaCaptureSession, QMediaFormat, QMediaRecorder, QString, QVideoFrame, QScreenCapture, QVideoFrameInput, QVideoSink (+10 more)
 
 ### Community 534 - "Community 534"
-Cohesion: 0.25
-Nodes (4): PointF, QStringList, distanceToSegment(), FakeView
+Cohesion: 0.17
+Nodes (10): Q_OBJECT, QQuickItem, QString, QVariant, QVariantMap, entryOf(), findItem(), sectionOfKey() (+2 more)
 
 ### Community 535 - "Community 535"
-Cohesion: 0.09
-Nodes (16): int64_t, optional, QEvent, QPointF, Sample, QTouchEvent, touchEvent(), sampleFromEvent() (+8 more)
+Cohesion: 0.10
+Nodes (15): cacheTouches(), CacheArea, Changes, ObjectId, Q_OBJECT, QString, QStringList, RectF (+7 more)
 
 ### Community 536 - "Community 536"
-Cohesion: 0.67
-Nodes (3): roleNames(), QByteArray, QHash
+Cohesion: 0.23
+Nodes (16): Ready, extract(), extractedName(), fetchFiles(), fillEntries(), knownFile(), onWritten(), originalName() (+8 more)
+
+### Community 537 - "Community 537"
+Cohesion: 0.16
+Nodes (13): allOnCircle(), circlePath(), Comp, angle, cx, cy, leadX, leadY (+5 more)
 
 ### Community 538 - "Community 538"
-Cohesion: 0.29
-Nodes (6): 0.1.0 — 2026-10-15, 0.2.0 — 2026-10-17, 0.4.0 — 2026-10-20, 0.5.0 — 2026-11-02, 0.6.0 — 2026-11-04, Journal des versions
+Cohesion: 0.16
+Nodes (21): GridLevel, ObjectId, optional, Page, PageObject, PointF, vector, dot() (+13 more)
 
 ### Community 539 - "Community 539"
-Cohesion: 0.32
-Nodes (12): Change, Changes, Document, ObjectId, Shape, size_t, vector, apply() (+4 more)
+Cohesion: 0.13
+Nodes (21): data(), document(), documentReplaced(), htmlOf(), pageBox(), rebuild(), resizeFrame(), rowCount() (+13 more)
 
 ### Community 541 - "Community 541"
-Cohesion: 0.33
-Nodes (5): optional, Transform, inverted(), rotation(), scaling()
+Cohesion: 0.20
+Nodes (16): addRect(), addSmartShape(), blank(), boundsOf(), contains(), Document, ObjectId, PageObject (+8 more)
 
 ### Community 543 - "Community 543"
-Cohesion: 0.32
-Nodes (13): FlaggedObject, announceEdit(), clearPage(), deleteObjects(), dropRemaining(), flaggedObjects(), loadGeneratedFirstPage(), notifyFlags() (+5 more)
+Cohesion: 0.36
+Nodes (14): beginCapture(), bounds(), clamped(), defaultArea(), hover(), move(), press(), release() (+6 more)
 
 ### Community 545 - "Community 545"
 Cohesion: 0.14
@@ -2294,16 +2571,16 @@ Cohesion: 0.42
 Nodes (9): follow(), HelpViewer(), openFor(), pageExists(), resourcePath(), show(), QObject, QString (+1 more)
 
 ### Community 549 - "Community 549"
-Cohesion: 0.22
-Nodes (9): string, unique_ptr, vector, Hunspell, SpellEngine, HunspellEngine, m_hunspell, hunspellPath() (+1 more)
+Cohesion: 0.15
+Nodes (12): FixedPageItem, PageView, QQmlApplicationEngine, QTemporaryDir, indicator(), ready(), Shell, engine (+4 more)
 
 ### Community 550 - "Community 550"
-Cohesion: 0.38
-Nodes (7): QSGNode, size_t, UpdatePaintNodeData, addRasterSlot(), cachedObjectCount(), sourcePage(), updatePaintNode()
+Cohesion: 0.20
+Nodes (9): withFreshIds(), Document, PageObject, Q_OBJECT, string, names(), pages(), shape() (+1 more)
 
 ### Community 551 - "Community 551"
 Cohesion: 0.13
-Nodes (40): add(), confirm(), documentRefusal(), entries(), executedType(), find(), idOf(), key() (+32 more)
+Nodes (42): add(), confirm(), documentRefusal(), entries(), executedType(), fakeWindowsImage(), find(), idOf() (+34 more)
 
 ### Community 552 - "Community 552"
 Cohesion: 0.17
@@ -2314,12 +2591,12 @@ Cohesion: 0.33
 Nodes (15): apply(), clear(), host(), key(), NetworkSettings(), port(), setHost(), setPassword() (+7 more)
 
 ### Community 554 - "Community 554"
-Cohesion: 0.13
-Nodes (27): clear(), count(), entries(), note(), persist(), pumpThumbnails(), readThumbnail(), RecentDocuments() (+19 more)
+Cohesion: 0.08
+Nodes (38): RecentDocuments, clear(), count(), entries(), note(), persist(), pumpThumbnails(), readThumbnail() (+30 more)
 
 ### Community 555 - "Community 555"
-Cohesion: 0.12
-Nodes (15): commands(), large(), profile(), pumpThumbnails(), requestThumbnails(), ResourceLibrary(), setCommands(), setContactActive() (+7 more)
+Cohesion: 0.11
+Nodes (19): commands(), large(), notify(), profile(), pumpThumbnails(), requestThumbnails(), ResourceLibrary(), setCommands() (+11 more)
 
 ### Community 556 - "Community 556"
 Cohesion: 0.36
@@ -2330,8 +2607,8 @@ Cohesion: 0.36
 Nodes (8): read(), remove(), targetName(), write(), optional, QByteArray, QString, wstring
 
 ### Community 558 - "Community 558"
-Cohesion: 0.18
-Nodes (23): choiceValues(), entries(), find(), isProfileStore(), normalized(), preferences(), profile(), profileSectionOf() (+15 more)
+Cohesion: 0.08
+Nodes (46): boolean(), choice(), choiceValues(), entries(), Entry, defaultValue, key, label (+38 more)
 
 ### Community 559 - "Community 559"
 Cohesion: 0.33
@@ -2343,115 +2620,671 @@ Nodes (35): addToDictionary(), advance(), appDataFile(), close(), copyResource()
 
 ### Community 561 - "Community 561"
 Cohesion: 0.18
-Nodes (9): MemorySummary, optional, uint64_t, ProcessMemory, readProcessMemory(), sample(), summary(), onFrameSwapped() (+1 more)
+Nodes (15): optional, qint64, QString, QStringView, nullopt_t, Known, arity, kind (+7 more)
 
 ### Community 562 - "Community 562"
-Cohesion: 0.12
-Nodes (15): QMutex, actcraft(), namespace, notify(), setRenderObserverForTests(), setSearchObserverForTests(), TestHooks, mine (+7 more)
+Cohesion: 0.22
+Nodes (9): TestHooks, mine, observerMutex, renderObserver, searchObserver, shared, trashFails, useTrash (+1 more)
 
 ### Community 563 - "Community 563"
-Cohesion: 0.40
-Nodes (6): kindKey(), kindLabel(), layerKey(), Layer, ObjectKind, QString
+Cohesion: 0.15
+Nodes (21): findObject(), firstLineBaseline(), fixedWidthBefore(), fixedWidthOf(), measurableText(), measuredBounds(), measureDocument(), samePoint() (+13 more)
 
 ### Community 564 - "Community 564"
-Cohesion: 0.33
-Nodes (6): document(), invalidate(), print(), report(), setDocument(), DocumentController
+Cohesion: 0.20
+Nodes (21): action(), copyAndPrint(), BroadcastRules, CommandRegistry, Document, string, documentWith(), enableCannotBypassTheRestriction() (+13 more)
 
 ### Community 565 - "Community 565"
-Cohesion: 0.35
-Nodes (12): cancelGesture(), clearSelection(), deleteSelection(), enlargeSelection(), reduceSelection(), selectAll(), selectObjects(), selectTool() (+4 more)
+Cohesion: 0.19
+Nodes (11): QStringList, size_t, SpellEngine, string, SpellRules, addToUserDictionary(), ignore(), ignoreAlways() (+3 more)
+
+### Community 566 - "Community 566"
+Cohesion: 0.07
+Nodes (19): actcraft(), namespace, namespace, NavigationKind, QString, string, actcraft(), QRandomGenerator (+11 more)
 
 ### Community 567 - "Community 567"
-Cohesion: 0.15
-Nodes (14): adapters(), connectorStyle(), connectorStyleSketch(), discardAdapters(), hiddenFrame(), selectionFrame(), setTrashHoverState(), setView() (+6 more)
+Cohesion: 0.11
+Nodes (31): click(), commandLineArgumentsNeverPassed(), ActionRunner, Commands, DesignMode, DocumentController, LinkLauncher, QByteArray (+23 more)
 
 ### Community 568 - "Community 568"
-Cohesion: 0.53
-Nodes (3): DocumentController, openAndWait(), saveAndWait()
+Cohesion: 0.13
+Nodes (19): area(), color(), coverage(), covered(), CurtainController(), dragging(), move(), press() (+11 more)
+
+### Community 569 - "Community 569"
+Cohesion: 0.11
+Nodes (13): QThreadPool, actcraft(), namespace, atomic, PoolGate, m_jobs, m_open, m_pool (+5 more)
 
 ### Community 571 - "Community 571"
-Cohesion: 0.40
-Nodes (5): Tally, pagesRead, unreadableThumbnail, warnings, withoutThumbnail
+Cohesion: 0.21
+Nodes (20): buildPlatform(), decide(), diskInfo(), forget(), isAcceptableRemote(), isAllowedFile(), isImageData(), isInside() (+12 more)
 
 ### Community 572 - "Community 572"
-Cohesion: 0.20
-Nodes (10): addSelection(), document(), insert(), keywordsMatch(), mayEdit(), readFragmentFile(), setDocument(), DocumentController (+2 more)
+Cohesion: 0.29
+Nodes (7): addSelection(), document(), insert(), mayEdit(), setDocument(), DocumentController, QPointF
 
 ### Community 573 - "Community 573"
-Cohesion: 0.24
-Nodes (10): fragmentThumbnail(), imageThumbnail(), makeThumbnail(), ThumbnailJob, file, generation, path, rendered (+2 more)
+Cohesion: 0.18
+Nodes (14): fragmentThumbnail(), imageThumbnail(), keywordsMatch(), makeThumbnail(), readFragmentFile(), ThumbnailJob, file, generation (+6 more)
 
 ### Community 574 - "Community 574"
-Cohesion: 0.36
-Nodes (9): optional, Outline, PageObject, ShapeStyle, string_view, makeChainObject(), makeLineObject(), outlineOf() (+1 more)
+Cohesion: 0.13
+Nodes (17): QImage, QTimer, QVideoFrame, positionAt(), positionPattern(), repositoryTmp(), screenUnavailable(), SimulatedScreen (+9 more)
 
 ### Community 575 - "Community 575"
-Cohesion: 0.40
-Nodes (5): QJsonArray, RectF, Transform, rectJson(), transformJson()
+Cohesion: 0.13
+Nodes (18): namespace, actcraft(), Recorders, Commands, DisplayRecorder, Preferences, QTemporaryDir, SoundRecorder (+10 more)
+
+### Community 576 - "Community 576"
+Cohesion: 0.20
+Nodes (18): DecodeResult, ArchiveLimits, Document, Extracted, QByteArray, QString, size_t, string (+10 more)
 
 ### Community 577 - "Community 577"
-Cohesion: 0.50
-Nodes (3): QJSValue, actcraft(), namespace
+Cohesion: 0.10
+Nodes (10): namespace, ObjectActions, actcraft(), CommandRegistry, Q_OBJECT, TstActionsObjectActions, m_registry, ObjectActionCatalog (+2 more)
 
 ### Community 578 - "Community 578"
-Cohesion: 0.25
-Nodes (8): activeTool(), eventFilter(), relayModifiers(), ToolHost(), QEvent, QObject, Tool, UserId
+Cohesion: 0.18
+Nodes (15): applyDeferral(), fixedPage(), holdRequestsOfThisTurn(), notifyCacheUpdated(), onPendingChanged(), onStrokeFrozen(), pendingLayer(), requestCacheRefresh() (+7 more)
 
 ### Community 579 - "Community 579"
-Cohesion: 0.24
-Nodes (15): chooseConnectorStyle(), chooseShape(), configureTool(), ensureSettings(), openSettings(), setConnectorCaps(), setConnectorStyle(), setShapeFilled() (+7 more)
+Cohesion: 0.17
+Nodes (32): activate(), applyToView(), chooseConnectorStyle(), chooseShape(), configureTool(), currentTool(), ensureSettings(), existingTool() (+24 more)
 
 ### Community 580 - "Community 580"
-Cohesion: 0.25
-Nodes (8): Changes, Origin, ObserverSpy, cache, origins, received, shownDuringCall, token
+Cohesion: 0.21
+Nodes (10): EquationRewrite, m_after, m_applied, m_before, m_index, m_page, Changes, Document (+2 more)
+
+### Community 581 - "Community 581"
+Cohesion: 0.20
+Nodes (21): Pending, document(), extractionKey(), parametersOf(), refuse(), refusedByRestrictionOnly(), run(), runCommand() (+13 more)
 
 ### Community 582 - "Community 582"
-Cohesion: 0.50
-Nodes (4): Lot7Key, defaultValue, key, type
+Cohesion: 0.14
+Nodes (9): allOnColumn(), allOnHypotenuse(), allOnLine(), Q_OBJECT, Stroke, frameOf(), lastStroke(), mathTools() (+1 more)
+
+### Community 583 - "Community 583"
+Cohesion: 0.12
+Nodes (20): action(), applyCountdownText(), ClockController(), clockNowOffsetMs(), commands(), countdownText(), cycleMode(), cycleSource() (+12 more)
 
 ### Community 585 - "Community 585"
-Cohesion: 0.36
-Nodes (8): cancelSearch(), dropThumbnails(), endSearch(), itemCount(), refresh(), search(), setItems(), setSearching()
+Cohesion: 0.47
+Nodes (6): cancelSearch(), dropThumbnails(), endSearch(), refresh(), search(), setSearching()
+
+### Community 587 - "Community 587"
+Cohesion: 0.24
+Nodes (20): Prepared, answer(), decide(), fetch(), fetched(), finishContent(), followLink(), goBack() (+12 more)
 
 ### Community 588 - "Community 588"
 Cohesion: 0.67
 Nodes (4): data(), rowCount(), QModelIndex, QVariant
 
 ### Community 589 - "Community 589"
-Cohesion: 0.50
-Nodes (4): Section, id, label, platforms
+Cohesion: 0.21
+Nodes (5): MouseButtons, QPointF, Type, near(), pixelAtPage()
 
 ### Community 590 - "Community 590"
 Cohesion: 0.27
 Nodes (10): opaque(), recolored(), recolorSelectedTexts(), setShapeFillColor(), shapeDefaultFillColor(), shapeFillColor(), Argb, optional (+2 more)
 
+### Community 591 - "Community 591"
+Cohesion: 0.22
+Nodes (16): QTextCharFormat, QTextCursor, apply(), bold(), changeBlocks(), currentCharFormat(), fontSize(), italic() (+8 more)
+
+### Community 592 - "Community 592"
+Cohesion: 0.19
+Nodes (12): Q_OBJECT, QJsonObject, QString, QTemporaryDir, dumpAndExit(), EnvGuard, libreOfficeGetsItsOwnProfile(), main() (+4 more)
+
+### Community 593 - "Community 593"
+Cohesion: 0.14
+Nodes (18): ActionRunner, Commands, DesignMode, Document, LinkLauncher, PageObject, QTemporaryDir, string (+10 more)
+
 ### Community 594 - "Community 594"
-Cohesion: 0.67
-Nodes (3): roleNames(), QByteArray, QHash
+Cohesion: 0.10
+Nodes (20): Q_OBJECT, TstUiBroadcast, closingProtectedTabKeepsIt, enableCannotBypassTheRestriction, fileActionsSaveRefused, lockAndRestrictionCombine, m_settings, nativeTextCopyRefused (+12 more)
+
+### Community 595 - "Community 595"
+Cohesion: 0.26
+Nodes (13): MainWindow, Pointer, Q_OBJECT, QObject, QPointF, QQuickWindow, QString, fingerprintOf() (+5 more)
+
+### Community 596 - "Community 596"
+Cohesion: 0.16
+Nodes (15): DragDropActions, addShape(), Commands, DocumentController, ObjectId, PageObject, QTemporaryDir, Fixture (+7 more)
 
 ### Community 597 - "Community 597"
 Cohesion: 0.67
 Nodes (3): roleNames(), QByteArray, QHash
 
+### Community 598 - "Community 598"
+Cohesion: 0.07
+Nodes (28): Held, QTcpServer, QTcpSocket, addressBearing(), QByteArray, QHash, QList, QString (+20 more)
+
+### Community 599 - "Community 599"
+Cohesion: 0.11
+Nodes (16): qint64, QMediaCaptureSession, QMediaFormat, QMediaRecorder, unique_ptr, QAudioInput, RecordingEngine, CaptureEngine (+8 more)
+
+### Community 600 - "Community 600"
+Cohesion: 0.19
+Nodes (19): announceEdit(), announcePageChange(), attach(), blankLike(), canRevertPage(), clearPage(), deleteObjects(), dropRemaining() (+11 more)
+
+### Community 601 - "Community 601"
+Cohesion: 0.13
+Nodes (16): InsertMediaCommand, m_data, m_existingKey, m_extension, m_inner, m_object, m_page, m_placeholder (+8 more)
+
+### Community 602 - "Community 602"
+Cohesion: 0.22
+Nodes (17): appendCode(), cssUnescape(), decodeEntities(), hexValue(), imageSetStrings(), isAsciiLetter(), isDigit(), isHtmlSpace() (+9 more)
+
+### Community 603 - "Community 603"
+Cohesion: 0.25
+Nodes (11): Document, Fixture, Grid, Q_OBJECT, QColor, QImage, documentWithGrid(), near() (+3 more)
+
+### Community 604 - "Community 604"
+Cohesion: 0.27
+Nodes (3): Q_OBJECT, pt(), TstRenderInkBuffer
+
+### Community 605 - "Community 605"
+Cohesion: 0.14
+Nodes (14): Document, LiftedObject, size_t, UndoCommand, unique_ptr, FakeEditor, dropCalls, dropNullCalls (+6 more)
+
+### Community 606 - "Community 606"
+Cohesion: 0.20
+Nodes (17): int64_t, PlannedInput, QEvent, QObject, QPointingDevice, QWindow, size_t, PageToScene (+9 more)
+
+### Community 607 - "Community 607"
+Cohesion: 0.19
+Nodes (10): PasteWithResources, m_inner, m_payload, Changes, ClipboardPayload, Document, PageObject, PasteObjectsCommand (+2 more)
+
+### Community 608 - "Community 608"
+Cohesion: 0.12
+Nodes (17): mz_zip_archive, QHash, qint64, QList, QStringList, mz_uint, archiveEntryNames(), ZipReader (+9 more)
+
+### Community 609 - "Community 609"
+Cohesion: 0.18
+Nodes (16): function, qint64, QObject, QString, Track, fail(), failLater(), fallBack() (+8 more)
+
+### Community 610 - "Community 610"
+Cohesion: 0.14
+Nodes (15): decodeBody(), roleNames(), SnapshotCommand, m_inner, m_object, m_page, m_png, AddObjectCommand (+7 more)
+
+### Community 611 - "Community 611"
+Cohesion: 0.41
+Nodes (10): argumentsNeedANamedProgram(), bareNameOnlyOffWindows(), batAndCmdRefused(), colonAndSeparatorRefused(), controlInArgumentRefused(), QString, documentTakesNoArguments(), executableDocumentsRefused() (+2 more)
+
+### Community 612 - "Community 612"
+Cohesion: 0.20
+Nodes (11): color(), connectorStyle(), connectorStyleSketch(), hiddenFrame(), selectionFrame(), settingsOf(), showSelection(), width() (+3 more)
+
+### Community 613 - "Community 613"
+Cohesion: 0.13
+Nodes (21): QTextObjectInterface, QByteArray, QSizeF, QString, QTextDocument, QTextFormat, QUrl, QVariant (+13 more)
+
+### Community 614 - "Community 614"
+Cohesion: 0.20
+Nodes (15): EraserTool, add(), contains(), create(), ids(), inkTool(), registerBuiltinTools(), ToolRegistry (+7 more)
+
+### Community 615 - "Community 615"
+Cohesion: 0.14
+Nodes (13): QPointF, QRectF, QSizeF, Start, namespace, coverage(), covered(), Curtain() (+5 more)
+
+### Community 616 - "Community 616"
+Cohesion: 0.14
+Nodes (14): QVector, Rewriter, m_base, m_blocked, m_data, m_images, m_links, m_media (+6 more)
+
+### Community 617 - "Community 617"
+Cohesion: 0.20
+Nodes (12): appendText(), Attribute, hasValue, name, raw, cspSource(), escaped(), insertFrame() (+4 more)
+
+### Community 618 - "Community 618"
+Cohesion: 0.39
+Nodes (15): content(), engineNavigationAlwaysReturnsToTheModel(), navigationToLocalContentDropsTheInFlightReply(), otherPageStaysBlocked(), receivedCodeFrameUnblocks(), receivedRemoteFrameSendsNoRequest(), redirectPassesThroughThePolicy(), replyOfARecreatedRowIsNotTakenForANewNavigation() (+7 more)
+
+### Community 619 - "Community 619"
+Cohesion: 0.13
+Nodes (14): KeyOutput, Layout, QString, vector, KeyCap, addCharacters(), addCommand(), buildKeys() (+6 more)
+
+### Community 620 - "Community 620"
+Cohesion: 0.07
+Nodes (31): QColor, QPainter, QQuickWindow, QRectF, RenderingFlags, RenderState, span, StateFlags (+23 more)
+
+### Community 621 - "Community 621"
+Cohesion: 0.23
+Nodes (15): Action, Change, Changes, Document, ObjectId, Page, PageObject, size_t (+7 more)
+
+### Community 622 - "Community 622"
+Cohesion: 0.28
+Nodes (7): ActionBrowserModel, catalog(), QString, T, firstTargetAction(), idAt(), text()
+
+### Community 623 - "Community 623"
+Cohesion: 0.35
+Nodes (12): cancelGesture(), clearSelection(), deleteSelection(), enlargeSelection(), reduceSelection(), selectAll(), selectObjects(), selectTool() (+4 more)
+
+### Community 624 - "Community 624"
+Cohesion: 0.29
+Nodes (9): canonicalFolder(), QByteArray, QString, readRecorded(), readSimulated(), readVideo(), size, unreadable() (+1 more)
+
+### Community 625 - "Community 625"
+Cohesion: 0.31
+Nodes (6): PageObject, Transform, vector, FakeLift, clears, shown
+
+### Community 626 - "Community 626"
+Cohesion: 0.20
+Nodes (9): BSTR, ComPtr, QString, IInkRecognizer, fromBstr(), OwnedBstr, m_text, WindowsInkRecognizer (+1 more)
+
+### Community 627 - "Community 627"
+Cohesion: 0.18
+Nodes (9): QString, vector, INPUT, appendUnicode(), appendVirtualKey(), sendUnicodeToForeground(), Q_OBJECT, TstModules (+1 more)
+
+### Community 628 - "Community 628"
+Cohesion: 0.17
+Nodes (5): QWheelEvent, PlannedInput, Q_OBJECT, strokePlan(), TstBenchInjector
+
+### Community 629 - "Community 629"
+Cohesion: 0.19
+Nodes (4): Document, Q_OBJECT, documentWithARedRect(), TestExportImage
+
+### Community 630 - "Community 630"
+Cohesion: 0.18
+Nodes (8): Obj, Q_OBJECT, QString, quint32, string, shape(), str(), TstFormatsFlipchartInteractivity
+
+### Community 631 - "Community 631"
+Cohesion: 0.16
+Nodes (12): qint64, QPoint, QSize, Recorded, bottomRight, frames, largestGapMs, milliseconds (+4 more)
+
+### Community 632 - "Community 632"
+Cohesion: 0.24
+Nodes (13): column(), counterDocument(), ObjectId, QString, RectF, size_t, Text, labelOf() (+5 more)
+
+### Community 633 - "Community 633"
+Cohesion: 0.21
+Nodes (8): atomic_bool, int64_t, mutex, uint64_t, SyncProbe, m_allDuringSync, m_mutex, m_synced
+
+### Community 634 - "Community 634"
+Cohesion: 0.20
+Nodes (11): Build, LinkCommand, m_build, m_data, m_extension, m_inner, m_key, Changes (+3 more)
+
+### Community 635 - "Community 635"
+Cohesion: 0.17
+Nodes (12): FixedPageItem, PageView, QQmlEngine, QQuickWindow, unique_ptr, Scene, engine, fixed (+4 more)
+
+### Community 636 - "Community 636"
+Cohesion: 0.16
+Nodes (10): QPointF, vector, defaultWheel(), wheelPositions(), Q_OBJECT, TstFeaturesDesktopWheel, PanelRoot, command (+2 more)
+
+### Community 637 - "Community 637"
+Cohesion: 0.14
+Nodes (13): Conformité z2 — `C:\Users\JeromeDenis\relectures-mac\actcraft-local-20261103054515-4ea7\rapport.md` — non bloquant, 1 majeur, couverture partielle → relance z2b, Conformité z2b — `C:\Users\JeromeDenis\relectures-mac\actcraft-local-20261103054943-d088\rapport.md` — non bloquant, 2 majeurs. Non couvert : `cameracontroller.h/.cpp`, `tests/support/flipchartwriter.h`, `tests/support/presentationharness.h`, Conformité z3 — `C:\Users\JeromeDenis\relectures-mac\actcraft-local-20261103055526-318e\rapport.md` — non bloquant, 2 majeurs (= M2, M3). Non couvert : 23 QML, 8 tests, Constats à traiter (tâche corrective), Double relecture du lot 7 (3.8), tour 1 — diff 042df64..0ba3637, Qualité z2 — `C:\Users\JeromeDenis\relectures-mac\actcraft-local-20261103054657-e23a\rapport.md` — non bloquant, 1 majeur. Non couvert : en-têtes des contrôleurs, `recognitioncontroller.cpp` l.1-150, `mathtoolscontroller.cpp` l.620-783 et 985-1000 → relance z2q, Qualité z3 — `C:\Users\JeromeDenis\relectures-mac\actcraft-local-20261103055221-263b\rapport.md` — non bloquant, 2 majeurs. Non couvert : 6 QML, 2 QML en partie, la plupart des tests tst_ui_* → relances z3qa, z3qb, Qualité z3qa — `C:\Users\JeromeDenis\relectures-mac\actcraft-local-20261103055833-d346\rapport.md` — non bloquant, tout lu (+5 more)
+
+### Community 638 - "Community 638"
+Cohesion: 0.27
+Nodes (7): PresentationCommands, commandsOf(), controllerOf(), DocumentController, MainWindow, Q_OBJECT, TstUiOtherTools
+
+### Community 639 - "Community 639"
+Cohesion: 0.27
+Nodes (14): displayText(), nowNs(), paused(), refreshTimer(), remainingText(), resetCountdown(), setActive(), setRepeat() (+6 more)
+
+### Community 640 - "Community 640"
+Cohesion: 0.16
+Nodes (15): AddPageCommand, AddObjectOnNewPage, m_ids, m_object, m_page, ReportedAdd, m_command, m_ids (+7 more)
+
+### Community 641 - "Community 641"
+Cohesion: 0.15
+Nodes (8): id(), onSample(), RevealInkTool(), setBaseWidth(), DocumentSink, InkSurface, QString, Sample
+
+### Community 642 - "Community 642"
+Cohesion: 0.13
+Nodes (19): DataImages, Format, QTextFrame, ResourceObserver, AnalysisDocument, m_images, m_observer, cleanFrames() (+11 more)
+
+### Community 643 - "Community 643"
+Cohesion: 0.14
+Nodes (14): childOfType(), DocumentTabs, QObject, QQmlEngine, QQuickItem, QQuickWindow, unique_ptr, FileShell (+6 more)
+
+### Community 644 - "Community 644"
+Cohesion: 0.14
+Nodes (13): Amendements proposés (pour l'orchestrateur), API, Constats, Décisions, Hypothèses nouvelles, Identifiants de la caméra (D10), Lot 7 absent de la tête, Lot 8 — principes, décisions D1 à D16 et API revérifiées (ouverture sur le Mac) (+5 more)
+
+### Community 645 - "Community 645"
+Cohesion: 0.26
+Nodes (11): ActionCategory, ObjectActionInfo, QByteArray, QList, QString, categoryFromName(), defaultObjectActionsJson(), dragDropList() (+3 more)
+
+### Community 646 - "Community 646"
+Cohesion: 0.27
+Nodes (12): optional, QByteArray, qint64, QString, QUrl, QVariant, isContent(), readBounded() (+4 more)
+
+### Community 647 - "Community 647"
+Cohesion: 0.15
+Nodes (12): Architecture et règles, Base de connaissance — l'ancien dépôt et la rétro-ingénierie, CLAUDE.md — ActCraft (C++ / Qt 6 Quick), Démarrer une fonctionnalité — chaîne `nouvelle-feature`, Git, Knowledge graph (graphify), Langue, Mode autonome (+4 more)
+
+### Community 648 - "Community 648"
+Cohesion: 0.32
+Nodes (12): Change, Changes, Document, ObjectId, Shape, size_t, vector, apply() (+4 more)
+
+### Community 649 - "Community 649"
+Cohesion: 0.25
+Nodes (4): Argb, StrokePoint, uint64_t, FakeInk
+
+### Community 650 - "Community 650"
+Cohesion: 0.26
+Nodes (13): actionFrames(), actionObjectAt(), actionsDisabled(), controller(), hover(), pageShown(), press(), resetHistory() (+5 more)
+
+### Community 651 - "Community 651"
+Cohesion: 0.29
+Nodes (8): countOf(), ObjectId, Page, PageObject, T, lastObjectOf(), lastOf(), objectWithId()
+
+### Community 652 - "Community 652"
+Cohesion: 0.26
+Nodes (7): addShowsThePath(), Launchers, QJsonObject, qsizetype, QVariantMap, removeDeletes(), signedOnThisWorkstation()
+
+### Community 653 - "Community 653"
+Cohesion: 0.33
+Nodes (5): QEvent, KeyWitness, ambiguous, receiver, shortcut
+
+### Community 654 - "Community 654"
+Cohesion: 0.42
+Nodes (6): StrokePoint, vector, line(), near(), sixteenSegments(), twoPiecesAroundTheDisk()
+
+### Community 655 - "Community 655"
+Cohesion: 0.18
+Nodes (9): MemorySummary, optional, uint64_t, ProcessMemory, readProcessMemory(), sample(), summary(), onFrameSwapped() (+1 more)
+
+### Community 656 - "Community 656"
+Cohesion: 0.36
+Nodes (11): QChar, QString, apply(), digitCount(), display(), entry(), expression(), operatorSymbol() (+3 more)
+
+### Community 658 - "Community 658"
+Cohesion: 0.18
+Nodes (5): InkStrokes, Q_OBJECT, QString, QStringList, TstFeaturesHandwriting
+
+### Community 659 - "Community 659"
+Cohesion: 0.26
+Nodes (5): QColor, QPointF, Stroke, near(), redStroke()
+
+### Community 660 - "Community 660"
+Cohesion: 0.18
+Nodes (9): BroadcastGate, Commands, DocumentController, QTemporaryDir, Mount, commands, dir, document (+1 more)
+
+### Community 661 - "Community 661"
+Cohesion: 0.29
+Nodes (10): clickSlopInScreenPixels(), DocumentController, MouseButton, QPoint, QPointF, ToolHost, gateDragMovesWithoutRunning(), secondFingerReplaysTheHeldPress() (+2 more)
+
+### Community 662 - "Community 662"
+Cohesion: 0.22
+Nodes (8): controllerDestroyedDuringIoReceivesNothing(), shared_ptr, State, PoolBlocker, m_released, m_state, m_threads, saveNeverWaitsForTheWriterOnTheMainThread()
+
+### Community 663 - "Community 663"
+Cohesion: 0.25
+Nodes (11): QByteArray, QString, uint64_t, flipchartIsNeverOverwritten(), hex(), openingAFlipchartGivesADocumentWithoutFile(), readAll(), savedFingerprint() (+3 more)
+
+### Community 664 - "Community 664"
+Cohesion: 0.38
+Nodes (6): QTime, hourAngle(), minuteAngle(), secondAngle(), wallTime(), qreal
+
+### Community 665 - "Community 665"
+Cohesion: 0.36
+Nodes (9): optional, Outline, PageObject, ShapeStyle, string_view, makeChainObject(), makeLineObject(), outlineOf() (+1 more)
+
+### Community 667 - "Community 667"
+Cohesion: 0.42
+Nodes (10): QPointF, vector, FingerSink, PointerSink, PointSpace, pauseMs(), pinch(), pointerPath() (+2 more)
+
+### Community 668 - "Community 668"
+Cohesion: 0.20
+Nodes (9): 🔑 Accès, ✅ Fait cette session, 🔧 Git, Handoff — Reprise sur livraison-complete-b (lot 7) en NOUVELLE session, Mode de travail, 🧩 Pièges, ⏭️ Prochain, ♻️ Reliquats (+1 more)
+
+### Community 669 - "Community 669"
+Cohesion: 0.20
+Nodes (9): Banc de clôture commune des lots 10 et 3 — machine de développement, Condition machine, Critères perdus hors S13, Fichiers, Mémoire, Non-régression 0.2.0 → 0.4.0 : tenue, P6 `-Rendu tous` : `gommer` et `soulever`, `pauses.over_25ms_ratio` (L10-T9, étape 2) : encore perdu à P3 et P4 (+1 more)
+
+### Community 670 - "Community 670"
+Cohesion: 0.20
+Nodes (5): QFont, namespace, actcraft(), Q_OBJECT, TstUiPolice
+
+### Community 671 - "Community 671"
+Cohesion: 0.20
+Nodes (8): QWindow, Received, actcraft(), QEvent, vector, RecordingWindow, events, namespace
+
+### Community 672 - "Community 672"
+Cohesion: 0.24
+Nodes (9): Saved, RemeasuredTextCommand, m_inner, m_page, m_saved, m_target, size_t, unique_ptr (+1 more)
+
+### Community 673 - "Community 673"
+Cohesion: 0.29
+Nodes (3): PointF, QStringList, FakeView
+
+### Community 674 - "Community 674"
+Cohesion: 0.20
+Nodes (6): id(), onSample(), TextTool(), QString, Sample, ToolContext
+
+### Community 675 - "Community 675"
+Cohesion: 0.20
+Nodes (9): adapters(), discardAdapters(), refreshSelection(), setLockIgnored(), setTrashHoverState(), setView(), view(), ToolAdapters (+1 more)
+
+### Community 676 - "Community 676"
+Cohesion: 0.24
+Nodes (9): item(), MainWindow(), presentationharness(), window(), class, namespace, QQuickItem, QQuickWindow (+1 more)
+
+### Community 677 - "Community 677"
+Cohesion: 0.20
+Nodes (10): PageView, QObject, QQmlEngine, QQuickWindow, unique_ptr, ViewMount, engine, root (+2 more)
+
+### Community 678 - "Community 678"
+Cohesion: 0.22
+Nodes (8): Brief de démarrage — session B, chantier `livraison-complete-b` (lot 7 d'ActCraft), Ce qui est fixé, Communication, Phase 1 — maintenant, avant le socle : la logique pure du lot 7, Phase 2 — quand A t'écrit « socle mergé dans feat/livraison-complete », Pièges déjà payés par A, Premier geste, Règles du dépôt (rappel, non négociables)
+
+### Community 679 - "Community 679"
+Cohesion: 0.22
+Nodes (8): Constats du plan sur l'ancien dépôt (§ « Ce que l'ancien dépôt dit déjà »), Effets de page retenus (N2-A6), Lot 7 — principes confrontés (vidéos, spécification, ancien dépôt, binaire), Modèles d'équation retenus, Méthode et limites, Principes, Écarts pour l'orchestrateur, Écarts tranchés
+
+### Community 680 - "Community 680"
+Cohesion: 0.22
+Nodes (4): quint32, vector, Dice(), roll()
+
+### Community 681 - "Community 681"
+Cohesion: 0.40
+Nodes (4): NoImageHandler, Q_INTERFACES, QPainter, QTextFormat
+
+### Community 683 - "Community 683"
+Cohesion: 0.22
+Nodes (6): actcraft(), actcraft(), Zone(), namespace, namespace, Q_OBJECT
+
+### Community 684 - "Community 684"
+Cohesion: 0.22
+Nodes (8): Banc de clôture du lot 5 (version 0.6.0) — Direct3D 11, plein écran, Critères de la référence (P2), H5-28 : export en fond, Passages, Pertes déjà présentes dans la référence, Reliquat, Scénarios hors référence (relevés), Verdict
+
+### Community 685 - "Community 685"
+Cohesion: 0.40
+Nodes (5): Failure, StoredRead, bytes, failure, key
+
+### Community 686 - "Community 686"
+Cohesion: 0.22
+Nodes (8): Banc D3D11 plein écran, machine calme (05 h 05), Banc D3D11 plein écran — verdict, Non fait, Passe Windows du lot 6 — preuves et banc Direct3D 11 plein écran, Preuves à l'écran avec Jérôme (2026-11-07, 7 h 45), Suite de la passe (PC, nuit du 2026-11-07), Suites et contrôles, Écarts relevés (hors critères de la référence)
+
+### Community 687 - "Community 687"
+Cohesion: 0.22
+Nodes (8): Banc D3D11 plein écran (05 h 09), Captures D3D11 à l'écran, Contrôles à l'écran (plateforme Windows, hors offscreen), Mutant `desktopCaptureKeepsTheSelection`, Non fait, Passe Windows du lot 7 — suites, banc S22 et S23, captures D3D11, Preuve à l'écran de `keyinjector_win.cpp` (2026-11-07, 7 h 44, avec Jérôme), Suites
+
+### Community 689 - "Community 689"
+Cohesion: 0.36
+Nodes (4): Q_OBJECT, QString, TstUi, private
+
+### Community 690 - "Community 690"
+Cohesion: 0.22
+Nodes (8): Avis concernant les composants tiers, Bibliothèques d'exécution de Microsoft Visual C++ (Windows), Composants tiers inclus dans Qt, Dictionnaire français (Grammalecte), Hunspell 1.7.2, miniz 3.0.2, Qt 6.12, Qt Multimedia, FFmpeg et Qt WebView (Qt 6.12)
+
+### Community 691 - "Community 691"
+Cohesion: 0.25
+Nodes (7): int64_t, optional, QEvent, QPointF, Sample, QTouchEvent, sampleFromEvent()
+
+### Community 692 - "Community 692"
+Cohesion: 0.67
+Nodes (3): SelectionView, FakeSelection, last
+
+### Community 694 - "Community 694"
+Cohesion: 0.29
+Nodes (6): Harness, cacheSpy, controller, edit, editing, engine
+
+### Community 695 - "Community 695"
+Cohesion: 0.25
+Nodes (7): 0.1.0 — 2026-10-15, 0.2.0 — 2026-10-17, 0.4.0 — 2026-10-20, 0.5.0 — 2026-11-02, 0.6.0 — 2026-11-04, 0.9.0 — non publiée, Journal des versions
+
+### Community 696 - "Community 696"
+Cohesion: 0.48
+Nodes (5): int64_t, pair, uint64_t, RecordingProbe, received
+
+### Community 697 - "Community 697"
+Cohesion: 0.25
+Nodes (7): Consignes communes aux tâches de la phase 2 du lot 7 (chantier ActCraft livraison-complete-b), Constructions, suites, captures, banc : par le verrou de la session B (une seule place pour B), Dossier, Méthode, Rapport (15 lignes au plus, avant ta limite de tours, même partiel), Règles, À lire
+
+### Community 698 - "Community 698"
+Cohesion: 0.25
+Nodes (7): DisplayEngine, QString, unique_ptr, unique_ptr, createScreenEngine(), unavailableReason(), createScreenEngine()
+
+### Community 699 - "Community 699"
+Cohesion: 0.29
+Nodes (7): FixedPageItem, LiftLayerItem, QQuickWindow, Scene, lift, page, window
+
+### Community 700 - "Community 700"
+Cohesion: 0.32
+Nodes (6): PasteWithResources, m_inner, m_payload, Changes, Document, PasteObjectsCommand
+
+### Community 701 - "Community 701"
+Cohesion: 0.40
+Nodes (5): commitAnnotation(), flagsOf(), PageObject, Stroke, uint8_t
+
+### Community 702 - "Community 702"
+Cohesion: 0.36
+Nodes (4): DesignModePolicy, designMode, DesignMode, QPointer
+
+### Community 703 - "Community 703"
+Cohesion: 0.50
+Nodes (7): closingProtectedTabKeepsIt(), QVariant, fileActionsSaveRefused(), isSet(), modify(), noSaveRules(), quitQuestionKeptWhenSaveRefused()
+
+### Community 704 - "Community 704"
+Cohesion: 0.29
+Nodes (6): Cadre, Correctifs de la double relecture du lot 7 (fin de lot 3.8, tour 1), Listes par tâche, Preuves, par le verrou B, une à la fois, Rapport, Règles
+
+### Community 705 - "Community 705"
+Cohesion: 0.29
+Nodes (6): Garde-fous propres à cette tâche, L7-T36b — intégrer le lot 5 de A (main @ c1046b9) dans le chantier B, Où, Preuves (à rendre), Quoi, Rapport (une page)
+
+### Community 706 - "Community 706"
+Cohesion: 0.29
+Nodes (6): Banc hors écran (résultat, pas porte), Captures hors écran (lignes de `ctest -V`, debug), Mesure de fin du lot 8 (L8-T34), volet Mac, Suites, Talons et sécurité, À mesurer au PC
+
+### Community 708 - "Community 708"
+Cohesion: 0.40
+Nodes (5): applyShownPage(), onPagesChanged(), showShape(), Shape, SpotlightController
+
+### Community 709 - "Community 709"
+Cohesion: 0.50
+Nodes (4): Connection, ReturnWatch, replaced, token
+
+### Community 710 - "Community 710"
+Cohesion: 0.33
+Nodes (3): HandwritingRecognizer, unique_ptr, makePlatformHandwritingRecognizer()
+
+### Community 711 - "Community 711"
+Cohesion: 0.33
+Nodes (5): Consignés (porte de clôture, pas de correctif), Lot 7 — tour 2 de relecture (2026-11-05, Mac), Majeurs, Mineurs (défauts, à corriger), Simplifications (au rapport de clôture ; L7-T39 a eu son unique essai)
+
+### Community 712 - "Community 712"
+Cohesion: 0.33
+Nodes (5): PageThumbnails, ThumbnailRelay, mutex, target, mutex
+
+### Community 713 - "Community 713"
+Cohesion: 0.33
+Nodes (6): optional, size_t, unordered_map, DrawingCache, byText, entries
+
+### Community 714 - "Community 714"
+Cohesion: 0.20
+Nodes (7): PageObject, PagePresentation, PageZones, Restrictions, hasLot8Data(), isDefault(), normalized()
+
+### Community 715 - "Community 715"
+Cohesion: 0.53
+Nodes (3): DocumentController, openAndWait(), saveAndWait()
+
+### Community 716 - "Community 716"
+Cohesion: 0.50
+Nodes (4): editingId(), equationAt(), QPointF, quint64
+
+### Community 717 - "Community 717"
+Cohesion: 0.33
+Nodes (5): Accord H8-6, Fait sur le Mac (2026-11-06), Lot 8, L8-T20 : modules Qt Multimedia et Qt WebView, Relevés sur le Mac (Qt 6.12.0 Homebrew), Restes pour le PC et la CI de la PR
+
+### Community 718 - "Community 718"
+Cohesion: 0.40
+Nodes (4): Hors profils fournis (disponibles par les menus), Lot 7 — commandes proposées à l'épinglage des profils (pour le lot 6), Profil « au tableau », Profil « mathématiques »
+
+### Community 719 - "Community 719"
+Cohesion: 0.40
+Nodes (4): class, namespace, actcraft(), TickerRun()
+
+### Community 721 - "Community 721"
+Cohesion: 0.40
+Nodes (4): class, namespace, actcraft(), SoundRecorder()
+
+### Community 722 - "Community 722"
+Cohesion: 0.16
+Nodes (10): RectF, dragBox(), findShapePreset(), makeShapeObject(), smartPoints(), PointF, Q_OBJECT, vector (+2 more)
+
+### Community 723 - "Community 723"
+Cohesion: 0.50
+Nodes (4): Lot7Key, defaultValue, key, type
+
+### Community 724 - "Community 724"
+Cohesion: 0.40
+Nodes (4): Square, side, vx, vy
+
+### Community 726 - "Community 726"
+Cohesion: 0.50
+Nodes (3): QRect, vector, topLevelWindows()
+
+### Community 727 - "Community 727"
+Cohesion: 0.50
+Nodes (3): QJSValue, actcraft(), namespace
+
+### Community 728 - "Community 728"
+Cohesion: 0.50
+Nodes (4): RegistryAction, action, command, target
+
+### Community 731 - "Community 731"
+Cohesion: 0.67
+Nodes (4): data(), rowCount(), QModelIndex, QVariant
+
+### Community 763 - "Community 763"
+Cohesion: 0.67
+Nodes (3): roleNames(), QByteArray, QHash
+
+### Community 764 - "Community 764"
+Cohesion: 0.67
+Nodes (3): ObjectKind, uint8_t, kindTag()
+
+### Community 767 - "Community 767"
+Cohesion: 0.67
+Nodes (3): roleNames(), QByteArray, QHash
+
+### Community 784 - "Community 784"
+Cohesion: 0.67
+Nodes (3): setPosition(), toPosition(), Position
+
 ## Knowledge Gaps
-- **2898 isolated node(s):** `namespace`, `namespace`, `namespace`, `namespace`, `Platforms` (+2893 more)
+- **4228 isolated node(s):** `namespace`, `class`, `namespace`, `namespace`, `namespace` (+4223 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **103 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **141 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Variant` connect `Community 416` to `Community 256`, `Community 136`, `Community 395`, `Community 399`, `Community 282`, `Community 34`, `Community 174`, `Community 431`, `Community 175`, `Community 432`, `Community 438`, `Community 311`, `Community 313`, `Community 58`, `Community 65`, `Community 194`, `Community 321`, `Community 67`, `Community 325`, `Community 198`, `Community 322`, `Community 200`, `Community 337`, `Community 470`, `Community 218`, `Community 351`, `Community 352`, `Community 483`, `Community 228`, `Community 231`, `Community 103`, `Community 104`, `Community 107`, `Community 371`, `Community 243`, `Community 117`, `Community 118`, `Community 123`, `Community 383`?**
-  _High betweenness centrality (0.145) - this node is a cross-community bridge._
-- **Why does `QLatin1String` connect `Community 95` to `Community 0`, `Community 514`, `Community 2`, `Community 516`, `Community 389`, `Community 262`, `Community 519`, `Community 520`, `Community 522`, `Community 523`, `Community 524`, `Community 525`, `Community 146`, `Community 19`, `Community 22`, `Community 412`, `Community 288`, `Community 34`, `Community 548`, `Community 549`, `Community 164`, `Community 551`, `Community 420`, `Community 292`, `Community 42`, `Community 45`, `Community 46`, `Community 558`, `Community 303`, `Community 53`, `Community 312`, `Community 444`, `Community 572`, `Community 62`, `Community 573`, `Community 60`, `Community 193`, `Community 317`, `Community 67`, `Community 196`, `Community 327`, `Community 328`, `Community 585`, `Community 202`, `Community 336`, `Community 86`, `Community 215`, `Community 87`, `Community 473`, `Community 220`, `Community 221`, `Community 222`, `Community 99`, `Community 231`, `Community 495`, `Community 124`, `Community 499`, `Community 117`, `Community 507`, `Community 380`, `Community 123`, `Community 252`, `Community 381`?**
-  _High betweenness centrality (0.081) - this node is a cross-community bridge._
-- **Why does `QCoreApplication` connect `Community 345` to `Community 385`, `Community 389`, `Community 395`, `Community 523`, `Community 19`, `Community 31`, `Community 288`, `Community 292`, `Community 554`, `Community 173`, `Community 46`, `Community 301`, `Community 432`, `Community 558`, `Community 58`, `Community 60`, `Community 198`, `Community 207`, `Community 87`, `Community 96`, `Community 114`, `Community 380`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Are the 146 inferred relationships involving `QLatin1String` (e.g. with `parseRenderBackend()` and `openFileArgument()`) actually correct?**
-  _`QLatin1String` has 146 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 27 inferred relationships involving `QFileInfo` (e.g. with `isUnderWorkArea()` and `pageGaps()`) actually correct?**
-  _`QFileInfo` has 27 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 52 inferred relationships involving `boundsOnPage()` (e.g. with `alignTransforms()` and `fitTransforms()`) actually correct?**
-  _`boundsOnPage()` has 52 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `namespace`, `namespace`, `namespace` to the rest of the system?**
-  _2899 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `QLatin1String` connect `Community 95` to `Community 1`, `Community 2`, `Community 515`, `Community 519`, `Community 520`, `Community 522`, `Community 523`, `Community 524`, `Community 525`, `Community 19`, `Community 22`, `Community 23`, `Community 536`, `Community 534`, `Community 34`, `Community 548`, `Community 36`, `Community 551`, `Community 41`, `Community 42`, `Community 45`, `Community 558`, `Community 46`, `Community 51`, `Community 53`, `Community 58`, `Community 571`, `Community 572`, `Community 573`, `Community 60`, `Community 577`, `Community 67`, `Community 581`, `Community 585`, `Community 586`, `Community 587`, `Community 591`, `Community 79`, `Community 86`, `Community 87`, `Community 598`, `Community 96`, `Community 610`, `Community 99`, `Community 617`, `Community 618`, `Community 619`, `Community 123`, `Community 124`, `Community 645`, `Community 135`, `Community 656`, `Community 163`, `Community 164`, `Community 193`, `Community 202`, `Community 720`, `Community 215`, `Community 728`, `Community 220`, `Community 221`, `Community 222`, `Community 231`, `Community 234`, `Community 252`, `Community 263`, `Community 274`, `Community 288`, `Community 292`, `Community 301`, `Community 303`, `Community 312`, `Community 315`, `Community 317`, `Community 328`, `Community 334`, `Community 336`, `Community 339`, `Community 342`, `Community 348`, `Community 349`, `Community 355`, `Community 376`, `Community 381`, `Community 405`, `Community 412`, `Community 417`, `Community 420`, `Community 444`, `Community 470`, `Community 473`, `Community 491`, `Community 495`, `Community 499`, `Community 507`, `Community 508`, `Community 510`?**
+  _High betweenness centrality (0.128) - this node is a cross-community bridge._
+- **Why does `QSignalSpy` connect `Community 150` to `Community 0`, `Community 385`, `Community 509`, `Community 387`, `Community 519`, `Community 522`, `Community 523`, `Community 268`, `Community 525`, `Community 395`, `Community 274`, `Community 147`, `Community 20`, `Community 275`, `Community 28`, `Community 292`, `Community 421`, `Community 41`, `Community 554`, `Community 43`, `Community 301`, `Community 430`, `Community 435`, `Community 564`, `Community 436`, `Community 438`, `Community 567`, `Community 574`, `Community 191`, `Community 575`, `Community 448`, `Community 194`, `Community 333`, `Community 78`, `Community 207`, `Community 465`, `Community 466`, `Community 593`, `Community 596`, `Community 213`, `Community 344`, `Community 218`, `Community 220`, `Community 223`, `Community 352`, `Community 225`, `Community 99`, `Community 355`, `Community 231`, `Community 104`, `Community 106`, `Community 107`, `Community 494`, `Community 367`, `Community 495`, `Community 114`, `Community 499`, `Community 628`, `Community 502`, `Community 376`, `Community 377`, `Community 124`, `Community 253`, `Community 254`?**
+  _High betweenness centrality (0.115) - this node is a cross-community bridge._
+- **Why does `QRegularExpression` connect `Community 43` to `Community 509`, `Community 387`, `Community 395`, `Community 398`, `Community 403`, `Community 536`, `Community 539`, `Community 417`, `Community 34`, `Community 676`, `Community 164`, `Community 294`, `Community 42`, `Community 173`, `Community 301`, `Community 51`, `Community 438`, `Community 312`, `Community 315`, `Community 589`, `Community 214`, `Community 470`, `Community 602`, `Community 221`, `Community 94`, `Community 492`, `Community 630`, `Community 124`, `Community 381`?**
+  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+- **Are the 230 inferred relationships involving `QLatin1String` (e.g. with `parseRenderBackend()` and `openFileArgument()`) actually correct?**
+  _`QLatin1String` has 230 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 66 inferred relationships involving `boundsOnPage()` (e.g. with `alignTransforms()` and `fitTransforms()`) actually correct?**
+  _`boundsOnPage()` has 66 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `namespace`, `class`, `namespace` to the rest of the system?**
+  _4229 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.11414141414141414 - nodes in this community are weakly interconnected._

@@ -1,6 +1,7 @@
 #include "support/indexedimage.h"
 
 #include <actcraft/core/document.h>
+#include <actcraft/render/equationpaint.h>
 #include <actcraft/render/pagepainter.h>
 #include <actcraft/render/paintedrenderer.h>
 #include <actcraft/render/painternode.h>
@@ -31,6 +32,17 @@ bool near(QColor actual, QColor expected, int tolerance)
     return qAbs(actual.red() - expected.red()) <= tolerance &&
            qAbs(actual.green() - expected.green()) <= tolerance &&
            qAbs(actual.blue() - expected.blue()) <= tolerance;
+}
+
+// Repère neutre que paintEquation dessinait avant L7-T25 (render/src/equationlayout.cpp à 8c87a04), recopié
+// pour garder l'image d'avant la tâche (pageModeIsUnchanged).
+void socleNeutralFrame(QPainter& painter, const core::RectF& b)
+{
+    QPen pen(QColor(0x80, 0x80, 0x80), 0, Qt::DashLine);
+    pen.setCosmetic(true);
+    painter.setPen(pen);
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(QRectF(b.x, b.y, b.width, b.height));
 }
 
 core::PageObject square(double x, double y, double size, core::Argb fill)
@@ -1071,13 +1083,13 @@ private slots:
         QVERIFY(near(render::renderPage(page, images.lookup(), 1.0).pixelColor(120, 120), Qt::red, 2));
     }
 
-    // Socle des lots 3 et 7 : l'équation se dessine par le repère neutre sur sa boîte (L7-T25 la met en
-    // page).
+    // Socle des lots 3 et 7 : toute équation se dessinait par le repère neutre sur sa boîte. Depuis L7-T25,
+    // qui met en page celles qui se lisent (tst_render_equation), seule une équation illisible le garde.
     void equationDrawsTheNeutralFrame()
     {
         core::Equation e;
         e.bounds = {100, 100, 200, 80};
-        e.mathml = "<math><mn>1</mn></math>";
+        e.mathml = "<math><mn>1</mn>"; // racine non fermée : illisible
         const core::PageObject o = e;
         QVERIFY(render::usesPaintedRenderer(o));
         core::Page page;
@@ -1094,6 +1106,94 @@ private slots:
         QVERIFY2(marked > 40, qPrintable(QString::number(marked)));
         QVERIFY(near(image.pixelColor(50, 50), Qt::white, 0));   // hors de l'emprise : le fond
         QVERIFY(near(image.pixelColor(200, 140), Qt::white, 0)); // intérieur vide : MathML non lu
+    }
+
+    // Le mode Page de paintEquation est le rendu de la page : paintObjectLocal (pagepainter.cpp, argument par
+    // défaut) dessine pixel à pixel la même image que paintEquation(…, Page), marques ignorées. L'équation
+    // illisible du test précédent garde de plus l'image d'avant L7-T25 (socleNeutralFrame).
+    void pageModeIsUnchanged_data()
+    {
+        QTest::addColumn<QString>("mathml");
+        QTest::addColumn<bool>("socle");
+        QTest::newRow("neutral-frame") << QStringLiteral("<math><mn>1</mn>") << true;
+        QTest::newRow("digit") << QStringLiteral("<math><mn>1</mn></math>") << false;
+        QTest::newRow("fraction") << QStringLiteral("<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>"
+                                                    "<msup><mi>y</mi><mn>2</mn></msup></mfrac></math>")
+                                  << false;
+        QTest::newRow("marked") << QStringLiteral(
+                                       "<math><mfrac><mrow class=\"actcraft-placeholder actcraft-cursor\"/>"
+                                       "<mn>2</mn></mfrac></math>")
+                                << false;
+    }
+    void pageModeIsUnchanged()
+    {
+        QFETCH(QString, mathml);
+        QFETCH(bool, socle);
+        core::Equation e;
+        e.bounds = {100, 100, 200, 80};
+        e.mathml = mathml.toStdString();
+        const auto draw = [](const std::function<void(QPainter&)>& paint) {
+            QImage image(400, 300, QImage::Format_ARGB32_Premultiplied);
+            image.fill(Qt::white);
+            QPainter p(&image);
+            p.setRenderHint(QPainter::Antialiasing, true);
+            p.setRenderHint(QPainter::TextAntialiasing, true);
+            paint(p);
+            p.end();
+            return image;
+        };
+        const QImage local =
+            draw([&e](QPainter& p) { render::paintObjectLocal(p, core::PageObject(e), kNoImages); });
+        const QImage page =
+            draw([&e](QPainter& p) { render::paintEquation(p, e, render::EquationPaintMode::Page); });
+        const QImage byDefault = draw([&e](QPainter& p) { render::paintEquation(p, e); });
+        QVERIFY(local != draw([](QPainter&) {}));
+        QCOMPARE(local, page);
+        QCOMPARE(byDefault, page);
+        if (socle) {
+            QCOMPARE(local, draw([&e](QPainter& p) { socleNeutralFrame(p, e.bounds); }));
+        }
+    }
+
+    // <mfrac><mrow class="actcraft-placeholder"/><mrow/></mfrac> : en mode Editor, le pointillé de la case
+    // vide marquée ; en mode Page, rien hors de la barre de fraction.
+    void editorModeShowsAnEmptyBox()
+    {
+        core::Equation e;
+        e.bounds = {20, 10, 360, 180};
+        e.mathml = "<math><mfrac><mrow class=\"actcraft-placeholder\"/><mrow/></mfrac></math>";
+        const auto draw = [&e](render::EquationPaintMode mode) {
+            QImage image(400, 200, QImage::Format_ARGB32_Premultiplied);
+            image.fill(Qt::white);
+            QPainter p(&image);
+            p.setRenderHint(QPainter::Antialiasing, true);
+            render::paintEquation(p, e, mode);
+            p.end();
+            return image;
+        };
+        const QImage page = draw(render::EquationPaintMode::Page);
+        const QImage editor = draw(render::EquationPaintMode::Editor);
+        // Lignes non blanches de la page : la barre seule, une bande mince.
+        int first = -1;
+        int last = -1;
+        for (int y = 0; y < page.height(); ++y) {
+            for (int x = 0; x < page.width(); ++x) {
+                if (!near(page.pixelColor(x, y), Qt::white, 5)) {
+                    first = first < 0 ? y : first;
+                    last = y;
+                    break;
+                }
+            }
+        }
+        QVERIFY(first >= 0);
+        QVERIFY2(last - first + 1 <= 18, qPrintable(QStringLiteral("%1 à %2").arg(first).arg(last)));
+        int dotted = 0;
+        for (int y = 0; y < first - 1; ++y) {
+            for (int x = 0; x < editor.width(); ++x) {
+                dotted += near(editor.pixelColor(x, y), Qt::white, 5) ? 0 : 1;
+            }
+        }
+        QVERIFY(dotted > 0);
     }
 
     // L2-C8 : un objet d'un type inconnu est montré par un repère neutre, cadre gris pointillé d'un pixel sur

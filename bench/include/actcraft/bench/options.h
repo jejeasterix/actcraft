@@ -6,6 +6,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <vector>
+
 namespace actcraft::bench {
 
 // Options du banc (décision 21). --rendu est validé par parseRenderBackend (app/renderbackend.cpp).
@@ -22,6 +24,9 @@ struct BenchOptions
     // --retenir-decodage (L6-C11, test de fumée seulement) : la sonde de flash retient le décodage de la page
     // suivante jusqu'à sa capture, pour être exercée même quand il finit avant l'image (release hors écran).
     bool holdDecodeForTests = false;
+    // L7-T38 : vide, allScenarios(scenarioSet) ; sinon ces plans, dans l'ordre (tests du runner : arrêt
+    // anticipé, contrôles d'un seul scénario). Aucune option de ligne de commande.
+    std::vector<ScenarioPlan> plans;
 };
 
 bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& error);

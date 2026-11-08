@@ -1,0 +1,11 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "reglages-ecrits",
+  "description": "L7-T41, première passe de tst_captures_reglages_isoles : la passe part des réglages par défaut (aucun effet de transition global), puis choisit le fondu, que le contrôleur de transition enregistre dans ses réglages.",
+  "steps": [
+    {"waitReady": true},
+    {"expect": "transition.globalEffect", "value": "none"},
+    {"command": "view.page-effect", "argument": "dissolve"},
+    {"expect": "transition.globalEffect", "value": "dissolve"}
+  ]
+}

@@ -33,6 +33,7 @@ inline constexpr quint16 kTextAction = 50;       // action sur un texte
 inline constexpr quint16 kConnectorObject = 52;  // connecteur entre deux objets
 inline constexpr quint16 kTagObject = 53;        // étiquette (légende) d'un objet
 inline constexpr quint16 kMediaObject = 253;     // son ou vidéo
+inline constexpr quint16 kMathMlObject = 460;    // équation (MathML brut)
 inline constexpr quint16 kLaunchAction = 463;    // action : lancer une mini-application
 // Texte de haut en bas (§ 4.2) : son cadre est une propriété commune (§ 7.1), le champ de son image n'est pas
 // dans notre documentation ; l'objet est donc déclaré non lu (flipchart.cpp, D9).
@@ -87,6 +88,13 @@ inline constexpr quint16 kPageTitle = 2;
 inline constexpr quint16 kPresenterNotes = 5;
 inline constexpr quint16 kSheetSize = 6;
 inline constexpr quint16 kShowGuides = 17; // grille affichée
+// Réglages de présentation de la page (F-591 à F-593, F-284) lus tels quels : un nombre, un rectangle, un
+// point. Les propriétés codées de la page (12 mode du rideau, 16 mode du spot, 27 outils de page, 30 effet
+// propre à la page) ne sont pas lues : aucune de leurs valeurs n'est établie par une source indépendante du
+// fichier lu (hypothèse H7-16 du lot 7) ; elles gardent leur valeur par défaut.
+inline constexpr quint16 kPageCurtainDistance = 13; // distance découverte du rideau, pixels de page
+inline constexpr quint16 kPageSpotFrame = 18;       // cadre du spot
+inline constexpr quint16 kPageOrigin = 29;          // origine XY mémorisée
 } // namespace pageKeys
 
 // Fond de page (§ 6).
@@ -234,6 +242,11 @@ inline constexpr quint16 kSlanted = 10;
 inline constexpr quint16 kUnderlined = 11;
 inline constexpr quint16 kStruckThrough = 12;
 } // namespace runKeys
+
+// Équation (type 460) : le MathML est une chaîne, gardée telle quelle.
+namespace mathMlKeys {
+inline constexpr quint16 kMathMl = 52;
+} // namespace mathMlKeys
 
 // Actions (§ 7.6) : commande et cible selon le genre.
 namespace actionKeys {

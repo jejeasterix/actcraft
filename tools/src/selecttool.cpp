@@ -994,10 +994,11 @@ void SelectTool::liftForGesture(std::vector<core::ObjectId> ids, State state)
 core::Transform SelectTool::gestureTransform(core::PointF point)
 {
     if (m_state == State::Rotating) {
-        const core::PointF center = m_turning
-                                        ? m_pivot
-                                        : core::PointF{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
-                                                       (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
+        const core::PointF middle{(m_frame.corners[0].x + m_frame.corners[2].x) / 2,
+                                  (m_frame.corners[0].y + m_frame.corners[2].y) / 2};
+        // Rotation à règle (L8-T15) : le pivot de l'objet ; sinon l'origine XY montrée (F-284, lot 7), ou le
+        // centre du cadre.
+        const core::PointF center = m_turning ? m_pivot : m_context.view.rotationPivot().value_or(middle);
         double delta = toDegrees(std::atan2(point.y - center.y, point.x - center.x)) -
                        toDegrees(std::atan2(m_start.y - center.y, m_start.x - center.x));
         if ((m_modifiers & static_cast<int>(Qt::ShiftModifier)) != 0) {

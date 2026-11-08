@@ -67,6 +67,9 @@ public:
     // Idem avec la clé déjà calculée (SHA-256 des mêmes octets, par exemple sur un fil de fond) : prise telle
     // quelle, sans nouveau hachage sur le fil de l'interface. L'appelant répond de l'exactitude de la clé.
     std::string addResource(QByteArray data, std::string extension, std::string key);
+    // Retire la ressource `key` ; sans effet si la clé est inconnue. Annulation d'une insertion qui l'a
+    // ajoutée (L7-T2) : l'appelant s'assure qu'aucun objet ne la cite plus.
+    void removeResource(const std::string& key);
     // nullptr si la clé est inconnue.
     const Resource* resource(const std::string& key) const noexcept;
     const std::map<std::string, Resource>& resources() const noexcept;

@@ -267,7 +267,7 @@ private slots:
     void cameraIsAPrefix()
     {
         QVERIFY(restrictionFor("tool.camera-future") == Restriction::Camera);
-        for (const char* other : {"tool.camera", "tool.cameraarea", "camera.area", "tool.camer-area", ""}) {
+        for (const char* other : {"tool.camera", "tool.camerazone", "camera.area", "tool.camer-area", ""}) {
             QVERIFY2(!restrictionFor(other).has_value(), other);
         }
     }

@@ -1,0 +1,27 @@
+name: PowerShell du Mac mini
+description: >-
+  PowerShell 7 dans le cache du runner auto-hébergé du Mac mini (~/actions-runner-actcraft/_cache), ajouté au PATH du
+  job. Rien d'installé hors du dossier du runner. Archive épinglée, somme SHA-256 vérifiée (hashes.sha256 de la release).
+runs:
+  using: composite
+  steps:
+    - name: PowerShell dans le cache du runner
+      shell: bash
+      run: |
+        version=7.5.4
+        somme=3aaadd7ca62f1e4dbe59145b6af24e926d61f8da8a4782bc535e500c184135f0
+        dossier="$HOME/actions-runner-actcraft/_cache/pwsh-$version"
+        # Témoin écrit en dernier : une installation interrompue est refaite au job suivant.
+        if [ ! -f "$dossier/.complet" ]; then
+          rm -rf "$dossier"
+          mkdir -p "$dossier"
+          archive="$RUNNER_TEMP/pwsh.tar.gz"
+          curl -sfLo "$archive" "https://github.com/PowerShell/PowerShell/releases/download/v$version/powershell-$version-osx-arm64.tar.gz"
+          echo "$somme  $archive" | shasum -a 256 -c -
+          tar -xzf "$archive" -C "$dossier"
+          chmod +x "$dossier/pwsh"
+          rm -f "$archive"
+          touch "$dossier/.complet"
+        fi
+        echo "$dossier" >> "$GITHUB_PATH"
+        "$dossier/pwsh" -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'

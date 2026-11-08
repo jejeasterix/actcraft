@@ -27,6 +27,7 @@
 #include <QImage>
 #include <QMetaObject>
 #include <QQuickWindow>
+#include <QScopeGuard>
 #include <QScreen>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -61,6 +62,42 @@
 #endif
 
 namespace actcraft::bench {
+
+// L7-T38 : suit TransitionController (« transition », en-tête privé de ui) par ses signaux, comme noteShown
+// suit le prêt de la page : instants de retour au repos (playing faux) et effets partis (playedChanged, émis
+// par frozen() une fois la page changée ; jamais par le repli de capture, qui change la page sans effet).
+// TransitionLayer.snapshotCount ne prouve rien : capture() le compte avant que l'instantané soit pris.
+class TransitionWatch : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit TransitionWatch(QObject* transition) : m_transition(transition)
+    {
+        m_valid = transition != nullptr && transition->property("playing").isValid() &&
+                  connect(transition, SIGNAL(phaseChanged()), this, SLOT(notePhase())) &&
+                  connect(transition, SIGNAL(playedChanged()), this, SLOT(notePlayed()));
+    }
+    bool valid() const noexcept { return m_valid; }
+    bool playing() const { return m_valid && m_transition->property("playing").toBool(); }
+    int played() const noexcept { return m_played; }
+    const std::vector<std::int64_t>& idleNs() const noexcept { return m_idleNs; }
+
+private slots:
+    void notePhase()
+    {
+        if (!playing()) {
+            m_idleNs.push_back(core::monotonicNowNs());
+        }
+    }
+    void notePlayed() { ++m_played; }
+
+private:
+    QObject* m_transition = nullptr;
+    bool m_valid = false;
+    int m_played = 0;
+    std::vector<std::int64_t> m_idleNs;
+};
 
 namespace {
 
@@ -286,7 +323,6 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
     }
     const bool paste = gesture == kPasteGesture;
     // Préparation, hors fenêtre : la sélection ne redessine pas le cache.
-    std::vector<core::ObjectId> before = pageIds(page);
     if (paste) {
         std::vector<core::ObjectId> ids;
         for (std::size_t i = 1; i <= static_cast<std::size_t>(kEditionPasted); ++i) {
@@ -316,10 +352,24 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
     const auto updated = QObject::connect(g.view, &ui::PageView::cacheUpdated, g.view,
                                           [&lastNs] { lastNs = core::monotonicNowNs(); });
     const int refreshesBefore = g.view->cacheRefreshCount();
+    std::vector<core::ObjectId> pastedNow;
     switch (gesture) {
-    case kPasteGesture:
+    case kPasteGesture: {
+        // Relevé juste autour du collage, synchrone : un trait du scénario fini pendant les attentes (debug
+        // lent, entrées en retard) n'est pas compté parmi les objets collés.
+        const auto shownIds = [&g] {
+            return pageIds(g.document->document().page(static_cast<std::size_t>(g.document->currentIndex())));
+        };
+        const std::vector<core::ObjectId> before = shownIds();
         g.editing->paste();
+        const std::set<core::ObjectId> known(before.begin(), before.end());
+        for (const core::ObjectId id : shownIds()) {
+            if (known.count(id) == 0) {
+                pastedNow.push_back(id);
+            }
+        }
         break;
+    }
     case kGroupGesture:
         g.editing->toggleGroup();
         break;
@@ -341,15 +391,7 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
         return false;
     }
     if (paste) {
-        g.pasted.clear();
-        const std::set<core::ObjectId> known(before.begin(), before.end());
-        const core::Page& after =
-            g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
-        for (const core::ObjectId id : pageIds(after)) {
-            if (known.count(id) == 0) {
-                g.pasted.push_back(id);
-            }
-        }
+        g.pasted = std::move(pastedNow);
         if (g.pasted.size() != static_cast<std::size_t>(kEditionPasted)) {
             return false;
         }
@@ -538,6 +580,17 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     std::vector<std::int64_t> commandPlanned(commands.size(), 0);
     std::vector<std::int64_t> commandRun(commands.size(), -1);
     std::vector<bool> commandAwaits(commands.size(), true); // un prêt (page, cache) doit suivre la commande
+    // L7-T38 : commandes qui lancent un effet de page (pageEffects) : rang, dans effects->idleNs(), du
+    // retour au repos qui finit leur effet (-1 : aucun effet) ; leur fenêtre reste ouverte jusque-là.
+    std::vector<int> commandEffectIdle(commands.size(), -1);
+    std::unique_ptr<TransitionWatch> effects;
+    if (plan.pageEffects) {
+        effects =
+            std::make_unique<TransitionWatch>(m_window->findChild<QObject*>(QStringLiteral("transition")));
+        if (!effects->valid()) {
+            invalidReasons << QStringLiteral("error: page transition missing in %1").arg(plan.name);
+        }
+    }
     std::size_t nextCommand = 0;
     QTimer commandTimer; // coup unique réarmé sur l'échéance suivante, comme l'injecteur
     commandTimer.setSingleShot(true);
@@ -598,6 +651,11 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
             // Page et cache encore prêts : aucun prêt ne viendra (zoom sans cache), la fenêtre se ferme à la
             // première image qui suit la commande.
             commandAwaits[nextCommand] = !(m_fixed->isReady() && m_view->cacheReady());
+            // Relevé APRÈS la commande : navigate() a déjà clos l'effet précédent s'il tournait encore
+            // (settle(), son repos est relevé) ; le prochain repos est la fin du sien.
+            if (effects && effects->playing()) {
+                commandEffectIdle[nextCommand] = static_cast<int>(effects->idleNs().size());
+            }
             ++nextCommand;
         }
         if (nextCommand < commands.size()) {
@@ -689,6 +747,17 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     // (debug, machine chargée) restait ouvert jusqu'à la fin de la mesure : aucun intervalle au repos après
     // la première commande (tst_bench_result, pageChangesAreActiveUntilShown, rouge sous charge). Sans prêt
     // relevé, l'attente va au plafond et la fenêtre reste ouverte, comme avant.
+    // L7-T38 : le dernier effet finit dans la mesure (sa fenêtre se ferme à son retour au repos). Encore en
+    // cours au plafond : mesure invalide (fenêtre ouverte jusqu'à la fin, transition laissée en surcouche).
+    if (effects && effects->playing()) {
+        waitFor([&effects] { return !effects->playing(); }, kPageShownTimeoutMs);
+        if (const QString error = pageEffectEndCheck(plan, effects->playing()); !error.isEmpty()) {
+            invalidReasons << error;
+            // Effet jamais fini : terminé ici, il ne reste pas en surcouche pour le scénario suivant.
+            QMetaObject::invokeMethod(m_window->findChild<QObject*>(QStringLiteral("transition")),
+                                      "finished");
+        }
+    }
     if (!commands.empty()) {
         std::int64_t awaited = -1; // dernière commande jouée qui attend un prêt
         for (std::size_t i = 0; i < commands.size(); ++i) {
@@ -788,11 +857,30 @@ ScenarioResult Runner::play(const ScenarioPlan& plan, std::int64_t refreshPeriod
     s.frames.refreshPeriodNs = refreshPeriodNs; // période de l'écran ; ≤ 0 → invalid-refresh-period
     // Commandes : leurs changements (commande → première image après le prêt) comptent actifs.
     FrameSeries classified = s.frames;
-    const std::vector<std::int64_t> marks =
-        pageChangeMarks(s.frames.swapNs, pageChangeWindows(commandRun, commandAwaits, shownNs));
+    // L7-T38 : une commande de réglage (PlannedInput::setting) reste relevée (input_ns) mais n'entre pas
+    // dans le verdict : ni entrée classée, ni fenêtre (-1 : « jamais jouée » pour pageChangeWindows).
+    std::vector<std::int64_t> judgedRun = commandRun;
+    for (std::size_t i = 0; i < commands.size(); ++i) {
+        if (commands[i].setting && commandRun[i] >= 0) {
+            judgedRun[i] = -1;
+            const auto at =
+                std::find(classified.inputNs.begin(), classified.inputNs.end(), commandPlanned[i]);
+            if (at != classified.inputNs.end()) {
+                classified.inputNs.erase(at);
+            }
+        }
+    }
+    const std::vector<std::int64_t> marks = pageChangeMarks(
+        s.frames.swapNs, pageChangeWindows(judgedRun, commandAwaits, shownNs, commandEffectIdle,
+                                           effects ? effects->idleNs() : std::vector<std::int64_t>{}));
     classified.inputNs.insert(classified.inputNs.end(), marks.begin(), marks.end());
     std::sort(classified.inputNs.begin(), classified.inputNs.end());
     s.intervals = classifyIntervals(classified);
+    if (effects && effects->valid()) {
+        if (const QString error = pageEffectsCheck(plan, effects->played()); !error.isEmpty()) {
+            invalidReasons << error;
+        }
+    }
 
     const auto received = m_recorder->received();
     if (!sequenceMatchesPlan(inputs, received)) {
@@ -1058,7 +1146,9 @@ BenchResult Runner::run(QQuickWindow* window)
     result.refresh.measuredMedianNs = warmUp(2000 / durationDivisor(m_options.scenarioSet));
     const std::int64_t refreshPeriodNs = result.refresh.referenceNs;
 
-    for (const ScenarioPlan& plan : allScenarios(m_options.scenarioSet)) {
+    const std::vector<ScenarioPlan> plans =
+        m_options.plans.empty() ? allScenarios(m_options.scenarioSet) : m_options.plans;
+    for (const ScenarioPlan& plan : plans) {
         if (plan.generatedPages > 0) {
             // Scénario « page » (L2-T23) : document de pages générées (pages paires peintes), page 1 prête.
             document->loadGeneratedPages(plan.generatedPages, true);
@@ -1127,6 +1217,46 @@ BenchResult Runner::run(QQuickWindow* window)
                 break;
             }
         }
+        // L7-T38 (S23) : message défilant en boucle, vitesse maximale, démarré sans fenêtre d'édition.
+        // À toute sortie de ce passage (break compris, démarrage refusé aussi) : arrêté, puis boucle, vitesse
+        // et texte d'avant rétablis ; TickerController::stop() ne remet aucun des trois.
+        QObject* const ticker =
+            plan.tickerRuns ? m_window->findChild<QObject*>(QStringLiteral("ticker")) : nullptr;
+        const QVariant loopBefore = ticker ? ticker->property("loop") : QVariant();
+        const QVariant speedBefore = ticker ? ticker->property("speed") : QVariant();
+        const QVariant textBefore = ticker ? ticker->property("text") : QVariant();
+        const auto restoreTicker = qScopeGuard([ticker, loopBefore, speedBefore, textBefore] {
+            if (ticker != nullptr) {
+                QMetaObject::invokeMethod(ticker, "stop");
+                ticker->setProperty("loop", loopBefore);
+                ticker->setProperty("speed", speedBefore);
+                ticker->setProperty("text", textBefore);
+            }
+        });
+        if (plan.tickerRuns &&
+            (ticker == nullptr || !ticker->setProperty("loop", true) || !ticker->setProperty("speed", 10) ||
+             !ticker->setProperty("text", QStringLiteral("Banc de fluidité : message défilant en boucle")) ||
+             !QMetaObject::invokeMethod(ticker, "start") || !ticker->property("running").toBool())) {
+            result.invalidReasons << QStringLiteral("error: ticker not running before %1").arg(plan.name);
+            break;
+        }
+        // L7-T38 : effet et durée d'avant le scénario, rétablis à toute sortie de ce passage (break compris,
+        // mesure interrompue) ; teardownCommands remet aussi « none ».
+        QObject* const transition =
+            plan.pageEffects ? m_window->findChild<QObject*>(QStringLiteral("transition")) : nullptr;
+        if (plan.pageEffects && transition == nullptr) {
+            result.invalidReasons
+                << QStringLiteral("error: page transition missing before %1").arg(plan.name);
+            break;
+        }
+        const QVariant effectBefore = transition ? transition->property("globalEffect") : QVariant();
+        const QVariant durationBefore = transition ? transition->property("durationTenths") : QVariant();
+        const auto restoreEffect = qScopeGuard([transition, effectBefore, durationBefore] {
+            if (transition != nullptr) {
+                transition->setProperty("globalEffect", effectBefore);
+                transition->setProperty("durationTenths", durationBefore);
+            }
+        });
         bool setupRefused = false;
         for (const auto& [command, argument] : plan.setupCommands) {
             if (!runWindowCommand(m_window, command, argument)) {
@@ -1217,6 +1347,13 @@ BenchResult Runner::run(QQuickWindow* window)
                 break;
             }
         }
+        if (ticker != nullptr) {
+            // L7-T38 : le message défilait encore à la fin de la mesure (l'animateur, pas seulement l'état).
+            const QObject* const motion = m_window->findChild<QObject*>(QStringLiteral("tickerMotion"));
+            if (motion == nullptr || !motion->property("running").toBool()) {
+                result.invalidReasons << QStringLiteral("error: ticker not moving in %1").arg(plan.name);
+            }
+        }
         for (const auto& [command, argument] : plan.teardownCommands) { // L4-T29 : panneau refermé
             if (!runWindowCommand(m_window, command, argument)) {
                 result.invalidReasons
@@ -1249,3 +1386,5 @@ BenchResult Runner::run(QQuickWindow* window)
 }
 
 } // namespace actcraft::bench
+
+#include "runner.moc"

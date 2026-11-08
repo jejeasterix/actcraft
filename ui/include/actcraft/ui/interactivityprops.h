@@ -40,7 +40,7 @@ enum class InteractivityField : std::uint8_t
     // « Mots acceptés » : ContainerRule::keywords, la règle que lit core::resolveDrop (H8-12), jamais
     // ObjectCommon::keywords du conteneur (mots-clés du lot 6, qui décrivent l'objet et servent côté
     // candidat). Saisie lue comme la ligne des mots-clés du lot 6 (espaces ou virgules), par PropertyModel.
-    ContainWords,
+    AcceptedWords,
     Fit,
     Tolerance,
     BounceBack,
