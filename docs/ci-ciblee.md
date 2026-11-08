@@ -14,6 +14,9 @@ gh run download <run> --repo jejeasterix/actcraft -n journaux-tests -D journaux 
 ```
 
 - `--ref main` choisit la version du workflow ; `-f ref=` choisit le code testé. Sans `-f ref`, le code de `--ref`.
+- Pour une PR, `-f ref=refs/pull/<n>/merge` teste le même code que sa CI (la PR fusionnée avec `main`) ; une
+  branche seule ne voit pas les changements de `main`.
+- Le motif est obligatoire et non vide : vide, il lancerait toute la suite.
 - Le runner est celui de la CI : le PC (`windows`, par défaut) ou le Mac mini (`macos`). Aucun exécuteur GitHub.
 - Le runner fait un job à la fois : un run ciblé attend la fin d'une CI en cours sur le même runner.
 - Compilation incrémentale : l'arbre `build/` du PC et le ccache du Mac sont ceux de la CI.
@@ -26,20 +29,22 @@ gh run download <run> --repo jejeasterix/actcraft -n journaux-tests -D journaux 
 | Entrée `tests` | motif `ctest -R`, obligatoire |
 | Entrée `plateforme` | `windows` (défaut) ou `macos` |
 | Entrée `ref` | branche ou SHA ; vide = la ref du lancement |
-| Artefact | `journaux-tests`, toujours téléversé si le job échoue, gardé 14 jours |
+| Artefact | `journaux-tests`, toujours téléversé si le job échoue ou est annulé, gardé 14 jours |
 
 Un motif qui ne trouve aucun test fait échouer le run (`noTestsAction: error` du preset).
 
 ## Contenu de l'artefact
 
-Écrit par `ctest` et `scripts/ci/journaux-tests.cmake` :
+Écrit par le workflow, `ctest` et `scripts/ci/journaux-tests.cmake` (pris dans le commit du workflow) :
 
+- `contexte.txt` : motif, ref, runner, run ; seul fichier si l'échec précède les tests (garde, compilation) ;
 - `ctest-sortie.txt`, `ctest-junit.xml` : sortie de ctest et résultat par test ;
 - `LastTest.log`, `LastTestsFailed.log` : copiés de `build/debug/Testing/Temporary` ;
 - `<test>.txt` : sortie QtTest `-v2` du test rouge relancé en direct ;
 - `<test>-console.txt` : sa console (messages de Qt, plantage), code de sortie en dernière ligne.
 
-Relances en direct : 5 tests et 4 min au plus (2 min dans la CI complète).
+Relances en direct : 5 tests et 4 min au plus (2 min dans la CI complète), partagées entre les tests rouges.
+L'étape des tests est coupée à 25 min ; ses journaux sont quand même téléversés.
 
 ## CI complète
 

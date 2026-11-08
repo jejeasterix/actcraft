@@ -222,6 +222,7 @@ jobs:
         name: Tester
         run: |
           cmake -E make_directory "${{ runner.temp }}/journaux-tests"
+          cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
           ctest --preset debug --output-on-failure --output-log "${{ runner.temp }}/journaux-tests/ctest-sortie.txt" --output-junit "${{ runner.temp }}/journaux-tests/ctest-junit.xml"
 
       # Relances en direct plafonnées à 2 min : la suite Windows prend déjà 81 min sur 90 (run 42434070554).

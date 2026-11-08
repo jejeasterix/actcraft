@@ -46,9 +46,34 @@ jobs:
     name: tests ciblés (${{ inputs.plateforme }})
     if: github.event_name == 'workflow_dispatch'
     runs-on: ${{ inputs.plateforme == 'macos' && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]') }}
-    # Le temps d'attente du runner (occupé par la CI) ne compte pas dans ce délai.
-    timeout-minutes: 40
+    # Le temps d'attente du runner (occupé par la CI) ne compte pas dans ce délai. Attente de mémoire du Mac (15 min au
+    # plus) + compilation + tests (25 min au plus, délai de l'étape) : l'upload des journaux garde de la marge.
+    timeout-minutes: 50
     steps:
+      # Dossier des journaux créé avant tout : un échec de garde, de checkout, de configuration ou de compilation
+      # téléverse quand même l'artefact journaux-tests (contrat avec ci-ciblee.cjs), avec au moins ce contexte.
+      - name: Contexte des journaux (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          MOTIF: ${{ inputs.tests }}
+          REF: ${{ inputs.ref || github.ref }}
+          JOURNAUX: ${{ runner.temp }}/journaux-tests
+        run: |
+          New-Item -ItemType Directory -Force $env:JOURNAUX | Out-Null
+          "tests=$env:MOTIF`nref=$env:REF`nrunner=$env:RUNNER_NAME`nrun=$env:GITHUB_RUN_ID" | Set-Content "$env:JOURNAUX/contexte.txt"
+
+      - name: Contexte des journaux (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          MOTIF: ${{ inputs.tests }}
+          REF: ${{ inputs.ref || github.ref }}
+          JOURNAUX: ${{ runner.temp }}/journaux-tests
+        run: |
+          mkdir -p "$JOURNAUX"
+          printf 'tests=%s\nref=%s\nrunner=%s\nrun=%s\n' "$MOTIF" "$REF" "$RUNNER_NAME" "$GITHUB_RUN_ID" > "$JOURNAUX/contexte.txt"
+
       # Étapes suivantes reprises du job build de ci.yml, à garder alignées avec lui.
       # Runner auto-hébergé : dépôt privé seulement, et pas de job lourd sous 3 Go de mémoire disponible (le Mac porte
       # aussi les sessions Claude). La garde qui fait foi est côté Mac, hors de portée d'une PR :
@@ -97,6 +122,14 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' || runner.os != 'Windows' }}
+
+      # Script de collecte pris dans le commit du workflow, pas dans la ref testée : une ref antérieure à ce workflow
+      # (bissection, branche non rebasée) garde ses journaux. Retiré au run suivant par le nettoyage de la copie.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          path: _ci-ciblee-outils
+          sparse-checkout: scripts/ci
 
       - name: Nettoyer la copie de travail, sauf build/ (runner Windows)
         if: runner.environment != 'github-hosted' && runner.os == 'Windows'
@@ -190,31 +223,36 @@ jobs:
       - id: tester_windows
         name: Tester (Windows)
         if: runner.os == 'Windows'
+        timeout-minutes: 25
         shell: pwsh
         env:
           MOTIF: ${{ inputs.tests }}
           JOURNAUX: ${{ runner.temp }}/journaux-tests
         run: |
-          cmake -E make_directory $env:JOURNAUX
+          if (-not $env:MOTIF) { '::error::Entrée tests vide : elle lancerait toute la suite.'; exit 1 }
+          # Arbre build/ gardé d'un run à l'autre : un LastTestsFailed.log d'un ancien run ferait relancer ses tests.
+          cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
           ctest --preset debug --output-on-failure -R $env:MOTIF --output-log "$env:JOURNAUX/ctest-sortie.txt" --output-junit "$env:JOURNAUX/ctest-junit.xml"
 
       - id: tester_macos
         name: Tester (macOS)
         if: runner.os == 'macOS'
+        timeout-minutes: 25
         shell: bash
         env:
           MOTIF: ${{ inputs.tests }}
           JOURNAUX: ${{ runner.temp }}/journaux-tests
         run: |
-          cmake -E make_directory "$JOURNAUX"
+          if [ -z "$MOTIF" ]; then echo '::error::Entrée tests vide : elle lancerait toute la suite.'; exit 1; fi
+          cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
           ctest --preset debug --output-on-failure -R "$MOTIF" --output-log "$JOURNAUX/ctest-sortie.txt" --output-junit "$JOURNAUX/ctest-junit.xml"
 
       - name: Journaux des tests rouges
         if: failure() && (steps.tester_windows.outcome == 'failure' || steps.tester_macos.outcome == 'failure')
-        run: cmake -DBUILD_DIR=build/debug "-DOUT_DIR=${{ runner.temp }}/journaux-tests" -P scripts/ci/journaux-tests.cmake
+        run: cmake -DBUILD_DIR=build/debug "-DOUT_DIR=${{ runner.temp }}/journaux-tests" -P _ci-ciblee-outils/scripts/ci/journaux-tests.cmake
 
       - name: Téléverser les journaux
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: journaux-tests

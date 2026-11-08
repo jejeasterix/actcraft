@@ -82,6 +82,12 @@ foreach(i RANGE 0 ${dernier})
         message(STATUS "== ${nom} non relancé (plafond : ${MAX_RELANCES} relances, ${MAX_SECONDES} s)")
         continue()
     endif()
+    # Part égale du reste entre les relances encore possibles : un test lent (tst_bench_verdict, 259 s) ne prive pas
+    # les suivants, souvent ceux qui plantent tôt.
+    math(EXPR reste "${reste} / (${MAX_RELANCES} - ${relances})")
+    if(reste LESS 1)
+        set(reste 1)
+    endif()
     math(EXPR relances "${relances} + 1")
 
     # Dossier de travail et environnement du test, tels que ctest les donne.
