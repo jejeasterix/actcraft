@@ -358,9 +358,8 @@ private slots:
                 QPointer<QQuickItem> guard(control);
                 // Un contrôle déjà focalisé à l'ouverture (premier de la boîte) : on le quitte d'abord, sinon
                 // rien ne change entre les deux images.
-                if (control->hasActiveFocus() && focusable.size() > 1) {
-                    QQuickItem* other = focusable.first() == control ? focusable.last() : focusable.first();
-                    other->forceActiveFocus(Qt::TabFocusReason);
+                if (control->hasActiveFocus()) {
+                    s.window->contentItem()->forceActiveFocus(Qt::OtherFocusReason);
                     QTest::qWait(60);
                 }
                 const QImage before = s.window->grabWindow();
