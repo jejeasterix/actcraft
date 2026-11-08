@@ -18,11 +18,11 @@ Item {
 
     // Aspect : gris des poignées, contour sombre qui les détache de la page (15:1) et du fond (3,3:1).
     readonly property color gris: "#808080"
-    readonly property color contour: "#101418"
+    property color contour: "#101418" // L11-C10 (F) : autre couleur pour le cadre du second
 
-    readonly property var frame: tools.selectionFrame
+    property var frame: tools.selectionFrame // L11-C10 (F) : secondSelectionFrame pour le second
     readonly property bool framed: frame.visible === true
-    readonly property bool handlesOn: tools.handlesVisible
+    property bool handlesOn: tools.handlesVisible
     // Compteur réévalué quand la vue bouge : pageToScene n'annonce pas ses dépendances.
     property int tick: 0
 

@@ -1534,6 +1534,11 @@ void ToolHost::refreshSelection()
     } else if (!select) {
         emit selectionChanged();
     }
+    // L11-C10 (F) : le sélecteur du second republie aussi son cadre (secondSelectionFrame).
+    auto* second = dynamic_cast<tools::SelectTool*>(secondExistingTool(QStringLiteral("select")));
+    if (second && !second->isBusy()) {
+        second->refresh();
+    }
 }
 
 void ToolHost::relayModifiers(int key, int modifiers)

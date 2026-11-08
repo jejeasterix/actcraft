@@ -682,15 +682,19 @@ private slots:
         QVERIFY(drawFirstStroke(app));
         app.tools->activateFor(QStringLiteral("select"), 1);
         QVERIFY(!secondFrameVisible(app));
+        // Appui sans modificateur sur un objet : la sélection se fait au relâché (SelectTool::press).
         tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(400, 300));
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
         QTRY_VERIFY_WITH_TIMEOUT(secondFrameVisible(app), 3000);
         auto* overlay = app.window->findChild<QQuickItem*>(QStringLiteral("secondSelectionOverlay"));
         QVERIFY(overlay);
         QTRY_VERIFY_WITH_TIMEOUT(overlay->isVisible(), 3000);
         // Le premier est au stylo : son cadre reste masqué, le second ne le remplace pas.
         QVERIFY(!app.tools->selectionFrame().value(QStringLiteral("visible")).toBool());
-        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
-        QVERIFY(secondFrameVisible(app)); // la sélection du second reste après le relâché
+        // Le mode éteint, le cadre du second disparaît.
+        app.tools->setDualUsers(false);
+        QVERIFY(!secondFrameVisible(app));
+        QTRY_VERIFY_WITH_TIMEOUT(!overlay->isVisible(), 3000);
     }
 
     // L11-C10 (G, H11-13) : le second pose son stylet sur un objet que le premier a sélectionné, sans bouger
