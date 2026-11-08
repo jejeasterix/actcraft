@@ -143,8 +143,9 @@ private slots:
         QVERIFY(activate(QStringLiteral("preparation")));
         QVERIFY(m_profile->browsersVisible());
         QCOMPARE(m_profile->swatches(), 24);
-        QCOMPARE(m_profile->setting(QStringLiteral("defaults"), QStringLiteral("page-size"), QString()).toString(),
-                 QStringLiteral("1024x768"));
+        QCOMPARE(
+            m_profile->setting(QStringLiteral("defaults"), QStringLiteral("page-size"), QString()).toString(),
+            QStringLiteral("1024x768"));
         QVERIFY(activate(QStringLiteral("en-classe")));
         QVERIFY(!m_profile->browsersVisible());
         QVERIFY(m_profile->fitPage());
@@ -174,7 +175,8 @@ private slots:
                              qPrintable(command));
                 }
             // Sous Windows, tout ce qui est déclaré pour Windows reste.
-            for (const QString& command : actions::layoutForPlatform(*p, registry(), actions::Platform::Windows))
+            for (const QString& command :
+                 actions::layoutForPlatform(*p, registry(), actions::Platform::Windows))
                 QVERIFY2(registry().isAvailable(command, actions::Platform::Windows), qPrintable(command));
         }
         QVERIFY(dropped >= 1);
@@ -186,13 +188,16 @@ private slots:
         QVERIFY(android.contains(QStringLiteral("record.sound")));
     }
 
-    // Épinglages du lot 8 (liste recopiée du rapport du lot 8). Ceux du lot 7 ne sont pas vérifiés ici : le lot 7
-    // n'est pas fusionné à la tête du lot 11 (à raccorder à sa fusion).
+    // Épinglages du lot 8 (liste recopiée du rapport du lot 8). Ceux du lot 7 ne sont pas vérifiés ici : le
+    // lot 7 n'est pas fusionné à la tête du lot 11 (à raccorder à sa fusion).
     void lot7And8PinsPresent()
     {
-        const QStringList lot8{QStringLiteral("media.sound-controller"), QStringLiteral("record.sound"),
-                               QStringLiteral("record.screen-full"),     QStringLiteral("record.screen-area"),
-                               QStringLiteral("insert.web-frame"),       QStringLiteral("link.file"),
+        const QStringList lot8{QStringLiteral("media.sound-controller"),
+                               QStringLiteral("record.sound"),
+                               QStringLiteral("record.screen-full"),
+                               QStringLiteral("record.screen-area"),
+                               QStringLiteral("insert.web-frame"),
+                               QStringLiteral("link.file"),
                                QStringLiteral("link.website")};
         QVERIFY(activate(QStringLiteral("son-image")));
         const QStringList windows =
