@@ -83,6 +83,22 @@ Tous sous `LGPL-3.0-only`, liés dynamiquement.
 - `Qt6MultimediaQuick` : lecteur multimédia de l'interface.
 - `Qt6WebView` : cadre web intégré, par le moteur web du système.
 - `Qt6WebViewQuick` : cadre web de l'interface.
+- `Qt6DBus` : bus de messages D-Bus, tiré par QtGui de Homebrew (paquet macOS).
+- `Qt6PdfQuick` : affichage PDF en QML, copié avec le module QML de Qt PDF (paquet macOS).
+- `Qt6QmlDesignSupport` : aides de Qt Design Studio, copiées avec le dossier QtQml (paquet macOS).
+- `Qt6QmlLocalStorage` : stockage local en QML, copié avec le dossier QtQuick (paquet macOS).
+- `Qt6QmlXmlListModel` : modèle de liste XML en QML, copié avec le dossier QtQml (paquet macOS).
+- `Qt6QuickControls2IOS` : style iOS de Qt Quick Controls (paquet macOS).
+- `Qt6QuickControls2IOSStyleImpl` : implémentation du style iOS (paquet macOS).
+- `Qt6QuickControls2Macos` : style macOS de Qt Quick Controls (paquet macOS).
+- `Qt6QuickControls2MacOSStyleImpl` : implémentation du style macOS (paquet macOS).
+- `Qt6QuickControls2Native` : base des styles natifs de Qt Quick Controls (paquet macOS).
+- `Qt6QuickParticles` : particules de Qt Quick, copiées avec le dossier QtQuick (paquet macOS).
+- `Qt6QuickShapesDesignHelpers` : aides de conception des formes de Qt Quick (paquet macOS).
+- `Qt6QuickVectorImage` : images vectorielles de Qt Quick (paquet macOS).
+- `Qt6QuickVectorImageGenerator` : génération des images vectorielles (paquet macOS).
+- `Qt6QuickVectorImageHelpers` : aides des images vectorielles (paquet macOS).
+- `Qt6Sql` : accès aux bases de données, tiré par le stockage local QML (paquet macOS).
 
 ### Composants tiers inclus dans Qt
 
@@ -287,6 +303,39 @@ LGPL 2.1 ou ultérieure.
   https://libcxx.llvm.org/). Licence SPDX : `Apache-2.0 WITH LLVM-exception`. Copyright : les contributeurs du
   projet LLVM.
 - `libactcraft_*.so` (Android) : ActCraft lui-même. Licence SPDX : `MIT`. Copyright (c) 2026 Jérôme Denis.
+
+## Bibliothèques du paquet macOS
+
+Une entrée par ligne « Paquet macOS » de `packaging/autres-autorises.txt` : bibliothèques de Homebrew dont dépend Qt,
+copiées par macdeployqt dans `ActCraft.app/Contents/Frameworks`. `scripts/verifier-licences-mac.sh` refuse un bundle
+qui contient une bibliothèque sans ligne correspondante, une bibliothèque sous GPL seule ou Qt WebEngine. Quand
+l'expression offre un choix, ActCraft retient la licence qui n'est pas la GPL. Versions de Homebrew du 2026-11-08.
+
+- `libb2.*.dylib` (macOS) : libb2, formule `libb2`, BLAKE2 (fonction de hachage), tirée par QtCore ; version 0.98.1, https://blake2.net/. Licence SPDX : `CC0-1.0`. Copyright : Samuel Neves et les auteurs de BLAKE2, dédié au domaine public (CC0).
+- `libbrotli*.dylib` (macOS) : brotli, formule `brotli`, décompression Brotli (`libbrotlicommon`, `libbrotlidec`), tirée par FreeType ; version 1.2.1, https://github.com/google/brotli. Licence SPDX : `MIT`. Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
+- `libcrypto.*.dylib` (macOS) : openssl@4, formule `openssl@4`, OpenSSL, cryptographie, chargée par le greffon TLS de Qt ; version 4.1.0, https://openssl-library.org. Licence SPDX : `Apache-2.0`. Copyright (c) 1998-2026 The OpenSSL Project Authors.
+- `libssl.*.dylib` (macOS) : openssl@4, formule `openssl@4`, OpenSSL, protocole TLS, chargée par le greffon TLS de Qt ; version 4.1.0, https://openssl-library.org. Licence SPDX : `Apache-2.0`. Copyright (c) 1998-2026 The OpenSSL Project Authors.
+- `libdbus-1.*.dylib` (macOS) : dbus, formule `dbus`, client D-Bus, tiré par QtDBus ; licence retenue : `AFL-2.1` ; version 1.16.2, https://wiki.freedesktop.org/www/Software/dbus. Licence SPDX : `AFL-2.1 OR GPL-2.0-or-later`. Copyright (C) 2002, 2003 Red Hat Inc. et les auteurs de D-Bus.
+- `libdouble-conversion.*.dylib` (macOS) : double-conversion, formule `double-conversion`, conversion des nombres décimaux, tirée par QtCore ; version 3.4.0, https://github.com/google/double-conversion. Licence SPDX : `BSD-3-Clause`. Copyright 2006-2011, the V8 project authors.
+- `libfreetype.*.dylib` (macOS) : freetype, formule `freetype`, rendu des polices, tiré par QtGui ; licence retenue : FreeType License ; version 2.15.0, https://www.freetype.org/. Licence SPDX : `FTL`. Copyright (C) 1996-2026 by David Turner, Robert Wilhelm, and Werner Lemberg.
+- `libglib-2.0.*.dylib` (macOS) : glib, formule `glib`, GLib, boucle d'événements et utilitaires, tirée par QtCore ; version 2.90.1, https://docs.gtk.org/glib/. Licence SPDX : `LGPL-2.1-or-later`. Copyright (C) 1995-1997 Peter Mattis, Spencer Kimball and Josh MacDonald, et les auteurs de GLib.
+- `libgio-2.0.*.dylib` (macOS) : glib, formule `glib`, GIO de GLib, tirée par libglib ; version 2.90.1, https://docs.gtk.org/gio/. Licence SPDX : `LGPL-2.1-or-later`. Copyright : les auteurs de GLib (voir libglib ci-dessus).
+- `libgmodule-2.0.*.dylib` (macOS) : glib, formule `glib`, GModule de GLib ; version 2.90.1, https://docs.gtk.org/gmodule/. Licence SPDX : `LGPL-2.1-or-later`. Copyright : les auteurs de GLib.
+- `libgobject-2.0.*.dylib` (macOS) : glib, formule `glib`, GObject de GLib ; version 2.90.1, https://docs.gtk.org/gobject/. Licence SPDX : `LGPL-2.1-or-later`. Copyright : les auteurs de GLib.
+- `libgthread-2.0.*.dylib` (macOS) : glib, formule `glib`, GThread de GLib ; version 2.90.1, https://docs.gtk.org/glib/. Licence SPDX : `LGPL-2.1-or-later`. Copyright : les auteurs de GLib.
+- `libgraphite2.*.dylib` (macOS) : graphite2, formule `graphite2`, moteur de mise en forme Graphite, tiré par HarfBuzz ; licence retenue : `MIT` ; version 1.3.15, https://graphite.sil.org/. Licence SPDX : `MIT OR MPL-2.0 OR LGPL-2.1-or-later OR GPL-2.0-or-later`. Copyright 2010, SIL International.
+- `libharfbuzz.*.dylib` (macOS) : harfbuzz, formule `harfbuzz`, mise en forme du texte, tirée par QtGui et FreeType ; version 15.0.0, https://github.com/harfbuzz/harfbuzz. Licence SPDX : `MIT`. Copyright © 2010-2022 Google, Inc., et les auteurs de HarfBuzz.
+- `libicu*.dylib` (macOS) : icu4c@79, formule `icu4c@79`, ICU (`libicudata`, `libicui18n`, `libicuuc`), Unicode et langues, tirée par QtCore ; version 79.1, https://icu.unicode.org/home. Licence SPDX : `Unicode-3.0`. Copyright © 1991-2026 Unicode, Inc..
+- `libintl.*.dylib` (macOS) : gettext, formule `gettext`, libintl de gettext, tirée par GLib ; la formule couvre aussi les outils de gettext (GPL), la bibliothèque seule est sous LGPL (en-tête `libintl.h`) ; version 1.0, https://www.gnu.org/software/gettext/. Licence SPDX : `LGPL-2.1-or-later`. Copyright (C) 1995-2026 Free Software Foundation, Inc..
+- `libjpeg.*.dylib` (macOS) : jpeg-turbo, formule `jpeg-turbo`, lecture et écriture JPEG, tirée par le greffon d'images et libtiff ; version 3.2.0, https://www.libjpeg-turbo.org/. Licence SPDX : `IJG AND Zlib AND BSD-3-Clause`. Copyright (C) 2009-2026 D. R. Commander, Copyright (C) 1991-2020 Thomas G. Lane, Guido Vollbeding.
+- `liblzma.*.dylib` (macOS) : xz, formule `xz`, compression LZMA, tirée par libtiff ; la formule couvre aussi les outils de xz (GPL), la bibliothèque seule est sous `0BSD` (en-tête `lzma.h`) ; version 5.8.4, https://tukaani.org/xz/. Licence SPDX : `0BSD`. Copyright (C) The XZ Utils authors and contributors.
+- `libmd4c.*.dylib` (macOS) : md4c, formule `md4c`, analyse du Markdown, tirée par QtGui ; version 0.6.0, https://github.com/mity/md4c. Licence SPDX : `MIT`. Copyright © 2016-2026 Martin Mitáš.
+- `libpcre2-*.dylib` (macOS) : pcre2, formule `pcre2`, expressions régulières (`libpcre2-8`, `libpcre2-16`), tirées par QtCore et GLib ; version 10.49, https://www.pcre.org/. Licence SPDX : `BSD-3-Clause`. Copyright (c) 1997-2007 University of Cambridge, et les auteurs de PCRE2.
+- `libpng16.*.dylib` (macOS) : libpng, formule `libpng`, lecture et écriture PNG, tirée par QtGui et FreeType ; version 1.6.59, https://www.libpng.org/pub/png/libpng.html. Licence SPDX : `libpng-2.0`. Copyright (c) 1995-2026 The PNG Reference Library Authors.
+- `libsharpyuv.*.dylib` (macOS) : webp, formule `webp`, conversion de couleurs de libwebp ; version 1.6.0, https://developers.google.com/speed/webp/. Licence SPDX : `BSD-3-Clause`. Copyright (c) 2010, Google Inc..
+- `libwebp*.dylib` (macOS) : webp, formule `webp`, images WebP (`libwebp`, `libwebpdemux`, `libwebpmux`), tirées par le greffon d'images et libtiff ; version 1.6.0, https://developers.google.com/speed/webp/. Licence SPDX : `BSD-3-Clause`. Copyright (c) 2010, Google Inc..
+- `libtiff.*.dylib` (macOS) : libtiff, formule `libtiff`, lecture TIFF, tirée par le greffon d'images ; version 4.7.2, https://libtiff.gitlab.io/libtiff/. Licence SPDX : `libtiff`. Copyright © 1988-1997 Sam Leffler, Copyright © 1991-1997 Silicon Graphics, Inc..
+- `libzstd.*.dylib` (macOS) : zstd, formule `zstd`, compression Zstandard, tirée par QtCore et libtiff ; licence retenue : `BSD-3-Clause` ; version 1.5.7, https://facebook.github.io/zstd/. Licence SPDX : `BSD-3-Clause OR GPL-2.0-only`. Copyright (c) Meta Platforms, Inc. and affiliates.
 
 ## miniz 3.0.2
 

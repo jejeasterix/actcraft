@@ -23,6 +23,8 @@ namespace {
 const QHash<QString, QByteArray>& pinnedTexts()
 {
     static const QHash<QString, QByteArray> pinned = {
+        {QStringLiteral("0BSD"), "e3f18c71e10d673590eb9856c1d79dd3b4b0d65404efb5e8584dbede7edd608b"},
+        {QStringLiteral("AFL-2.1"), "fbedf33db9a433cf87c6f0974f7e488599ee0c9446ed543235c99785ce7d22e6"},
         {QStringLiteral("Apache-2.0"), "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff"},
         {QStringLiteral("BSD-2-Clause"), "f32fb3b417a194167cfad068223fc975ba96c5960513a10f66a3c28720aec1df"},
         {QStringLiteral("BSD-3-Clause"), "5a93d5831e1297ab10fe643e1a631e83be392896da14ee2951285a79012df69d"},
@@ -34,6 +36,8 @@ const QHash<QString, QByteArray>& pinnedTexts()
         {QStringLiteral("CC0-1.0"), "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"},
         {QStringLiteral("FTL"), "ced6622122ce451cb1ea0c3c3f507a640e2a44c075c04900ddd9fae8acb5369f"},
         {QStringLiteral("GPL-2.0-only"), "aaf135472f81c5b4a0dca9367e5bb5e9750032b5bebe5442b36e4c0a47430df3"},
+        {QStringLiteral("GPL-2.0-or-later"),
+         "aaf135472f81c5b4a0dca9367e5bb5e9750032b5bebe5442b36e4c0a47430df3"},
         {QStringLiteral("GPL-3.0-only"), "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0"},
         {QStringLiteral("IJG"), "7658542977bfdced9e1059a6c934ce4281de76d103b831007b825917dc62511a"},
         {QStringLiteral("ISC"), "521c6f0ed8e64736684f89843d16a4df6b4b7449acbcfc6ca6630a3037ca8c53"},
