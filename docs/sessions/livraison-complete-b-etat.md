@@ -293,5 +293,18 @@ lot 11 prendra le lot 7 en fusionnant `main` à sa clôture.
   points du stylet (latence p50 38 ms contre 10 ms sans message) ; correctif à chercher dans une tâche dédiée,
   remesure au banc D3D11 à l'écran.
 - `tst_captures_imprimer` (rouge hors écran au #18, clic à coordonnée fixe) : vert ici en debug et en release.
+- Relecture `reviewer-adversarial` du diff de fusion : 0 bloquant, 0 majeur, 3 mineurs ; le relevé `REGLAGES` imprimé
+  avant `setOrganizationName` est corrigé (cf965f9d) ; doublon `tap`/`pointer` de `bench/src/uiscenario.cpp` et
+  identifiant `"contain-words"` laissés tels quels (hors fusion).
+- Première CI de la PR rouge sur Windows (debug, runner du PC) : `tst_bench_verdict` et `tst_bench_result`, comme la
+  suite debug locale. Causes trouvées et corrigées :
+  - `edition.paste` refusé : le relevé des objets collés était pris avant une attente de 15 s qui traite les
+    événements ; en debug, des traits du scénario finis pendant l'attente comptaient comme collés (22 au lieu de 20,
+    relevé instrumenté). Relevé synchrone autour de `ObjectEditing::paste` (bc3c2012).
+  - `pageEffectChoicesAreNotJudged` (le rouge debug « cause non prouvée » du #18) : en debug, la page n'est prête
+    qu'environ 1 s après son changement, le choix suivant (0,85 s après) tombe dans ce changement encore actif. Seuls
+    les choix arrivés au repos sont jugés ; en release, les 17 le sont (efab122e, puis le plancher de 17).
+  - Intermittent, non corrigé : « page effects played 15 of 16 » vu une fois sur trois passages debug de la fumée ;
+    s'il revient en CI, il invalide la passe (contrôles de contenu sautés).
 - Restent du lot 7, inchangés : la liste « À la porte de clôture » de « Fin du lot 7 côté Mac » ; `qtpdf` absent de
   `release.yml` (import PDF non construit dans les paquets, à régler avant la release).
