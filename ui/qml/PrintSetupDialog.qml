@@ -224,11 +224,8 @@ Popup {
                     text: qsTr("Imprimer")
                     highlighted: true
                     // Focus clavier sur le bouton en surbrillance : l'anneau du style a la couleur du remplissage (L11-T24).
-                    Rectangle {
-                        anchors.fill: parent
+                    FocusRing {
                         visible: parent.visualFocus && parent.highlighted
-                        color: "transparent"
-                        border.width: 2
                         border.color: Theme.texteSurActive
                     }
                     onClicked: {

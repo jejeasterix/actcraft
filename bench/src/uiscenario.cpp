@@ -1336,7 +1336,7 @@ bool UiScenarioPlayer::parallel(const UiStep& step, QStringList& report)
     QCoreApplication::instance()->removeEventFilter(&witness);
     QStringList missing;
     for (const UiContact& c : step.contacts) {
-        const qint64 id = 6000 + c.device;
+        const qint64 id = kParallelSystemIdBase + c.device;
         if (witness.presses.value(id) != 1 || witness.releases.value(id) != 1) {
             missing << QStringLiteral("appareil %1 : %2 appui(s), %3 relâché(s)")
                            .arg(c.device)

@@ -850,18 +850,15 @@ Window {
         target: appMediaInsert
         function onBusyChanged() { root.returnLentPermissions() }
     }
-    function insertImageAdmitted(url) {
+    // Admission d'un fichier choisi, puis lecture ; un refus rend les permissions prêtées si plus rien ne lit.
+    function admitThen(url, read) {
         if (appPortal.admit(url))
-            appInsertion.insertImage(url)
+            read(url)
         else
             root.returnLentPermissions()
     }
-    function importPdfAdmitted(url) {
-        if (appPortal.admit(url))
-            appExchange.importPdf(url)
-        else
-            root.returnLentPermissions()
-    }
+    function insertImageAdmitted(url) { root.admitThen(url, function(u) { appInsertion.insertImage(u) }) }
+    function importPdfAdmitted(url) { root.admitThen(url, function(u) { appExchange.importPdf(u) }) }
     // Échanges de fichiers (L5-T25) : l'échec et la fin arrivent à la bannière.
     Connections {
         target: appExchange

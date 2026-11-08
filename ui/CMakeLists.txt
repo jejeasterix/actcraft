@@ -113,6 +113,7 @@ qt_add_qml_module(actcraft_ui
     QML_FILES
         qml/Main.qml
         qml/Theme.qml
+        qml/FocusRing.qml
         qml/AboutDialog.qml
         qml/TopBar.qml
         qml/ToolPalette.qml
