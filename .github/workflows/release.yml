@@ -2,7 +2,8 @@ name: Release
 
 # Décision 32 du cadrage livraison-complete (docs/specs/2026-10-14-livraison-complete-cadrage.md).
 # - Tag v<version> : mode « reel ». Refus si le tag ne correspond pas à la version du projet ; secrets de signature
-#   obligatoires, vérifiés avant toute construction ; installateur + APK arm64-v8a signé par la clé de release ;
+#   obligatoires, vérifiés avant toute construction ; installateur + APK arm64-v8a signé par la clé de release
+#   + image disque macOS non signée (signature ad hoc, job « macos ») ;
 #   SHA256SUMS.txt ; notes tirées de CHANGELOG.md ; BROUILLON de release, jamais publié par ce workflow.
 # - workflow_dispatch : « essai » ou « reel » (mêmes règles ; « reel » se lance sur le tag v<version>).
 # - Push d'une branche essai-ci/release-<sujet> : « essai », pour prouver le flux sans tag (workflow_dispatch n'est
@@ -221,6 +222,143 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret. Exécuteur choisi selon la visibilité du dépôt,
+  # comme runner_macos de ci.yml : privé → runner auto-hébergé du Mac mini (macos-latest y coûterait des minutes
+  # payantes) ; public → macos-latest (gratuit ; un runner auto-hébergé est exclu d'un dépôt public). Aucun arrêt sur
+  # « public ». Image téléversée en mode réel seulement.
+  macos:
+    needs: [mode, secrets]
+    if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
+    runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || 'macos-latest' }}
+    timeout-minutes: 60
+    steps:
+      # Mac mini : garde de mémoire de ci.yml:79-91 (sa garde de visibilité n'a plus d'objet ici : runs-on la tient).
+      - name: Garde du runner auto-hébergé (mémoire)
+        if: runner.environment != 'github-hosted'
+        run: |
+          dispo_go() {
+            # Part libre selon macOS (mémoire compressible comprise), en Go entiers.
+            memory_pressure | awk -v t="$(sysctl -n hw.memsize)" '/free percentage/ {sub("%","",$NF); printf "%d", $NF*t/100/1073741824}'
+          }
+          for i in $(seq 1 30); do
+            go=$(dispo_go)
+            if ! [ "$go" -ge 0 ] 2>/dev/null; then echo "::error::Mémoire disponible illisible (memory_pressure)"; exit 1; fi
+            if [ "$go" -ge 3 ]; then echo "Mémoire disponible : $go Go"; exit 0; fi
+            echo "Mémoire disponible : $go Go (< 3 Go), nouvel essai dans 30 s ($i/30)"
+            sleep 30
+          done
+          echo "::error::Moins de 3 Go de mémoire disponible sur le Mac depuis 15 min : build macOS abandonné, à relancer."
+          exit 1
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # macos-latest : Qt par aqtinstall, comme ci.yml:117-136, avec Qt Multimedia et Qt WebView (requis).
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: runner.environment == 'github-hosted'
+        with:
+          python-version: "3.12"
+
+      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) : version de développement,
+      # épinglée sur le commit vérifié par les runs du 2026-10-15 (même commit dans les trois jobs).
+      - name: Installer Ninja et aqtinstall
+        if: runner.environment == 'github-hosted'
+        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+      - name: Installer Qt
+        if: runner.environment == 'github-hosted'
+        shell: bash
+        run: |
+          python -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
+          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
+          echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+      # Mac mini : copie de ci.yml:138-174, sans « matrix » ; le repli aqt prend aussi qtmultimedia et qtwebview, sous
+      # un témoin qui nomme les modules. Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une
+      # fois dans le cache du runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à
+      # l'autre.
+      - name: Qt, Ninja et ccache du Mac
+        if: runner.environment != 'github-hosted' && runner.os == 'macOS'
+        shell: bash
+        run: |
+          cache="$HOME/actions-runner-actcraft/_cache"
+          mkdir -p "$cache"
+          brew_qt=/opt/homebrew/opt/qt
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1)
+          if [ "$version" = "$QT_VERSION" ]; then
+            qt_dir="$brew_qt"
+          else
+            echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
+            qt_dir="$cache/Qt/$QT_VERSION/macos"
+            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant. Le cache est celui de
+            # ci.yml:154-159, dont le témoin « .complet » ne garantit pas Qt Multimedia ni Qt WebView : ce job a son
+            # témoin, qui nomme les modules ; il pose aussi « .complet » (sur-ensemble des modules de ci.yml).
+            modules="qtshadertools qtimageformats qtpdf qtmultimedia qtwebview"
+            temoin="$cache/Qt/$QT_VERSION/.complet-$(echo "$modules" | tr ' ' '-')"
+            if [ ! -f "$temoin" ]; then
+              rm -rf "$cache/Qt/$QT_VERSION"
+              python3 -m venv "$cache/venv-aqt"
+              "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+              # shellcheck disable=SC2086 # $modules : un mot par module
+              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m $modules --outputdir "$cache/Qt"
+              touch "$cache/Qt/$QT_VERSION/.complet" "$temoin"
+            fi
+          fi
+          command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
+          echo "Qt : $qt_dir ($version)"
+          echo "ACTCRAFT_QT_DIR=$qt_dir" >> "$GITHUB_ENV"
+          echo "$qt_dir/bin" >> "$GITHUB_PATH"
+          # 4 compilations à la fois : le Mac (8 Go) garde de la mémoire pour les sessions pendant le build.
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=4" >> "$GITHUB_ENV"
+          if command -v ccache >/dev/null; then
+            echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            # Pas de CCACHE_BASEDIR : il rend __FILE__ relatif et casse QFINDTESTDATA (tst_modules, tst_ui_preferences).
+            # Le dossier de travail du runner est fixe, les chemins absolus suffisent au cache.
+            echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
+          fi
+
+      # paquet-mac.sh refuse une construction où ACTCRAFT_MEDIA ou ACTCRAFT_WEBFRAME vaut OFF (module Qt manquant).
+      - name: Construire l'image disque
+        shell: bash
+        run: |
+          if ./scripts/paquet-mac.sh > "$RUNNER_TEMP/paquet-mac.txt" 2>&1; then code=0; else code=$?; fi
+          cat "$RUNNER_TEMP/paquet-mac.txt"
+          if [ "$code" != 0 ] || ! tail -1 "$RUNNER_TEMP/paquet-mac.txt" | grep -q '^DMG OK : '; then exit 1; fi
+
+      # Bloquant : bundle, signature, qt.conf, otool, bibliothèques chargées à --version.
+      - name: Essai de l'image disque
+        shell: bash
+        run: |
+          if ./scripts/essai-dmg.sh > "$RUNNER_TEMP/essai-dmg.txt" 2>&1; then code=0; else code=$?; fi
+          cat "$RUNNER_TEMP/essai-dmg.txt"
+          if [ "$code" != 0 ] || [ "$(tail -1 "$RUNNER_TEMP/essai-dmg.txt")" != "ESSAI DMG OK" ]; then exit 1; fi
+
+      # Informatif : une fenêtre ne s'ouvre pas sûrement sur l'exécuteur ; le lancement est prouvé par L11-T29m sur le Mac.
+      - name: Lancement de 3 s (informatif)
+        continue-on-error: true
+        shell: bash
+        run: |
+          ./scripts/essai-dmg.sh --lancer 2>&1 | tail -4
+          test "${PIPESTATUS[0]}" = 0
+
+      - name: Somme SHA-256
+        shell: bash
+        env:
+          VERSION: ${{ needs.mode.outputs.version }}
+        run: |
+          cd build/paquet
+          shasum -a 256 "ActCraft-$VERSION-macos-arm64.dmg"
+
+      - name: Conserver l'image disque pour le brouillon (mode réel seulement)
+        if: needs.mode.outputs.mode == 'reel'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: paquet-macos
+          path: build/paquet/ActCraft-${{ needs.mode.outputs.version }}-macos-arm64.dmg
+          if-no-files-found: error
+          retention-days: 1
+
   # S3 : APK arm64-v8a seul (la release ne livre que cette ABI, décision 28). Clé de release en mode réel ; clé de
   # débogage en mode essai (APK annoncé non publiable). Téléversé en mode réel seulement.
   android:
@@ -329,7 +467,7 @@ jobs:
 
   # Mode réel seulement : brouillon de release, jamais publié ici (publication = go écrit, action finale).
   release:
-    needs: [mode, secrets, windows, android]
+    needs: [mode, secrets, windows, android, macos]
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
     runs-on: ubuntu-latest
@@ -349,7 +487,7 @@ jobs:
         env:
           VERSION: ${{ needs.mode.outputs.version }}
         run: |
-          $attendus = @("ActCraft-$env:VERSION-arm64-v8a.apk", "ActCraft-$env:VERSION-setup.exe")
+          $attendus = @("ActCraft-$env:VERSION-arm64-v8a.apk", "ActCraft-$env:VERSION-macos-arm64.dmg", "ActCraft-$env:VERSION-setup.exe")
           $lus = @(Get-ChildItem paquets -File | ForEach-Object Name | Sort-Object)
           if (($lus -join ', ') -cne ($attendus -join ', ')) { Write-Output "Paquets inattendus : $($lus -join ', ')"; exit 1 }
           Get-ChildItem paquets -File | Get-FileHash -Algorithm SHA256 |
@@ -387,7 +525,7 @@ jobs:
   # la fin quoi qu'il arrive (échec de « windows », d'« android » ou de « release » compris), pour qu'ils ne restent
   # pas téléchargeables avant la publication (go écrit).
   nettoyer:
-    needs: [mode, windows, android, release]
+    needs: [mode, windows, android, macos, release]
     if: always() && needs.mode.outputs.mode == 'reel'
     runs-on: ubuntu-latest
     timeout-minutes: 5
