@@ -21,7 +21,7 @@ for option in "$@"; do
   esac
 done
 
-version="$(perl -0777 -ne 'print "$1.$2.$3" if /project\(\s*ActCraft\s+VERSION\s+(\d+)\.(\d+)\.(\d+)/' CMakeLists.txt)"
+. scripts/version-projet.sh
 [ -n "$version" ] || echec "version introuvable dans CMakeLists.txt (project(ActCraft VERSION x.y.z))"
 [ "$(uname -m)" = arm64 ] || echec "Mac Apple Silicon requis (uname -m = $(uname -m))"
 qt="${ACTCRAFT_QT_DIR:-$(brew --prefix qt 2>/dev/null)}"

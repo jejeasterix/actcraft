@@ -11,7 +11,7 @@ echec() {
   echo "ESSAI DMG EN ECHEC : $1"
   exit 1
 }
-version="$(perl -0777 -ne 'print "$1.$2.$3" if /project\(\s*ActCraft\s+VERSION\s+(\d+)\.(\d+)\.(\d+)/' CMakeLists.txt)"
+. scripts/version-projet.sh
 [ -n "$version" ] || echec "version introuvable dans CMakeLists.txt"
 dmg=""
 lancer=0
