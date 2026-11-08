@@ -32,6 +32,8 @@ Item {
         parent: Overlay.overlay
         anchors.centerIn: parent
         modal: true
+        // La boîte prend le focus à l'ouverture : Tab parcourt ses contrôles, pas ceux de la fenêtre (L11-T24).
+        focus: true
         padding: 12
         closePolicy: Popup.CloseOnEscape
         contentItem: ColumnLayout {

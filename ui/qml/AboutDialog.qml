@@ -41,12 +41,24 @@ Dialog {
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // Anneau de focus du champ (L11-T24) : le style n'en dessine pas pour un TextArea. Accent posé sur le
+            // dialogue sombre, autour du champ : sur le blanc du puits, il tomberait sous 3:1.
+            background: Rectangle {
+                anchors.fill: parent
+                anchors.margins: -3
+                visible: notices.activeFocus
+                color: "transparent"
+                radius: Theme.rayon + 3
+                border.width: 2
+                border.color: Theme.surfaceActive
+            }
             // Pouce lisible sur le puits blanc (le gris du style Basic y tombait sous 3:1 une fois appuyé).
             ScrollBar.vertical: ScrollBar {
                 objectName: "aboutScrollBar"
                 contentItem: ScrollThumb {}
             }
             TextArea {
+                id: notices
                 objectName: "aboutNotices"
                 readOnly: true
                 wrapMode: TextEdit.Wrap

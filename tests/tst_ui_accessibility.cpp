@@ -250,6 +250,37 @@ int changedBy3(const QImage& before, const QImage& after, const QRect& zone, con
     return count;
 }
 
+// Focus clavier sur la chaîne du focus actif, de l'élément focalisé à l'arrêt de Tab (forme de
+// keyboardFocusIsVisible, qui lit visualFocus sur le contrôle) : visualFocus d'un contrôle de Qt Quick
+// Controls, sinon raison du focus d'un champ (TextArea). `known` : l'une des deux propriétés existe sur cette
+// chaîne.
+bool keyboardFocused(QQuickItem* focused, const QQuickItem* stop, bool& known)
+{
+    known = false;
+    for (QQuickItem* it = focused; it; it = it->parentItem()) {
+        if (it->hasActiveFocus()) {
+            const QVariant visual = it->property("visualFocus");
+            const QVariant reason = it->property("focusReason");
+            if (visual.isValid()) {
+                known = true;
+                if (visual.toBool()) {
+                    return true;
+                }
+            } else if (reason.isValid()) {
+                known = true;
+                const int r = reason.toInt();
+                if (r == Qt::TabFocusReason || r == Qt::BacktabFocusReason || r == Qt::ShortcutFocusReason) {
+                    return true;
+                }
+            }
+        }
+        if (it == stop) {
+            break;
+        }
+    }
+    return false;
+}
+
 bool insideAny(QQuickItem* item, const QList<QQuickItem*>& roots)
 {
     for (QQuickItem* it = item; it; it = it->parentItem()) {
@@ -382,6 +413,14 @@ private slots:
                 collectFocusable(roots.last(), focusable);
             }
             // Le contrôle focalisé à l'ouverture n'est pas compté atteint : il ne l'est qu'au tour complet.
+            // Seul contrôle de sa boîte (nom vide, OK inactif), Tab ne ferait que revenir sur lui : il rend
+            // le focus à sa boîte (mise en place seule), puis le vrai Tab le ramène.
+            if (QQuickItem* opening = s.window->activeFocusItem();
+                focusable.size() == 1 && opening &&
+                (opening == focusable.first() || focusable.first()->isAncestorOf(opening))) {
+                opening->setFocus(false);
+                QTest::qWait(60);
+            }
             QList<QQuickItem*> reached;
             QList<QQuickItem*> checkedStops;
             QQuickItem* previous = nullptr;
@@ -403,8 +442,6 @@ private slots:
                 }
                 // L'arrêt de Tab : le contrôle focalisable le plus extérieur qui contient l'élément focalisé.
                 QQuickItem* stop = nullptr;
-                bool hasVisualFocus = false; // un contrôle de Qt Quick Controls dans la chaîne
-                bool visualFocus = false;
                 for (QQuickItem* it = now; it && !roots.contains(it); it = it->parentItem()) {
                     if (focusable.contains(it)) {
                         stop = it;
@@ -412,14 +449,12 @@ private slots:
                             reached << it;
                         }
                     }
-                    // Le focus visuel ne se lit que sur la chaîne du focus actif.
-                    const QVariant visual = it->hasActiveFocus() ? it->property("visualFocus") : QVariant();
-                    hasVisualFocus = hasVisualFocus || visual.isValid();
-                    visualFocus = visualFocus || visual.toBool();
                 }
                 if (!stop) {
                     stop = now;
                 }
+                bool known = false;
+                const bool keyboard = keyboardFocused(now, stop, known);
                 if (checkedStops.contains(stop)) {
                     previous = stop;
                     continue;
@@ -434,7 +469,7 @@ private slots:
                 }
                 ++controls;
                 const int changed = changedBy3(before, after, zone, skip);
-                if (hasVisualFocus && !visualFocus) {
+                if (known && !keyboard) {
                     failures << QStringLiteral(
                                     "%1 : focus clavier sans focus visuel (visualFocus faux) sur %2")
                                     .arg(id, describe(stop));
