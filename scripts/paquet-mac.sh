@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# Paquet macOS non signé (amendement 3 du plan du lot 11) : construction Release, déploiement de Qt par macdeployqt,
+# notices, licences, signature ad hoc (ni Developer ID ni notarisation), image disque.
+# Usage : scripts/paquet-mac.sh [--sans-construire]
+# Qt : $ACTCRAFT_QT_DIR, sinon $(brew --prefix qt). Produit build/paquet/ActCraft-<version>-macos-arm64.dmg : local,
+# jamais publié ici (publication = go écrit de Jérôme).
+# Dernière ligne et code : « DMG OK : <chemin> » (0) ou « DMG EN ECHEC : <raison> » (1).
+set -u
+cd "$(dirname "$0")/.." || exit 1
+racine="$(pwd)"
+echec() {
+  echo "DMG EN ECHEC : $1"
+  exit 1
+}
+
+construire=1
+for option in "$@"; do
+  case "$option" in
+    --sans-construire) construire=0 ;;
+    *) echec "option inconnue : $option" ;;
+  esac
+done
+
+version="$(perl -0777 -ne 'print "$1.$2.$3" if /project\(\s*ActCraft\s+VERSION\s+(\d+)\.(\d+)\.(\d+)/' CMakeLists.txt)"
+[ -n "$version" ] || echec "version introuvable dans CMakeLists.txt (project(ActCraft VERSION x.y.z))"
+[ "$(uname -m)" = arm64 ] || echec "Mac Apple Silicon requis (uname -m = $(uname -m))"
+qt="${ACTCRAFT_QT_DIR:-$(brew --prefix qt 2>/dev/null)}"
+macdeployqt="$qt/bin/macdeployqt"
+[ -x "$macdeployqt" ] || echec "macdeployqt introuvable ($macdeployqt) : ACTCRAFT_QT_DIR ou brew install qt"
+
+build="$racine/build/macos-paquet"
+if [ "$construire" = 1 ]; then
+  lanceur=""
+  if command -v ccache >/dev/null; then
+    lanceur="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+  fi
+  # shellcheck disable=SC2086 # $lanceur : zéro ou deux options
+  cmake -S . -B "$build" -G Ninja -DCMAKE_PREFIX_PATH="$qt" -DCMAKE_BUILD_TYPE=Release $lanceur ||
+    echec "configuration CMake"
+  cmake --build "$build" --target actcraft --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-2}" || echec "compilation Release"
+fi
+# Lecteur, enregistreurs et cadre web sont livrés : une construction qui les a perdus (module Qt manquant) est refusée.
+for option_cmake in ACTCRAFT_MEDIA ACTCRAFT_WEBFRAME; do
+  grep -qx "$option_cmake:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null ||
+    echec "$option_cmake n'est pas ON dans $build/CMakeCache.txt (Qt Multimedia ou Qt WebView manquant)"
+done
+source_app="$(find "$build" -maxdepth 2 -name actcraft.app -type d | head -1)"
+[ -n "$source_app" ] || echec "actcraft.app absent de $build (construire d'abord, sans --sans-construire)"
+
+paquet="$racine/build/paquet"
+stage="$paquet/macos"
+app="$stage/ActCraft.app"
+rm -rf "$stage"
+mkdir -p "$stage"
+cp -R "$source_app" "$app" || echec "copie du bundle"
+
+journal="$paquet/macdeployqt.txt"
+"$macdeployqt" "$app" -qmldir="$racine/ui/qml" -verbose=1 > "$journal" 2>&1 || echec "macdeployqt (voir $journal)"
+# macdeployqt rend 0 même quand il n'a pas tout copié : ses lignes ERROR font foi. Le module ActCraft.Ui est lié
+# statiquement (actcraft_uiplugin) : qmlimportscanner ne le trouve pas sur disque, ce n'est pas un manque.
+# « Cannot resolve rpath "@rpath/…" » (et sa ligne « using QList(…) ») : Homebrew range chaque module dans sa formule
+# et le rpath d'un greffon y est relatif à sa place (@loader_path/../../../../lib), que macdeployqt évalue depuis le
+# bundle. Ces lignes ne sont pas un verdict : la référence est réécrite plus bas si son framework est dans le bundle,
+# son greffon est retiré si son module n'est pas importé, et toute référence @rpath restée sans cible est refusée
+# après la boucle des retraits.
+erreur="$(grep '^ERROR' "$journal" | grep -v 'ActCraft\.Ui' |
+  grep -vE '^ERROR: +using QList\(|^ERROR: Cannot resolve rpath "@rpath/' | head -1)"
+[ -z "$erreur" ] || echec "macdeployqt : $erreur"
+
+# macdeployqt copie en entier les dossiers d'import de Qt (QtQuick/, QtQml/) : il y entraîne des modules qu'ActCraft
+# n'importe pas, dont deux sous GPL seule (Qt Virtual Keyboard, Qt Quick Timeline : « Jamais » de qt-autorises.txt),
+# Qt 3D (Scene2D, Scene3D) et State Machine. Chaque module part avec les greffons que ses liens désignent
+# (PlugIns/quick), le clavier virtuel avec son greffon de saisie ; leurs frameworks, plus référencés, partent dans la
+# boucle suivante. Un module oublié ici ne passe pas : verifier-licences-mac.sh refuse tout framework absent de
+# qt-autorises.txt.
+qml="$app/Contents/Resources/qml"
+for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/Scene3D QtQml/StateMachine; do
+  [ -d "$qml/$module" ] || continue
+  find "$qml/$module" -type l -name '*.dylib' | while read -r lien; do
+    rm -f "$(dirname "$lien")/$(readlink "$lien")"
+  done
+  rm -rf "${qml:?}/$module"
+  echo "Retiré, non importé : $module"
+done
+rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
+
+# Références @rpath laissées par macdeployqt (voir plus haut) : réécrites sous la forme des siennes
+# (@executable_path/../Frameworks/…) quand le framework est dans le bundle ; les autres restent, refusées plus bas.
+# install_name_tool casse la signature du fichier : la signature ad hoc finale la refait.
+find "$app" -type f -exec otool -L {} + 2>/dev/null |
+  awk '/^[^[:space:]].*:$/ { f = substr($0, 1, length($0) - 1); next } /^[[:space:]]+@rpath\// { print f "\t" $1 }' |
+  while IFS=$'\t' read -r fichier ref; do
+    cible="${ref#@rpath/}"
+    [ -e "$app/Contents/Frameworks/$cible" ] || continue
+    install_name_tool -change "$ref" "@executable_path/../Frameworks/$cible" "$fichier" 2>/dev/null &&
+      echo "Réécrit : ${fichier#"$app"/} → Frameworks/${cible%%/*}"
+  done
+
+# Qt WebView passe par le moteur natif de macOS (greffon darwin), jamais par Qt WebEngine (qt-autorises.txt, lot 8) :
+# macdeployqt copie pourtant les deux greffons et, avec celui de WebEngine, ses frameworks. Le greffon est retiré, puis
+# tout framework et toute bibliothèque que plus rien ne référence, jusqu'à point fixe. Il ne doit rester aucun
+# QtWebEngine* : sinon verifier-licences-mac.sh refuse le bundle (arrêt).
+rm -f "$app/Contents/PlugIns/webview/libqtwebview_webengine.dylib"
+[ -f "$app/Contents/PlugIns/webview/libqtwebview_darwin.dylib" ] || echec "greffon Qt WebView natif (darwin) absent"
+liens="$paquet/liens.txt"
+while :; do
+  # Tous les fichiers : un binaire de framework n'a ni extension ni droit d'exécution (-r--r--r-- chez Homebrew) ; un
+  # fichier qui n'est pas Mach-O écrit « is not an object file », ligne sans « : » final, ignorée par awk.
+  find "$app" -type f -exec otool -L {} + 2>/dev/null |
+    awk '/^[^[:space:]].*:$/ { f = substr($0, 1, length($0) - 1); next } /^[[:space:]]/ { print f "\t" $1 }' > "$liens"
+  # Liste non aveugle : le binaire de QtCore y est une source, sinon rien ne serait jugé référencé et tout serait effacé.
+  awk -F'\t' '$1 ~ /\/QtCore\.framework\/Versions\/A\/QtCore$/ { t = 1 } END { exit !t }' "$liens" ||
+    echec "liste des liens aveugle : binaire de QtCore absent de $liens"
+  retire=0
+  for cible in "$app"/Contents/Frameworks/*.framework "$app"/Contents/Frameworks/*.dylib; do
+    [ -e "$cible" ] || continue
+    nom="$(basename "$cible")"
+    if ! awk -F'\t' -v c="$cible" -v n="/$nom" 'index($1, c) != 1 && index($2, n) { trouve = 1; exit } END { exit !trouve }' "$liens"; then
+      rm -rf "$cible"
+      echo "Retiré, plus référencé : $nom"
+      retire=1
+    fi
+  done
+  [ "$retire" = 1 ] || break
+done
+
+# Tous les fichiers (binaires de framework sans extension ni droit x) ; les non Mach-O sont ignorés.
+restes="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |
+  grep -E '^[[:space:]]+(/opt/homebrew|/usr/local)/' | sort -u)"
+[ -z "$restes" ] || echec "dépendances hors du bundle : $(echo "$restes" | head -3 | tr -s '[:space:]' ' ')"
+# Une référence @rpath que macdeployqt n'a pas réécrite doit trouver sa cible dans Contents/Frameworks : sinon dyld la
+# cherche ailleurs (rpaths de Homebrew restés dans un greffon) ou ne la trouve pas.
+manquants="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |
+  awk '/^[[:space:]]+@rpath\// { print substr($1, 8) }' | sort -u |
+  while read -r cible; do [ -e "$app/Contents/Frameworks/$cible" ] || echo "$cible"; done)"
+[ -z "$manquants" ] || echec "@rpath sans cible dans le bundle : $(echo "$manquants" | head -3 | tr '\n' ' ')"
+[ "$(lipo -archs "$app/Contents/MacOS/actcraft")" = arm64 ] || echec "binaire autre que arm64"
+
+grep -q 'PlugIns' "$app/Contents/Resources/qt.conf" 2>/dev/null || echec "qt.conf absent ou sans chemin des greffons"
+cp LICENSE "$app/Contents/Resources/LICENSE.txt"
+cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/"
+cp -R LICENSES "$app/Contents/Resources/LICENSES"
+
+licences="$(scripts/verifier-licences-mac.sh "$app")"
+code=$?
+echo "$licences"
+[ "$code" = 0 ] && [ "$(echo "$licences" | tail -1)" = "LICENCES OK" ] || echec "licences (voir ci-dessus)"
+
+# Signature ad hoc, après toute écriture dans le bundle (elle scelle Contents/Resources).
+codesign --force --deep -s - "$app" || echec "signature ad hoc"
+codesign --verify --deep --strict "$app" || echec "signature ad hoc invalide"
+
+ln -s /Applications "$stage/Applications"
+cp LICENSE "$stage/LICENSE.txt"
+cp THIRD_PARTY_NOTICES.md "$stage/"
+cat > "$stage/LISEZ-MOI.txt" <<'TEXTE'
+ActCraft pour macOS (Mac Apple Silicon)
+
+Installer : glisser ActCraft dans le dossier Applications.
+
+Cette version n'est pas signée par un certificat de développeur Apple. Au premier lancement, macOS la bloque :
+- macOS 14 et avant : clic droit (ou Contrôle + clic) sur ActCraft, « Ouvrir », puis « Ouvrir » encore ;
+- macOS 15 et après : ouvrir ActCraft une fois, puis Réglages Système > Confidentialité et sécurité,
+  « Ouvrir quand même ».
+Autre manière, dans le Terminal : xattr -dr com.apple.quarantine /Applications/ActCraft.app
+(retire la marque que macOS pose sur les fichiers téléchargés).
+TEXTE
+
+dmg="$paquet/ActCraft-$version-macos-arm64.dmg"
+rm -f "$dmg"
+hdiutil create -volname "ActCraft $version" -srcfolder "$stage" -format UDZO -ov "$dmg" > /dev/null ||
+  echec "hdiutil create"
+hdiutil verify "$dmg" > /dev/null 2>&1 || echec "hdiutil verify"
+echo "Taille : $(du -h "$dmg" | cut -f1)"
+echo "SHA-256 : $(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+echo "DMG OK : $dmg"
