@@ -181,6 +181,14 @@ Popup {
                         // Pas à bascule : un second clic sur le niveau courant ne le décoche pas.
                         highlighted: designer.level === index
                         onClicked: designer.level = index
+                        // Focus clavier sur le bouton en surbrillance : l'anneau du style a la couleur du remplissage (L11-T24).
+                        Rectangle {
+                            anchors.fill: parent
+                            visible: parent.visualFocus && parent.highlighted
+                            color: "transparent"
+                            border.width: 2
+                            border.color: Theme.texteSurActive
+                        }
                     }
                 }
                 Item { Layout.fillWidth: true }
