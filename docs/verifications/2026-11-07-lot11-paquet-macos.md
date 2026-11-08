@@ -39,6 +39,9 @@ scripts/essai-dmg.sh --lancer
 - Mutation : ligne `libglib-2.0.*.dylib` retirée de `packaging/autres-autorises.txt` →
   `LICENCES EN ECHEC : libglib-2.0.0.dylib` ; remise par copie, `cmp` muet, puis `LICENCES OK`.
 - `tst_app_notices` : `100% tests passed out of 1`. `YAML OK` (job `macos` de `release.yml`).
+- Suite complète sur `build-mac` (Debug, sous le jeton) : `100% tests passed out of 278`, aucun test neuf ;
+  `tst_app_notices` `Passed` ; tests sautés existants (`tst_flipchart_miniatures_samples`,
+  `tst_captures_raccourcis_programmes`, `tst_captures_classe_protegee_complete`).
 
 ## Ce que fait le déploiement, au-delà du plan
 
