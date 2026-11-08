@@ -80,7 +80,7 @@ std::vector<ObjectId> presentSelection(DocumentController* document, ToolHost* t
     if (document == nullptr || tools == nullptr)
         return out;
     const std::set<ObjectId> present = idsOf(shownPage(*document));
-    for (const ObjectId id : tools->user().selection())
+    for (const ObjectId id : tools->usableSelection())
         if (present.count(id) != 0)
             out.push_back(id);
     return out;

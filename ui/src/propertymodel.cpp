@@ -720,7 +720,7 @@ std::vector<PropertyModel::Row> PropertyModel::rebuild()
     const core::Page& page = m_document->document().page(static_cast<std::size_t>(m_page));
     std::vector<const core::PageObject*> objects;
     if (m_tools) {
-        const std::vector<core::ObjectId>& selection = m_tools->user().selection();
+        const std::vector<core::ObjectId> selection = m_tools->usableSelection();
         const std::unordered_set<core::ObjectId> selected(selection.begin(), selection.end());
         for (const core::PageObject& object : page.objects) {
             if (selected.count(object.common.id) != 0) {
@@ -845,7 +845,7 @@ void PropertyModel::onObjectFlagsChanged(int page, const QList<quint64>& ids)
     if (!m_document || !m_tools || page != m_document->currentIndex()) {
         return;
     }
-    const std::vector<core::ObjectId>& selection = m_tools->user().selection();
+    const std::vector<core::ObjectId> selection = m_tools->usableSelection();
     const bool shown = std::any_of(ids.begin(), ids.end(), [&selection](quint64 id) {
         return std::find(selection.begin(), selection.end(), static_cast<core::ObjectId>(id)) !=
                selection.end();
