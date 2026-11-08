@@ -13,6 +13,18 @@ Rectangle {
     // Vrai quand la recherche du démarrage a trouvé une version (posé par UpdateDialog).
     required property bool found
     property bool dismissed: false
+    // Version et page copiées au moment de la découverte : une recherche manuelle ultérieure vide l'état de
+    // `updates` (Checking, échec, « à jour ») sans changer ce que le bandeau annonce.
+    property string version: ""
+    property url page
+    function capture() {
+        if (banner.found && banner.version.length === 0) {
+            banner.version = banner.updates.latestVersion
+            banner.page = banner.updates.releasePage
+        }
+    }
+    onFoundChanged: capture()
+    Component.onCompleted: capture()
     visible: banner.found && !banner.dismissed
     color: Theme.barre
     border.color: Theme.contour
@@ -29,7 +41,7 @@ Rectangle {
             id: updateText
             objectName: "updateBannerText"
             Layout.fillWidth: true
-            text: qsTr("Version %1 disponible").arg(banner.updates.latestVersion)
+            text: qsTr("Version %1 disponible").arg(banner.version)
             color: Theme.texte
             wrapMode: Text.Wrap
             font.pixelSize: Theme.taillePolice
@@ -37,7 +49,7 @@ Rectangle {
         Button {
             objectName: "updateBannerView"
             text: qsTr("Voir la version")
-            onClicked: Qt.openUrlExternally(banner.updates.releasePage)
+            onClicked: Qt.openUrlExternally(banner.page)
         }
         Button {
             objectName: "updateBannerClose"

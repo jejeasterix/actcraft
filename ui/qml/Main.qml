@@ -804,7 +804,9 @@ Window {
     MessageBanner {
         id: messageBanner
         parent: pageArea
-        anchors.top: parent.top
+        // Sous les bandeaux de reprise et de mise à jour quand ils sont visibles : le message et son « Fermer »
+        // restent lisibles.
+        anchors.top: updateBanner.visible ? updateBanner.bottom : (recoveryBanner.visible ? recoveryBanner.bottom : parent.top)
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: Theme.espace2
