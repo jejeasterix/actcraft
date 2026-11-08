@@ -1,4 +1,5 @@
 #include "startup.h"
+#include "support/wcag.h"
 
 #include <actcraft/ui/layoutmetrics.h>
 #include <actcraft/ui/pageview.h>
@@ -109,6 +110,7 @@ private slots:
     void wideLayoutUnchanged();
     void paletteFitsShortWindow();
     void topBarOverflow();
+    void overflowLabelContrastWhenOpen();
 
 private:
     QTemporaryDir m_settings;
@@ -438,6 +440,33 @@ void TstUiNarrowlayout::topBarOverflow()
     QVERIFY(resizeTo(s, QSize(1280, 800)));
     QTRY_VERIFY(menu->isVisible());
     QVERIFY(!overflow->isVisible());
+}
+
+// L11-C17 : le libellé du bouton « … » ouvert reste lisible (≥ 4,5:1) sur son fond actif.
+void TstUiNarrowlayout::overflowLabelContrastWhenOpen()
+{
+    Shell s;
+    QVERIFY(start(s));
+    QVERIFY(resizeTo(s, QSize(500, 900)));
+    QQuickItem* topBar = item(s, "topBar");
+    QVERIFY(topBar);
+    QQuickItem* overflow = findItem(topBar, QStringLiteral("topOverflow"));
+    QVERIFY(overflow);
+    QTRY_VERIFY(overflow->isVisible());
+    QObject* mainMenu = s.window->findChild<QObject*>(QStringLiteral("mainMenu"));
+    QVERIFY(mainMenu);
+    clickCenter(s, overflow);
+    QTRY_VERIFY(mainMenu->property("opened").toBool());
+    // contentItem (Label) et fond (Rectangle) du bouton : les couleurs réellement affichées.
+    QObject* label = overflow->property("contentItem").value<QObject*>();
+    QObject* background = overflow->property("background").value<QObject*>();
+    QVERIFY(label && background);
+    const QColor text = label->property("color").value<QColor>();
+    const QColor fill = background->property("color").value<QColor>();
+    QVERIFY(text.isValid() && fill.isValid() && fill.alpha() == 255);
+    const double ratio = wcag::contrastRatio(text, fill);
+    QVERIFY2(ratio >= wcag::kText, qPrintable(QStringLiteral("contraste %1").arg(ratio)));
+    QVERIFY(QMetaObject::invokeMethod(mainMenu, "close"));
 }
 
 QTEST_MAIN(TstUiNarrowlayout)
