@@ -323,7 +323,6 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
     }
     const bool paste = gesture == kPasteGesture;
     // Préparation, hors fenêtre : la sélection ne redessine pas le cache.
-    std::vector<core::ObjectId> before = pageIds(page);
     if (paste) {
         std::vector<core::ObjectId> ids;
         for (std::size_t i = 1; i <= static_cast<std::size_t>(kEditionPasted); ++i) {
@@ -353,10 +352,24 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
     const auto updated = QObject::connect(g.view, &ui::PageView::cacheUpdated, g.view,
                                           [&lastNs] { lastNs = core::monotonicNowNs(); });
     const int refreshesBefore = g.view->cacheRefreshCount();
+    std::vector<core::ObjectId> pastedNow;
     switch (gesture) {
-    case kPasteGesture:
+    case kPasteGesture: {
+        // Relevé juste autour du collage, synchrone : un trait du scénario fini pendant les attentes (debug
+        // lent, entrées en retard) n'est pas compté parmi les objets collés.
+        const auto shownIds = [&g] {
+            return pageIds(g.document->document().page(static_cast<std::size_t>(g.document->currentIndex())));
+        };
+        const std::vector<core::ObjectId> before = shownIds();
         g.editing->paste();
+        const std::set<core::ObjectId> known(before.begin(), before.end());
+        for (const core::ObjectId id : shownIds()) {
+            if (known.count(id) == 0) {
+                pastedNow.push_back(id);
+            }
+        }
         break;
+    }
     case kGroupGesture:
         g.editing->toggleGroup();
         break;
@@ -378,15 +391,7 @@ bool runEditionGesture(EditionGear& g, const QString& command, EditionRefreshes&
         return false;
     }
     if (paste) {
-        g.pasted.clear();
-        const std::set<core::ObjectId> known(before.begin(), before.end());
-        const core::Page& after =
-            g.document->document().page(static_cast<std::size_t>(g.document->currentIndex()));
-        for (const core::ObjectId id : pageIds(after)) {
-            if (known.count(id) == 0) {
-                g.pasted.push_back(id);
-            }
-        }
+        g.pasted = std::move(pastedNow);
         if (g.pasted.size() != static_cast<std::size_t>(kEditionPasted)) {
             return false;
         }
