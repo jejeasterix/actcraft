@@ -356,6 +356,13 @@ private slots:
             }
             for (QQuickItem* control : std::as_const(focusable)) {
                 QPointer<QQuickItem> guard(control);
+                // Un contrôle déjà focalisé à l'ouverture (premier de la boîte) : on le quitte d'abord, sinon
+                // rien ne change entre les deux images.
+                if (control->hasActiveFocus() && focusable.size() > 1) {
+                    QQuickItem* other = focusable.first() == control ? focusable.last() : focusable.first();
+                    other->forceActiveFocus(Qt::TabFocusReason);
+                    QTest::qWait(60);
+                }
                 const QImage before = s.window->grabWindow();
                 control->forceActiveFocus(Qt::TabFocusReason);
                 (void)QTest::qWaitFor([&] { return !guard || guard->hasActiveFocus(); }, 300);
