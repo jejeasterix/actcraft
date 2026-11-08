@@ -123,17 +123,18 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' || runner.os != 'Windows' }}
 
+      - name: Nettoyer la copie de travail, sauf build/ (runner Windows)
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        run: git clean -ffdx -e /build/
+
       # Script de collecte pris dans le commit du workflow, pas dans la ref testée : une ref antérieure à ce workflow
-      # (bissection, branche non rebasée) garde ses journaux. Retiré au run suivant par le nettoyage de la copie.
+      # (bissection, branche non rebasée) garde ses journaux. Après le nettoyage de la copie, qui l'effacerait
+      # (run 42461100476).
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.sha }}
           path: _ci-ciblee-outils
           sparse-checkout: scripts/ci
-
-      - name: Nettoyer la copie de travail, sauf build/ (runner Windows)
-        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
-        run: git clean -ffdx -e /build/
 
       # Mac mini : Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une fois dans le cache du
       # runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à l'autre.

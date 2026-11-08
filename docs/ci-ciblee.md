@@ -15,7 +15,8 @@ gh run download <run> --repo jejeasterix/actcraft -n journaux-tests -D journaux 
 
 - `--ref main` choisit la version du workflow ; `-f ref=` choisit le code testé. Sans `-f ref`, le code de `--ref`.
 - Pour une PR, `-f ref=refs/pull/<n>/merge` teste le même code que sa CI (la PR fusionnée avec `main`) ; une
-  branche seule ne voit pas les changements de `main`.
+  branche seule ne voit pas les changements de `main`. Cette ref n'existe que si GitHub sait fusionner la PR
+  (« couldn't find remote ref » sinon, run 42454755473) : prendre alors le SHA de sa tête.
 - Le motif est obligatoire et non vide : vide, il lancerait toute la suite.
 - Le runner est celui de la CI : le PC (`windows`, par défaut) ou le Mac mini (`macos`). Aucun exécuteur GitHub.
 - Le runner fait un job à la fois : un run ciblé attend la fin d'une CI en cours sur le même runner.
