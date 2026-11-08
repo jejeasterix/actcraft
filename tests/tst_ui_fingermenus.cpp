@@ -99,6 +99,9 @@ private slots:
     void paletteLongPressShowsLabelOnly();
     void menuRowsFollowTargetSize();
     void submenuOpensOnTap();
+    void imposedSelectorOpensTheMenu();
+    void imposedPenOpensNoMenu();
+    void secondUserHoldOpensNoMenu();
 
 private:
     // Un trait tracé au stylet, puis sélectionné : rend le centre de son cadre (point de page).
@@ -139,7 +142,24 @@ private:
         seed.setValue(QStringLiteral("workstation/touch-ui"), true);
     }
 
-    static void hold(Shell& s, QPointF page) { emit s.view->touchHeld(page, s.view->pageToScene(page), 0); }
+    // Appui long tel que la vue l'émet : point, utilisateur du contact et son outil effectif (par défaut, le
+    // premier et son outil courant).
+    static void hold(Shell& s, QPointF page, int user = 0, const QString& tool = QString())
+    {
+        emit s.view->touchHeld(page, s.view->pageToScene(page), user,
+                               tool.isEmpty() ? s.tools->currentTool() : tool);
+    }
+
+    // Doigt posé sur `page` et tenu jusqu'au signal de l'appui long ; rend l'outil effectif qu'il porte.
+    static QString holdFinger(Shell& s, QPointingDevice* screen, QPointF page)
+    {
+        QSignalSpy held(s.view, &ui::PageView::touchHeld);
+        QTest::touchEvent(s.window, screen).press(0, s.view->pageToScene(page).toPoint(), s.window);
+        if (!QTest::qWaitFor([&] { return held.count() > 0; }, 3000)) {
+            return QStringLiteral("(aucun appui long)");
+        }
+        return held.at(0).at(3).toString();
+    }
 
     QTemporaryDir m_settings;
     std::unique_ptr<QPointingDevice> m_stylus;
@@ -293,6 +313,77 @@ void TstUiFingermenus::submenuOpensOnTap()
     // Un appui l'ouvre.
     QTest::mouseClick(s.window, Qt::LeftButton, Qt::NoModifier, sceneCenter(entry));
     QTRY_VERIFY(sub->property("opened").toBool());
+}
+
+void TstUiFingermenus::imposedSelectorOpensTheMenu()
+{
+    // L11-C13 (a), D11-7 : mode du toucher « sélection », stylo courant. Le doigt tient le sélecteur imposé :
+    // son appui long sur l'objet ouvre le menu de l'objet, sans changer l'outil courant. Décidé sur l'outil
+    // courant (le stylo), aucun menu ne s'ouvrirait.
+    Shell s;
+    QVERIFY(start(s));
+    const QPointF center = drawAndSelect(s);
+    QVERIFY(!center.isNull());
+    s.tools->activate(QStringLiteral("pen"));
+    QVERIFY(s.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("select")));
+    QObject* fingerMenu = object(s, "fingerMenu");
+    QObject* objectMenu = object(s, "objectMenu");
+    QVERIFY(fingerMenu && objectMenu);
+    QPointingDevice* screen = QTest::createTouchDevice();
+    QCOMPARE(holdFinger(s, screen, center), QStringLiteral("select"));
+    QTRY_VERIFY_WITH_TIMEOUT(objectMenu->property("opened").toBool(), 2000);
+    QCOMPARE(fingerMenu->property("kind").toString(), QStringLiteral("object"));
+    QTest::touchEvent(s.window, screen).release(0, s.view->pageToScene(center).toPoint(), s.window);
+    QCOMPARE(s.tools->currentTool(), QStringLiteral("pen"));
+}
+
+void TstUiFingermenus::imposedPenOpensNoMenu()
+{
+    // L11-C13 (b) : mode du toucher « stylo », sélecteur courant. Le doigt écrit : son appui long ne montre
+    // aucun menu (il en montrerait un, décidé sur l'outil courant).
+    Shell s;
+    QVERIFY(start(s));
+    const QPointF center = drawAndSelect(s);
+    QVERIFY(!center.isNull());
+    QCOMPARE(s.tools->currentTool(), QStringLiteral("select"));
+    QVERIFY(s.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("pen")));
+    QObject* fingerMenu = object(s, "fingerMenu");
+    QVERIFY(fingerMenu && object(s, "objectMenu") && object(s, "fingerPageMenu"));
+    QPointingDevice* screen = QTest::createTouchDevice();
+    QCOMPARE(holdFinger(s, screen, center), QStringLiteral("pen"));
+    QTest::qWait(200);
+    QVERIFY(!fingerMenu->property("visible").toBool());
+    QVERIFY(!object(s, "objectMenu")->property("opened").toBool());
+    QVERIFY(!object(s, "fingerPageMenu")->property("opened").toBool());
+    QTest::touchEvent(s.window, screen).release(0, s.view->pageToScene(center).toPoint(), s.window);
+    QCOMPARE(s.tools->currentTool(), QStringLiteral("select"));
+}
+
+void TstUiFingermenus::secondUserHoldOpensNoMenu()
+{
+    // L11-C13 (c), F-303 : mode à deux, premier au sélecteur sans rien de sélectionné. L'appui long du second
+    // n'ouvre aucun menu, quel que soit son outil (les entrées à boîte du menu partiraient au nom du premier),
+    // et ne touche pas la sélection du premier. Décidé sur l'outil et la sélection du premier, il ouvrirait le
+    // menu de l'objet et y sélectionnerait le trait.
+    Shell s;
+    QVERIFY(start(s));
+    const QPointF center = drawAndSelect(s);
+    QVERIFY(!center.isNull());
+    QVERIFY(s.commands->trigger(QStringLiteral("users.dual")));
+    QVERIFY(s.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
+    s.tools->selectObjects({});
+    QCOMPARE(s.tools->currentTool(), QStringLiteral("select"));
+    QTRY_VERIFY(!s.tools->selectionFrame().value(QStringLiteral("visible")).toBool());
+    QObject* fingerMenu = object(s, "fingerMenu");
+    QVERIFY(fingerMenu && object(s, "objectMenu") && object(s, "fingerPageMenu"));
+    hold(s, center, 1, QStringLiteral("pen"));
+    hold(s, QPointF(900, 700), 1, QStringLiteral("pen"));
+    hold(s, center, 1, QStringLiteral("select"));
+    QTest::qWait(200);
+    QVERIFY(!fingerMenu->property("visible").toBool());
+    QVERIFY(!object(s, "objectMenu")->property("opened").toBool());
+    QVERIFY(!object(s, "fingerPageMenu")->property("opened").toBool());
+    QVERIFY(!s.tools->selectionFrame().value(QStringLiteral("visible")).toBool());
 }
 
 QTEST_MAIN(TstUiFingermenus)

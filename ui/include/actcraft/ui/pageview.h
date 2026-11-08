@@ -419,7 +419,7 @@ public:
 signals:
     // D11-7 : un doigt routé vers l'outil est resté immobile (≤ kTouchHoldToleranceDp de son appui)
     // kTouchHoldMs ; pagePoint et windowPoint (scène) sont ceux de l'appui. Une fois par contact.
-    void touchHeld(QPointF pagePoint, QPointF windowPoint, int user);
+    void touchHeld(QPointF pagePoint, QPointF windowPoint, int user, const QString& tool);
 
 private:
     std::unique_ptr<actcraft::tools::PenTool> m_imposedPen; // FingerTool::Pen sans fournisseur
@@ -429,6 +429,7 @@ private:
     QPointF m_holdViewPoint;
     QPointF m_holdPagePoint;
     input::UserId m_holdUser = input::kFirstUser;
+    input::FingerTool m_holdFingerTool = input::FingerTool::Current; // outil imposé du contact tenu
 
     // Lot 11 (L11-C1) : ajout en fin.
 public:

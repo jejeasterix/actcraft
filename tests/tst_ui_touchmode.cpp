@@ -145,7 +145,7 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(f.controller.get(), "setMode", Q_RETURN_ARG(bool, accepted),
                                           Q_ARG(QString, QStringLiteral("zzz"))));
         QVERIFY(!accepted);
-        f.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("zzz"));
+        QVERIFY(!f.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("zzz")));
         QVERIFY(!f.commands->trigger(QStringLiteral("touch.mode"), QStringLiteral("")));
         QCOMPARE(f.controller->property("mode").toString(), QStringLiteral("ignore"));
         QCOMPARE(f.prefs->value(QString::fromLatin1(kKey)).toString(), QStringLiteral("ignore"));

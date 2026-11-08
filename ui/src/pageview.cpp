@@ -173,6 +173,23 @@ public:
     tools::Tool* target = nullptr;
 };
 
+namespace {
+
+// D11-7, L11-C13 : outil effectif d'un contact du doigt, celui qui reçoit ses points : l'outil imposé par le mode
+// du toucher, sinon l'outil courant de son utilisateur.
+QString effectiveToolId(ToolHost* tools, input::UserId user, input::FingerTool fingerTool)
+{
+    if (fingerTool == input::FingerTool::Select) {
+        return QStringLiteral("select");
+    }
+    if (fingerTool == input::FingerTool::Pen) {
+        return QStringLiteral("pen");
+    }
+    return tools ? tools->user(user).currentTool() : QStringLiteral("pen");
+}
+
+} // namespace
+
 PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::make_unique<ToolDispatch>())
 {
     m_toolContacts.reserve(8); // L11-T5 : aucune allocation au fil des contacts
@@ -180,7 +197,10 @@ PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::mak
     m_holdTimer.setSingleShot(true);
     m_holdTimer.setInterval(kTouchHoldMs);
     connect(&m_holdTimer, &QTimer::timeout, this,
-            [this] { emit touchHeld(m_holdPagePoint, mapToScene(m_holdViewPoint), int(m_holdUser)); });
+            [this] {
+                emit touchHeld(m_holdPagePoint, mapToScene(m_holdViewPoint), int(m_holdUser),
+                               effectiveToolId(m_tools, m_holdUser, m_holdFingerTool));
+            });
     // Bouton droit : menu contextuel par signal (contextMenuRequested), jamais à l'outil.
     setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
     setAcceptTouchEvents(true);
@@ -722,6 +742,7 @@ bool PageView::applyDecision(input::Sample& sample, const input::Decision& decis
             m_holdViewPoint = viewPos;
             m_holdPagePoint = pagePos;
             m_holdUser = decision.user;
+            m_holdFingerTool = decision.fingerTool;
             m_holdTimer.start();
         } else if (sample.pointer == m_holdPointer && m_holdTimer.isActive() &&
                    QLineF(viewPos, m_holdViewPoint).length() > kTouchHoldToleranceDp) {
