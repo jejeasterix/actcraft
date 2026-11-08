@@ -416,6 +416,8 @@ void TstUiSecondpalette::pinchZoomsOnlyWhenOff()
 
 void TstUiSecondpalette::secondUserReceivesInDualMode()
 {
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     App app;
     QVERIFY(start(app));
     auto* palette = app.window->findChild<QQuickItem*>(QStringLiteral("secondPalette"));
@@ -460,8 +462,6 @@ void TstUiSecondpalette::secondUserReceivesInDualMode()
 
     // Stylets : l'appareil 11, vu le premier, va à l'utilisateur 0 ; l'appareil 22 à l'utilisateur 1, à son
     // outil, pas à celui du premier.
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
-    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
     tablet(app, stylus22.get(), QEvent::TabletPress, QPointF(100, 400));
@@ -485,6 +485,8 @@ void TstUiSecondpalette::undoCancelsTheSecondUsersGesture()
     // Revue de L11-T9, majeur 1 : Annuler (editAboutToApply → finishStroke) abandonne aussi le glisser du
     // second utilisateur, sans étape. Sans cela, le relâché synthétisé termine son glisser par un déplacement
     // (une étape), et Annuler retire ce déplacement au lieu du trait du premier.
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     App app;
     QVERIFY(start(app));
     ui::DocumentController* controller = app.tools->documentController();
@@ -495,8 +497,6 @@ void TstUiSecondpalette::undoCancelsTheSecondUsersGesture()
     const core::ObjectId box = addBox(*controller, {100, 100, 200, 200});
     QTRY_VERIFY(app.view->cacheReady());
     const double left = core::boundsOnPage(*objectOf(*controller, box)).x;
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
-    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(680, 220));
@@ -528,13 +528,13 @@ void TstUiSecondpalette::touchModeChangeKeepsTheUsers()
     // Revue de L11-T9, majeur 3 : changer le mode du toucher en mode à deux repose une TwoUserPolicy ; elle
     // garde le stylet du premier utilisateur. Sans cela, le stylet qui se pose le premier après le changement
     // devient l'utilisateur 0 : utilisateurs permutés.
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     App app;
     QVERIFY(start(app));
     auto* touch = app.window->findChild<ui::TouchModeController*>(QStringLiteral("appTouchMode"));
     QVERIFY(touch);
     QVERIFY(app.commands->trigger(QStringLiteral("users.dual")));
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
-    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
     QCOMPARE(app.view->lastContactUser(), 0);
@@ -565,6 +565,8 @@ void TstUiSecondpalette::designFlagsReachTheSecondUser()
 {
     // Revue de L11-T9, majeur 2 : le mode conception (verrou ignoré, accrochage coupé) atteint aussi le
     // contexte des outils du second utilisateur, créés avant le changement.
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     App app;
     QVERIFY(start(app));
     ui::DocumentController* controller = app.tools->documentController();
@@ -574,8 +576,6 @@ void TstUiSecondpalette::designFlagsReachTheSecondUser()
     QVERIFY(app.commands->trigger(QStringLiteral("tool.select"), QVariant(), 1));
     const core::ObjectId box = addBox(*controller, {100, 100, 200, 200}, true);
     QTRY_VERIFY(app.view->cacheReady());
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
-    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     stylusDrag(app, stylus11.get(), QPointF(900, 600), QPointF(900, 600)); // l'appareil 11 : utilisateur 0
     const double left = core::boundsOnPage(*objectOf(*controller, box)).x;
     stylusDrag(app, stylus22.get(), QPointF(200, 200), QPointF(260, 248));
@@ -634,9 +634,9 @@ void TstUiSecondpalette::nestedTriggerKeepsTheUser()
 void TstUiSecondpalette::toggleWaitsForTheContactToEnd()
 {
     // Revue de L11-T9, mineur : la bascule demandée pendant un contact attend sa fin (applyPending).
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
     App app;
     QVERIFY(start(app));
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
     tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
     QVERIFY(app.view->contactActive());
@@ -653,6 +653,8 @@ void TstUiSecondpalette::twoStrokesAtOnce()
 {
     // L11-C7 (D) : deux traits simultanés, chacun dans son encre vive. Une encre partagée n'en tient qu'un :
     // l'appui du second vide le trait vif du premier (beginStroke), son relâché l'efface (clear).
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     App app;
     QVERIFY(start(app));
     ui::DocumentController* controller = app.tools->documentController();
@@ -666,8 +668,6 @@ void TstUiSecondpalette::twoStrokesAtOnce()
     render::InkItem* first = app.view->ink();
     QVERIFY(first);
 
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
-    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(600, 200));
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(640, 210));
     tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(680, 220));
@@ -712,6 +712,8 @@ void TstUiSecondpalette::twoDragsStayApart()
     // L11-C7 (E) : deux glissers simultanés restent indépendants. Un soulèvement unique réunit les objets des
     // deux, et le dépôt de l'un remet aussi ceux de l'autre ; une couche soulevée unique ne montre que les
     // derniers soulevés.
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     App app;
     QVERIFY(start(app));
     ui::DocumentController* controller = app.tools->documentController();
@@ -732,8 +734,6 @@ void TstUiSecondpalette::twoDragsStayApart()
         return count;
     };
 
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
-    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     tablet(app, stylus11.get(), QEvent::TabletPress, QPointF(650, 150));
     for (int i = 1; i <= 6; ++i) {
         tablet(app, stylus11.get(), QEvent::TabletMove, QPointF(650 + 10 * i, 150 + 8 * i));
@@ -801,6 +801,8 @@ void TstUiSecondpalette::undoAbandonsTheSecondUsersStroke()
     // L11-C9 (I) : Annuler du premier pendant le trait du second abandonne ce trait (PenTool::abandon). Avec
     // cancel(), le trait est versé (une étape) juste avant l'annulation : il reste sur la page, ou c'est lui
     // qu'Annuler retire à la place du trait du premier.
+    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
+    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     App app;
     QVERIFY(start(app));
     ui::DocumentController* controller = app.tools->documentController();
@@ -809,8 +811,6 @@ void TstUiSecondpalette::undoAbandonsTheSecondUsersStroke()
     QVERIFY(app.commands->trigger(QStringLiteral("tool.pen")));
     QVERIFY(app.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
     const int before = controller->shownObjectCount();
-    const std::unique_ptr<QPointingDevice> stylus11 = makeStylus(1011, 11);
-    const std::unique_ptr<QPointingDevice> stylus22 = makeStylus(1022, 22);
     stylusDrag(app, stylus11.get(), QPointF(600, 200), QPointF(700, 240));
     QCOMPARE(controller->shownObjectCount(), before + 1);
 
