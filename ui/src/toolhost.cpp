@@ -331,7 +331,8 @@ private:
 };
 
 ToolHost::ToolHost(QObject* parent)
-    : QObject(parent), m_policy(std::make_unique<DesignModePolicy>()), m_selectionFrame(hiddenFrame())
+    : QObject(parent), m_policy(std::make_unique<DesignModePolicy>()), m_selectionFrame(hiddenFrame()),
+      m_secondSelectionFrame(hiddenFrame())
 {}
 
 ToolHost::~ToolHost()
@@ -481,6 +482,11 @@ bool ToolHost::handlesVisible() const
 QVariantMap ToolHost::selectionFrame() const
 {
     return m_selectionFrame;
+}
+
+QVariantMap ToolHost::secondSelectionFrame() const
+{
+    return m_secondSelectionFrame;
 }
 
 QRectF ToolHost::trashArea() const noexcept
@@ -992,6 +998,20 @@ tools::UserState& ToolHost::user(input::UserId id)
     return *m_user;
 }
 
+std::vector<core::ObjectId> ToolHost::usableSelection(input::UserId id)
+{
+    const tools::UserState& state = user(id);
+    std::vector<core::ObjectId> usable;
+    usable.reserve(state.selection().size());
+    for (const core::ObjectId object : state.selection()) {
+        const std::optional<input::UserId> holder = m_grabs.holder(object);
+        if (!holder || *holder == state.id()) {
+            usable.push_back(object);
+        }
+    }
+    return usable;
+}
+
 bool ToolHost::dualUsers() const noexcept
 {
     return m_dualUsers;
@@ -1010,6 +1030,7 @@ void ToolHost::setDualUsers(bool on)
     }
     if (!on) {
         m_grabs.release(input::kSecondUser);
+        showSecondSelection(hiddenFrame()); // L11-C10 (F) : le cadre du second disparaît avec le mode
     }
     m_dualUsers = on;
     emit dualUsersChanged();
@@ -1213,10 +1234,11 @@ ToolAdapters* ToolHost::secondAdapters() const
     }
     discardToolAdapters(m_secondAdapters);
     auto* self = const_cast<ToolHost*>(this);
-    // Cadre du second utilisateur non montré : la surcouche n'en dessine qu'un, celui du premier (consigné).
+    // L11-C10 (F) : le cadre du second est publié à part (secondSelectionFrame), dessiné par un second cadre.
     m_secondAdapters = std::make_unique<ToolAdapters>(
         *m_controller, *m_view, *ink, *layer, m_commands.data(), *m_secondUser,
-        [](const QVariantMap&, bool) {}, [self] { return self->m_trashArea; }, [](bool) {});
+        [self](const QVariantMap& frame, bool) { self->showSecondSelection(frame); },
+        [self] { return self->m_trashArea; }, [](bool) {});
     m_secondAdapters->context.lockIgnored = m_lockIgnored;
     m_secondAdapters->context.snapDisabled = m_snapDisabled;
     return m_secondAdapters.get();
@@ -1484,6 +1506,12 @@ void ToolHost::showSelection(const QVariantMap& frame, bool handlesVisible)
     emit selectionChanged();
 }
 
+void ToolHost::showSecondSelection(const QVariantMap& frame)
+{
+    m_secondSelectionFrame = m_dualUsers ? frame : hiddenFrame();
+    emit secondSelectionChanged();
+}
+
 void ToolHost::setTrashHoverState(bool hover)
 {
     if (hover == m_trashHover) {
@@ -1505,6 +1533,11 @@ void ToolHost::refreshSelection()
         select->refresh();
     } else if (!select) {
         emit selectionChanged();
+    }
+    // L11-C10 (F) : le sélecteur du second republie aussi son cadre (secondSelectionFrame).
+    auto* second = dynamic_cast<tools::SelectTool*>(secondExistingTool(QStringLiteral("select")));
+    if (second && !second->isBusy()) {
+        second->refresh();
     }
 }
 

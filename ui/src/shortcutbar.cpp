@@ -179,7 +179,7 @@ QString ShortcutBar::addSelection()
     const core::Page& page =
         m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
     QList<quint64> ids;
-    const std::vector<core::ObjectId>& selected = m_tools->user().selection();
+    const std::vector<core::ObjectId> selected = m_tools->usableSelection();
     for (const core::PageObject& object : page.objects)
         if (std::find(selected.begin(), selected.end(), object.common.id) != selected.end())
             ids.append(object.common.id);

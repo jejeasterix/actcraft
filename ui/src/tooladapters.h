@@ -108,14 +108,18 @@ private:
     TrashHover m_hover;
 };
 
+// L11-C10 (J3) : une commande lancée par un outil part au nom de son utilisateur (Commands::trigger avec
+// l'utilisateur) ; celles qu'un gestionnaire relance le restent, et une commande à boîte du second est
+// refusée.
 class CommandSinkAdapter final : public tools::CommandSink
 {
 public:
-    explicit CommandSinkAdapter(Commands* commands);
+    CommandSinkAdapter(Commands* commands, input::UserId user);
     bool trigger(const QString& id, const QVariant& argument) override;
 
 private:
     QPointer<Commands> m_commands;
+    input::UserId m_user;
 };
 
 // Contexte des outils d'un utilisateur et ses outils (une instance par outil, créée à la première demande).

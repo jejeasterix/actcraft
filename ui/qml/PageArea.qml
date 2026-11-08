@@ -246,6 +246,18 @@ Item {
         view: view
         visible: area.tools !== null
     }
+    // L11-C10 (F) : cadre du second utilisateur (mode à deux), à sa couleur, sans poignées.
+    SelectionOverlay {
+        id: secondSelectionOverlayItem
+        objectName: "secondSelectionOverlay"
+        anchors.fill: parent
+        tools: area.tools
+        view: view
+        frame: area.tools ? area.tools.secondSelectionFrame : ({})
+        handlesOn: false
+        contour: "#b03a2e"
+        visible: area.tools !== null && secondSelectionOverlayItem.framed
+    }
     // Lot 4 : éditeur de texte (talon), à côté de la sélection.
     TextEditor {
         objectName: "textEditor"
