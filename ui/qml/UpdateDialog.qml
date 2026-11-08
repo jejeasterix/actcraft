@@ -28,17 +28,17 @@ Dialog {
         dialog.startupSearch = dialog.updates.state === UpdateChecker.Checking
     }
 
-    // La recherche du démarrage ouvre la boîte seulement si une nouvelle version existe : ni à jour, ni en erreur
-    // (aucune boîte au démarrage sans nouvelle version, L11-T22).
+    // La recherche du démarrage n'ouvre jamais la boîte (aucune boîte au démarrage, L11-T22) : si elle trouve une
+    // nouvelle version, startupFound devient vrai et UpdateBanner (non modal) l'indique. Ni à jour, ni en erreur : rien.
     property bool startupSearch: false
+    property bool startupFound: false
     Connections {
         target: dialog.updates
         function onStateChanged() {
             if (!dialog.startupSearch || dialog.updates.state === UpdateChecker.Checking)
                 return
             dialog.startupSearch = false
-            if (dialog.updates.state === UpdateChecker.Available)
-                dialog.open()
+            dialog.startupFound = dialog.updates.state === UpdateChecker.Available
         }
     }
 

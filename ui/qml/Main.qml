@@ -511,6 +511,17 @@ Window {
         anchors.margins: Theme.espace2
         z: 11
     }
+    UpdateBanner {
+        id: updateBanner
+        updates: appUpdates
+        found: updateDialog.startupFound
+        parent: pageArea
+        anchors.top: recoveryBanner.visible ? recoveryBanner.bottom : parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Theme.espace2
+        z: 11
+    }
     FingerMenu {
         id: fingerMenu
         view: pageArea.view

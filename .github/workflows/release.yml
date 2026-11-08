@@ -115,7 +115,7 @@ jobs:
         run: |
           # Lignes jointes : une mention coupée par le retour à la ligne (« à » en fin, « relever » au début de la
           # suivante) est vue aussi.
-          restes=$(tr -s '[:space:]' ' ' < THIRD_PARTY_NOTICES.md | grep -o 'à relever' | wc -l | tr -d ' ')
+          restes=$(tr -s '[:space:]' ' ' < THIRD_PARTY_NOTICES.md | { grep -o 'à relever' || true; } | wc -l | tr -d ' ')
           if [ "$restes" != 0 ]; then
             echo "NOTICES INCOMPLETES : THIRD_PARTY_NOTICES.md contient encore $restes fois « à relever ». Release refusée."
             exit 1
