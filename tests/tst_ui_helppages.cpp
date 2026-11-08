@@ -146,7 +146,14 @@ private slots:
             QVERIFY2(kAllTools.contains(id), qPrintable(id + " : commande sans page d'aide"));
             QVERIFY2(!page(id).isEmpty(), qPrintable(id));
         }
-        QVERIFY(seen >= kAllTools.size());
+        // Plancher : tous les outils de la liste disponibles sur cette plate-forme (la reconnaissance
+        // d'écriture n'existe que sous Windows, la caméra et le clavier pas sous Android).
+        int expected = 0;
+        for (const QString& id : kAllTools)
+            if (registry.isAvailable(id, actcraft::actions::currentPlatform()))
+                ++expected;
+        QVERIFY(expected > 0);
+        QCOMPARE(seen, expected);
     }
     void procedurePagesExist()
     {

@@ -545,7 +545,7 @@ void ActionRunner::runOne(const core::Action& action, const Pending& pending)
 }
 
 // Seul chemin d'une commande : Commands::trigger, qui passe par le registre (verrou et diffusion protégée).
-// Une commande absente ou sans gestionnaire sur cette tête (H8-7 : lot 7 absent) est non prise en charge.
+// Une commande absente ou sans gestionnaire enregistré sur cette tête est non prise en charge.
 void ActionRunner::runCommand(const QString& id, const QVariant& argument)
 {
     const actions::CommandRegistry& registry = m_commands->registry();

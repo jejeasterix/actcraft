@@ -617,31 +617,22 @@ actcraft_add_lot8_capture(tst_captures_enregistreurs enregistreurs)
 actcraft_add_lot8_capture(tst_captures_cadre_web cadre-web)
 actcraft_add_lot8_capture(tst_captures_diffusion_protegee diffusion-protegee)
 
-# Lot 11 (L11-T1) : onze scénarios de captures. Tant que la description du scénario porte le marqueur « Talon L1[1] » (écrit ainsi pour que
-# la recherche du marqueur dans les sources, L11-T30, ne trouve pas ce fichier) :
-# rempli par L11-Tn. », le test n'exécute rien et se saute en nommant sa tâche ; la tâche propriétaire remplit le
-# scénario et le test devient la commande habituelle, sans toucher à ce fichier (même mécanisme qu'au lot 8).
+# Lot 11 (L11-T1) : onze scénarios de captures, joués hors écran en rendu logiciel (même mécanisme qu'au lot 8, sans
+# talon : chaque scénario est rempli).
 # Arguments supplémentaires du joueur : ceux qui suivent le chemin du scénario (ex. --traduction, L11-T19).
 function(actcraft_add_lot11_capture name scenario)
     set(file ${PROJECT_SOURCE_DIR}/bench/scenarios/${scenario}.json)
     get_filename_component(_base ${scenario} NAME_WE)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${file})
-    file(READ ${file} content)
-    string(REGEX MATCH "Talon L1[1] : rempli par (L11-T[0-9]+)\\." talon "${content}")
-    if(talon)
-        add_test(NAME ${name} COMMAND ${CMAKE_COMMAND} -E echo "${talon}")
-        set_tests_properties(${name} PROPERTIES SKIP_REGULAR_EXPRESSION "Talon L1[1]")
-    else()
-        add_test(NAME ${name}
-            COMMAND $<TARGET_FILE:actcraft-captures>
-                --scenario ${file}
-                --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_base} ${ARGN})
-        set_tests_properties(${name} PROPERTIES
-            TIMEOUT 300
-            ENVIRONMENT "${_bench_env_offscreen}"
-            PASS_REGULAR_EXPRESSION "SCENARIO OK"
-            FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
-    endif()
+    add_test(NAME ${name}
+        COMMAND $<TARGET_FILE:actcraft-captures>
+            --scenario ${file}
+            --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_base} ${ARGN})
+    set_tests_properties(${name} PROPERTIES
+        TIMEOUT 300
+        ENVIRONMENT "${_bench_env_offscreen}"
+        PASS_REGULAR_EXPRESSION "SCENARIO OK"
+        FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
 endfunction()
 actcraft_add_lot11_capture(tst_captures_modes_toucher modes-toucher)
 actcraft_add_lot11_capture(tst_captures_deux_utilisateurs deux-utilisateurs)

@@ -462,6 +462,19 @@ qt_add_resources(actcraft_ui "ui_lot6_data"
           help/pen.html help/select.html help/highlighter.html help/eraser.html help/shape.html
           help/text.html help/text-vertical.html help/fill.html help/connector.html
           help/reveal-ink.html
+          help/dice.html
+          help/calculator.html
+          help/clock.html
+          help/ticker.html
+          help/web-browser.html
+          help/shape-recognition.html
+          help/handwriting.html
+          help/camera-area.html
+          help/camera-polygon.html
+          help/camera-freehand.html
+          help/camera-window.html
+          help/camera-screen.html
+          help/keyboard.html
           help/raccourcis.html help/deux-utilisateurs.html help/modes-toucher.html help/reprise.html
           help/mises-a-jour.html help/profils.html help/mot-de-passe-oublie.html)
 

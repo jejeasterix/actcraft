@@ -644,8 +644,8 @@ void TstUiActionrunner::alignGroupAndSelectAllUseRegistry()
     QCOMPARE(refused.size(), 2);
 }
 
-// H8-7 : une commande déclarée sans gestionnaire sur la tête (lot 7 absent) est une action non prise en
-// charge.
+// Une commande déclarée dont ce montage n'enregistre aucun gestionnaire (le rideau est déclaré, mais rien ne
+// le tient ici) est une action non prise en charge.
 void TstUiActionrunner::commandWithoutHandlerIsUnsupported()
 {
     load(documentWith({action("command.present.curtain"), action("object.toggle-hidden", kLabel)}));

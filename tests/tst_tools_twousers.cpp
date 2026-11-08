@@ -407,13 +407,23 @@ private slots:
         QVERIFY(c.grabs.holder(1) == kNobody);
     }
 
-    // Lot 7 absent (amendement 3, H8-7) : rattachées à la fusion du lot 7. Corps prêt pour la règle :
-    // rulerBelongsToItsUserBody, dont l'ouverture passera alors par la commande du lot 7.
-    void rulerBelongsToItsUser() { QSKIP("lot 7 absent (H8-7), à raccorder à la fusion du lot 7"); }
-    // Corps à écrire à la fusion du lot 7 : l'utilisateur 0 ouvre la règle par la commande du lot 7,
-    // l'utilisateur 1 trace au stylo le long de son bord ; le trait enregistré de l'utilisateur 1 garde ses
-    // points (non redressé), alors que le même trait de l'utilisateur 0 est redressé contre la règle.
-    void inkOfTheOtherNotGuided() { QSKIP("lot 7 absent (H8-7), à raccorder à la fusion du lot 7"); }
+    // Sautées : les outils de maths sont tenus par un seul état (MathToolsController n'a pas d'outils par
+    // utilisateur), hypothèse H11-O13, raccord à trancher par Jérôme. Corps prêt pour la règle :
+    // rulerBelongsToItsUserBody, dont l'ouverture passera alors par la commande des outils de maths.
+    void rulerBelongsToItsUser()
+    {
+        QSKIP("outils de maths tenus par un seul état, pas d'outils par utilisateur (H11-O13, raccord à "
+              "trancher)");
+    }
+    // Corps à écrire au raccord (H11-O13) : l'utilisateur 0 ouvre la règle par la commande des outils de
+    // maths, l'utilisateur 1 trace au stylo le long de son bord ; le trait enregistré de l'utilisateur 1
+    // garde ses points (non redressé), alors que le même trait de l'utilisateur 0 est redressé contre la
+    // règle.
+    void inkOfTheOtherNotGuided()
+    {
+        QSKIP("outils de maths tenus par un seul état, pas d'outils par utilisateur (H11-O13, raccord à "
+              "trancher)");
+    }
 
     // Un seul utilisateur : un registre posé ne change rien (mêmes appels au document, même sélection,
     // mêmes positions) ; ce qu'il tient ne le bloque pas lui-même, et tout est relâché à la fin.
@@ -446,7 +456,7 @@ private:
     void rulerBelongsToItsUserBody()
     {
         Board b;
-        // À la fusion du lot 7 : ouvrir la règle par sa commande (math.ruler, A11) pour l'utilisateur 0.
+        // Au raccord (H11-O13) : ouvrir la règle par sa commande (math.ruler, A11) pour l'utilisateur 0.
         b.first.user.setOpenMathTools({QStringLiteral("math.ruler")});
         const std::vector<QString>& mine = b.first.user.openMathTools();
         const std::vector<QString>& theirs = b.second.user.openMathTools();

@@ -192,10 +192,31 @@ private slots:
         QVERIFY(android.contains(QStringLiteral("record.sound")));
     }
 
-    // Épinglages du lot 8 (liste recopiée du rapport du lot 8). Ceux du lot 7 ne sont pas vérifiés ici : le
-    // lot 7 n'est pas fusionné à la tête du lot 11 (à raccorder à sa fusion).
+    // Épinglages des lots 7 et 8 (listes relevées dans les profils livrés). Lot 7 : chaque profil garde ses
+    // outils de maths, de présentation, d'horloge, de clavier et de capture.
     void lot7And8PinsPresent()
     {
+        const QList<QPair<QString, QStringList>> lot7{
+            {QStringLiteral("calcul-geometrie"),
+             {QStringLiteral("math.ruler"), QStringLiteral("math.set-square"),
+              QStringLiteral("math.protractor"), QStringLiteral("math.compass"),
+              QStringLiteral("math.xy-origin"), QStringLiteral("tool.dice"),
+              QStringLiteral("tool.calculator")}},
+            {QStringLiteral("en-classe"),
+             {QStringLiteral("present.curtain"), QStringLiteral("present.spotlight-circle"),
+              QStringLiteral("view.page-zoom"), QStringLiteral("tool.clock")}},
+            {QStringLiteral("lecture-ecriture"),
+             {QStringLiteral("tool.keyboard"), QStringLiteral("tool.handwriting"),
+              QStringLiteral("tool.ticker")}},
+            {QStringLiteral("son-image"),
+             {QStringLiteral("tool.camera-area"), QStringLiteral("tool.camera-polygon"),
+              QStringLiteral("tool.camera-freehand"), QStringLiteral("tool.camera-window"),
+              QStringLiteral("tool.camera-screen")}}};
+        for (const auto& [profile, commands] : lot7) {
+            QVERIFY2(activate(profile), qPrintable(profile));
+            for (const QString& command : commands)
+                QVERIFY2(m_profile->pinned().contains(command), qPrintable(profile + " : " + command));
+        }
         const QStringList lot8{QStringLiteral("media.sound-controller"),
                                QStringLiteral("record.sound"),
                                QStringLiteral("record.screen-full"),

@@ -10,7 +10,7 @@ Toucher, deux utilisateurs, tablette, reprise, aide complète, mises à jour et 
 la release ; les versions 0.6.0 à 0.9.0 ne sont pas toutes publiées : leurs nouveautés viennent avec celle-ci.
 
 - Toucher : le doigt a quatre modes (Gestion complète par défaut, ignorer, écrire, sélectionner), réglés par
-  Affichage > Mode du toucher ; la paume posée sur l'écran n'écrit pas, et les menus s'ouvrent au doigt. En mode
+  Affichage > Mode du toucher ; par défaut, le doigt suit l'outil et deux doigts font le geste (déplacer, zoomer) ; la paume posée sur l'écran n'écrit pas, et les menus s'ouvrent au doigt. En mode
   tactile, les cibles à toucher font au moins 48 dp.
 - Deux utilisateurs : deux personnes travaillent sur la même page, chacune avec sa palette, son outil, son trait, ses
   réglages et son cadre de sélection ; un objet tenu par l'une n'est pas pris par l'autre.
