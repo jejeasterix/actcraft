@@ -14,23 +14,25 @@ const QStringList kLots1To5Tools = {
     QStringLiteral("tool.eraser"),        QStringLiteral("tool.shape"),  QStringLiteral("tool.text"),
     QStringLiteral("tool.text-vertical"), QStringLiteral("tool.fill"),   QStringLiteral("tool.connector")};
 
-// Liste H2 : outils des lots 6 à 11 qui ont un gestionnaire (les autres commandes tool.* des lots 6 à 11 n'en
-// ont pas encore : lot 7 absent de cette branche, caméra, reconnaissance, clavier).
-const QStringList kLots6To11Tools = {QStringLiteral("tool.reveal-ink")};
+// Liste H2 : outils des lots 6 à 11 qui ont un gestionnaire à la tête : l'encre révélatrice, les outils de
+// présentation et de maths du lot 7 (dés, calculatrice, horloge, message défilant, navigateur,
+// reconnaissance, caméra, clavier). Chacun a sa page ; une commande tool.* nouvelle, absente de cette liste
+// et de la liste H1, fait échouer everyToolHasAPage.
+const QStringList kLots6To11Tools = {QStringLiteral("tool.reveal-ink"),
+                                     QStringLiteral("tool.dice"),
+                                     QStringLiteral("tool.calculator"),
+                                     QStringLiteral("tool.clock"),
+                                     QStringLiteral("tool.ticker"),
+                                     QStringLiteral("tool.web-browser"),
+                                     QStringLiteral("tool.shape-recognition"),
+                                     QStringLiteral("tool.handwriting"),
+                                     QStringLiteral("tool.camera-area"),
+                                     QStringLiteral("tool.camera-polygon"),
+                                     QStringLiteral("tool.camera-freehand"),
+                                     QStringLiteral("tool.camera-window"),
+                                     QStringLiteral("tool.camera-screen"),
+                                     QStringLiteral("tool.keyboard")};
 const QStringList kAllTools = kLots1To5Tools + kLots6To11Tools;
-
-// Commandes tool.* sans page d'aide. Avant le lot 7 elles n'avaient pas de gestionnaire ; le lot 7 les fait
-// agir (panneaux QML) : une page d'aide reste À ÉCRIRE pour chacune (consigné au rapport L11-C19), puis la
-// retirer de cette liste.
-// Une commande tool.* nouvelle, absente de cette liste et de kAllTools, fait échouer everyToolHasAPage.
-const QStringList kToolsWithoutHandler = {
-    QStringLiteral("tool.dice"),           QStringLiteral("tool.calculator"),
-    QStringLiteral("tool.clock"),          QStringLiteral("tool.ticker"),
-    QStringLiteral("tool.web-browser"),    QStringLiteral("tool.shape-recognition"),
-    QStringLiteral("tool.handwriting"),    QStringLiteral("tool.camera-area"),
-    QStringLiteral("tool.camera-polygon"), QStringLiteral("tool.camera-freehand"),
-    QStringLiteral("tool.camera-window"),  QStringLiteral("tool.camera-screen"),
-    QStringLiteral("tool.keyboard")};
 
 const QStringList kProcedures = {QStringLiteral("raccourcis"),         QStringLiteral("deux-utilisateurs"),
                                  QStringLiteral("modes-toucher"),      QStringLiteral("reprise"),
@@ -57,12 +59,9 @@ QString page(const QString& id)
 } // namespace
 
 // Écart au nom prescrit : la fonction s'appelle pagesOfAllToolsExist (et non pagesOfLots1To5Exist) parce
-// qu'elle couvre kAllTools = lots 1 à 5 + lots 6 à 11 (tool.reveal-ink). Les 13 commandes tool.* sans
-// gestionnaire à la tête, donc sans page d'aide, sont exclues : tool.dice, tool.calculator, tool.clock,
-// tool.ticker, tool.web-browser, tool.shape-recognition, tool.handwriting, tool.camera-area,
-// tool.camera-polygon, tool.camera-freehand, tool.camera-window, tool.camera-screen, tool.keyboard
-// (kToolsWithoutHandler : une page décrirait un outil qui n'agit pas encore). everyToolHasAPage fait
-// échouer toute commande tool.* nouvelle absente des deux listes.
+// qu'elle couvre kAllTools = lots 1 à 5 + lots 6 à 11. Toutes les commandes tool.* déclarées ont un
+// gestionnaire à la tête et une page d'aide ; everyToolHasAPage fait échouer toute commande tool.* nouvelle
+// absente de kAllTools.
 class TstUiHelpPages : public QObject
 {
     Q_OBJECT
@@ -141,8 +140,7 @@ private slots:
         int seen = 0;
         for (const QString& id : registry.ids()) {
             if (!id.startsWith(QLatin1String("tool.")) ||
-                !registry.isAvailable(id, actcraft::actions::currentPlatform()) ||
-                kToolsWithoutHandler.contains(id))
+                !registry.isAvailable(id, actcraft::actions::currentPlatform()))
                 continue;
             ++seen;
             QVERIFY2(kAllTools.contains(id), qPrintable(id + " : commande sans page d'aide"));
