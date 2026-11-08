@@ -3,13 +3,14 @@
 <head><meta charset="utf-8"><title>Reprise après une interruption</title></head>
 <body>
 <h1>Reprise après une interruption</h1>
-<p>Si l'application est interrompue (mise en arrière-plan sur une tablette, par exemple), ActCraft garde une copie de secours du document modifié pour ne rien perdre.</p>
+<p>Si l'application est interrompue (mise en arrière-plan sur une tablette, puis arrêtée par le système, par exemple), ActCraft garde une copie de secours des documents modifiés pour ne rien perdre.</p>
 <ol>
-<li>Quand l'application passe en arrière-plan avec un document modifié, une copie de secours est écrite dans le dossier privé de l'application. Rien n'est écrit si rien n'a changé.</li>
-<li>Au démarrage suivant, si cette copie est plus récente que le dernier enregistrement du document, elle est rouverte et un bandeau l'annonce : « Travail repris après une interruption ».</li>
-<li>Le document garde son emplacement d'origine et son état « modifié » : enregistrez-le pour conserver la reprise.</li>
+<li>Quand l'application passe en arrière-plan, le trait en cours et le texte en cours de saisie sont gardés, puis une copie de secours de chaque document modifié (celui de l'onglet affiché et ceux des autres onglets) est écrite en tâche de fond dans le dossier privé de l'application. Rien n'est écrit si rien n'a changé depuis la dernière copie.</li>
+<li>Au démarrage suivant, chaque copie plus récente que le fichier d'origine du document est rouverte et un bandeau l'annonce : « Travail repris après une interruption ». Une copie plus ancienne que son fichier d'origine, ou illisible, est supprimée.</li>
+<li>Le premier document repris s'ouvre dans l'onglet affiché ; les autres, chacun dans un onglet. Si vous avez déjà commencé à travailler, ou si un fichier est ouvert au démarrage, chaque document repris s'ouvre dans un onglet à part : rien n'est remplacé. Si un nouvel onglet ne peut pas être ouvert (classe protégée), les documents qui n'ont pas pu être rouverts restent en attente, sans être supprimés, et sont rouverts à un démarrage suivant.</li>
+<li>Un document repris garde son emplacement d'origine et son état « modifié » : enregistrez-le pour conserver la reprise. « Rétablir la page » revient à la page telle qu'elle est dans le fichier d'origine.</li>
 </ol>
-<p>Un enregistrement réussi supprime la copie de secours. La commande d'abandon de la reprise (<b>recovery.discard</b>) la supprime aussi, sans enregistrer.</p>
+<p>La copie de secours est supprimée quand plus aucun document n'est à enregistrer, après un enregistrement réussi ou à la mise en arrière-plan suivante, quand vous quittez l'application (après avoir enregistré ou choisi de ne pas enregistrer), et par le bouton « Supprimer la copie » du bandeau (commande <b>recovery.discard</b>), qui laisse les documents ouverts. « Fermer » masque le bandeau sans rien supprimer.</p>
 <p><a href="index.html">Retour au sommaire</a></p>
 </body>
 </html>

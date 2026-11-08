@@ -147,7 +147,7 @@ private slots:
     void notAFragmentRefused();
     void resourceExtensionsKept();
     void danglingActionTargetIsCleared();
-    void selectedActionTargetFollowsTheNewIds();
+    void selectedActionTargetFollowsTheFreshIds();
     void missingResourceRefused();
 };
 
@@ -326,7 +326,7 @@ void TstFormatsFragment::danglingActionTargetIsCleared()
     QCOMPARE(inserted[0].common.actions.at(0).target, core::ObjectId(0));
 }
 
-void TstFormatsFragment::selectedActionTargetFollowsTheNewIds()
+void TstFormatsFragment::selectedActionTargetFollowsTheFreshIds()
 {
     // Bouton « masquer la forme » ; la forme est choisie avec lui.
     Source s = makeSource();

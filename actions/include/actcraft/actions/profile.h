@@ -1,5 +1,7 @@
 #pragma once
 
+#include <actcraft/actions/commandregistry.h>
+
 #include <QByteArray>
 #include <QJsonObject>
 #include <QString>
@@ -74,5 +76,9 @@ QByteArray profileToJson(const Profile& profile);
 // Faux si le JSON est invalide, si « format » manque ou si sa version majeure n'est pas 1 ; `error` dit
 // pourquoi.
 bool profileFromJson(const QByteArray& json, Profile& profile, QString& error);
+
+// Disposition effective d'un profil pour une plateforme (L11-T27) : ses commandes épinglées, dans l'ordre,
+// sans doublon, sans celles que le registre ne déclare pas ou dont `platforms` exclut `platform`.
+QStringList layoutForPlatform(const Profile& profile, const CommandRegistry& registry, Platform platform);
 
 } // namespace actcraft::actions
