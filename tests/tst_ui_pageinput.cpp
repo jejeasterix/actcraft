@@ -310,6 +310,106 @@ private slots:
         QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 1);
     }
 
+    static const input::TwoUserPolicy* twoUserPolicy(const App& app)
+    {
+        return dynamic_cast<const input::TwoUserPolicy*>(app.view->router().policy());
+    }
+
+    // L11-C24 (relecture) : un appui hors de la vue ne retient aucun stylet. Le stylet 22 touche un bouton en
+    // premier, sans trait ; le 11 écrit ensuite le premier sur la vue et reste l'utilisateur 0 ; le 22
+    // écrit après lui et est l'utilisateur 1.
+    void buttonPressDoesNotRetainFirstStylus()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DualMode* dual = startDual(app);
+        QVERIFY(dual);
+        const input::TwoUserPolicy* policy = twoUserPolicy(app);
+        QVERIFY(policy);
+        QJSValue sink = recordUser(app, dual->commands(), QStringLiteral("math.ruler"));
+        QQuickItem* button = addCommandButton(app, dual->commands(), QStringLiteral("math.ruler"),
+                                              app.view->mapToScene(QPointF(app.view->width() + 12, 40)));
+        QVERIFY(button);
+
+        stylusTapOnButton(app, m_stylus22.get(), buttonCentre(button));
+        QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
+        QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 0); // aucun stylet retenu : le premier
+        QCOMPARE(policy->firstStylusDevice(), std::uint64_t{0});
+
+        QVERIFY(drawFirstStroke(app)); // le 11 écrit le premier sur la vue
+        QCOMPARE(app.view->lastPressUser(), 0);
+        QCOMPARE(policy->firstStylusDevice(), std::uint64_t{11});
+
+        tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(300, 500));
+        QCOMPARE(app.view->lastPressUser(), 1);
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(300, 500));
+    }
+
+    // L11-C24 (relecture) : un bouton math.* touché par un stylet avant tout trait : l'appui est au premier
+    // utilisateur et ne retient aucun stylet.
+    void mathButtonBeforeAnyStrokeRetainsNoStylus()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DualMode* dual = startDual(app);
+        QVERIFY(dual);
+        const input::TwoUserPolicy* policy = twoUserPolicy(app);
+        QVERIFY(policy);
+        QJSValue sink = recordUser(app, dual->commands(), QStringLiteral("math.ruler"));
+        QQuickItem* button = addCommandButton(app, dual->commands(), QStringLiteral("math.ruler"),
+                                              app.view->mapToScene(QPointF(app.view->width() + 12, 40)));
+        QVERIFY(button);
+
+        stylusPressOnButton(app, m_stylus11.get(), buttonCentre(button));
+        QCOMPARE(app.view->lastPressUser(), 0);
+        QCOMPARE(policy->firstStylusDevice(), std::uint64_t{0});
+        stylusReleaseOnButton(app, m_stylus11.get(), buttonCentre(button));
+        QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
+        QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 0);
+        QCOMPARE(policy->firstStylusDevice(), std::uint64_t{0});
+    }
+
+    // L11-C24 (relecture) : un second doigt qui arrive pendant qu'un autre est posé est un TouchUpdate, pas
+    // un TouchBegin : son appui est attribué aussi (moitié gauche : le second).
+    void secondFingerArrivingDuringTouchUpdateIsAttributed()
+    {
+        App app;
+        QVERIFY(start(app));
+        QVERIFY(startDual(app));
+        const QPoint right = app.view->mapToScene(QPointF(app.view->width() - 60, 200)).toPoint();
+        const QPoint left = app.view->mapToScene(QPointF(30, 200)).toPoint();
+        QTest::touchEvent(app.window, m_touch).press(0, right);
+        QCOMPARE(app.view->lastPressUser(), 0);
+        QTest::touchEvent(app.window, m_touch).stationary(0).press(1, left);
+        QCOMPARE(app.view->lastPressUser(), 1);
+        QTest::touchEvent(app.window, m_touch).release(0, right).release(1, left);
+    }
+
+    // L11-C24 (relecture) : hors du mode à deux, le dernier appui est le premier utilisateur, même si le
+    // dernier du mode à deux était le second.
+    void leavingDualModeResetsPressUserToFirst()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DualMode* dual = startDual(app);
+        QVERIFY(dual);
+        QVERIFY(drawFirstStroke(app));
+        QJSValue sink = recordUser(app, dual->commands(), QStringLiteral("math.ruler"));
+        QQuickItem* button = addCommandButton(app, dual->commands(), QStringLiteral("math.ruler"),
+                                              app.view->mapToScene(QPointF(app.view->width() + 12, 40)));
+        QVERIFY(button);
+        const QPointF at = buttonCentre(button);
+        stylusTapOnButton(app, m_stylus22.get(), at);
+        QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
+        QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 1);
+
+        dual->toggle();
+        QVERIFY(!dual->active());
+        stylusTapOnButton(app, m_stylus22.get(), at);
+        QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 2);
+        QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 0);
+    }
+
     // L11-C24 : au doigt, la moitié de la vue décide, y compris au-dessus de celle-ci (barre, menus) : moitié
     // gauche, le second ; moitié droite, le premier.
     void fingerOnMathButtonFollowsTheHalf()
