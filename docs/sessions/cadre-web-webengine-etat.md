@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 5/18 tâches terminées
+Avancement : 6/18 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T4 — Historique du moteur rapporté au modèle, et correctifs de revue de T3 — depuis 2026-11-09 21:39
+Tâche : T9 — Téléchargement borné WebImageFetch — depuis 2026-11-09 22:08
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -41,7 +41,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T14 | T1 | implementeur-tdd | terminée | 1/3 | 766f1b1d | 332/332 ; settingStepIsParsed PASS ; SCENARIO OK (boucle 237 ms, informatif) |
 | T15 | T1 | implementeur-tdd | terminée | 1/3 | d808bc4a | tst_app_notices 6/6 ; everyAllowedQtModuleHasANotice PASS ; LICENCES OK sur bundle factice |
 | T3 | T2, T14 | concepteur-critique | terminée | 1/3 | 41829385 | 332/332 ; guardsOffSendsNoRequest, heavyHtmlGoesToAFile PASS ; revue : 2 majeurs, 5 mineurs corrigés dans T4 |
-| T4 | T3 | implementeur-tdd | à faire | 0/3 | — | — |
+| T4 | T3 | implementeur-tdd | terminée | 1/3 | 816fb61b | 332/332 ; reportFillsTitleAndHistory, guardsOffCommandsGoToTheView PASS |
 | T9 | T1 | implementeur-tdd | à faire | 0/3 | — | — |
 | T10 | T4, T9 | concepteur-critique | à faire | 0/3 | — | — |
 | T11 | T10 | implementeur-tdd | à faire | 0/3 | — | — |
