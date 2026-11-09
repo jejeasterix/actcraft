@@ -311,6 +311,16 @@ bool parseStep(const QJsonObject& o, UiStep& step, QString& why)
         step.above = o.value(QStringLiteral("above")).toBool(false);
         return true;
     }
+    if (o.contains(QStringLiteral("setting"))) {
+        step.kind = UiStepKind::Setting;
+        if (!splitTarget(o.value(QStringLiteral("setting")).toString(), step.target, step.property) ||
+            !o.contains(QStringLiteral("value"))) {
+            why = QStringLiteral("réglage invalide (setting « section.clé », value)");
+            return false;
+        }
+        step.argument = o.value(QStringLiteral("value")).toVariant();
+        return true;
+    }
     if (o.contains(QStringLiteral("watchEventLoop"))) {
         step.kind = UiStepKind::WatchEventLoop;
         return true;
@@ -2054,6 +2064,21 @@ void UiScenarioPlayer::setRestartHandler(RestartHandler handler)
     m_restart = std::move(handler);
 }
 
+// Réglage de profil, comme l'onglet paramètres (SettingsSchema, magasin « profil »).
+bool UiScenarioPlayer::setting(const UiStep& step, QStringList& report)
+{
+    QObject* profile = find(QStringLiteral("appProfile"));
+    if (!profile ||
+        !QMetaObject::invokeMethod(profile, "setSetting", Q_ARG(QString, step.target),
+                                   Q_ARG(QString, step.property), Q_ARG(QVariant, step.argument))) {
+        report
+            << QStringLiteral("REGLAGE %1.%2 ECHEC (appProfile introuvable)").arg(step.target, step.property);
+        return false;
+    }
+    report << QStringLiteral("REGLAGE %1.%2 OK").arg(step.target, step.property);
+    return true;
+}
+
 // Quitter et relancer (S9) : le profil est écrit (saveCount stable 2 s au plus), puis l'hôte recrée
 // l'interface.
 bool UiScenarioPlayer::restart(QStringList& report)
@@ -2196,6 +2221,8 @@ bool UiScenarioPlayer::runStep(const UiStep& step, QStringList& report)
         return fixture(step, report);
     case UiStepKind::WaitFor:
         return waitFor(step, report);
+    case UiStepKind::Setting:
+        return setting(step, report);
     case UiStepKind::WatchEventLoop:
         return watchEventLoop(report);
     case UiStepKind::MaxEventLoopGap:

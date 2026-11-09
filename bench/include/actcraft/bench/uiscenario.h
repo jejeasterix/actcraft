@@ -77,6 +77,8 @@ enum class UiStepKind : std::uint8_t
     LongPress, // {"longPress": [x, y], "kind": "touch"|"mouse", "holdMs": 600, "space": "page"}
     VisibleTexts,  // {"visibleTexts": "pseudo", "marks": ["⟦", "⟧"], "ignore": ["pageIndicator"]}
     ExpectChanged, // {"expectChanged": "objet.propriété", "from": "${nom}"} — différent de la valeur retenue
+    Setting,       // {"setting": "tools.web-frame-guards", "value": true} — réglage du profil,
+                   // appProfile.setSetting
 };
 
 // Un contact de l'étape « parallel » : numéro d'appareil (≥ 1), sorte (stylus, touch, mouse), points.
@@ -249,6 +251,7 @@ private:
     bool archiveContains(const UiStep& step, QStringList& report);
     bool fileCheck(const UiStep& step, QStringList& report);
     bool restart(QStringList& report);
+    bool setting(const UiStep& step, QStringList& report);
     // Remplace les variables de `text` en une passe (les valeurs insérées ne sont pas relues) ; faux et
     // `why` si une variable est inconnue, non fermée, ou ${SAMPLES} sans ACTCRAFT_SAMPLES_DIR.
     bool expand(const QString& text, QString& out, QString& why) const;
