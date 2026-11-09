@@ -26,6 +26,10 @@ private slots:
 #endif
     }
 
+    // prepareWebFrameEngine() partage les contextes GL avant QGuiApplication : sa perte doit faire tomber un
+    // test.
+    void shareOpenGLContextsIsSet() { QVERIFY(QCoreApplication::testAttribute(Qt::AA_ShareOpenGLContexts)); }
+
     // Premier test du fichier : l'environnement est relu au lancement du premier moteur.
     void prepareSetsTheProcessLimitOnlyWhenEmpty()
     {
