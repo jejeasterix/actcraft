@@ -9,6 +9,7 @@
 
 #include <QBuffer>
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -21,6 +22,7 @@
 #include <QScreen>
 #include <QSet>
 #include <QStringDecoder>
+#include <QTemporaryDir>
 #include <QThreadPool>
 #include <QTransform>
 
@@ -43,6 +45,30 @@ const QString kLinkPrefix = QStringLiteral("actcraft-link-");
 constexpr char16_t kHoldOpen = u'\x02'; // repère d'une construction CSS
                                         // réécrite, le temps de la vérification
 constexpr char16_t kHoldClose = u'\x03';
+// Limite de loadHtml (url::kMaxURLChars = 2 097 152, sur l'adresse data: encodée) ; seuil sous la limite,
+// pour le préfixe.
+constexpr qsizetype kLoadHtmlLimit = 2000000;
+// Un QChar UTF-16 donne au plus 3 octets UTF-8, chacun au plus 3 caractères encodés : en dessous, inutile de
+// compter.
+constexpr qsizetype kSurelyShortHtml = kLoadHtmlLimit / 9;
+
+// Fil secondaire seulement. Fichier écrit avec sa marque d'ordre : sans déclaration de charset, UTF-8 reste
+// lu comme tel.
+QUrl writeHeavyHtml(const QString& html, const QString& dir, std::uint64_t ticket)
+{
+    if (dir.isEmpty() || html.size() <= kSurelyShortHtml)
+        return {};
+    const QByteArray utf8 = html.toUtf8();
+    if (utf8.toPercentEncoding().size() <= kLoadHtmlLimit)
+        return {};
+    const QString path = QDir(dir).filePath(QStringLiteral("cadre-%1.html").arg(ticket));
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly))
+        return {};
+    file.write("\xEF\xBB\xBF");
+    file.write(utf8);
+    return QUrl::fromLocalFile(path);
+}
 
 QRectF pageBox(const core::PageObject& object, const core::WebFrame& frame)
 {
@@ -1042,6 +1068,9 @@ void WebFrameItems::setGuardsEnabled(bool enabled)
         Row& row = m_rows[i];
         row.history.clear(); // E12 : la session du cadre est oubliée
         row.historyIndex = -1;
+        row.content.clear(); // une vue neuve ne reçoit jamais le contenu de l'autre régime
+        row.directUrl = QUrl();
+        releaseContentFile(row);
         prepareRow(row);
         rowChanged(i);
     }
@@ -1124,6 +1153,9 @@ void WebFrameItems::documentReplaced()
     m_policy.setReceived(m_key, file.isValid() && !file.isEmpty());
     if (file.isLocalFile())
         m_policy.setResourceFolder(m_key, QFileInfo(file.toLocalFile()).absolutePath());
+    m_resourceBase = file.isLocalFile()
+                         ? QUrl::fromLocalFile(QFileInfo(file.toLocalFile()).absolutePath() + u'/')
+                         : QUrl();
     m_page = -1; // tout est relu
     emit documentKeyChanged();
 }
@@ -1264,6 +1296,15 @@ void WebFrameItems::rebuild()
         reply->disconnect(this); // elle finit seule (le serveur la voit), sans plus rien changer au modèle
         connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
     }
+    // Lignes parties (autre page, contenu changé) : leur fichier de HTML lourd part avec elles. Une ligne
+    // neuve n'en a pas encore (il arrive par la boucle d'événements) : seule une ligne gardée peut porter le
+    // même.
+    for (Row& old : m_rows) {
+        const bool kept = std::any_of(fresh.cbegin(), fresh.cend(),
+                                      [&old](const Row& row) { return row.contentFile == old.contentFile; });
+        if (!kept)
+            releaseContentFile(old);
+    }
     beginResetModel();
     m_rows = std::move(fresh);
     endResetModel();
@@ -1286,6 +1327,10 @@ void WebFrameItems::prepareRow(Row& row)
     row.refused = false;
     row.loading = false;
     row.pendingUrl = QUrl();
+    if (!m_guardsEnabled) {
+        showDirect(row);
+        return;
+    }
     if (!row.address.trimmed().isEmpty()) {
         const QUrl url = QUrl::fromUserInput(row.address.trimmed());
         if (row.historyIndex >= 0 && row.historyIndex < row.history.size())
@@ -1295,6 +1340,86 @@ void WebFrameItems::prepareRow(Row& row)
         return;
     }
     showContent(row, row.html, QUrl());
+}
+
+QString WebFrameItems::heavyDir()
+{
+    if (!m_heavy)
+        m_heavy = std::make_unique<QTemporaryDir>();
+    return m_heavy->isValid() ? m_heavy->path() : QString();
+}
+
+void WebFrameItems::releaseContentFile(Row& row)
+{
+    if (!row.contentFile.isEmpty())
+        QFile::remove(row.contentFile.toLocalFile());
+    row.contentFile = QUrl();
+}
+
+// Gardes coupées (n° 11) : rien n'est lu ni réécrit. Un HTML court part tout de suite ; un long passe d'abord
+// par un fil secondaire, qui compte et écrit le fichier si la limite de loadHtml est dépassée.
+void WebFrameItems::showDirect(Row& row)
+{
+    row.links.clear();
+    row.directUrl = QUrl();
+    const QString address = row.address.trimmed();
+    if (!address.isEmpty()) {
+        row.preparing = 0;
+        row.content.clear();
+        releaseContentFile(row);
+        row.directUrl = QUrl::fromUserInput(address);
+        row.baseUrl = row.directUrl;
+        row.loading = false;
+        ++row.serial;
+        return;
+    }
+    if (row.html.size() <= kSurelyShortHtml) {
+        row.preparing = 0;
+        releaseContentFile(row);
+        row.content = row.html;
+        row.baseUrl = m_resourceBase;
+        row.loading = false;
+        ++row.serial;
+        return;
+    }
+    const std::uint64_t ticket = ++m_tickets;
+    row.preparing = ticket;
+    row.loading = true;
+    const QPointer<WebFrameItems> self(this);
+    QThreadPool::globalInstance()->start([self, id = row.id, ticket, html = row.html, dir = heavyDir()] {
+        const QUrl file = writeHeavyHtml(html, dir, ticket);
+        if (QCoreApplication* home = QCoreApplication::instance()) {
+            QMetaObject::invokeMethod(
+                home,
+                [self, id, ticket, file] {
+                    if (self)
+                        self->finishDirect(id, ticket, file);
+                    else if (!file.isEmpty())
+                        QFile::remove(file.toLocalFile());
+                },
+                Qt::QueuedConnection);
+        }
+    });
+}
+
+void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file)
+{
+    const int index = rowOf(id);
+    if (index < 0 || m_rows[index].preparing != ticket) {
+        if (!file.isEmpty())
+            QFile::remove(file.toLocalFile()); // Review Focus 2 : résultat périmé
+        return;
+    }
+    Row& row = m_rows[index];
+    row.preparing = 0;
+    releaseContentFile(row);
+    row.contentFile = file;
+    row.content = row.html;
+    row.baseUrl = m_resourceBase;
+    row.loading = false;
+    ++row.serial;
+    rowChanged(index);
+    emit countChanged();
 }
 
 void WebFrameItems::showContent(Row& row, const QString& html, const QUrl& base)
@@ -1312,17 +1437,21 @@ void WebFrameItems::prepareContent(Row& row, std::function<QString()> source, co
     const std::uint64_t ticket = ++m_tickets;
     row.preparing = ticket;
     row.loading = true;
+    const QString dir = heavyDir();
     const QPointer<WebFrameItems> self(this);
     QThreadPool::globalInstance()->start([self, id = row.id, ticket, base, policy = m_policy, key = m_key,
-                                          page = m_pageKey, source = std::move(source)] {
+                                          page = m_pageKey, source = std::move(source), dir] {
         const Prepared prepared =
             prepareHtml(source(), base, [&](const QUrl& url) { return policy.decide(url, key, page); });
+        const QUrl heavy = writeHeavyHtml(prepared.html, dir, ticket); // même limite (n° 38)
         if (QCoreApplication* home = QCoreApplication::instance()) {
             QMetaObject::invokeMethod(
                 home,
-                [self, id, ticket, base, prepared] {
+                [self, id, ticket, base, prepared, heavy] {
                     if (self)
-                        self->finishContent(id, ticket, base, prepared);
+                        self->finishContent(id, ticket, base, prepared, heavy);
+                    else if (!heavy.isEmpty())
+                        QFile::remove(heavy.toLocalFile());
                 },
                 Qt::QueuedConnection);
         }
@@ -1330,13 +1459,19 @@ void WebFrameItems::prepareContent(Row& row, std::function<QString()> source, co
 }
 
 void WebFrameItems::finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base,
-                                  const Prepared& prepared)
+                                  const Prepared& prepared, const QUrl& heavy)
 {
     const int index = rowOf(id);
-    if (index < 0 || m_rows[index].preparing != ticket)
+    if (index < 0 || m_rows[index].preparing != ticket) {
+        if (!heavy.isEmpty())
+            QFile::remove(heavy.toLocalFile());
         return; // cadre parti, ou passé à un autre contenu
+    }
     Row& row = m_rows[index];
     row.preparing = 0;
+    releaseContentFile(row);
+    row.contentFile = heavy;
+    row.directUrl = QUrl();
     row.content = prepared.html;
     row.links = prepared.links;
     row.baseUrl = base;
@@ -1365,6 +1500,8 @@ void WebFrameItems::navigate(Row& row, const QUrl& url, bool pushHistory)
         row.blocked = true;
         row.pendingUrl = url;
         row.content.clear();
+        releaseContentFile(row);
+        row.directUrl = QUrl();
         row.links.clear();
         row.loading = false;
         ++row.serial;
@@ -1372,6 +1509,8 @@ void WebFrameItems::navigate(Row& row, const QUrl& url, bool pushHistory)
     case Verdict::Refuse:
         row.refused = true;
         row.content.clear();
+        releaseContentFile(row);
+        row.directUrl = QUrl();
         row.links.clear();
         row.loading = false;
         ++row.serial;
@@ -1550,6 +1689,10 @@ QVariant WebFrameItems::data(const QModelIndex& index, int role) const
         return row.historyIndex >= 0 && row.historyIndex + 1 < row.history.size();
     case SerialRole:
         return row.serial;
+    case DirectUrlRole:
+        return row.directUrl;
+    case ContentFileRole:
+        return row.contentFile;
     default:
         return {};
     }
@@ -1561,7 +1704,7 @@ QHash<int, QByteArray> WebFrameItems::roleNames() const
             {AddressRole, "address"},   {BlockedRole, "blocked"},     {RefusedRole, "refused"},
             {LoadingRole, "loading"},   {ContentRole, "content"},     {BaseUrlRole, "baseUrl"},
             {TitleRole, "title"},       {CanGoBackRole, "canGoBack"}, {CanGoForwardRole, "canGoForward"},
-            {SerialRole, "serial"}};
+            {SerialRole, "serial"},     {DirectUrlRole, "directUrl"}, {ContentFileRole, "contentFile"}};
 }
 
 bool WebFrameItems::insertFrame(const QString& html, const QString& address)
@@ -1646,6 +1789,8 @@ bool WebFrameItems::followLink(int row, const QUrl& viewUrl)
 {
     if (row < 0 || row >= m_rows.size() || !viewUrl.isValid())
         return false;
+    if (!m_guardsEnabled)
+        return false; // gardes coupées : la vue navigue seule
     Row& r = m_rows[row];
     const QString fragment = viewUrl.fragment();
     if (fragment.startsWith(kLinkPrefix)) {
@@ -1658,13 +1803,16 @@ bool WebFrameItems::followLink(int row, const QUrl& viewUrl)
         emit countChanged();
         return true;
     }
-    // La vue charge le contenu par loadHtml sans base : about:blank ou data: (selon le moteur), et ses
-    // renvois de fragment, sont à elle. Toute autre adresse, même celle de la
-    // page affichée, serait chargée par le moteur sans la règle de sécurité du
-    // contenu : rendue au modèle, la vue s'arrête.
+    // Rendus à la vue : about:blank et data: (contenu donné par loadHtml, avec ses renvois de fragment) ; le
+    // fichier du HTML lourd. Toute autre adresse, même celle de la page affichée, serait chargée sans la
+    // règle de sécurité du contenu : rendue au modèle, la vue s'arrête.
     const QUrl page = viewUrl.adjusted(QUrl::RemoveFragment);
     if (page.isEmpty() || page == QUrl(QStringLiteral("about:blank")) ||
         page.scheme() == QLatin1String("data"))
+        return false;
+    if (!r.contentFile.isEmpty() && page.isLocalFile() &&
+        QFileInfo(page.toLocalFile()).canonicalFilePath() ==
+            QFileInfo(r.contentFile.toLocalFile()).canonicalFilePath())
         return false;
     navigate(r, page, true); // navigation du moteur : rendue à la politique
     rowChanged(row);

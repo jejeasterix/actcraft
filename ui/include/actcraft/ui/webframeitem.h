@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 // Moteur web construit : posé par ui/CMakeLists.txt (public) quand ACTCRAFT_WEBFRAME est ON.
 #ifndef ACTCRAFT_WEBFRAME
@@ -25,6 +26,7 @@
 class QNetworkAccessManager;
 class QNetworkReply;
 class QQuickItem;
+class QTemporaryDir;
 
 namespace actcraft::ui {
 
@@ -83,7 +85,9 @@ public:
         TitleRole,   // titre du repère
         CanGoBackRole,
         CanGoForwardRole,
-        SerialRole // change à chaque contenu neuf : la vue recharge
+        SerialRole,     // change à chaque contenu neuf : la vue recharge
+        DirectUrlRole,  // adresse donnée telle quelle à la vue (gardes coupées)
+        ContentFileRole // HTML au-delà de la limite de loadHtml : fichier du modèle
     };
     Q_ENUM(Role)
 
@@ -124,10 +128,11 @@ public:
     Q_INVOKABLE void requestUnblock(int row);
     Q_INVOKABLE void answer(bool confirmed);
     // Adresse prise par la vue (urlChanged, chargement commencé) : un renvoi
-    // interne est suivi après décision ; toute adresse autre que about:blank (le
-    // contenu donné par loadHtml sans base) et ses fragments, même celle de la
-    // page affichée, est une navigation du moteur, rendue au modèle (vrai : la
-    // vue s'arrête).
+    // interne est suivi après décision ; toute adresse autre que about:blank ou
+    // data: (le contenu donné par loadHtml sans base), le fichier de `contentFile`
+    // et leurs fragments, même celle de la page affichée, est une navigation du
+    // moteur, rendue au modèle (vrai : la vue s'arrête). Gardes coupées : faux, la
+    // vue navigue seule.
     Q_INVOKABLE bool followLink(int row, const QUrl& viewUrl);
     Q_INVOKABLE void goBack(int row);
     Q_INVOKABLE void goForward(int row);
@@ -179,6 +184,8 @@ private:
         bool loading = false;
         QString content;
         QUrl baseUrl;
+        QUrl directUrl;
+        QUrl contentFile;
         QVector<QUrl> links;
         QUrl pendingUrl; // adresse bloquée, lue au déblocage
         QVector<QUrl> history;
@@ -199,7 +206,12 @@ private:
     void showContent(Row& row, const QString& html, const QUrl& base);
     // `source` (lecture, décodage) et réécriture sur un fil secondaire ; résultat rendu par finishContent.
     void prepareContent(Row& row, std::function<QString()> source, const QUrl& base);
-    void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared);
+    void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared,
+                       const QUrl& heavy);
+    void showDirect(Row& row);
+    void finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file);
+    void releaseContentFile(Row& row);
+    QString heavyDir();
     int rowOf(std::uint64_t id) const;
     void rowChanged(int row);
     void readGuards();
@@ -216,6 +228,8 @@ private:
     QMetaObject::Connection m_connections[5];
     WebContentPolicy m_policy;
     QString m_key;
+    QUrl m_resourceBase; // dossier du document ouvert, base d'un HTML saisi (gardes coupées)
+    std::unique_ptr<QTemporaryDir> m_heavy;
     std::uint64_t m_generation = 0;
     std::uint64_t m_keys = 0;
     std::uint64_t m_tickets = 0;

@@ -1234,7 +1234,8 @@ void TstUiWebFrame::guardsOffKeepsTypedHtmlWithTheResourceBase()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
-    const QString html = QStringLiteral("<script>var a=1</script><a href=\"https://exemple.invalide/\">x</a>");
+    const QString html =
+        QStringLiteral("<script>var a=1</script><a href=\"https://exemple.invalide/\">x</a>");
     Fixture writer(false);
     QVERIFY(writer.frames.insertFrame(html, {}));
     QTRY_COMPARE(content(writer.frames, 0), html);
@@ -1242,8 +1243,9 @@ void TstUiWebFrame::guardsOffKeepsTypedHtmlWithTheResourceBase()
     Fixture reader(false);
     QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("a.actcraft"))));
     QTRY_COMPARE(content(reader.frames, 0), html);
-    QCOMPARE(role(reader.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
-             QUrl::fromLocalFile(QFileInfo(dir.filePath(QStringLiteral("a.actcraft"))).absolutePath() + u'/'));
+    QCOMPARE(
+        role(reader.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
+        QUrl::fromLocalFile(QFileInfo(dir.filePath(QStringLiteral("a.actcraft"))).absolutePath() + u'/'));
     QCOMPARE(reader.frames.blockedCount(), 0);
 }
 
@@ -1278,8 +1280,9 @@ void TstUiWebFrame::heavyHtmlLeavesTheInterfaceThreadAtOnce_data()
     heavyHtmlGoesToAFile_data();
 }
 
-// BRIEF § 4.1 : compter et écrire 3 Mo sur le fil de l'interface gèlerait la boucle. Le pool retenu (PoolGate), rien
-// ne peut être écrit au retour de insertFrame ; un fichier écrit dans prepareRow serait déjà là, cadre déjà prêt.
+// BRIEF § 4.1 : compter et écrire 3 Mo sur le fil de l'interface gèlerait la boucle. Le pool retenu
+// (PoolGate), rien ne peut être écrit au retour de insertFrame ; un fichier écrit dans prepareRow serait déjà
+// là, cadre déjà prêt.
 void TstUiWebFrame::heavyHtmlLeavesTheInterfaceThreadAtOnce()
 {
     QFETCH(bool, guards);
@@ -1314,8 +1317,9 @@ void TstUiWebFrame::toggleDuringHeavyWriteDropsTheFile_data()
     QTest::newRow("allumees vers coupees") << true;
 }
 
-// Review Focus 2 (n° 10, n° 38) : réglage basculé pendant l'écriture : résultat périmé abandonné, fichier retiré.
-// Dans les deux sens : chaque chemin a son jeton, chacun doit retirer le fichier d'un résultat périmé.
+// Review Focus 2 (n° 10, n° 38) : réglage basculé pendant l'écriture : résultat périmé abandonné, fichier
+// retiré. Dans les deux sens : chaque chemin a son jeton, chacun doit retirer le fichier d'un résultat
+// périmé.
 void TstUiWebFrame::toggleDuringHeavyWriteDropsTheFile()
 {
     QFETCH(bool, guards);
@@ -1325,12 +1329,14 @@ void TstUiWebFrame::toggleDuringHeavyWriteDropsTheFile()
     QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
     QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool(), 60000);
     QTest::qWait(100);
-    const QDir folder(
-        QFileInfo(role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().toLocalFile()).absolutePath());
-    QCOMPARE(folder.entryList(QDir::Files).size(), qsizetype(1)); // le seul fichier est celui du contenu courant
+    const QDir folder(QFileInfo(role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().toLocalFile())
+                          .absolutePath());
+    QCOMPARE(folder.entryList(QDir::Files).size(),
+             qsizetype(1)); // le seul fichier est celui du contenu courant
 }
 
-// Une ligne qui part (autre page) emporte son fichier : sinon 3 Mo de plus à chaque aller-retour, jusqu'à la fermeture.
+// Une ligne qui part (autre page) emporte son fichier : sinon 3 Mo de plus à chaque aller-retour, jusqu'à la
+// fermeture.
 void TstUiWebFrame::leavingThePageDropsTheHeavyFile()
 {
     Fixture f(false);
