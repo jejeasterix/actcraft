@@ -358,6 +358,8 @@ qt_add_qml_module(actcraft_ui
         src/webframeitem.cpp
         include/actcraft/ui/webframeengine.h
         src/webframeengine.cpp
+        include/actcraft/ui/webimagefetch.h
+        src/webimagefetch.cpp
         include/actcraft/ui/broadcastgate.h
         src/broadcastgate.cpp
         include/actcraft/ui/actionrunner.h
