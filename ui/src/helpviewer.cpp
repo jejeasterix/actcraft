@@ -24,9 +24,7 @@ bool pageExists(const QUrl& url)
 // les commandes voisines du rideau et du projecteur partagent une page.
 QString pageName(QString id)
 {
-    if (id.startsWith(QLatin1String("tool.")))
-        return id.mid(5);
-    if (id.startsWith(QLatin1String("math.")))
+    if (id.startsWith(QLatin1String("tool.")) || id.startsWith(QLatin1String("math.")))
         return id.mid(5);
     if (id.startsWith(QLatin1String("present.curtain")))
         return QStringLiteral("curtain");

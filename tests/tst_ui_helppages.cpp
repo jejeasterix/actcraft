@@ -52,9 +52,6 @@ const QStringList kMathPresentPages = {QStringLiteral("ruler"),      QStringLite
                                        QStringLiteral("protractor"), QStringLiteral("compass"),
                                        QStringLiteral("xy-origin"),  QStringLiteral("curtain"),
                                        QStringLiteral("spotlight")};
-// Commandes math.* / present.* qui ne sont pas un outil : aucune pour l'instant. present.curtain-color est
-// un réglage (argument « color »), mais son gestionnaire est celui du rideau : il ouvre la page du rideau.
-const QStringList kNotTools = {};
 
 const QStringList kProcedures = {QStringLiteral("raccourcis"),         QStringLiteral("deux-utilisateurs"),
                                  QStringLiteral("modes-toucher"),      QStringLiteral("reprise"),
@@ -162,8 +159,7 @@ private slots:
         // Commandes math.* et present.* : chacune ouvre sa page par openFor, jamais le sommaire.
         int mathSeen = 0;
         for (const QString& id : registry.ids()) {
-            if ((!id.startsWith(QLatin1String("math.")) && !id.startsWith(QLatin1String("present."))) ||
-                kNotTools.contains(id))
+            if (!id.startsWith(QLatin1String("math.")) && !id.startsWith(QLatin1String("present.")))
                 continue;
             QString expected;
             for (const auto& entry : kMathPresentCommands)
