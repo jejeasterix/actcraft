@@ -150,6 +150,9 @@ public:
 
     const WebContentPolicy& policy() const noexcept { return m_policy; }
 
+    // Dossier des fichiers de HTML lourd ; les tests y mettent un dossier inutilisable (disque plein).
+    void setHeavyDirectory(const QString& path) { m_heavyOverride = path; }
+
     // Réécriture du HTML avant chargement : `decide` répond pour chaque adresse
     // (résolue sur `base`). Sans état partagé : sûre sur un autre fil si `decide` l'est.
     struct Prepared
@@ -230,6 +233,7 @@ private:
     QString m_key;
     QUrl m_resourceBase; // dossier du document ouvert, base d'un HTML saisi (gardes coupées)
     std::unique_ptr<QTemporaryDir> m_heavy;
+    QString m_heavyOverride;
     std::uint64_t m_generation = 0;
     std::uint64_t m_keys = 0;
     std::uint64_t m_tickets = 0;

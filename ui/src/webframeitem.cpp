@@ -1344,6 +1344,8 @@ void WebFrameItems::prepareRow(Row& row)
 
 QString WebFrameItems::heavyDir()
 {
+    if (!m_heavyOverride.isEmpty())
+        return m_heavyOverride;
     if (!m_heavy)
         m_heavy = std::make_unique<QTemporaryDir>();
     return m_heavy->isValid() ? m_heavy->path() : QString();
