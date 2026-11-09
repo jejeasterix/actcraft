@@ -31,8 +31,9 @@ public:
     // L11-C6 : premier stylet repris d'une politique remplacée (changement du mode du toucher pendant le mode
     // à deux, ui::DualMode) ; 0 : aucun.
     void setFirstStylusDevice(std::uint64_t device) noexcept { m_firstStylus = device; }
-    // Utilisateur d'un stylet, lu sans rien retenir (appui hors de la vue, L11-C24) : le premier tant qu'aucun
-    // stylet n'est retenu ; sinon le premier si deviceId est le stylet retenu, le second sinon ; 0 : le premier.
+    // Utilisateur d'un stylet, lu sans rien retenir (appui hors de la vue, L11-C24) : le premier tant
+    // qu'aucun stylet n'est retenu ; sinon le premier si deviceId est le stylet retenu, le second sinon ; 0 :
+    // le premier.
     UserId knownStylusUser(std::uint64_t deviceId) const noexcept;
 
 private:
