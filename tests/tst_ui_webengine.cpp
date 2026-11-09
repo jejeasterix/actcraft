@@ -209,6 +209,52 @@ private slots:
         QCOMPARE(server.requests(), requests);
     }
 
+    // n° 18 : image réelle du cadre, posée par la commande, une étape.
+    void snapshotInsertsAnImage()
+    {
+        presentationharness::MainWindow main;
+        QVERIFY(main.window());
+        QQuickItem* layer = main.item(QStringLiteral("webFrameLayer"));
+        QVERIFY(layer);
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        QVERIFY(frames);
+        bool inserted = false;
+        QVERIFY(QMetaObject::invokeMethod(
+            frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
+            Q_ARG(QString, QStringLiteral("<body style='background:#c81e1e'>x")), Q_ARG(QString, QString())));
+        QTRY_COMPARE_WITH_TIMEOUT(layer->property("loadedViews").toInt(), 1, kLoadMs);
+        QVERIFY(main.waitReady());
+        const int before = main.pageObjectCount();
+        QVERIFY(main.run(QStringLiteral("webframe.snapshot")));
+        QTRY_COMPARE_WITH_TIMEOUT(layer->property("snapshotCount").toInt(), 1, 20000);
+        QTRY_COMPARE_WITH_TIMEOUT(main.pageObjectCount(), before + 1, 10000);
+    }
+
+    // Revue de T5 : pageLoaded précède la peinture. L'image posée porte les pixels de la page (carré bleu en
+    // haut à gauche, fond rouge ailleurs), pas seulement une taille non nulle.
+    void snapshotWaitsForPaintedPixels()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        QVERIFY(host.frames->insertFrame(
+            QStringLiteral("<style>html,body{margin:0;height:100%}body{background:#c81e1e}"
+                           "div{position:absolute;left:0;top:0;width:40px;height:40px;background:#1e1ec8}"
+                           "</style><div></div>"),
+            {}));
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 1, kLoadMs);
+        const int before = host.document.shownObjectCount();
+        QVERIFY(QMetaObject::invokeMethod(host.layer, "takeSnapshot", Q_ARG(QVariant, QVariant())));
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("snapshotCount").toInt(), 1, 20000);
+        QCOMPARE(host.document.shownObjectCount(), before + 1);
+        const auto& resources = host.document.document().resources();
+        QCOMPARE(resources.size(), std::size_t(1));
+        const QImage image = QImage::fromData(resources.begin()->second.data, "PNG").convertToFormat(
+            QImage::Format_RGB32);
+        QVERIFY(image.width() > 60 && image.height() > 60);
+        QCOMPARE(image.pixelColor(8, 8), QColor(0x1e, 0x1e, 0xc8));
+        QCOMPARE(image.pixelColor(image.width() - 8, image.height() - 8), QColor(0xc8, 0x1e, 0x1e));
+    }
+
     // n° 38, E11 : 3 Mo chargés par le fichier temporaire, gardes coupées et allumées.
     void heavyHtmlLoads_data()
     {

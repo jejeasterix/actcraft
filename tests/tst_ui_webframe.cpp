@@ -105,6 +105,7 @@ private slots:
     void insertFromTypedHtml();
     void resizeIsOneStep();
     void snapshotPlacesAnImage();
+    void insertSnapshotIsOneStep();
     void roundTripKeepsTheFrame();
     void paintedAsANeutralFrame();
     void viewFetchesOnlyDecidedSubResources();
@@ -718,6 +719,22 @@ void TstUiWebFrame::snapshotPlacesAnImage()
     f.document.undo();
     QCOMPARE(f.document.shownObjectCount(), objects);
     QCOMPARE(f.frames.count(), 1);
+}
+
+// n° 18 : image obtenue hors du modèle (grabToImage de la vue), posée en une étape.
+void TstUiWebFrame::insertSnapshotIsOneStep()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>a</p>"), {}));
+    QImage image(32, 16, QImage::Format_RGB32);
+    image.fill(Qt::red);
+    QVERIFY(!f.frames.insertSnapshot(0, QImage()));
+    QVERIFY(!f.frames.insertSnapshot(7, image));
+    const int before = f.document.shownObjectCount();
+    QVERIFY(f.frames.insertSnapshot(0, image));
+    QCOMPARE(f.document.shownObjectCount(), before + 1);
+    f.document.undo();
+    QCOMPARE(f.document.shownObjectCount(), before);
 }
 
 // .actcraft enregistré puis rouvert : code, adresse et boîte du cadre gardés.
