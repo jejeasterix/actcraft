@@ -14,15 +14,19 @@
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/dualmode.h>
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
 #include <QColor>
 #include <QCursor>
 #include <QLineF>
+#include <QMouseEvent>
 #include <QPointer>
+#include <QPointingDevice>
 #include <QQuickItem>
 #include <QSignalSpy>
+#include <QTabletEvent>
 #include <QUrl>
 #include <QtMath>
 #include <QtTest>
@@ -97,6 +101,56 @@ void stylusPath(const MainWindow& w, const std::vector<QPointF>& points, bool re
 void stylusPath(const MainWindow& w, std::initializer_list<QPointF> pagePoints, bool release = true)
 {
     stylusPath(w, std::vector<QPointF>(pagePoints), release);
+}
+
+// L11-C24 : stylet physique distinct (identifiant matériel), comme dans tst_ui_pageinput.
+std::unique_ptr<QPointingDevice> physicalStylus(qint64 systemId, qint64 uniqueId)
+{
+    return std::make_unique<QPointingDevice>(
+        QStringLiteral("tst-mathtools-stylus-%1").arg(uniqueId), systemId, QInputDevice::DeviceType::Stylus,
+        QPointingDevice::PointerType::Pen,
+        QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3, QString(),
+        QPointingDeviceUniqueId::fromNumericId(uniqueId));
+}
+
+void tabletWith(const MainWindow& w, const QPointingDevice* device, QEvent::Type type, QPointF at)
+{
+    const Qt::MouseButtons buttons = type == QEvent::TabletRelease ? Qt::NoButton : Qt::LeftButton;
+    const Qt::MouseButton changed = type == QEvent::TabletMove ? Qt::NoButton : Qt::LeftButton;
+    QTabletEvent event(type, device, at, w.window()->mapToGlobal(at), buttons ? 0.5 : 0.0, 0, 0, 0, 0, 0,
+                       Qt::NoModifier, changed, buttons);
+    QCoreApplication::sendEvent(w.window(), &event);
+}
+
+// Trait de ce stylet le long de `points` (repère de page).
+void strokeWith(const MainWindow& w, const QPointingDevice* device, const std::vector<QPointF>& points)
+{
+    tabletWith(w, device, QEvent::TabletPress, scene(w, points.front()));
+    for (std::size_t i = 1; i < points.size(); ++i) {
+        for (int k = 1; k <= 4; ++k) {
+            const QPointF at = points[i - 1] + (points[i] - points[i - 1]) * (k / 4.0);
+            tabletWith(w, device, QEvent::TabletMove, scene(w, at));
+        }
+    }
+    tabletWith(w, device, QEvent::TabletRelease, scene(w, points.back()));
+    QCoreApplication::processEvents();
+}
+
+// Appui complet sur un élément hors de la vue, comme Qt le livre : la tablette, que rien n'accepte, puis la
+// souris qu'il en déduit, portée par l'appareil du stylet.
+void tapItemWith(const MainWindow& w, const QPointingDevice* device, const QQuickItem* item)
+{
+    const QPointF at = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+    const auto mouse = [&](QEvent::Type type, Qt::MouseButtons buttons) {
+        QMouseEvent event(type, at, at, w.window()->mapToGlobal(at), Qt::LeftButton, buttons, Qt::NoModifier,
+                          Qt::MouseEventSynthesizedByQt, device);
+        QCoreApplication::sendEvent(w.window(), &event);
+    };
+    tabletWith(w, device, QEvent::TabletPress, at);
+    mouse(QEvent::MouseButtonPress, Qt::LeftButton);
+    tabletWith(w, device, QEvent::TabletRelease, at);
+    mouse(QEvent::MouseButtonRelease, Qt::NoButton);
+    QCoreApplication::processEvents();
 }
 
 // Un temps d'un pointeur (appui, déplacement, relâché), injecté comme presentationharness::strokeAt.
@@ -572,11 +626,124 @@ actcraft::input::Sample inkOf(actcraft::input::UserId user, actcraft::input::Pha
     return sample;
 }
 
+// L11-C24 : vrai bouton de la règle dans la palette, atteignable : à 800 px de haut, la palette déborde et ce
+// bouton sort de la fenêtre.
+QQuickItem* reachableRulerButton(const MainWindow& w)
+{
+    QQuickItem* button = w.item(QStringLiteral("button-math.ruler"));
+    if (!button) {
+        return nullptr;
+    }
+    w.window()->resize(w.window()->width(), 1100);
+    const QQuickItem* root = w.window()->contentItem();
+    const bool inside = QTest::qWaitFor(
+        [&] {
+            return root->height() >= 1100 && button->mapToScene(QPointF(0, button->height())).y() <= 1100;
+        },
+        5000);
+    return inside ? button : nullptr;
+}
+
+// L11-C24 : la règle ouverte (la seule) guide `owner` et laisse `other` libre, par de vrais traits.
+void expectGuidedOnlyFor(const MainWindow& w, const MathToolsController& tools, const QPointingDevice* owner,
+                         const QPointingDevice* other)
+{
+    const double top = frameOf(tools, 0).top();
+    const std::vector<QPointF> path{
+        {300, top - 4}, {400, top - 1}, {500, top + 2}, {600, top + 3}, {700, top + 3}};
+    const int count = w.pageObjectCount();
+    strokeWith(w, owner, path);
+    QTRY_COMPARE(w.pageObjectCount(), count + 1);
+    const actcraft::core::Stroke* guided = lastStroke(w);
+    QVERIFY(guided);
+    QVERIFY2(allOnLine(*guided, top), "trait de celui qui a touché le bouton : sur le bord");
+
+    strokeWith(w, other, path);
+    QTRY_COMPARE(w.pageObjectCount(), count + 2);
+    const actcraft::core::Stroke* free = lastStroke(w);
+    QVERIFY(free);
+    QVERIFY2(qAbs(free->points.front().y - (top - 4)) <= 0.5, "trait de l'autre : y d'origine au départ");
+    QVERIFY2(qAbs(free->points.back().y - (top + 3)) <= 0.5, "trait de l'autre : y d'origine à la fin");
+}
+
 class TstUiMathTools : public QObject
 {
     Q_OBJECT
 
 private slots:
+    // L11-C24 (H11-O14, F-303) : de bout en bout, vrai bouton de la palette et vrais stylets. Le second
+    // touche la commande : la règle est à lui, son trait est guidé, celui du premier non ; puis l'inverse.
+    // Avant la correction, trigger(commandId) la donnait toujours au premier.
+    void rulerBelongsToTheStylusThatTouchedItsButton()
+    {
+        const auto first = actcraft::input::kFirstUser;
+        const auto second = actcraft::input::kSecondUser;
+        MainWindow w;
+        QVERIFY(w.window());
+        auto* dual = w.window()->findChild<actcraft::ui::DualMode*>(QStringLiteral("appDualMode"));
+        QVERIFY(dual);
+        dual->toggle();
+        QVERIFY(dual->active());
+        actcraft::ui::ToolHost* host = toolHostOf(w);
+        MathToolsController* tools = mathTools(w);
+        QQuickItem* button = reachableRulerButton(w);
+        QVERIFY(host);
+        QVERIFY(tools);
+        QVERIFY(button);
+        QVERIFY2(!w.pageView()->contains(
+                     w.pageView()->mapFromItem(button, QPointF(button->width() / 2, button->height() / 2))),
+                 "le bouton de la palette est hors de la vue");
+        auto stylus11 = physicalStylus(1011, 11);
+        auto stylus22 = physicalStylus(1022, 22);
+
+        int count = w.pageObjectCount();
+        strokeWith(w, stylus11.get(), {{100, 600}, {160, 600}}); // le stylet 11 est le premier vu
+        QTRY_COMPARE(w.pageObjectCount(), count + 1);
+
+        tapItemWith(w, stylus22.get(), button);
+        QTRY_COMPARE(tools->count(), 1);
+        QVERIFY(host->user(first).openMathTools().empty());
+        QCOMPARE(host->user(second).openMathTools().size(), std::size_t{1});
+        QCOMPARE(host->user(second).openMathTools().front(), QStringLiteral("math.ruler"));
+        expectGuidedOnlyFor(w, *tools, stylus22.get(), stylus11.get());
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+
+        tools->close(0);
+        QCOMPARE(tools->count(), 0);
+        tapItemWith(w, stylus11.get(), button);
+        QTRY_COMPARE(tools->count(), 1);
+        QVERIFY(host->user(second).openMathTools().empty());
+        QCOMPARE(host->user(first).openMathTools().size(), std::size_t{1});
+        expectGuidedOnlyFor(w, *tools, stylus11.get(), stylus22.get());
+    }
+
+    // L11-C24 : hors du mode à deux, le même toucher reste au seul utilisateur, et son trait est guidé.
+    void rulerButtonSingleUserBelongsToTheOnlyUser()
+    {
+        MainWindow w;
+        QVERIFY(w.window());
+        actcraft::ui::ToolHost* host = toolHostOf(w);
+        MathToolsController* tools = mathTools(w);
+        QQuickItem* button = reachableRulerButton(w);
+        QVERIFY(host);
+        QVERIFY(tools);
+        QVERIFY(button);
+        auto stylus = physicalStylus(1011, 11);
+        tapItemWith(w, stylus.get(), button);
+        QTRY_COMPARE(tools->count(), 1);
+        QCOMPARE(host->user().openMathTools().size(), std::size_t{1});
+        QCOMPARE(host->user().openMathTools().front(), QStringLiteral("math.ruler"));
+        const double top = frameOf(*tools, 0).top();
+        const int count = w.pageObjectCount();
+        strokeWith(w, stylus.get(), {{300, top - 4}, {500, top + 2}, {700, top + 3}});
+        QTRY_COMPARE(w.pageObjectCount(), count + 1);
+        const actcraft::core::Stroke* guided = lastStroke(w);
+        QVERIFY(guided);
+        QVERIFY2(allOnLine(*guided, top), "seul utilisateur : trait guidé");
+    }
+
     // Le stylo reçoit des échantillons déjà posés sur le bord (filtre de la vue, avant le Pipeline) ; la
     // règle fermée, le même trait garde ses y d'origine : le stylo lui-même n'a pas changé.
     void rulerGuidesThePenWithoutChangingIt()
