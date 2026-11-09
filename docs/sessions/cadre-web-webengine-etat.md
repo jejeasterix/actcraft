@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 1/18 tâches terminées
-Étage : 3 (vague 1) — depuis 2026-11-09 19:05
-Tâche : T2 — Interrupteur des gardes et réglage de profil — depuis 2026-11-09 20:10
+Avancement : 2/18 tâches terminées
+Étage : 3 (vague 2)
+Tâche : T14 — Étape setting du joueur et scénario cadre-web — depuis 2026-11-09 20:26
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -37,7 +37,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | id | dépend | subagent | état | essais | dernier commit vert | preuve rejouée |
 |----|--------|----------|------|--------|---------------------|----------------|
 | T1 | — | concepteur-critique | terminée | 1/3 | ccb45113 | 332/332 ; `realFrameLoadsThroughTheLoader`, `contractsMatch` PASS ; revue : 0 bloquant, 0 majeur |
-| T2 | T1 | implementeur-tdd | à faire | 0/3 | — | — |
+| T2 | T1 | implementeur-tdd | terminée | 1/3 | 060684b6 | 332, seul rouge linklauncher préexistant ; guardsFollowTheProfileSetting, desktopLayerFollowsTheSetting PASS |
 | T14 | T1 | implementeur-tdd | à faire | 0/3 | — | — |
 | T15 | T1 | implementeur-tdd | à faire | 0/3 | — | — |
 | T3 | T2, T14 | concepteur-critique | à faire | 0/3 | — | — |
@@ -62,6 +62,8 @@ toutes les tâches terminées (aucune bloquée) · double relecture sans bloquan
 - Banc limité à T1, T5, T7, T12, T18 (Mac, Release, 8 Go) : T6, T8, T13 touchent le QML du cadre, pas le chemin d'encre ; T18 mesure le cumul. Écart assumé au n° 36 du cadrage.
 - Relectures par agents au premier plan (ordre O146), sans `relire-sur-mac.cjs`.
 - Mineurs de la revue de T1 reportés en T2 (`engineBuilt` retiré, assertion `AA_ShareOpenGLContexts`, commentaires périmés) et à T5 (dépréciation de `WebEngineProfile {}`).
+- Reprise du 2026-11-09 19:56 (processus arrêté pendant la construction de T2) : implémentation non commitée de T2 gardée et agent repris, au lieu du rejet prévu par la chaîne, car l'ordre de reprise dit de ne pas refaire ce qui est fait. La preuve reste rejouée au rapport.
+- **Consigne du canal ActCraft (2026-11-09, jusqu'à la fin du chantier)** : aucun `run_in_background`, aucun sous-agent en fond, ne jamais terminer le tour pour attendre (en `claude -p`, la fin du tour tue le fond). Construction longue : `nohup … > .tmp/x.txt 2>&1 &` sous le jeton, attente au premier plan par appels Bash (`timeout` 600000, boucle sur un fichier de fin). Même règle pour les sous-agents, écarte « tâche de fond » des références de la chaîne.
 - Phase 0 (3.1) : la preuve `ctest` détecte un échec, vu sur la référence (`tests failed`, code de `tst_ui_linklauncher`).
 
 ## Hypothèses à revoir
