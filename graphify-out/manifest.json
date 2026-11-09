@@ -595,8 +595,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/pageview.h": {
-    "mtime": 1794128301.9389913,
-    "ast_hash": "d40b4f63f984d527031ee561cf4f0df1",
+    "mtime": 1794197117.0266552,
+    "ast_hash": "259cd11299fd0c0b9090388346801bb7",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/viewtransform.h": {
@@ -605,8 +605,8 @@
     "semantic_hash": ""
   },
   "ui/src/pageview.cpp": {
-    "mtime": 1794126212.105118,
-    "ast_hash": "a1c6892921ea31c5c022bb09ee605673",
+    "mtime": 1794197117.0294795,
+    "ast_hash": "5486fd8870bda6cafa5fd1042a6aea74",
     "semantic_hash": ""
   },
   "ui/src/penadapters.cpp": {
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/commands.h": {
-    "mtime": 1794177013.9725,
-    "ast_hash": "90858685b22ca8a55219fa56070a15d0",
+    "mtime": 1794197117.026362,
+    "ast_hash": "4ba568ac9f58f3a0a10728a4ea71393e",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/documentcontroller.h": {
@@ -920,8 +920,8 @@
     "semantic_hash": ""
   },
   "ui/src/commands.cpp": {
-    "mtime": 1794177013.9791007,
-    "ast_hash": "b53e8466ccbe614e5118f2e45f18b755",
+    "mtime": 1794197117.0278957,
+    "ast_hash": "805312c60d909a2b7ad6b9b637eb3b8b",
     "semantic_hash": ""
   },
   "ui/src/documentcontroller.cpp": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1794188631.8997006,
-    "ast_hash": "ecccc78296c2ef3ad46672075bb92ddd",
+    "mtime": 1794197118.8160925,
+    "ast_hash": "ff61cae5aab230ed01b466e2e99328da",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -4410,8 +4410,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_mathtools.cpp": {
-    "mtime": 1794188630.0308216,
-    "ast_hash": "4481b37bbeea58ece25914430b75916e",
+    "mtime": 1794197117.0232563,
+    "ast_hash": "8bbfa2900d61fd25abdde42e484c690d",
     "semantic_hash": ""
   },
   "tests/tst_ui_mediainsert.cpp": {
@@ -5070,8 +5070,8 @@
     "semantic_hash": ""
   },
   "input/include/actcraft/input/twouserpolicy.h": {
-    "mtime": 1794086282.7633157,
-    "ast_hash": "c7142f771698b8261b1e099419c70b5a",
+    "mtime": 1794197117.0208569,
+    "ast_hash": "e80c973fd52b83ed4e67f027506b430b",
     "semantic_hash": ""
   },
   "input/src/touchmodes.cpp": {
@@ -5080,8 +5080,8 @@
     "semantic_hash": ""
   },
   "input/src/twouserpolicy.cpp": {
-    "mtime": 1794061827.948803,
-    "ast_hash": "2e929fbd64cf8277d84c82f5f1dad6c4",
+    "mtime": 1794197117.021614,
+    "ast_hash": "de5ba9f75bd71bce01f822532e28938c",
     "semantic_hash": ""
   },
   "scripts/banc-android.ps1": {
@@ -5185,8 +5185,8 @@
     "semantic_hash": ""
   },
   "tests/tst_input_twousers.cpp": {
-    "mtime": 1794061827.9493847,
-    "ast_hash": "fb0c8e9cd03e42c3a09d3d34854398d1",
+    "mtime": 1794197117.022476,
+    "ast_hash": "825c49a04ba7daa306b48f7ba21d0dce",
     "semantic_hash": ""
   },
   "tests/tst_tools_twousers.cpp": {
@@ -5235,8 +5235,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_pageinput.cpp": {
-    "mtime": 1794128301.9376218,
-    "ast_hash": "bbaf9f13aef08054d9c42428a73f8054",
+    "mtime": 1794197117.0248353,
+    "ast_hash": "56147d7b4251be465979d80f9ff70f03",
     "semantic_hash": ""
   },
   "tests/tst_ui_profilesall.cpp": {
@@ -5330,8 +5330,8 @@
     "semantic_hash": ""
   },
   "ui/src/dualmode.cpp": {
-    "mtime": 1794131051.2133033,
-    "ast_hash": "85d7e6bbd1ca7e5911f4a8bcb609b64c",
+    "mtime": 1794197117.0287757,
+    "ast_hash": "04852d4f598781cff2889a39b232103d",
     "semantic_hash": ""
   },
   "ui/src/fingermenus.cpp": {
@@ -5555,8 +5555,8 @@
     "semantic_hash": ""
   },
   "docs/mesures/2026-10-22-lot11-fin.md": {
-    "mtime": 1794184632.5443096,
-    "ast_hash": "ef31e7f2b529c481868dc7fe0af5afd0",
+    "mtime": 1794188660.302115,
+    "ast_hash": "a0392f2177e2486032bb9d2a3fb77a66",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-19-lot11-principes.md": {
@@ -5570,8 +5570,8 @@
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-22-lot11-porte.md": {
-    "mtime": 1794188630.0295668,
-    "ast_hash": "d0585d52c94468df67da3598ece52ca6",
+    "mtime": 1794197117.0198448,
+    "ast_hash": "93a812f917b01fe2bb015d2b1af785db",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-22-lot11-release-prete.md": {
