@@ -384,3 +384,7 @@ if(ACTCRAFT_WEBFRAME AND NOT ANDROID)
     target_compile_definitions(tst_ui_webengine PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
     set_tests_properties(tst_ui_webengine tst_ui_webframe PROPERTIES RUN_SERIAL TRUE TIMEOUT 300)
 endif()
+
+actcraft_add_test(tst_ui_webimagefetch
+    SOURCES tst_ui_webimagefetch.cpp
+    LIBS ActCraft::ui)
