@@ -30,7 +30,7 @@ Aucun SDK Android ni Windows sur le Mac.
 
 ## Essai à blanc de `release.yml`
 
-Joué par l'orchestrateur après cette tâche ; numéro du run et lignes relevées ajoutés au rapport de PR.
+Non joué à la clôture du lot (reprise du 2026-11-08, minutes de CI comptées, aucune release demandée) : **à jouer avant tout tag**, sur l'exécuteur que prendra le tag (H11-18).
 Motifs attendus : `APK NON PUBLIABLE|NOTES OK|SHA256SUMS|SECRETS ABSENTS|CONTROLE OK|DMG OK|ESSAI DMG OK` et les noms des paquets.
 Points 7 et 8 du plan : aucune entrée de release `v…` (`gh release list`), branche d'essai supprimée.
 
