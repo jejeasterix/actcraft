@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 8/18 tâches terminées
+Avancement : 9/18 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T11 — Coller une URL d'image, et mineurs d'insertion — depuis 2026-11-09 23:17
+Tâche : T5 — Couche branchée sur le vrai moteur — depuis 2026-11-09 23:44
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -44,7 +44,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T4 | T3 | implementeur-tdd | terminée | 1/3 | 816fb61b | 332/332 ; reportFillsTitleAndHistory, guardsOffCommandsGoToTheView PASS |
 | T9 | T1 | implementeur-tdd | terminée | 1/3 | a581f85d | 333/333 ; tst_ui_webimagefetch 10/10, oversizeWithoutLengthIsRefused PASS |
 | T10 | T4, T9 | concepteur-critique | terminée | 1/3 | b0ab9ab6 | 333/333 ; webDropDownloadsAnImage, downloadNeverLandsInAnotherTab, webDropOfOversizeFails PASS ; revue : 0 bloquant, 0 majeur |
-| T11 | T10 | implementeur-tdd | à faire | 0/3 | — | — |
+| T11 | T10 | implementeur-tdd | terminée | 1/3 | 36470cae | 333/333 ; pasteImageAddressDownloads, pasteNonImagePageBecomesText PASS ; tst_ui_insertion 41/41 |
 | T5 | T2, T4 | concepteur-critique | à faire | 0/3 | — | — |
 | T6 | T5 | implementeur-tdd | à faire | 0/3 | — | — |
 | T7 | T6 | implementeur-tdd | à faire | 0/3 | — | — |
