@@ -47,7 +47,7 @@ Qt6LabsQmlModels
 Qt6LabsSettings
 Qt6LabsAnimation
 Qt6LabsPlatform
-# Qt PDF (import PDF, ACTCRAFT_IMPORT_PDF, DA12) : module Qt6Pdf seul, jamais Qt WebEngine. Licence vérifiée dans
+# Qt PDF (import PDF, ACTCRAFT_IMPORT_PDF, DA12) : module Qt6Pdf seul. Licence vérifiée dans
 # l'en-tête qpdfdocument.h de Qt 6.12.0 (ligne SPDX) : « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR
 # GPL-3.0-only », la même que QuickControls2Basic ; lié dynamiquement. Il ne tire que QtCore, QtGui et QtNetwork,
 # déjà listés plus haut ; PDFium, qu'il embarque, est sous BSD-3-Clause ou Apache-2.0.
@@ -67,7 +67,7 @@ Qt6Concurrent
 # fichiers qmediaplayer.h, qtmultimediaquickglobal.h, qwebview.h et qtwebviewquickglobal.h de Qt 6.12.0 :
 # « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only », la même que QuickControls2Basic.
 # Dépendances relevées par otool -L sur Qt 6.12 de Homebrew : QtCore, QtGui, QtNetwork, QtOpenGL, QtQml, QtQuick
-# et leurs modules internes, déjà listés plus haut. Jamais Qt WebEngine, ni Qt6WebEngine*, ni Qt6Pdf avec lui.
+# et leurs modules internes, déjà listés plus haut. Qt WebEngine : voir la fin du fichier.
 # Les greffons (multimedia/ : moteur FFmpeg de Qt sous Windows et Android, ffmpegmediaplugin ; webview/ : greffon
 # WebView2 sous Windows, greffon Android) ne sont pas des modules : le contrôle des licences lit les bibliothèques
 # Qt6*. Les noms exacts des greffons livrés par Qt 6.12 sont à relever au PC (docs/verifications/2026-10-22-lot8-modules.md).
@@ -97,3 +97,14 @@ Qt6QuickVectorImage
 Qt6QuickVectorImageGenerator
 Qt6QuickVectorImageHelpers
 Qt6Sql
+# Qt WebEngine (cadre web, PC et Mac, décision 0217 du coffre) : chargé au premier cadre, sans lien à l'application.
+# Licence vérifiée dans l'en-tête qquickwebengineprofile.h (ligne SPDX) : « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR
+# GPL-2.0-only OR GPL-3.0-only », la même que QuickControls2Basic. Dépendances relevées par otool -L de QtWebEngineCore :
+# QtCore, QtGui, QtOpenGL, QtQml, QtQuick, QtNetwork, QtWebChannel, QtPositioning et le système. Chromium : voir
+# THIRD_PARTY_NOTICES.md.
+Qt6WebEngineCore
+Qt6WebEngineQuick
+Qt6WebEngineQuickDelegatesQml
+Qt6WebChannel
+Qt6WebChannelQuick
+Qt6Positioning
