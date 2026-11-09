@@ -549,6 +549,29 @@ QPointF rotateGrip(const actcraft::tools::SelectionView& view)
     return {-1e9, -1e9};
 }
 
+actcraft::ui::ToolHost* toolHostOf(const MainWindow& w)
+{
+    return w.window() ? w.window()->findChild<actcraft::ui::ToolHost*>(QStringLiteral("appTools")) : nullptr;
+}
+
+actcraft::ui::Commands* commandsOf(const MainWindow& w)
+{
+    return w.window() ? w.window()->findChild<actcraft::ui::Commands*>(QStringLiteral("commands")) : nullptr;
+}
+
+// Échantillon d'encre d'un utilisateur, tel que la vue le passe au filtre des outils de maths : sample.user
+// est posé par l'aiguillage avant le filtre (pageview.cpp, prouvé par tst_ui_pageinput).
+actcraft::input::Sample inkOf(actcraft::input::UserId user, actcraft::input::Phase phase, QPointF at)
+{
+    actcraft::input::Sample sample;
+    sample.phase = phase;
+    sample.x = at.x();
+    sample.y = at.y();
+    sample.device = actcraft::input::DeviceKind::Mouse;
+    sample.user = user;
+    return sample;
+}
+
 class TstUiMathTools : public QObject
 {
     Q_OBJECT
@@ -696,6 +719,147 @@ private slots:
         QCOMPARE(host->user().openMathTools().size(), std::size_t{1});
         tools->close(0);
         QVERIFY(host->user().openMathTools().empty());
+    }
+
+    // H11-O13 (L11-C23), plan du lot 11 : chacun ses outils de maths. Le premier ouvre la règle, le second
+    // trace le long de son bord : son trait garde ses y d'origine, alors que le même trait du premier est
+    // posé sur le bord.
+    void rulerGuidesOnlyItsOwner()
+    {
+        using actcraft::input::Phase;
+        const auto first = actcraft::input::kFirstUser;
+        const auto second = actcraft::input::kSecondUser;
+        MainWindow w;
+        QVERIFY(w.window());
+        actcraft::ui::ToolHost* host = toolHostOf(w);
+        QVERIFY(host);
+        host->setDualUsers(true);
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QCOMPARE(tools->count(), 1);
+        const double top = frameOf(*tools, 0).top();
+
+        QCOMPARE(tools->guide(inkOf(second, Phase::Press, {300, top - 4})).y, top - 4);
+        QCOMPARE(tools->guide(inkOf(second, Phase::Move, {500, top + 2})).y, top + 2);
+        QCOMPARE(tools->guide(inkOf(second, Phase::Release, {700, top + 3})).y, top + 3);
+
+        QCOMPARE(tools->guide(inkOf(first, Phase::Press, {300, top - 4})).y, top);
+        QCOMPARE(tools->guide(inkOf(first, Phase::Move, {500, top + 2})).y, top);
+        QCOMPARE(tools->guide(inkOf(first, Phase::Release, {700, top + 3})).y, top);
+
+        // Ouverte par le premier : rangée dans son état, pas dans celui du second.
+        QCOMPARE(host->user().openMathTools().size(), std::size_t{1});
+        QVERIFY(host->user(second).openMathTools().empty());
+    }
+
+    // Un appui du second, même sur le pourtour du rapporteur du premier, ne libère pas la prise en cours :
+    // le trait du premier reste sur le cercle et l'angle balayé continue d'être publié.
+    void otherUserPressKeepsTheGrip()
+    {
+        using actcraft::input::Phase;
+        const auto first = actcraft::input::kFirstUser;
+        const auto second = actcraft::input::kSecondUser;
+        MainWindow w;
+        QVERIFY(w.window());
+        actcraft::ui::ToolHost* host = toolHostOf(w);
+        QVERIFY(host);
+        host->setDualUsers(true);
+        QVERIFY(w.run(QStringLiteral("math.protractor")));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        const Dial d = dialOf(*tools, 0);
+
+        const auto held = tools->guide(inkOf(first, Phase::Press, onDial(d, 0, 3)));
+        QVERIFY(onRim(held.x, held.y, d));
+
+        const QPointF intrusion = onDial(d, 90, 3);
+        const auto ignored = tools->guide(inkOf(second, Phase::Press, intrusion));
+        QCOMPARE(ignored.x, intrusion.x());
+        QCOMPARE(ignored.y, intrusion.y());
+        tools->guide(inkOf(second, Phase::Release, intrusion));
+
+        const auto moved = tools->guide(inkOf(first, Phase::Move, onDial(d, 30, 3)));
+        QVERIFY2(onRim(moved.x, moved.y, d), "la prise du premier a survécu à l'appui du second");
+        QVERIFY2(qAbs(toolValue(*tools, "swept").toInt() - 30) <= 1, "l'angle balayé reste publié");
+        tools->guide(inkOf(first, Phase::Release, onDial(d, 30, 3)));
+    }
+
+    // La règle ouverte par le second le guide lui, et ne guide pas le premier ; chacun range les siens.
+    void secondUserRulerGuidesOnlyHim()
+    {
+        using actcraft::input::Phase;
+        const auto first = actcraft::input::kFirstUser;
+        const auto second = actcraft::input::kSecondUser;
+        MainWindow w;
+        QVERIFY(w.window());
+        actcraft::ui::ToolHost* host = toolHostOf(w);
+        actcraft::ui::Commands* commands = commandsOf(w);
+        QVERIFY(host);
+        QVERIFY(commands);
+        host->setDualUsers(true);
+        QVERIFY(commands->trigger(QStringLiteral("math.ruler"), QVariant(), 1));
+        MathToolsController* tools = mathTools(w);
+        QVERIFY(tools);
+        QCOMPARE(tools->count(), 1);
+        const double top = frameOf(*tools, 0).top();
+
+        QCOMPARE(tools->guide(inkOf(second, Phase::Press, {300, top - 4})).y, top);
+        QCOMPARE(tools->guide(inkOf(second, Phase::Release, {700, top + 3})).y, top);
+
+        QCOMPARE(tools->guide(inkOf(first, Phase::Press, {300, top - 4})).y, top - 4);
+        QCOMPARE(tools->guide(inkOf(first, Phase::Release, {700, top + 3})).y, top + 3);
+
+        QVERIFY(host->user().openMathTools().empty());
+        QCOMPARE(host->user(second).openMathTools().size(), std::size_t{1});
+        QCOMPARE(host->user(second).openMathTools().front(), QStringLiteral("math.ruler"));
+
+        // Le premier ouvre la sienne : chacun garde la sienne, fermer l'une ne touche pas l'autre.
+        QVERIFY(w.run(QStringLiteral("math.ruler")));
+        QCOMPARE(tools->count(), 2);
+        QCOMPARE(host->user().openMathTools().size(), std::size_t{1});
+        QCOMPARE(host->user(second).openMathTools().size(), std::size_t{1});
+        tools->close(0);
+        QCOMPARE(host->user().openMathTools().size(), std::size_t{1});
+        QVERIFY(host->user(second).openMathTools().empty());
+    }
+
+    // Mode à un utilisateur : l'appartenance n'existe pas, tout outil ouvert guide le seul utilisateur, y
+    // compris celui qu'avait ouvert le second avant l'extinction du mode.
+    void singleUserEveryToolGuides()
+    {
+        using actcraft::input::Phase;
+        const auto first = actcraft::input::kFirstUser;
+        const auto second = actcraft::input::kSecondUser;
+        {
+            MainWindow w;
+            QVERIFY(w.window());
+            QVERIFY(w.run(QStringLiteral("math.ruler")));
+            MathToolsController* tools = mathTools(w);
+            QVERIFY(tools);
+            const double top = frameOf(*tools, 0).top();
+            QCOMPARE(tools->guide(inkOf(first, Phase::Press, {300, top - 4})).y, top);
+            tools->guide(inkOf(first, Phase::Release, {300, top - 4}));
+            // Hors du mode, tout identifiant est le seul utilisateur (ToolHost::user).
+            QCOMPARE(tools->guide(inkOf(second, Phase::Press, {300, top - 4})).y, top);
+            tools->guide(inkOf(second, Phase::Release, {300, top - 4}));
+        }
+        {
+            MainWindow w;
+            QVERIFY(w.window());
+            actcraft::ui::ToolHost* host = toolHostOf(w);
+            actcraft::ui::Commands* commands = commandsOf(w);
+            QVERIFY(host);
+            QVERIFY(commands);
+            host->setDualUsers(true);
+            QVERIFY(commands->trigger(QStringLiteral("math.ruler"), QVariant(), 1));
+            host->setDualUsers(false);
+            MathToolsController* tools = mathTools(w);
+            QVERIFY(tools);
+            const double top = frameOf(*tools, 0).top();
+            QCOMPARE(tools->guide(inkOf(first, Phase::Press, {300, top - 4})).y, top);
+            tools->guide(inkOf(first, Phase::Release, {300, top - 4}));
+        }
     }
 
     // Translucidité du corps : kDefaultToolOpacity (100 sur 255, L7-T0), jamais opaque.

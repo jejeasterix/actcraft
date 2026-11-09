@@ -407,23 +407,9 @@ private slots:
         QVERIFY(c.grabs.holder(1) == kNobody);
     }
 
-    // Sautées : les outils de maths sont tenus par un seul état (MathToolsController n'a pas d'outils par
-    // utilisateur), hypothèse H11-O13, raccord à trancher par Jérôme. Corps prêt pour la règle :
-    // rulerBelongsToItsUserBody, dont l'ouverture passera alors par la commande des outils de maths.
-    void rulerBelongsToItsUser()
-    {
-        QSKIP("outils de maths tenus par un seul état, pas d'outils par utilisateur (H11-O13, raccord à "
-              "trancher)");
-    }
-    // Corps à écrire au raccord (H11-O13) : l'utilisateur 0 ouvre la règle par la commande des outils de
-    // maths, l'utilisateur 1 trace au stylo le long de son bord ; le trait enregistré de l'utilisateur 1
-    // garde ses points (non redressé), alors que le même trait de l'utilisateur 0 est redressé contre la
-    // règle.
-    void inkOfTheOtherNotGuided()
-    {
-        QSKIP("outils de maths tenus par un seul état, pas d'outils par utilisateur (H11-O13, raccord à "
-              "trancher)");
-    }
+    // H11-O13 (L11-C23) : les outils de maths par utilisateur sont prouvés dans tst_ui_mathtools
+    // (rulerGuidesOnlyItsOwner, otherUserPressKeepsTheGrip, secondUserRulerGuidesOnlyHim,
+    // singleUserEveryToolGuides) : MathToolsController appartient à ui/, que ce montage ne lie pas.
 
     // Un seul utilisateur : un registre posé ne change rien (mêmes appels au document, même sélection,
     // mêmes positions) ; ce qu'il tient ne le bloque pas lui-même, et tout est relâché à la fin.
@@ -449,19 +435,6 @@ private slots:
         QVERIFY(with.editor.find(1) == nullptr);
         QVERIFY(with.grabs.holder(1) == kNobody);
         QVERIFY(with.grabs.holder(3) == kNobody);
-    }
-
-private:
-    // Règle ouverte par l'utilisateur 0 : dans son état, pas dans celui de l'utilisateur 1.
-    void rulerBelongsToItsUserBody()
-    {
-        Board b;
-        // Au raccord (H11-O13) : ouvrir la règle par sa commande (math.ruler, A11) pour l'utilisateur 0.
-        b.first.user.setOpenMathTools({QStringLiteral("math.ruler")});
-        const std::vector<QString>& mine = b.first.user.openMathTools();
-        const std::vector<QString>& theirs = b.second.user.openMathTools();
-        QVERIFY(std::find(mine.begin(), mine.end(), QStringLiteral("math.ruler")) != mine.end());
-        QVERIFY(std::find(theirs.begin(), theirs.end(), QStringLiteral("math.ruler")) == theirs.end());
     }
 };
 

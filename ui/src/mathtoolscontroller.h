@@ -142,6 +142,10 @@ public:
     // dont le guide saisirait le stylo (-1 sans accroche). Aucun changement d'état.
     Q_INVOKABLE QVariantMap snapAt(QPointF pagePoint) const;
 
+    // Filtre posé sur la vue (PageView::setSampleFilter) : l'échantillon, posé sur le bord qui le guide le
+    // cas échéant. sample.user dit à qui est le trait. Public pour les essais à deux utilisateurs.
+    input::Sample guide(const input::Sample& sample);
+
 signals:
     void viewChanged();
     void toolHostChanged();
@@ -236,7 +240,6 @@ private:
         None
     };
     GuidedBy guidedBy(input::UserId user) const;
-    input::Sample guide(const input::Sample& sample);
     // Rapporteur ou compas qui tient le trait (saisi à l'appui), sinon nul.
     Entry* seizedProtractor() noexcept;
     Entry* seizedCompass() noexcept;
