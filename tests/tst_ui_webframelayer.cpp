@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QPointer>
 #include <QRegularExpression>
+#include <QTemporaryDir>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
@@ -158,6 +159,34 @@ private slots:
         QCOMPARE(
             findItem(host.root.get(), QStringLiteral("webFrameView"))->property("guardsEnabled").toBool(),
             true);
+    }
+
+    // Interdit du plan : une vue à JavaScript actif ne survit pas, cachée, au repère de blocage. Document
+    // reçu, adresse distante : gardes coupées, la vue l'ouvre ; gardes allumées, le cadre est bloqué, la vue
+    // détruite.
+    void blockedFrameKeepsNoLiveView()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QUrl file = QUrl::fromLocalFile(dir.filePath(QStringLiteral("recu.actcraft")));
+        WebFrameHost writer;
+        QVERIFY(writer.start());
+        writer.useFakeView();
+        QVERIFY(writer.frames->insertFrame({}, QStringLiteral("https://exemple.invalide/")));
+        writer.document.saveToUrl(file);
+        QTRY_VERIFY_WITH_TIMEOUT(!writer.document.isBusy(), 10000);
+        WebFrameHost reader;
+        QVERIFY(reader.start());
+        reader.useFakeView();
+        reader.document.openUrl(file);
+        QTRY_VERIFY_WITH_TIMEOUT(!reader.document.isBusy() && reader.document.fileUrl().isValid(), 10000);
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(reader.root.get(), QStringLiteral("webFrameView")), 5000);
+        QPointer<QQuickItem> first = findItem(reader.root.get(), QStringLiteral("webFrameView"));
+        QCOMPARE(first->property("guardsEnabled").toBool(), false);
+        reader.frames->setGuardsEnabled(true);
+        QTRY_COMPARE_WITH_TIMEOUT(reader.frames->blockedCount(), 1, 10000);
+        QTRY_VERIFY_WITH_TIMEOUT(first.isNull(), 5000);
+        QCOMPARE(findItem(reader.root.get(), QStringLiteral("webFrameView")), nullptr);
     }
 
     // n° 32 : une vue par cadre de la page affichée, détruite au changement de page.

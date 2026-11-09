@@ -275,6 +275,8 @@ private slots:
         QVERIFY(viewA);
         QPointer<QObject> profileA = viewA->property("profile").value<QObject*>();
         QVERIFY(profileA);
+        // Profil éphémère : rien n'est écrit sur le disque, quelle que soit sa création (n° 33).
+        QVERIFY(profileA->property("offTheRecord").toBool());
         host.document.newDocument(1024, 768);
         QVERIFY(host.frames->insertFrame(QStringLiteral("<p>B</p>"), {}));
         QTRY_VERIFY_WITH_TIMEOUT(viewA.isNull() && profileA.isNull(), 5000);
