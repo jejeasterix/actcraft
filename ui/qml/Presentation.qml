@@ -12,6 +12,7 @@ QtObject {
     property Commands commands: null
     property DocumentController documentController: null
     property Tools tools: null
+    property var profile: null
     property Item pageArea: null
     property Item pageOverlays: null
     property Item layer: null
@@ -70,7 +71,7 @@ QtObject {
         ScreenKeyboard { id: keyboardRoot; objectName: "keyboardRoot"
             commands: presentation.commands; documentController: presentation.documentController
             tools: presentation.tools; pageArea: presentation.pageArea },
-        DesktopAnnotation { id: desktopRoot; objectName: "desktopRoot"
+        DesktopAnnotation { id: desktopRoot; objectName: "desktopRoot"; profile: presentation.profile
             commands: presentation.commands; documentController: presentation.documentController
             tools: presentation.tools; pageArea: presentation.pageArea },
         OtherToolsHost { id: otherToolsRoot; objectName: "otherToolsRoot"

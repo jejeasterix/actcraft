@@ -1006,6 +1006,49 @@ WebFrameItems::Prepared WebFrameItems::prepareHtml(const QString& html, const QU
     return prepared;
 }
 
+ProfileController* WebFrameItems::profile() const noexcept
+{
+    return m_profile;
+}
+
+void WebFrameItems::setProfile(ProfileController* profile)
+{
+    if (m_profile == profile)
+        return;
+    disconnect(m_profileConnection);
+    m_profile = profile;
+    if (profile)
+        m_profileConnection =
+            connect(profile, &ProfileController::profileChanged, this, &WebFrameItems::readGuards);
+    readGuards();
+    emit profileChanged();
+}
+
+// Le seul signal disponible, `profileChanged`, part aussi pour une couleur : setGuardsEnabled ne fait rien si
+// la valeur ne change pas (cadrage n° 10).
+void WebFrameItems::readGuards()
+{
+    if (m_profile)
+        setGuardsEnabled(
+            m_profile->setting(QStringLiteral("tools"), QStringLiteral("web-frame-guards"), false).toBool());
+}
+
+void WebFrameItems::setGuardsEnabled(bool enabled)
+{
+    if (m_guardsEnabled == enabled)
+        return;
+    m_guardsEnabled = enabled;
+    for (int i = 0; i < m_rows.size(); ++i) {
+        Row& row = m_rows[i];
+        row.history.clear(); // E12 : la session du cadre est oubliée
+        row.historyIndex = -1;
+        prepareRow(row);
+        rowChanged(i);
+    }
+    emit guardsEnabledChanged();
+    emit countChanged(); // blockedCount
+}
+
 QString WebFrameItems::engineKind()
 {
 #if !ACTCRAFT_WEBFRAME

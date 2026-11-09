@@ -11,9 +11,9 @@
 #include "actcraft/ui/webpolicy.h"
 #include "support/testserver.h"
 
+#include <actcraft/actions/profilestore.h>
 #include <actcraft/core/document.h>
 #include <actcraft/core/pageedits.h>
-#include <actcraft/actions/profilestore.h>
 #include <actcraft/render/pagepainter.h>
 #include <actcraft/ui/commands.h>
 #include <actcraft/ui/preferences.h>

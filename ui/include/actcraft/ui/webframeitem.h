@@ -1,5 +1,6 @@
 #pragma once
 
+#include "actcraft/ui/profilecontroller.h"
 #include "actcraft/ui/webpolicy.h"
 
 #include <QAbstractListModel>
@@ -31,31 +32,27 @@ class DocumentController;
 
 // Cadres web de la page courante (S27, F-302), vus par WebFrameLayer.qml.
 //
-// Chaque requête du cadre passe par WebContentPolicy::decide (L8-T29), jamais
-// par une règle posée une fois dans le QML de la vue : Qt WebView 6.12 n'offre
-// ni filtre de requêtes ni décision de navigation (seuls `loadingChanged` et
-// `urlChanged`, après coup, sous WKWebView comme sous WebView2), donc la vue ne
-// reçoit jamais d'adresse à charger. Ce modèle lit lui-même la page après
-// `decide`, suit les redirections une à une (chacune décidée), puis réécrit le
-// HTML avant de le donner à la vue (`content`, chargé par `loadHtml`) : chaque
-// sous-ressource est décidée, celles qui ne passent pas sont neutralisées, une
-// règle de sécurité du contenu (CSP) n'autorise que les adresses passées, et
-// les liens deviennent des renvois internes
-// (`#actcraft-link-<n>`) que la vue rend par `followLink`, décidés à leur tour.
+// Gardes allumées (`guardsEnabled`, réglage de profil `tools/web-frame-guards`) : chaque requête du cadre
+// passe par WebContentPolicy::decide (L8-T29), jamais par une règle posée une fois dans le QML de la vue. Ce
+// modèle lit lui-même la page après `decide`, suit les redirections une à une (chacune décidée), puis réécrit
+// le HTML avant de le donner à la vue (`content`) : chaque sous-ressource est décidée, celles qui ne passent
+// pas sont neutralisées, une règle de sécurité du contenu (CSP) n'autorise que les adresses passées, et les
+// liens deviennent des renvois internes (`#actcraft-link-<n>`) que la vue rend par `followLink`, décidés à
+// leur tour. La vue est Qt WebEngine (PC, Mac) ou Qt WebView (Android) selon `engineKind`.
 //
 // Lecture d'un fichier, décodage d'une réponse et réécriture se font hors du fil de l'interface (BRIEF
 // § 4.1), sur QThreadPool::globalInstance(), avec une copie figée de la politique ; le contenu arrive par la
 // boucle d'événements (`serial` change), il est abandonné si le cadre est parti ou a changé de contenu
 // entre-temps.
 //
-// Risque résiduel accepté (Qt WebView 6.12, vérifié le 2026-11-06 sur les en-têtes installés) : la vue n'a
-// que quatre réglages (LocalStorageEnabled, JavaScriptEnabled, AllowFileAccess,
-// LocalContentCanAccessFileUrls) et aucune décision de navigation ; `urlChanged` et `loadingChanged` arrivent
-// quand la requête est partie, et `stop()` n'arrête que la suite. Une navigation que le moteur prendrait de
-// lui-même atteindrait donc le réseau une fois, sans la CSP. Elle est bornée par la réécriture : sans
-// JavaScript, seuls un lien (devenu renvoi interne), un formulaire (action retirée, `form-action 'none'`) ou
-// une balise meta (toutes retirées, la CSP ne couvrant pas `refresh`) en lancent une, et aucune de ces formes
-// ne sort de prepareHtml.
+// Risque résiduel accepté, pour la vue système d'Android (Qt WebView 6.12, vérifié le 2026-11-06 sur les
+// en-têtes installés) : elle n'a que quatre réglages (LocalStorageEnabled, JavaScriptEnabled,
+// AllowFileAccess, LocalContentCanAccessFileUrls) et aucune décision de navigation ; `urlChanged` et
+// `loadingChanged` arrivent quand la requête est partie, et `stop()` n'arrête que la suite. Une navigation
+// que le moteur prendrait de lui-même atteindrait donc le réseau une fois, sans la CSP. Elle est bornée par
+// la réécriture : sans JavaScript, seuls un lien (devenu renvoi interne), un formulaire (action retirée,
+// `form-action 'none'`) ou une balise meta (toutes retirées, la CSP ne couvrant pas `refresh`) en lancent
+// une, et aucune de ces formes ne sort de prepareHtml.
 class WebFrameItems : public QAbstractListModel
 {
     Q_OBJECT
@@ -66,8 +63,9 @@ class WebFrameItems : public QAbstractListModel
     Q_PROPERTY(int blockedCount READ blockedCount NOTIFY countChanged)
     Q_PROPERTY(bool unblockPending READ unblockPending NOTIFY unblockPendingChanged)
     Q_PROPERTY(QString documentKey READ documentKey NOTIFY documentKeyChanged)
-    Q_PROPERTY(bool engineBuilt READ engineBuilt CONSTANT)
     Q_PROPERTY(QString engineKind READ engineKind CONSTANT)
+    Q_PROPERTY(bool guardsEnabled READ guardsEnabled WRITE setGuardsEnabled NOTIFY guardsEnabledChanged)
+    Q_PROPERTY(actcraft::ui::ProfileController* profile READ profile WRITE setProfile NOTIFY profileChanged)
 
 public:
     enum Role
@@ -100,8 +98,13 @@ public:
     int blockedCount() const noexcept;
     bool unblockPending() const noexcept { return m_pendingRow >= 0; }
     QString documentKey() const { return m_key; }
-    static bool engineBuilt() noexcept { return ACTCRAFT_WEBFRAME != 0; }
     static QString engineKind();
+    // Interrupteur des gardes (clé de profil `tools/web-frame-guards`, faux par défaut) : relu au départ et à
+    // chaque `profileChanged` du profil posé.
+    bool guardsEnabled() const noexcept { return m_guardsEnabled; }
+    void setGuardsEnabled(bool enabled);
+    ProfileController* profile() const noexcept;
+    void setProfile(ProfileController* profile);
     // Conversions du HTML enregistré (std::string) en QString faites par rebuild(), depuis le début du
     // processus (fil de l'interface seulement) : la mesure que lisent les tests.
     static std::uint64_t htmlConversionCount() noexcept;
@@ -161,6 +164,8 @@ signals:
     void countChanged();
     void unblockPendingChanged();
     void documentKeyChanged();
+    void guardsEnabledChanged();
+    void profileChanged();
 
 private:
     struct Row
@@ -197,6 +202,7 @@ private:
     void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared);
     int rowOf(std::uint64_t id) const;
     void rowChanged(int row);
+    void readGuards();
     WebContentPolicy::Verdict decide(const QUrl& url) const;
 
     struct Pending
@@ -220,6 +226,9 @@ private:
     // en insère une avant elle. 0 : aucun cadre.
     std::uint64_t m_pageKey = 0;
     QVector<Row> m_rows;
+    bool m_guardsEnabled = false;
+    QPointer<ProfileController> m_profile;
+    QMetaObject::Connection m_profileConnection;
     int m_pendingRow = -1;
     Grabber m_grabber;
     QNetworkAccessManager* m_network = nullptr;

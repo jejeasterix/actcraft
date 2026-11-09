@@ -17,6 +17,7 @@ Item {
     property Commands commands: null
     property DocumentController documentController: null
     property Tools tools: null
+    property var profile: null
     property Item pageArea: null
     property QtObject controller: desktopController
 
@@ -105,6 +106,7 @@ Item {
             PageArea {
                 id: desktopArea
                 objectName: "desktopPageArea"
+                profile: root.profile
                 anchors.fill: parent
                 tools: null
                 commands: null

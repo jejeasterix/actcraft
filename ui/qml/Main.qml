@@ -388,6 +388,7 @@ Window {
 
         PageArea {
             id: pageArea
+            profile: appProfile
             Layout.fillWidth: true
             Layout.fillHeight: true
             cacheEnabled: root.cacheEnabled
@@ -1011,6 +1012,7 @@ Window {
     Presentation {
         id: presentationRoot
         objectName: "presentation"
+        profile: appProfile
         commands: appCommands
         documentController: appDocument
         tools: appTools

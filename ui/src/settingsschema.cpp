@@ -198,6 +198,11 @@ const QList<Entry>& entryTable()
                 0, 0, 2, kWorkstation),
         text("tools", "tools/calculator/program",
              QT_TRANSLATE_NOOP("SettingsSchema", "Programme de calculatrice"), kWorkstation),
+        boolean("tools", "web-frame-guards",
+                QT_TRANSLATE_NOOP(
+                    "SettingsSchema",
+                    "Cadres web : appliquer la politique de contenu (JavaScript coupé, adresses filtrées)"),
+                false),
         // Orthographe (F-930) : règles d'ignorance de L6-T33 (SpellRules), défauts du plan.
         boolean("spelling", "ignore-capitalized",
                 QT_TRANSLATE_NOOP("SettingsSchema", "Ignorer les mots à majuscule initiale"), false),

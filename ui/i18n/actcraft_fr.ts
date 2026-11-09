@@ -2450,6 +2450,10 @@
 <context>
     <name>SettingsSchema</name>
     <message>
+        <source>Cadres web : appliquer la politique de contenu (JavaScript coupé, adresses filtrées)</source>
+        <translation>Cadres web : appliquer la politique de contenu (JavaScript coupé, adresses filtrées)</translation>
+    </message>
+    <message>
         <location filename="../src/settingsschema.cpp" line="117"/>
         <source>Horloge</source>
         <translation>Horloge</translation>

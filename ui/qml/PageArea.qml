@@ -12,6 +12,7 @@ Item {
     // Lot 3 : outils de l'utilisateur ; null pour une annotation de bureau (lot 7), où la zone dessine sans eux.
     property Tools tools: null
     property Commands commands: null
+    property var profile: null
     // Lot 4 : édition du texte (TextEditing de la fenêtre) ; null pour une annotation de bureau.
     property TextEditing textEditing: null
     property bool textListOpen: false // une liste de la barre de texte est ouverte : Échap la ferme, il ne valide pas
@@ -240,6 +241,7 @@ Item {
                 WebFrameLayer {
                     z: 3
                     commands: area.commands
+                    profile: area.profile
                 }
                 MediaLayer { z: 4 }
                 ActionOverlays {

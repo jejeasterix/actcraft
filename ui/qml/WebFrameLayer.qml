@@ -5,16 +5,18 @@ import ActCraft.Ui
 // Cadres web de la page (S27, F-302) : une vue par cadre visible, chargée par un Loader, posée sur son repère, avec sa
 // barre (précédent, suivant, recharger, image fixe) et sa poignée (une étape au relâché).
 //
-// La vue ne reçoit jamais d'adresse : elle charge le HTML que WebFrameItems a lu et réécrit après la décision
-// de la politique (L8-T29), par loadHtml ; une navigation qu'elle prendrait d'elle-même est rendue au modèle
-// et arrêtée. JavaScript, accès aux fichiers et stockage local coupés. Hors de la scène que le cache
-// photographie : miniatures, exports et page fixe montrent le repère neutre de paintPage. La vue native passe
-// au-dessus de tout le QML : elle est masquée tant qu'une boîte de la fenêtre est ouverte.
+// Gardes allumées : la vue ne reçoit jamais d'adresse, elle charge le HTML que WebFrameItems a lu et réécrit
+// après la décision de la politique (L8-T29) ; une navigation qu'elle prendrait d'elle-même est rendue au
+// modèle et arrêtée. JavaScript, accès aux fichiers et stockage local coupés. Hors de la scène que le cache
+// photographie : miniatures, exports et page fixe montrent le repère neutre de paintPage. Sur Android, la vue
+// native passe au-dessus de tout le QML ; sur PC et Mac, c'est un élément de la scène, couvert par la
+// couverture ci-dessous. Dans les deux cas elle est masquée tant qu'une boîte de la fenêtre est ouverte.
 Item {
     id: frameLayer
     objectName: "webFrameLayer"
     anchors.fill: parent
     property var commands: null
+    property var profile: null
 
     // Zone de page qui porte la couche ; la vue de page s'atteint par pageArea.view (plan 8a, l. 248).
     readonly property Item pageArea: findArea()
@@ -30,7 +32,7 @@ Item {
                            : appWebFrames.engineKind === "system" ? Qt.resolvedUrl("WebFrameSystemView.qml") : ""
     property int loadedViews: 0   // vues dont une page a fini de charger (lu par les tests et le banc)
     property int snapshotCount: 0 // images fixes terminées
-    // Vue native au-dessus de tout le QML : masquée tant qu'une boîte de la fenêtre est ouverte, la
+    // Vue masquée tant qu'une boîte de la fenêtre est ouverte (la vue native d'Android passe au-dessus de tout le QML), la
     // nôtre (ci-dessous, relayée) ou toute autre (menus compris : Main.openPopups, via PageArea.inputBlocked).
     readonly property bool covered: confirm.opened || (dialog !== null && dialog.opened) ||
                                     (pageArea !== null && pageArea.inputBlocked)
@@ -38,6 +40,7 @@ Item {
     WebFrameItems {
         id: appWebFrames
         objectName: "appWebFrames"
+        profile: frameLayer.profile
         document: frameLayer.pageArea ? frameLayer.pageArea.documentController : null
     }
 
