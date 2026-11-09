@@ -21,7 +21,10 @@
 #include <actcraft/ui/webframeengine.h>
 
 #include <QByteArray>
+#include <QDir>
 #include <QElapsedTimer>
+#include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QHash>
 #include <QHostAddress>
@@ -125,6 +128,18 @@ private slots:
     void rebuildConvertsOnlyChangedHtml();
     void guardsFollowTheProfileSetting();
     void unrelatedProfileChangeReloadsNothing();
+    void guardsOffSendsNoRequest();
+    void guardsOffKeepsTypedHtmlWithTheResourceBase();
+    void heavyHtmlGoesToAFile_data();
+    void heavyHtmlGoesToAFile();
+    void heavyHtmlLeavesTheInterfaceThreadAtOnce_data();
+    void heavyHtmlLeavesTheInterfaceThreadAtOnce();
+    void escapedHtmlCountsAfterEncoding();
+    void toggleDuringHeavyWriteDropsTheFile_data();
+    void toggleDuringHeavyWriteDropsTheFile();
+    void leavingThePageDropsTheHeavyFile();
+    void viewOwnUrlsAreNotNavigations();
+    void switchingGuardsOnDropsDirectContent();
 };
 
 namespace {
@@ -1196,6 +1211,157 @@ void TstUiWebFrame::unrelatedProfileChangeReloadsNothing()
     p.profile->pushRecentTool(QStringLiteral("pen"));
     QTest::qWait(200);
     QCOMPARE(role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt(), before);
+}
+
+// E1 : gardes coupées, le modèle ne lit rien et ne bloque rien, même pour un document reçu.
+void TstUiWebFrame::guardsOffSendsNoRequest()
+{
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/page"), "<p>distant</p>");
+    Fixture f(false);
+    const QUrl address = server.url(QStringLiteral("/page"));
+    QVERIFY(f.frames.insertFrame({}, address.toString()));
+    QTRY_COMPARE(role(f.frames, 0, ui::WebFrameItems::DirectUrlRole).toUrl(), address);
+    QVERIFY(content(f.frames, 0).isEmpty());
+    QTest::qWait(200);
+    QCOMPARE(server.requests(), 0);
+    QCOMPARE(f.frames.blockedCount(), 0);
+}
+
+// n° 11 : un HTML saisi n'est pas réécrit ; base au dossier du document.
+void TstUiWebFrame::guardsOffKeepsTypedHtmlWithTheResourceBase()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString html = QStringLiteral("<script>var a=1</script><a href=\"https://exemple.invalide/\">x</a>");
+    Fixture writer(false);
+    QVERIFY(writer.frames.insertFrame(html, {}));
+    QTRY_COMPARE(content(writer.frames, 0), html);
+    QCOMPARE(role(writer.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(), QUrl());
+    Fixture reader(false);
+    QVERIFY(saveAndReopen(writer, reader, dir.filePath(QStringLiteral("a.actcraft"))));
+    QTRY_COMPARE(content(reader.frames, 0), html);
+    QCOMPARE(role(reader.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
+             QUrl::fromLocalFile(QFileInfo(dir.filePath(QStringLiteral("a.actcraft"))).absolutePath() + u'/'));
+    QCOMPARE(reader.frames.blockedCount(), 0);
+}
+
+// n° 38 : au-delà de la limite de loadHtml, un fichier temporaire ; en dessous, aucun.
+void TstUiWebFrame::heavyHtmlGoesToAFile_data()
+{
+    QTest::addColumn<bool>("guards");
+    QTest::newRow("gardes coupees") << false;
+    QTest::newRow("gardes allumees") << true;
+}
+
+void TstUiWebFrame::heavyHtmlGoesToAFile()
+{
+    QFETCH(bool, guards);
+    Fixture f(guards);
+    const QString heavy = QStringLiteral("<title>GROS</title><body>") + QString(3 * 1024 * 1024, u'a');
+    QVERIFY(f.frames.insertFrame(heavy, {}));
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool() &&
+                                 !content(f.frames, 0).isEmpty(),
+                             60000);
+    const QUrl file = role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl();
+    QVERIFY2(file.isLocalFile(), qPrintable(file.toString()));
+    QVERIFY(QFileInfo::exists(file.toLocalFile()));
+    QVERIFY(!f.frames.followLink(0, file)); // le fichier est à la vue, pas une navigation
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>court</p>"), {}));
+    QTRY_VERIFY(content(f.frames, 1).contains(QStringLiteral("court")));
+    QVERIFY(role(f.frames, 1, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty());
+}
+
+void TstUiWebFrame::heavyHtmlLeavesTheInterfaceThreadAtOnce_data()
+{
+    heavyHtmlGoesToAFile_data();
+}
+
+// BRIEF § 4.1 : compter et écrire 3 Mo sur le fil de l'interface gèlerait la boucle. Le pool retenu (PoolGate), rien
+// ne peut être écrit au retour de insertFrame ; un fichier écrit dans prepareRow serait déjà là, cadre déjà prêt.
+void TstUiWebFrame::heavyHtmlLeavesTheInterfaceThreadAtOnce()
+{
+    QFETCH(bool, guards);
+    Fixture f(guards);
+    PoolGate gate;
+    gate.close();
+    QTRY_VERIFY(gate.closed());
+    QVERIFY(f.frames.insertFrame(QString(3 * 1024 * 1024, u'a'), {}));
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool());
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty());
+    QVERIFY(content(f.frames, 0).isEmpty());
+    gate.release();
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty(), 60000);
+    QVERIFY(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool());
+}
+
+// Un `<` encodé tient trois octets : 1 Mo de `<` dépasse la limite, 1 Mo de lettres non (n° 38).
+void TstUiWebFrame::escapedHtmlCountsAfterEncoding()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(QString(1024 * 1024, u'<'), {}));
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty(), 30000);
+    QVERIFY(f.frames.insertFrame(QString(1024 * 1024, u'a'), {}));
+    QTRY_VERIFY_WITH_TIMEOUT(!content(f.frames, 1).isEmpty(), 30000);
+    QVERIFY(role(f.frames, 1, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty());
+}
+
+void TstUiWebFrame::toggleDuringHeavyWriteDropsTheFile_data()
+{
+    QTest::addColumn<bool>("guards");
+    QTest::newRow("coupees vers allumees") << false;
+    QTest::newRow("allumees vers coupees") << true;
+}
+
+// Review Focus 2 (n° 10, n° 38) : réglage basculé pendant l'écriture : résultat périmé abandonné, fichier retiré.
+// Dans les deux sens : chaque chemin a son jeton, chacun doit retirer le fichier d'un résultat périmé.
+void TstUiWebFrame::toggleDuringHeavyWriteDropsTheFile()
+{
+    QFETCH(bool, guards);
+    Fixture f(guards);
+    QVERIFY(f.frames.insertFrame(QString(3 * 1024 * 1024, u'a'), {}));
+    f.frames.setGuardsEnabled(!guards); // avant la fin de l'écriture : la boucle d'événements n'a pas tourné
+    QVERIFY(QThreadPool::globalInstance()->waitForDone(60000));
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool(), 60000);
+    QTest::qWait(100);
+    const QDir folder(
+        QFileInfo(role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().toLocalFile()).absolutePath());
+    QCOMPARE(folder.entryList(QDir::Files).size(), qsizetype(1)); // le seul fichier est celui du contenu courant
+}
+
+// Une ligne qui part (autre page) emporte son fichier : sinon 3 Mo de plus à chaque aller-retour, jusqu'à la fermeture.
+void TstUiWebFrame::leavingThePageDropsTheHeavyFile()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(QString(3 * 1024 * 1024, u'a'), {}));
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty(), 60000);
+    const QString path = role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().toLocalFile();
+    QVERIFY(QFile::exists(path));
+    f.document.nextPage();
+    QCOMPARE(f.document.currentIndex(), 1);
+    QCOMPARE(f.frames.count(), 0);
+    QVERIFY(!QFile::exists(path));
+}
+
+void TstUiWebFrame::viewOwnUrlsAreNotNavigations()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>a</p>"), {}));
+    QTRY_VERIFY(content(f.frames, 0).contains(QStringLiteral("a")));
+    QVERIFY(!f.frames.followLink(0, QUrl(QStringLiteral("data:text/html,x#haut"))));
+    QVERIFY(!f.frames.followLink(0, QUrl(QStringLiteral("about:blank"))));
+}
+
+// Gardes rallumées : ni l'adresse ni le HTML brut ne restent, le temps de la lecture par le modèle (n° 12).
+void TstUiWebFrame::switchingGuardsOnDropsDirectContent()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame({}, QStringLiteral("https://exemple.invalide/")));
+    QVERIFY(!role(f.frames, 0, ui::WebFrameItems::DirectUrlRole).toUrl().isEmpty());
+    f.frames.setGuardsEnabled(true);
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::DirectUrlRole).toUrl().isEmpty());
+    QVERIFY(content(f.frames, 0).isEmpty());
 }
 
 int main(int argc, char** argv)
