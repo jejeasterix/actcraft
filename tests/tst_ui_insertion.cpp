@@ -504,7 +504,8 @@ private slots:
         ui::Insertion insertion;
         insertion.setDocument(&controller);
         QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
-        const QUrl url = QUrl::fromEncoded(QByteArray("data:image/png,") + pngBytes(10, 10).toPercentEncoding());
+        const QUrl url =
+            QUrl::fromEncoded(QByteArray("data:image/png,") + pngBytes(10, 10).toPercentEncoding());
         QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {50, 50}));
         QTRY_COMPARE(inserted.count(), 1);
         QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
@@ -773,8 +774,7 @@ private slots:
         frames.setGuardsEnabled(true);
         frames.setDocument(&controller);
         QVERIFY(frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
-        QCOMPARE(frames.decideAddress(server.url(QStringLiteral("/i"))),
-                 ui::WebContentPolicy::Verdict::Load);
+        QCOMPARE(frames.decideAddress(server.url(QStringLiteral("/i"))), ui::WebContentPolicy::Verdict::Load);
         ui::Insertion insertion;
         insertion.setDocument(&controller);
         insertion.setWebFrames(&frames);

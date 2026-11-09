@@ -553,7 +553,11 @@ bool Insertion::insertDataUrl(const QUrl& url, QPointF center)
     QByteArray payload = QByteArray::fromPercentEncoding(encoded.mid(comma + 1));
     if (encoded.left(comma).endsWith(";base64"))
         payload = QByteArray::fromBase64(payload);
-    if (payload.isEmpty() || payload.size() > WebImageFetch::kMaxBytes)
+    if (payload.size() > WebImageFetch::kMaxBytes) {
+        emit failed(tr("Image trop lourde (plus de 25 Mo)."));
+        return true; // refus déjà annoncé
+    }
+    if (payload.isEmpty())
         return false;
     InsertionJob job;
     job.url = url;
@@ -590,9 +594,9 @@ bool Insertion::acceptWebDrop(const QVariantList& urls, const QString& text, con
         } else if (scheme == QLatin1String("blob")) {
             emit failed(unsupported);
             handled = true;
-        } else {
+        } else if (url.isLocalFile() || scheme.isEmpty()) {
             local.append(url);
-        }
+        } // autre schéma (mailto:, ftp:…) : seul le texte du dépôt compte (n° 26)
     }
     if (handled) {
         if (!local.isEmpty())
