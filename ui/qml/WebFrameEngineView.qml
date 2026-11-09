@@ -42,9 +42,10 @@ Item {
         root.viewReported(web.url, web.canGoBack, web.canGoForward, web.title, web.loading)
     }
 
+    // Prototype sans storageName : profil éphémère neuf à chaque création (instance()), détruit avec cette vue.
     Component {
         id: guardedProfile
-        WebEngineProfile {}
+        WebEngineProfilePrototype {}
     }
 
     WebEngineView {
@@ -52,11 +53,14 @@ Item {
         objectName: "webFrameEngine"
         anchors.fill: parent
         // Gardes allumées : profil neuf et éphémère par vue (H8-13) ; sinon le profil par défaut, éphémère lui aussi.
-        profile: root.guardsEnabled ? guardedProfile.createObject(root) : WebEngine.defaultProfile
+        profile: root.guardsEnabled ? guardedProfile.createObject(root).instance() : WebEngine.defaultProfile
         settings.javascriptEnabled: !root.guardsEnabled
         settings.localStorageEnabled: !root.guardsEnabled
         settings.localContentCanAccessFileUrls: !root.guardsEnabled
         settings.localContentCanAccessRemoteUrls: !root.guardsEnabled
+        // E8 : une fenêtre surgissante reste dans le cadre ; les permissions de la page sont refusées.
+        onNewWindowRequested: function (request) { web.url = request.requestedUrl }
+        onPermissionRequested: function (permission) { permission.deny() }
         onUrlChanged: {
             if (root.guardsEnabled)
                 root.navigationTaken(url)

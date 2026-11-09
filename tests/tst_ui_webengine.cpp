@@ -331,13 +331,19 @@ private slots:
         TestServer server;
         QVERIFY(server.listening());
         server.page(QStringLiteral("/f.bin"), "x");
+        // Vraie réponse de téléchargement : depuis un document sans origine, un <a download> seul serait
+        // suivi comme un lien (attribut ignoré hors de la même origine) et le test ne prouverait rien.
+        server.header(QStringLiteral("/f.bin"), "Content-Disposition: attachment; filename=f.bin");
         DirectView view;
         QVERIFY(view.start(false));
         QSignalSpy loaded(view.root.get(), SIGNAL(pageLoaded()));
         view.load(
-            QStringLiteral("<title>RESTE</title><a id=l download href=\"%1\">x</a><script>l.click()</script>")
+            QStringLiteral(
+                "<title>RESTE</title><a id=l download "
+                "href=\"%1\">x</a><script>onload=function(){setTimeout(function(){l.click()},0)}</script>")
                 .arg(server.url(QStringLiteral("/f.bin")).toString()));
         QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
+        QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 1, 10000); // le téléchargement a bien été demandé
         QTest::qWait(500);
         QCOMPARE(view.title(), QStringLiteral("RESTE"));
     }

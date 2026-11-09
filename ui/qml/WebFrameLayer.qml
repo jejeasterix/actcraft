@@ -132,6 +132,7 @@ Item {
     }
 
     Repeater {
+        id: frames
         model: appWebFrames
         delegate: Item {
             id: frame
@@ -142,6 +143,8 @@ Item {
             required property bool loading
             required property string content
             required property url baseUrl
+            required property url directUrl
+            required property url contentFile
             required property string title
             required property bool canGoBack
             required property bool canGoForward
@@ -150,7 +153,8 @@ Item {
             // Glisser de la poignée : aperçu sans étape ; l'étape part au relâché.
             property point resizeBy: Qt.point(0, 0)
             readonly property rect box: frameLayer.frameRect(bounds)
-            readonly property bool showsView: !blocked && !refused && content.length > 0
+            readonly property bool showsView: !blocked && !refused && (content.length > 0 || directUrl.toString().length > 0)
+            readonly property var webView: viewHost.webView
             x: box.x
             y: box.y
             width: Math.max(24, box.width + resizeBy.x)
@@ -163,6 +167,10 @@ Item {
                 clip: true
                 visible: frame.showsView && !(frameLayer.covered && loader.item !== null && loader.item.overlaysScene)
                 property bool reported: false
+                // Réglage pour lequel la vue a été créée. Un autre document : le modèle est remis à zéro (rebuild), le
+                // délégué et sa vue sont recréés, donc un profil neuf par document (H8-13).
+                property bool madeGuards: false
+                readonly property var webView: loader.status === Loader.Ready ? loader.item : null
 
                 Loader {
                     id: loader
@@ -191,6 +199,9 @@ Item {
                         frameLayer.loadedViews += 1
                         console.info("ACTCRAFT CADRE WEB CHARGE")
                     }
+                    function onViewReported(pageUrl, canBack, canForward, pageTitle, pageLoading) {
+                        appWebFrames.reportView(frame.index, pageUrl, canBack, canForward, pageTitle, pageLoading)
+                    }
                 }
                 function deliver() {
                     if (loader.status !== Loader.Ready || !frame.showsView)
@@ -198,18 +209,39 @@ Item {
                     const view = loader.item
                     view.html = frame.content
                     view.baseUrl = frame.baseUrl
+                    view.directUrl = frame.directUrl
+                    view.contentFile = frame.contentFile
                     view.serial = frame.serial
                     view.load()
                 }
                 function show() {
+                    const guards = appWebFrames.guardsEnabled
+                    // Profil et JavaScript ne se changent pas à chaud (n° 10, 33) ; avant le test de showsView : une
+                    // vue active ne survit pas, cachée, au passage d'un cadre au repère de blocage.
+                    if (loader.status !== Loader.Null && madeGuards !== guards)
+                        loader.source = ""
                     if (!frame.showsView || frameLayer.viewSource.toString() === "")
                         return
                     if (loader.status === Loader.Null) {
-                        viewHost.reported = false
-                        loader.setSource(frameLayer.viewSource, { guardsEnabled: true }) // T5 : réglage réel
+                        madeGuards = guards
+                        reported = false
+                        loader.setSource(frameLayer.viewSource, { guardsEnabled: guards })
                         return
                     }
                     deliver()
+                }
+            }
+            Connections {
+                target: appWebFrames
+                function onViewCommand(row, action) {
+                    if (row !== frame.index || !viewHost.webView)
+                        return
+                    if (action === "back")
+                        viewHost.webView.goBack()
+                    else if (action === "forward")
+                        viewHost.webView.goForward()
+                    else if (action === "reload")
+                        viewHost.webView.reload()
                 }
             }
             // Reporté : dataChanged sans rôles notifie les rôles un à un, dans un ordre non garanti ; quand `serial`
