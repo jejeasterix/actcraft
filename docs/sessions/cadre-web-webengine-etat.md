@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 2/18 tâches terminées
+Avancement : 3/18 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T14 — Étape setting du joueur et scénario cadre-web — depuis 2026-11-09 20:26
+Tâche : T15 — Licences et notices de Qt WebEngine — depuis 2026-11-09 20:51
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -38,7 +38,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 |----|--------|----------|------|--------|---------------------|----------------|
 | T1 | — | concepteur-critique | terminée | 1/3 | ccb45113 | 332/332 ; `realFrameLoadsThroughTheLoader`, `contractsMatch` PASS ; revue : 0 bloquant, 0 majeur |
 | T2 | T1 | implementeur-tdd | terminée | 1/3 | 060684b6 | 332, seul rouge linklauncher préexistant ; guardsFollowTheProfileSetting, desktopLayerFollowsTheSetting PASS |
-| T14 | T1 | implementeur-tdd | à faire | 0/3 | — | — |
+| T14 | T1 | implementeur-tdd | terminée | 1/3 | 766f1b1d | 332/332 ; settingStepIsParsed PASS ; SCENARIO OK (boucle 237 ms, informatif) |
 | T15 | T1 | implementeur-tdd | à faire | 0/3 | — | — |
 | T3 | T2, T14 | concepteur-critique | à faire | 0/3 | — | — |
 | T4 | T3 | implementeur-tdd | à faire | 0/3 | — | — |
