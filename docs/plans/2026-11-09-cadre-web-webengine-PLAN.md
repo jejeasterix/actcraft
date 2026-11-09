@@ -30,7 +30,7 @@
 | T12 | Récepteur de dépôt sur la page | T8, T11 | ui/qml/WebFrameLayer.qml, ui/qml/PageArea.qml, ui/qml/Main.qml, tests/tst_ui_webdrop.cpp, tests/tst_ui_desktop.cpp, tests/ui.cmake | partagé | implementeur-tdd | tst_ui_webdrop ≥ 5 tests, `droppedRemoteImageSurvivesReopening` PASS ; suite complète ; JSON du banc | S1 | #tache-t12 |
 | T13 | Copier la sélection du cadre | T12 | ui/qml/WebFrameLayer.qml, ui/qml/PageArea.qml, ui/qml/Main.qml, tests/tst_ui_webengine.cpp, tests/tst_ui_shell.cpp | partagé | implementeur-tdd | tst_ui_webengine `editCopyCopiesTheSelection`, `inputFieldKeepsPaste` PASS ; tst_ui_shell `editCopyWithoutFocusedFrameCopiesObjects` PASS ; suite complète | S1 | #tache-t13 |
 | T16 | Paquet Mac et essai de l'image | T13, T15 | scripts/paquet-mac.sh, scripts/essai-dmg.sh, app/startup.h, app/startup.cpp, tests/tst_app_open.cpp | partagé | concepteur-critique | tst_app_open `parsesWebFrameProbe` PASS ; `DMG OK` ; `ESSAI DMG OK` avec `CADRE WEB OK` | S4 | #tache-t16 |
-| T17 | Modules de la CI et APK sans WebEngine | T13 | .github/workflows/ci.yml, .github/workflows/preuves-windows.yml | isolé | implementeur-tdd | `APK OK` ; `unzip -l` : greffon `QtWebView` présent, aucun `QtWebEngine` | S5 | #tache-t17 |
+| T17 | Modules de la CI et APK sans WebEngine | T13 | .github/workflows/ci.yml, .github/workflows/preuves-windows.yml | isolé | implementeur-tdd | `APK OK` ; `unzip -l` : `libqml_QtWebView_` présent, aucun `WebEngine` ; sinon Reste PC 9 écrit (chaîne Android seulement) | S5 | #tache-t17 |
 | T18 | Mesures avant/après et preuve finale | T16, T17 | docs/mesures/2026-11-09-cadre-web-webengine.md | partagé | implementeur-tdd | `.dmg` avant et après ; `ESSAI DMG OK` ; relevé H.264 ; suite complète | S4 | #tache-t18 |
 
 **Vagues** (dans cet ordre) : T1 · T2 · T14 · T15 · T3 · T4 · T9 · T10 · T11 · T5 · T6 · T7 · T8 · T12 · T13 · T16 + T17 · T18.
@@ -47,7 +47,7 @@
 - `core/`, `formats/`, `actions/` modifiés ont leurs tests (aucune tâche de ce plan n'y touche) ; tâche d'interface : test de chargement, et JSON du banc hors écran si le banc tourne sur Mac (`scripts/bench.sh --rendu logiciel --hors-ecran`).
 - Le code ne contient aucun nom repris d'un produit existant ; aucune ressource de Promethean.
 - Commits en français, chemins explicites, jamais `git add -A`, `.` ni `commit -a`, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. `graphify-out/` n'est mis à jour qu'à la clôture, par l'orchestrateur.
-- Banc de `ui/` : résultat, pas porte (cadrage n° 36). Pour le coût machine, il tourne sur les tâches qui changent la scène ou l'entrée (T1, T5, T7, T12) et à T18, pas sur les tâches du modèle.
+- Banc de `ui/` : résultat, pas porte (cadrage n° 36). Décision de l'orchestrateur, pour le coût machine : il tourne sur T1, T5, T7, T12 et T18. T6, T8 et T13 touchent le QML du cadre, pas le chemin d'encre de la page, et T18 mesure le cumul ; les autres tâches de `ui/` ne changent ni la scène ni l'entrée.
 
 ## Review Focus
 
@@ -82,7 +82,9 @@
 - ligne 289 (`aqt` Mac) ;
 - ligne 314 (`modules=` du repli Mac mini).
 
-Commentaires à relire : lignes 273, 294, 312, 339. Lignes 415-416 (hôte et Android) : rien à changer. T18 recopie cette liste dans `docs/mesures/2026-11-09-cadre-web-webengine.md`.
+Commentaires à relire : lignes 273, 294, 312, 339. Lignes 415-416 (hôte et Android) : rien à changer.
+
+Voie `aqt` du paquet Mac (lignes 289, 291, 343) : `scripts/paquet-mac.sh` prend alors les frameworks dans `$ACTCRAFT_QT_DIR/lib`, d'où les trois modules ci-dessus. Il n'y a pas de formule Homebrew, donc pas de `LICENSE.Chromium` : le script écrit ce fichier à partir de `LICENSES/BSD-3-Clause.txt` et de la ligne de copyright de Chromium. Rien d'autre à ajouter pour cela. T18 recopie cette liste dans `docs/mesures/2026-11-09-cadre-web-webengine.md`.
 
 ## Restes pour le PC et pour Jérôme
 
@@ -115,7 +117,7 @@ Listés au cadrage, section 7 (PC 1 à 8, R1 à R3). Aucune tâche de ce plan ne
 mkdir -p .tmp
 node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T1 --attente-secondes 3000 --commande "cmake -S . -B build-mac && cmake --build build-mac -j2"
 node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T1 --attente-secondes 3000 --commande "QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac -R '^tst_ui_(webengine|webframelayer|webframe)$' --output-on-failure --timeout 300 -V > .tmp/t1.txt 2>&1"
-grep -E 'PASS   : TstUiWebEngine::realFrameLoadsThroughTheLoader|PASS   : TstUiWebFrameLayer::contractsMatch|^Totals:|tests passed|tests failed' .tmp/t1.txt
+grep -E 'PASS   : TstUiWebEngine::realFrameLoadsThroughTheLoader|PASS   : TstUiWebFrameLayer::contractsMatch|Totals:|tests passed|tests failed' .tmp/t1.txt
 ```
 Motif attendu : les deux lignes `PASS`, aucun `tests failed`, `Totals:` avec au moins 1 passé par fichier.
 
@@ -351,6 +353,20 @@ QString source(const char* relative)
 class TstUiWebFrameLayer : public QObject
 {
     Q_OBJECT
+public slots:
+    // Review Focus 1 : contenu changé pendant le chargement du Loader. Slot public : Qt Test ne lance que les privés.
+    void reloadWhileTheLoaderLoads()
+    {
+        if (!m_frames || m_reloaded || sender()->property("status").toInt() != 2 /* Loader.Loading */)
+            return;
+        m_reloaded = true;
+        m_frames->reload(0);
+    }
+
+private:
+    actcraft::ui::WebFrameItems* m_frames = nullptr;
+    bool m_reloaded = false;
+
 private slots:
     // Le contrat vit en QML, sans contrôle du compilateur (DA1) : les trois composants sont comparés.
     void contractsMatch()
@@ -374,21 +390,30 @@ private slots:
         QVERIFY(view->property("html").toString().contains(QStringLiteral("bonjour")));
     }
 
-    // Review Focus 1 (cadrage n° 5) : la vue reçoit le dernier contenu, pas celui du premier changement.
+    // Review Focus 1 (cadrage n° 5) : `serial` avance alors que le Loader charge ; la vue reçoit le dernier contenu.
     void deliversTheLatestSerialAtReady()
     {
         WebFrameHost host;
         QVERIFY(host.start());
         host.useFakeView();
+        // Gardes allumées : reload avance `serial` ; gardes coupées, il part à la vue (T4). À T1 la propriété
+        // n'existe pas encore (dynamique, sans effet) : le modèle n'a que ce chemin.
+        host.frames->setProperty("guardsEnabled", true);
+        m_frames = host.frames;
+        m_reloaded = false;
         QVERIFY(host.frames->insertFrame(QStringLiteral("<p>a</p>"), {}));
-        host.frames->reload(0);
-        host.frames->reload(0);
+        // Trouvé sans tourner la boucle : le contenu du modèle, livré par elle, n'a pas pu lancer le Loader.
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameLoader")), 5000);
+        connect(findItem(host.root.get(), QStringLiteral("webFrameLoader")), SIGNAL(statusChanged()), this,
+                SLOT(reloadWhileTheLoaderLoads()));
+        QTRY_VERIFY_WITH_TIMEOUT(m_reloaded, 5000);
         QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
         QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
         const QModelIndex row = host.frames->index(0, 0);
         QTRY_COMPARE(view->property("serial").toInt(),
                      host.frames->data(row, actcraft::ui::WebFrameItems::SerialRole).toInt());
         QVERIFY(view->property("_loads").toInt() >= 1);
+        m_frames = nullptr;
     }
 };
 
@@ -857,16 +882,20 @@ Dans le gestionnaire `webframe.snapshot` (ligne 113), ajouter `frameLayer.snapsh
                       "settings.localContentCanAccessRemoteUrls: false }",
                       QUrl());
 ```
-Lignes 866-867 : sur Mac le moteur est présent, plus de saut silencieux :
+Sur Mac le moteur est présent : aucun des trois sauts du test (lignes 851-852, 857-858, 866-867) ne reste. Ailleurs, ces sauts nommés demeurent. Au-dessus de la fonction :
 
 ```cpp
 #ifdef Q_OS_MACOS
-    QVERIFY2(loaded, "le moteur n'a demandé aucune sous-ressource");
+#define ACTCRAFT_ENGINE_REQUIRED(ok) QVERIFY2(ok, "moteur web absent sur Mac")
 #else
-    if (!loaded)
-        QSKIP("moteur web indisponible hors écran");
+#define ACTCRAFT_ENGINE_REQUIRED(ok)                                                                         \
+    do {                                                                                                     \
+        if (!(ok))                                                                                           \
+            QSKIP("moteur web indisponible hors écran");                                                      \
+    } while (false)
 #endif
 ```
+Remplacer chaque saut par, dans l'ordre : `ACTCRAFT_ENGINE_REQUIRED(!component.isError());`, `ACTCRAFT_ENGINE_REQUIRED(view != nullptr);`, `ACTCRAFT_ENGINE_REQUIRED(loaded);`.
 
 - [ ] **Étape 11 : vérifier le vert.** Commande bornée ci-dessus. Attendu : `PASS` des deux tests nommés. Si `import QtWebEngine` échoue hors écran en rendu logiciel, ne pas contourner : remonter à l'orchestrateur avec le message exact (hypothèse du cadrage démentie).
 
@@ -1334,7 +1363,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Objectif.** Gardes coupées, le modèle ne lit plus la page : l'adresse part telle quelle à la vue, un HTML saisi aussi, avec la base des ressources du document ; au-delà de la limite de `loadHtml`, un fichier temporaire, gardes coupées ou allumées (cadrage n° 11, 38, E1, E11).
 
-**Fichiers.** Modifier : `ui/include/actcraft/ui/webframeitem.h:88-94,170-190`, `ui/src/webframeitem.cpp:30-45,1057-1069,1222-1288,1464-1505,1585-1612`, `tests/tst_ui_webframe.cpp`.
+**Fichiers.** Modifier : `ui/include/actcraft/ui/webframeitem.h:88-94,170-190`, `ui/src/webframeitem.cpp:30-45,1057-1069,1222-1288,1304-1317,1464-1505,1585-1612`, `tests/tst_ui_webframe.cpp`.
 
 **Interfaces.**
 - Consomme : T2 : `guardsEnabled()`, `Fixture(bool guards = true)`.
@@ -1354,7 +1383,7 @@ grep -E 'PASS   : .*(guardsOffSendsNoRequest|heavyHtmlGoesToAFile|toggleDuringHe
 - Aucun nom repris d'un produit existant ; aucune ressource de Promethean.
 - Commits en français, chemins explicites, jamais `git add -A`, `.` ni `commit -a`, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Pas de mise à jour de `graphify-out/`.
 
-**Interdits.** Ne pas changer `prepareHtml`, `navigate`, `fetch`, `fetched` ni `kMaxBody`. Aucune écriture de fichier ni calcul de taille sur le fil de l'interface pour un HTML long (BRIEF § 4.1).
+**Interdits.** Ne pas changer `prepareHtml`, `fetch`, `fetched` ni `kMaxBody` ; dans `navigate`, seules les branches `Blocked` et `Refuse` changent (étape 6). Aucune écriture de fichier ni calcul de taille sur le fil de l'interface pour un HTML long (BRIEF § 4.1).
 
 **Patron à ne pas reprendre.** Calculer `toPercentEncoding` puis écrire le fichier dans `prepareRow`, sur le fil de l'interface : 3 Mo y bloqueraient la boucle. Et traiter seulement le chemin gardes coupées : le chemin gardes allumées (`ui/src/webframeitem.cpp:1245-1288`) a la même limite, avec son jeton `preparing` qu'il faut respecter dans les deux cas.
 
@@ -1689,7 +1718,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Test et commande bornée.**
 ```bash
 node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T4 --attente-secondes 3000 --commande "cmake --build build-mac -j2 && QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac -R '^tst_ui_webframe$' --output-on-failure --timeout 300 -V > .tmp/t4.txt 2>&1"
-grep -E 'PASS   : .*(reportFillsTitleAndHistory|guardsOffCommandsGoToTheView)|^Totals:|tests passed|tests failed' .tmp/t4.txt
+grep -E 'PASS   : .*(reportFillsTitleAndHistory|guardsOffCommandsGoToTheView)|Totals:|tests passed|tests failed' .tmp/t4.txt
 ```
 
 **Contraintes (recopiées).**
@@ -1820,12 +1849,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Interfaces.**
 - Consomme : `WebContentPolicy::Verdict` (`webpolicy.h`) ; T1 : `TestServer` (`rawResponse`, `redirect`, `page`).
-- Produit : `class WebImageFetch final : public QObject` ; `using Decide = std::function<WebContentPolicy::Verdict(const QUrl&)>;` ; `static constexpr qint64 kMaxBytes = 25 * 1024 * 1024;` ; `void start(const QUrl& url, Decide decide = {});` ; `void cancel();` ; signal `void finished(const QByteArray& data, const QString& error);` (`error` vide : succès).
+- Produit : `class WebImageFetch final : public QObject` ; `using Decide = std::function<WebContentPolicy::Verdict(const QUrl&)>;` ; `static constexpr qint64 kMaxBytes = 25 * 1024 * 1024;` ; `void start(const QUrl& url, Decide decide = {});` ; signal `void finished(const QByteArray& data, const QString& error);` (`error` vide : succès).
 
 **Test et commande bornée.**
 ```bash
 node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T9 --attente-secondes 3000 --commande "cmake -S . -B build-mac && cmake --build build-mac -j2 && QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac -R '^tst_ui_webimagefetch$' --output-on-failure --timeout 300 -V > .tmp/t9.txt 2>&1"
-grep -E 'PASS   : .*(fetchesTheBytes|oversizeWithoutLengthIsRefused|policyRefusesARedirect)|^Totals:|tests passed|tests failed' .tmp/t9.txt
+grep -E 'PASS   : .*(fetchesTheBytes|oversizeWithoutLengthIsRefused|policyRefusesARedirect)|Totals:|tests passed|tests failed' .tmp/t9.txt
 ```
 Motif : trois `PASS` nommés, `Totals:` ≥ 7 passés (`initTestCase` et `cleanupTestCase` compris).
 
@@ -1837,7 +1866,7 @@ Motif : trois `PASS` nommés, `Totals:` ≥ 7 passés (`initTestCase` et `cleanu
 - Aucun nom repris d'un produit existant ; aucune ressource de Promethean.
 - Commits en français, chemins explicites, jamais `git add -A`, `.` ni `commit -a`, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Pas de mise à jour de `graphify-out/`.
 
-**Interdits.** Ni `core/` ni `formats/` (`readUrl` reste sans réseau). Aucun décodage ici. Pas de cookies partagés avec le moteur (H6).
+**Interdits.** Ni `core/` ni `formats/` (`readUrl` reste sans réseau). Pas d'annulation en cours de transfert : l'abandon (n° 27) se décide à l'arrivée, dans `Insertion` (T10), comme pour le décodage. Aucun décodage ici. Pas de cookies partagés avec le moteur (H6).
 
 **Critère « terminé ».** Tests verts, suite complète sans autre rouge que `tst_ui_linklauncher`, commit fait.
 
@@ -1972,21 +2001,6 @@ private slots:
         QVERIFY(!run.error().isEmpty());
         QVERIFY(!server.paths().contains(QStringLiteral("/autre")));
     }
-
-    void cancelStaysSilent()
-    {
-        TestServer server;
-        QVERIFY(server.listening());
-        server.hold(QStringLiteral("/lent"));
-        server.page(QStringLiteral("/lent"), "x");
-        Run run;
-        run.fetch.start(server.url(QStringLiteral("/lent")));
-        QTRY_COMPARE(server.requests(), 1);
-        run.fetch.cancel();
-        QTest::qWait(200);
-        QCOMPARE(run.finished.count(), 0);
-        server.release();
-    }
 };
 
 QTEST_MAIN(TstUiWebImageFetch)
@@ -2009,7 +2023,6 @@ actcraft_add_test(tst_ui_webimagefetch
 
 #include <QByteArray>
 #include <QObject>
-#include <QPointer>
 #include <QString>
 #include <QUrl>
 
@@ -2033,7 +2046,6 @@ public:
 
     explicit WebImageFetch(QObject* parent = nullptr);
     void start(const QUrl& url, Decide decide = {});
-    void cancel();
 
 signals:
     void finished(const QByteArray& data, const QString& error); // error vide : succès
@@ -2044,7 +2056,6 @@ private:
     void fail(const QString& error);
 
     QNetworkAccessManager* m_network = nullptr;
-    QPointer<QNetworkReply> m_reply;
     Decide m_decide;
     int m_redirects = 0;
     bool m_tooLarge = false;
@@ -2087,16 +2098,6 @@ void WebImageFetch::start(const QUrl& url, Decide decide)
     request(url);
 }
 
-void WebImageFetch::cancel()
-{
-    if (!m_reply)
-        return;
-    m_reply->disconnect(this);
-    m_reply->abort();
-    m_reply->deleteLater();
-    m_reply = nullptr;
-}
-
 void WebImageFetch::request(const QUrl& url)
 {
     if (!m_network)
@@ -2107,7 +2108,6 @@ void WebImageFetch::request(const QUrl& url)
     request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
     request.setTransferTimeout(kTimeoutMs);
     QNetworkReply* reply = m_network->get(request);
-    m_reply = reply;
     connect(reply, &QNetworkReply::downloadProgress, this, [this, reply](qint64 received, qint64) {
         if (received > kMaxBytes) {
             m_tooLarge = true;
@@ -2120,7 +2120,6 @@ void WebImageFetch::request(const QUrl& url)
 void WebImageFetch::answered(QNetworkReply* reply)
 {
     reply->deleteLater();
-    m_reply = nullptr;
     if (m_tooLarge) {
         fail(tr("Image trop lourde (plus de 25 Mo)."));
         return;
@@ -2319,6 +2318,23 @@ Dans la classe de tests :
         QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/absent"))}, QStringLiteral("x"), {}, {1, 1}));
         QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 10000);
         QVERIFY(!insertion.isBusy());
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    // S2, n° 25 : plus de 25 Mo : message, document inchangé.
+    void webDropOfOversizeFails()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/gros.png"), QByteArray(int(ui::WebImageFetch::kMaxBytes) + 1024, 'x'));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/gros.png"))}, QStringLiteral("x"), {}, {1, 1}));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 30000);
+        QVERIFY(failed.at(0).at(0).toString().contains(QStringLiteral("25 Mo")));
         QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
     }
 
@@ -2739,6 +2755,7 @@ grep -E 'PASS   : .*(pasteImageAddressDownloads|pasteNonImagePageBecomesText|pas
 - Preuves sur ce Mac uniquement, avec `build-mac` : `cmake --build build-mac -j2` et `QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac --output-on-failure -j2 --timeout 120 > .tmp/test.txt 2>&1` (suite complète, lue par `tail -3 .tmp/test.txt`), sous `node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T11 --attente-secondes 3000 --commande "<commande>"` ; une seule tâche qui construit à la fois (8 Go).
 - Format : `~/.local/venvs/clang-format/bin/clang-format --dry-run --Werror` sur les fichiers touchés.
 - `tst_ui_linklauncher` (`htaRefused`) : rouge préexistant instable, pas une régression.
+- Tâche d'interface : test de chargement (`tst_ui_shell`, dans la suite complète, charge `Main.qml`). Pas de banc : ni la scène ni l'entrée ne changent, et T18 mesure le cumul.
 - Aucun nom repris d'un produit existant ; aucune ressource de Promethean.
 - Commits en français, chemins explicites, jamais `git add -A`, `.` ni `commit -a`, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Pas de mise à jour de `graphify-out/`.
 
@@ -3072,6 +3089,11 @@ struct DirectView
         root->setProperty("baseUrl", base);
         QMetaObject::invokeMethod(root.get(), "load");
     }
+    void loadFile(const QUrl& file)
+    {
+        root->setProperty("contentFile", file);
+        QMetaObject::invokeMethod(root.get(), "load");
+    }
     QString title() const { return web->property("title").toString(); }
 };
 
@@ -3079,7 +3101,7 @@ const int kLoadMs = 60000;
 
 } // namespace
 ```
-Ajouter `#include <QQmlComponent>`, `<QQmlEngine>`, `<QTemporaryDir>`, `<memory>`. Dans la classe, après `loaderErrorLeavesAnEmptyFrame` :
+Ajouter `#include <QFile>`, `<QPointer>`, `<QQmlComponent>`, `<QQmlEngine>`, `<QTemporaryDir>`, `<memory>`. Dans la classe, après `loaderErrorLeavesAnEmptyFrame` :
 
 ```cpp
     // S1 : le script d'une page locale s'exécute (gardes coupées, le défaut).
@@ -3106,28 +3128,42 @@ Ajouter `#include <QQmlComponent>`, `<QQmlEngine>`, `<QTemporaryDir>`, `<memory>
         QCOMPARE(view.title(), QStringLiteral("avant"));
     }
 
-    // n° 11, 12 : base file: ; image distante chargée gardes coupées, refusée gardes allumées.
-    void remoteImageWithFileBase_data()
+    // n° 11, 12, E11 : document d'origine file:, image distante chargée gardes coupées, refusée gardes allumées. Gardes
+    // allumées, load() n'utilise pas la base (document sans base : l'image y passerait) : seul le fichier du HTML
+    // lourd (contentFile) donne cette origine.
+    void remoteImageFromAFileOrigin_data()
     {
         QTest::addColumn<bool>("guards");
+        QTest::addColumn<bool>("viaFile");
         QTest::addColumn<int>("requests");
-        QTest::newRow("gardes coupees") << false << 1;
-        QTest::newRow("gardes allumees") << true << 0;
+        QTest::newRow("base file, gardes coupees") << false << false << 1;
+        QTest::newRow("contentFile, gardes coupees") << false << true << 1;
+        QTest::newRow("contentFile, gardes allumees") << true << true << 0;
     }
 
-    void remoteImageWithFileBase()
+    void remoteImageFromAFileOrigin()
     {
         QFETCH(bool, guards);
+        QFETCH(bool, viaFile);
         QFETCH(int, requests);
         TestServer server;
         QVERIFY(server.listening());
         server.page(QStringLiteral("/p.png"), "x");
+        const QString html = QStringLiteral("<img src=\"%1\">").arg(server.url(QStringLiteral("/p.png")).toString());
         QTemporaryDir dir;
+        QVERIFY(dir.isValid());
         DirectView view;
         QVERIFY(view.start(guards));
         QSignalSpy loaded(view.root.get(), SIGNAL(pageLoaded()));
-        view.load(QStringLiteral("<img src=\"%1\">").arg(server.url(QStringLiteral("/p.png")).toString()),
-                  QUrl::fromLocalFile(dir.path() + u'/'));
+        if (viaFile) {
+            QFile file(dir.filePath(QStringLiteral("cadre.html")));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(html.toUtf8());
+            file.close();
+            view.loadFile(QUrl::fromLocalFile(file.fileName()));
+        } else {
+            view.load(html, QUrl::fromLocalFile(dir.path() + u'/'));
+        }
         QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
         QTest::qWait(800);
         QCOMPARE(server.requests(), requests);
@@ -3154,29 +3190,52 @@ Ajouter `#include <QQmlComponent>`, `<QQmlEngine>`, `<QTemporaryDir>`, `<memory>
         QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), QStringLiteral("GROS"), 10000);
     }
 
-    // S3 : un cookie posé dans le document A est absent du document B, gardes allumées.
+    // S3 : un cookie posé dans le document A est absent du document B, gardes allumées. Le cookie vient de la réponse
+    // du document principal : en sous-ressource d'un document sans base, Chromium le traiterait comme SameSite=Lax et
+    // ne le stockerait pas. La couche ne donne pas d'adresse à la vue gardes allumées : deux vues directes prouvent
+    // l'étanchéité des profils, la seconde partie prouve qu'un autre document a bien une autre vue et un autre profil.
     void cookieStaysInItsDocument()
     {
         TestServer server;
         QVERIFY(server.listening());
-        const QByteArray image = server.url(QStringLiteral("/c.png")).toEncoded();
-        server.page(QStringLiteral("/page"), "<img src=\"" + image + "\">");
-        server.page(QStringLiteral("/c.png"), "x");
-        server.header(QStringLiteral("/c.png"), "Set-Cookie: marque=oui");
+        server.page(QStringLiteral("/doc"), "<title>DOC</title>");
+        server.header(QStringLiteral("/doc"), "Set-Cookie: marque=oui");
+        const QUrl address = server.url(QStringLiteral("/doc"));
+        {
+            DirectView a;
+            QVERIFY(a.start(true));
+            QSignalSpy loaded(a.root.get(), SIGNAL(pageLoaded()));
+            a.root->setProperty("directUrl", address);
+            QMetaObject::invokeMethod(a.root.get(), "load");
+            QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
+            QVERIFY(!server.lastRequest(QStringLiteral("/doc")).contains("marque=oui"));
+            QMetaObject::invokeMethod(a.root.get(), "load"); // même vue, même profil : le cookie repart
+            QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 2, kLoadMs);
+            QVERIFY2(server.lastRequest(QStringLiteral("/doc")).contains("marque=oui"), "cookie non stocké");
+        }
+        {
+            DirectView b;
+            QVERIFY(b.start(true));
+            QSignalSpy loaded(b.root.get(), SIGNAL(pageLoaded()));
+            b.root->setProperty("directUrl", address);
+            QMetaObject::invokeMethod(b.root.get(), "load");
+            QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
+            QVERIFY(!server.lastRequest(QStringLiteral("/doc")).contains("marque=oui"));
+        }
         WebFrameHost host;
         QVERIFY(host.start());
         host.frames->setGuardsEnabled(true);
-        QVERIFY(host.frames->insertFrame({}, server.url(QStringLiteral("/page")).toString()));
-        QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/c.png")), kLoadMs);
-        server.reset();
-        host.frames->reload(0); // même document : même profil, le cookie repart
-        QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/c.png")), 20000);
-        QVERIFY(server.lastRequest(QStringLiteral("/c.png")).contains("marque=oui"));
-        server.reset();
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>A</p>"), {}));
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 1, kLoadMs);
+        QPointer<QQuickItem> viewA = findItem(host.root.get(), QStringLiteral("webFrameEngine"));
+        QVERIFY(viewA);
+        QPointer<QObject> profileA = viewA->property("profile").value<QObject*>();
+        QVERIFY(profileA);
         host.document.newDocument(1024, 768);
-        QVERIFY(host.frames->insertFrame({}, server.url(QStringLiteral("/page")).toString()));
-        QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/c.png")), kLoadMs);
-        QVERIFY(!server.lastRequest(QStringLiteral("/c.png")).contains("marque=oui"));
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>B</p>"), {}));
+        QTRY_VERIFY_WITH_TIMEOUT(viewA.isNull() && profileA.isNull(), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameEngine")), kLoadMs);
+        QVERIFY(findItem(host.root.get(), QStringLiteral("webFrameEngine"))->property("profile").value<QObject*>());
     }
 
     // E2 : la vue reste visible sous une boîte ouverte.
@@ -3353,6 +3412,7 @@ grep -E 'PASS   : .*(snapshotInsertsAnImage|insertSnapshotIsOneStep|snapshotPlac
 - Preuves sur ce Mac uniquement, avec `build-mac` : `cmake --build build-mac -j2` et `QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac --output-on-failure -j2 --timeout 120 > .tmp/test.txt 2>&1` (suite complète, lue par `tail -3 .tmp/test.txt`), sous `node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T6 --attente-secondes 3000 --commande "<commande>"` ; une seule tâche qui construit à la fois (8 Go).
 - Format : `~/.local/venvs/clang-format/bin/clang-format --dry-run --Werror` sur les fichiers touchés.
 - `tst_ui_linklauncher` (`htaRefused`) : rouge préexistant instable, pas une régression.
+- Tâche d'interface : test de chargement (`tst_ui_webengine`, vraie fenêtre). Pas de banc : T6 touche le QML du cadre, pas le chemin d'encre de la page, et T18 mesure le cumul.
 - Ce qui exige Android part en « Restes pour le PC » ou R2 (capture `grabWindow` non vérifiée ici).
 - Aucun nom repris d'un produit existant ; aucune ressource de Promethean.
 - Commits en français, chemins explicites, jamais `git add -A`, `.` ni `commit -a`, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Pas de mise à jour de `graphify-out/`.
@@ -3491,7 +3551,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Test et commande bornée.**
 ```bash
 node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T7 --attente-secondes 3000 --commande "cmake --build build-mac -j2 && QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac -R '^tst_ui_pageinput$' --output-on-failure --timeout 300 -V > .tmp/t7.txt 2>&1"
-grep -E 'PASS   : .*stylusOnWebFrameDrawsNothing|^Totals:|tests passed|tests failed' .tmp/t7.txt
+grep -E 'PASS   : .*stylusOnWebFrameDrawsNothing|Totals:|tests passed|tests failed' .tmp/t7.txt
 ```
 
 **Contraintes (recopiées).**
@@ -3582,13 +3642,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Test et commande bornée.**
 ```bash
 node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T8 --attente-secondes 3000 --commande "cmake --build build-mac -j2 && QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac -R '^tst_ui_webframe$' --output-on-failure --timeout 300 -V > .tmp/t8.txt 2>&1"
-grep -E 'PASS   : .*dialogNoteFollowsTheGuards|^Totals:|tests passed|tests failed' .tmp/t8.txt
+grep -E 'PASS   : .*dialogNoteFollowsTheGuards|Totals:|tests passed|tests failed' .tmp/t8.txt
 ```
 
 **Contraintes (recopiées).**
 - Preuves sur ce Mac uniquement, avec `build-mac` : `cmake --build build-mac -j2` et `QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac --output-on-failure -j2 --timeout 120 > .tmp/test.txt 2>&1` (suite complète, lue par `tail -3 .tmp/test.txt`), sous `node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T8 --attente-secondes 3000 --commande "<commande>"` ; une seule tâche qui construit à la fois (8 Go).
 - Format : `~/.local/venvs/clang-format/bin/clang-format --dry-run --Werror` sur les fichiers touchés.
 - `tst_ui_linklauncher` (`htaRefused`) : rouge préexistant instable, pas une régression.
+- Tâche d'interface : test de chargement (`tst_ui_webframe`, composant de la boîte chargé). Pas de banc : T8 ne change que des textes du cadre, et T18 mesure le cumul.
 - Aucun nom repris d'un produit existant ; aucune ressource de Promethean ; textes à nous.
 - Commits en français, chemins explicites, jamais `git add -A`, `.` ni `commit -a`, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Pas de mise à jour de `graphify-out/`.
 
@@ -3637,7 +3698,7 @@ Item {
     QVERIFY2(note().contains(QStringLiteral("JavaScript reste coupé")), qPrintable(note()));
 }
 ```
-Si le libellé n'est pas trouvé par `findChildren` parce qu'il est dans un `Dialog` déporté, lire les enfants à partir de `dialog->findChild<QObject*>(QStringLiteral("webFrameDialogNote"), Qt::FindChildrenRecursively)`, comme le fait `dialogRefusesEmptyFields` pour son champ.
+Si le libellé n'est pas trouvé par `findChildren` parce qu'il est dans un `Dialog` déporté, lire les enfants à partir de `dialog->findChild<QObject*>(QStringLiteral("webFrameDialogNote"), Qt::FindChildrenRecursively)`, comme le fait `dialogRefusesEmptyFields` pour son champ. Rouge attendu : `FAIL! : TstUiWebFrame::dialogNoteFollowsTheGuards() 'note().contains(QStringLiteral("JavaScript actif"))' returned FALSE` (le libellé n'a ni `objectName` ni texte conditionnel).
 
 - [ ] **Étape 2 : les textes.** `WebFrameDialog.qml`, le `Label` des lignes 92-97 :
 
@@ -3694,7 +3755,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Test et commande bornée.**
 ```bash
 node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T12 --attente-secondes 3000 --commande "cmake -S . -B build-mac && cmake --build build-mac -j2 && QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac -R '^tst_ui_(webdrop|desktop)$' --output-on-failure --timeout 300 -V > .tmp/t12.txt 2>&1"
-grep -E 'PASS   : .*(droppedRemoteImageSurvivesReopening|droppedSystemFileIsInserted|desktopDropAreaStaysOff)|^Totals:|tests passed|tests failed' .tmp/t12.txt
+grep -E 'PASS   : .*(droppedRemoteImageSurvivesReopening|droppedSystemFileIsInserted|desktopDropAreaStaysOff)|Totals:|tests passed|tests failed' .tmp/t12.txt
 ```
 
 **Contraintes (recopiées).**
@@ -4000,6 +4061,7 @@ grep -E 'PASS   : .*(editCopyCopiesTheSelection|inputFieldKeepsPaste|editCopyWit
 - Preuves sur ce Mac uniquement, avec `build-mac` : `cmake --build build-mac -j2` et `QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac --output-on-failure -j2 --timeout 120 > .tmp/test.txt 2>&1` (suite complète, lue par `tail -3 .tmp/test.txt`), sous `node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T13 --attente-secondes 3000 --commande "<commande>"` ; une seule tâche qui construit à la fois (8 Go).
 - Format : `~/.local/venvs/clang-format/bin/clang-format --dry-run --Werror` sur les fichiers touchés.
 - `tst_ui_linklauncher` (`htaRefused`) : rouge préexistant instable, pas une régression.
+- Tâche d'interface : test de chargement (`tst_ui_webengine`, vraie fenêtre). Pas de banc : T13 touche le QML du cadre, pas le chemin d'encre de la page, et T18 mesure le cumul.
 - Aucun nom repris d'un produit existant ; aucune ressource de Promethean.
 - Commits en français, chemins explicites, jamais `git add -A`, `.` ni `commit -a`, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Pas de mise à jour de `graphify-out/`.
 
@@ -4084,7 +4146,7 @@ grep -E 'PASS   : .*(editCopyCopiesTheSelection|inputFieldKeepsPaste|editCopyWit
         QVERIFY(QGuiApplication::clipboard()->mimeData()->hasFormat(formats::kObjectsMimeType));
     }
 ```
-(`#include <QClipboard>`, `#include <actcraft/formats/clipboard.h>`.)
+(`#include <QClipboard>`, `#include <actcraft/formats/clipboard.h>`.) Rouge attendu : `editCopyCopiesTheSelection` en `FAIL!` (presse-papiers vide de la sélection : `edit.copy` copie encore les objets). `inputFieldKeepsPaste` et `editCopyWithoutFocusedFrameCopiesObjects` gardent un comportement existant : verts avant comme après.
 
 - [ ] **Étape 2 : le code.** `WebFrameLayer.qml`, après `finishSnapshot` :
 
@@ -4130,7 +4192,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Tâche T16 — Paquet Mac et essai de l'image
 <a id="tache-t16"></a>
 
-**Objectif.** Le bundle livre Qt WebEngine ; `essai-dmg.sh` ouvre un vrai cadre depuis l'image disque et le prouve (cadrage n° 34, DA4, S4).
+**Objectif.** Le bundle livre Qt WebEngine ; `essai-dmg.sh` ouvre un vrai cadre depuis l'image disque et le prouve (cadrage n° 34, DA4, S4). Le cadrage ne cite pas `app/startup.h`, `app/startup.cpp` ni `tests/tst_app_open.cpp` : cette tâche les ajoute, avec l'option `--essai-cadre-web`, car rien de l'existant ne pose un cadre au démarrage et l'essai doit charger une vraie page depuis l'image.
 
 **Fichiers.** Modifier : `scripts/paquet-mac.sh:43-46,58,99-125`, `scripts/essai-dmg.sh:5,80-90`, `app/startup.h`, `app/startup.cpp`, `tests/tst_app_open.cpp`.
 
@@ -4151,7 +4213,8 @@ tail -4 .tmp/essai-dmg.txt   # attendu : CADRE WEB OK, LANCEMENT OK, ESSAI DMG O
 L'essai ouvre une fenêtre 20 s sur l'écran du Mac ; aucune souris n'est pilotée.
 
 **Contraintes (recopiées).**
-- Preuves sur ce Mac uniquement, sous `node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T16 --attente-secondes 3000 --commande "<commande>"` ; une seule tâche qui construit à la fois (8 Go).
+- Preuves sur ce Mac uniquement, avec `build-mac` : `cmake --build build-mac -j2` et `QT_QPA_PLATFORM=offscreen ctest --test-dir build-mac --output-on-failure -j2 --timeout 120 > .tmp/test.txt 2>&1` (suite complète, lue par `tail -3 .tmp/test.txt`), sous `node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T16 --attente-secondes 3000 --commande "<commande>"` ; une seule tâche qui construit à la fois (8 Go).
+- `tst_ui_linklauncher` (`htaRefused`) : rouge préexistant instable, pas une régression.
 - Format : `~/.local/venvs/clang-format/bin/clang-format --dry-run --Werror` sur `app/startup.h`, `app/startup.cpp`, `tests/tst_app_open.cpp`.
 - `.github/workflows/release.yml` n'est jamais modifié (O98). Aucune machine GitHub, aucun job sur le PC, pas de release ni de tag.
 - Ce qui exige Windows part en « Restes pour le PC ».
@@ -4232,7 +4295,8 @@ copier_framework() { # <formule Homebrew> <nom du framework>
   [ -d "$source" ] || source="$(brew --prefix "$1" 2>/dev/null)/lib/$2.framework"
   [ -d "$source" ] || echec "$2.framework introuvable (ni $qt/lib, ni formule $1)"
   rm -rf "$app/Contents/Frameworks/$2.framework"
-  cp -R "$source" "$app/Contents/Frameworks/" || echec "copie de $2.framework"
+  # -H : chez Homebrew, $qt/lib/<nom>.framework est un lien ; c'est le framework qu'il faut copier.
+  cp -RH "$source" "$app/Contents/Frameworks/" || echec "copie de $2.framework"
   chmod -R u+w "$app/Contents/Frameworks/$2.framework"
   rm -rf "$app/Contents/Frameworks/$2.framework/Headers" "$app/Contents/Frameworks/$2.framework/Versions/A/Headers"
 }
@@ -4281,8 +4345,15 @@ done
 Après la ligne 163 (`cp -R LICENSES …`) :
 
 ```bash
-cp "$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium" "$app/Contents/Resources/LICENSE.Chromium" ||
-  echec "LICENSE.Chromium absent de la formule qtwebengine"
+# Texte de la licence de Chromium : celui de la formule ; Qt installé par aqt n'a pas de formule, le texte BSD-3-Clause
+# du dépôt et la ligne de copyright de Chromium le remplacent.
+licence_chromium="$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium"
+if [ -f "$licence_chromium" ]; then
+  cp "$licence_chromium" "$app/Contents/Resources/LICENSE.Chromium" || echec "copie de LICENSE.Chromium"
+else
+  { echo "Copyright 2015 The Chromium Authors. All rights reserved."; echo; tail -n +3 LICENSES/BSD-3-Clause.txt; } \
+    > "$app/Contents/Resources/LICENSE.Chromium" || echec "écriture de LICENSE.Chromium"
+fi
 ```
 
 - [ ] **Étape 8 : repli si la signature refuse le lien.** Lancer `scripts/paquet-mac.sh --sans-construire` si la construction Release existe. Si `codesign --verify --deep --strict` échoue sur le lien (`invalid destination for symbolic link`), appliquer la réécriture prévue par DA4, à la place du `ln -s` de l'étape 6 :
@@ -4353,13 +4424,16 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ruby -ryaml -e "ARGV.each { |f| YAML.load_file(f) }; puts 'YAML OK'" .github/workflows/ci.yml .github/workflows/preuves-windows.yml
 git diff --name-only HEAD | grep -c 'release.yml'   # attendu : 0
 export JAVA_HOME="$(ls -d ~/actions-runner-actcraft/_work/_tool/Java_Temurin-Hotspot_jdk/21*/arm64/Contents/Home | tail -1)" QT_VERSION=6.12.0
-mkdir -p .tmp && GITHUB_ENV="$PWD/.tmp/android-env" GITHUB_PATH="$PWD/.tmp/android-path" ./scripts/ci/outils-android-mac.sh arm64_v8a x86_64
-node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T17 --attente-secondes 3000 --duree-max-minutes 180 --commande "set -a; . .tmp/android-env; set +a; PATH=\"\$(tr '\n' ':' < .tmp/android-path)\$PATH\" ~/actions-runner-actcraft/_cache/pwsh-7.5.4/pwsh -NoProfile -File ./scripts/paquet-android.ps1 > .tmp/apk.txt 2>&1"
+mkdir -p .tmp && rm -f .tmp/android-env .tmp/android-path
+RUNNER_TEMP="$PWD/.tmp" GITHUB_ENV="$PWD/.tmp/android-env" GITHUB_PATH="$PWD/.tmp/android-path" ./scripts/ci/outils-android-mac.sh --emulateur arm64_v8a x86_64
+node ~/.claude/scripts/chaine/jeton.cjs --nom tests --proprietaire cadre-web-webengine/T17 --attente-secondes 3000 --duree-max-minutes 180 --commande "set -a; . .tmp/android-env; set +a; CMAKE_BUILD_PARALLEL_LEVEL=2 PATH=\"\$(tr '\n' ':' < .tmp/android-path)\$PATH\" ~/actions-runner-actcraft/_cache/pwsh-7.5.4/pwsh -NoProfile -File ./scripts/paquet-android.ps1 > .tmp/apk.txt 2>&1"
 tail -1 .tmp/apk.txt   # attendu : APK OK
-unzip -l build/paquet/ActCraft-*-arm64-v8a.apk | grep -c 'qml/QtWebView'   # attendu : ≥ 1
+unzip -l build/paquet/ActCraft-*-arm64-v8a.apk | grep -c 'libqml_QtWebView_'   # attendu : ≥ 1 (lib/arm64-v8a/libqml_QtWebView_*.so)
 unzip -l build/paquet/ActCraft-*-arm64-v8a.apk | grep -c 'WebEngine'       # attendu : 0
 ```
-JDK 21 et `pwsh` sont déjà dans le cache du runner (relevé du 2026-11-09) ; rien n'est à installer hors de ce cache. Si la chaîne manque malgré tout : S5 passe au job `android` du Mac mini à la PR, à noter dans le rapport, sans lancer de workflow.
+JDK 21 et `pwsh` sont déjà dans le cache du runner (relevé du 2026-11-09) ; `--emulateur` donne le jeu de paquets déjà installé (sans lui, le témoin du SDK ne correspond pas). Rien n'est à installer hors de ce cache.
+
+Branche si la chaîne Android du Mac manque ou casse (paquet absent, Gradle ou SDK en erreur, sans lien avec le code du chantier) : ne pas lancer de workflow, le job `android` saute les brouillons (`ci.yml:423`) et la PR reste en brouillon. Écrire dans le rapport de tâche, pour l'état : « Reste PC 9 : S5, construire l'APK sans WebEngine et contrôler `libqml_QtWebView_` dans l'APK ; cause : <message exact> ». Une erreur de compilation, de CMake ou de QML due au chantier n'entre pas dans cette branche : c'est un échec de la tâche.
 
 **Contraintes (recopiées).**
 - `.github/workflows/release.yml` n'est jamais modifié (O98) : la liste de ce qu'il devra recevoir est dans « Sortie pour O98 » du plan.
@@ -4370,7 +4444,7 @@ JDK 21 et `pwsh` sont déjà dans le cache du runner (relevé du 2026-11-09) ; r
 
 **Interdits.** Ne pas modifier `ci.yml:476-478` (job Android : pas de WebEngine), ni `scripts/ci/outils-android-mac.sh`. Conflits attendus avec les PR #21 et #22 : à laisser à la clôture, sans contact avec O84.
 
-**Critère « terminé ».** `YAML OK`, `release.yml` non touché, `APK OK` et les deux `unzip` conformes, commit fait.
+**Critère « terminé ».** `YAML OK`, `release.yml` non touché, commit fait, et soit `APK OK` avec les deux `unzip` conformes (`libqml_QtWebView_` ≥ 1, `WebEngine` = 0), soit la branche « Reste PC 9 » ci-dessus, écrite avec sa cause.
 
 **Étapes.**
 
@@ -4514,7 +4588,7 @@ Verdict : <BUDGET TENU ou DEPASSE>, résultat et non porte. JSON : <chemin>.
 `DMG OK`, `ESSAI DMG OK`, `CADRE WEB OK`, aucune bibliothèque hors du bundle.
 
 ## À ajouter à `release.yml` par O98
-`qtwebengine qtwebchannel qtpositioning` lignes 194 (Windows), 289 (`aqt` Mac), 314 (`modules=` du repli Mac mini). Commentaires à relire : lignes 273, 294, 312, 339. Lignes 415-416 : rien.
+`qtwebengine qtwebchannel qtpositioning` lignes 194 (Windows), 289 (`aqt` Mac), 314 (`modules=` du repli Mac mini). Commentaires à relire : lignes 273, 294, 312, 339. Lignes 415-416 : rien. Voie `aqt` du paquet Mac (lignes 289, 291, 343) : frameworks pris dans `$ACTCRAFT_QT_DIR/lib`, `LICENSE.Chromium` écrit par `paquet-mac.sh` depuis `LICENSES/BSD-3-Clause.txt`.
 ```
 
 - [ ] **Étape 8 : commit.**
