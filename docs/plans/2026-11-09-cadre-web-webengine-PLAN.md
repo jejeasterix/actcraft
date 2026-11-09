@@ -29,7 +29,7 @@
 | T8 | Textes selon les gardes | T7 | ui/qml/WebFrameLayer.qml, ui/qml/WebFrameDialog.qml, ui/i18n/actcraft_fr.ts, tests/tst_ui_webframe.cpp | partagé | implementeur-tdd | tst_ui_webframe `dialogNoteFollowsTheGuards` PASS ; suite complète | S3 | #tache-t8 |
 | T12 | Récepteur de dépôt sur la page | T8, T11 | ui/qml/WebFrameLayer.qml, ui/qml/PageArea.qml, ui/qml/Main.qml, tests/tst_ui_webdrop.cpp, tests/tst_ui_desktop.cpp, tests/ui.cmake | partagé | implementeur-tdd | tst_ui_webdrop ≥ 5 tests, `droppedRemoteImageSurvivesReopening` PASS ; suite complète ; JSON du banc | S1 | #tache-t12 |
 | T13 | Copier la sélection du cadre | T12 | ui/qml/WebFrameLayer.qml, ui/qml/PageArea.qml, ui/qml/Main.qml, tests/tst_ui_webengine.cpp, tests/tst_ui_shell.cpp | partagé | implementeur-tdd | tst_ui_webengine `editCopyCopiesTheSelection`, `inputFieldKeepsPaste` PASS ; tst_ui_shell `editCopyWithoutFocusedFrameCopiesObjects` PASS ; suite complète | S1 | #tache-t13 |
-| T16 | Paquet Mac et essai de l'image | T13, T15 | scripts/paquet-mac.sh, scripts/essai-dmg.sh, app/startup.h, app/startup.cpp, tests/tst_app_open.cpp | partagé | concepteur-critique | tst_app_open `parsesWebFrameProbe` PASS ; `DMG OK` ; `ESSAI DMG OK` avec `CADRE WEB OK` | S4 | #tache-t16 |
+| T16 | Paquet Mac et essai de l'image | T13, T15 | scripts/paquet-mac.sh, scripts/essai-dmg.sh, app/startup.h, app/startup.cpp, tests/tst_app_open.cpp, LICENSES/LICENSE.Chromium | partagé | concepteur-critique | tst_app_open `parsesWebFrameProbe` PASS ; `DMG OK` ; `ESSAI DMG OK` avec `CADRE WEB OK` | S4 | #tache-t16 |
 | T17 | Modules de la CI et APK sans WebEngine | T13 | .github/workflows/ci.yml, .github/workflows/preuves-windows.yml | isolé | implementeur-tdd | `APK OK` ; `unzip -l` : `libqml_QtWebView_` présent, aucun `WebEngine` ; sinon Reste PC 9 écrit (chaîne Android seulement) | S5 | #tache-t17 |
 | T18 | Mesures avant/après et preuve finale | T16, T17 | docs/mesures/2026-11-09-cadre-web-webengine.md | partagé | implementeur-tdd | `.dmg` avant et après ; `ESSAI DMG OK` ; relevé H.264 ; suite complète | S4 | #tache-t18 |
 
@@ -84,11 +84,11 @@
 
 Commentaires à relire : lignes 273, 294, 312, 339. Lignes 415-416 (hôte et Android) : rien à changer.
 
-Voie `aqt` du paquet Mac (lignes 289, 291, 343) : `scripts/paquet-mac.sh` prend alors les frameworks dans `$ACTCRAFT_QT_DIR/lib`, d'où les trois modules ci-dessus. Il n'y a pas de formule Homebrew, donc pas de `LICENSE.Chromium` : le script écrit ce fichier à partir de `LICENSES/BSD-3-Clause.txt` et de la ligne de copyright de Chromium. Rien d'autre à ajouter pour cela. T18 recopie cette liste dans `docs/mesures/2026-11-09-cadre-web-webengine.md`.
+Voie `aqt` du paquet Mac (lignes 289, 291, 343) : `scripts/paquet-mac.sh` prend alors les frameworks dans `$ACTCRAFT_QT_DIR/lib`, d'où les trois modules ci-dessus. Il n'y a pas de formule Homebrew : le script livre alors `LICENSES/LICENSE.Chromium`, copie exacte versionnée par T16. Rien d'autre à ajouter pour cela. T18 recopie cette liste dans `docs/mesures/2026-11-09-cadre-web-webengine.md`.
 
 ## Restes pour le PC et pour Jérôme
 
-Listés au cadrage, section 7 (PC 1 à 8, R1 à R3). Aucune tâche de ce plan ne les exécute. S'y ajoute au Reste PC 4 : retirer le repli de `WebFrameItems::engineKind` sous Windows hors écran si la preuve PC passe (T1).
+Listés au cadrage, section 7 (PC 1 à 8, R1 à R3). Aucune tâche de ce plan ne les exécute. Reste PC 9, conditionnel : S5, si la chaîne Android du Mac manque ou casse en T17. S'y ajoute au Reste PC 4 : retirer le repli de `WebFrameItems::engineKind` sous Windows hors écran si la preuve PC passe (T1).
 
 ---
 
@@ -410,6 +410,8 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
         QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
         const QModelIndex row = host.frames->index(0, 0);
+        // Le reload avance `serial` par la boucle d'événements : attendre son contenu, sinon 1 = 1 passerait sans lui.
+        QTRY_VERIFY_WITH_TIMEOUT(host.frames->data(row, actcraft::ui::WebFrameItems::SerialRole).toInt() >= 2, 5000);
         QTRY_COMPARE(view->property("serial").toInt(),
                      host.frames->data(row, actcraft::ui::WebFrameItems::SerialRole).toInt());
         QVERIFY(view->property("_loads").toInt() >= 1);
@@ -3209,7 +3211,9 @@ Ajouter `#include <QFile>`, `<QPointer>`, `<QQmlComponent>`, `<QQmlEngine>`, `<Q
             QMetaObject::invokeMethod(a.root.get(), "load");
             QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
             QVERIFY(!server.lastRequest(QStringLiteral("/doc")).contains("marque=oui"));
-            QMetaObject::invokeMethod(a.root.get(), "load"); // même vue, même profil : le cookie repart
+            // Même vue, même profil : le cookie repart. Si le test expire ici (la même `url` réaffectée ne relance pas le
+            // moteur), appeler "reload" du contrat à la place de "load" (web.reload()).
+            QMetaObject::invokeMethod(a.root.get(), "load");
             QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 2, kLoadMs);
             QVERIFY2(server.lastRequest(QStringLiteral("/doc")).contains("marque=oui"), "cookie non stocké");
         }
@@ -3235,7 +3239,7 @@ Ajouter `#include <QFile>`, `<QPointer>`, `<QQmlComponent>`, `<QQmlEngine>`, `<Q
         QVERIFY(host.frames->insertFrame(QStringLiteral("<p>B</p>"), {}));
         QTRY_VERIFY_WITH_TIMEOUT(viewA.isNull() && profileA.isNull(), 5000);
         QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameEngine")), kLoadMs);
-        QVERIFY(findItem(host.root.get(), QStringLiteral("webFrameEngine"))->property("profile").value<QObject*>());
+        QCOMPARE(findItem(host.root.get(), QStringLiteral("webFrameView"))->property("guardsEnabled").toBool(), true);
     }
 
     // E2 : la vue reste visible sous une boîte ouverte.
@@ -4194,7 +4198,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Objectif.** Le bundle livre Qt WebEngine ; `essai-dmg.sh` ouvre un vrai cadre depuis l'image disque et le prouve (cadrage n° 34, DA4, S4). Le cadrage ne cite pas `app/startup.h`, `app/startup.cpp` ni `tests/tst_app_open.cpp` : cette tâche les ajoute, avec l'option `--essai-cadre-web`, car rien de l'existant ne pose un cadre au démarrage et l'essai doit charger une vraie page depuis l'image.
 
-**Fichiers.** Modifier : `scripts/paquet-mac.sh:43-46,58,99-125`, `scripts/essai-dmg.sh:5,80-90`, `app/startup.h`, `app/startup.cpp`, `tests/tst_app_open.cpp`.
+**Fichiers.** Créer : `LICENSES/LICENSE.Chromium` (copie exacte de la licence de Chromium, texte de licence libre, sans extension `.txt` : `tst_app_notices` et le `GLOB` de `ui/CMakeLists.txt` ne lisent que `*.txt`, un `.txt` serait refusé comme texte orphelin). Modifier : `scripts/paquet-mac.sh:43-46,58,99-125`, `scripts/essai-dmg.sh:5,80-90`, `app/startup.h`, `app/startup.cpp`, `tests/tst_app_open.cpp`.
 
 **Interfaces.**
 - Consomme : T1 : `webFrameLayer`, `appWebFrames`, journal `ACTCRAFT CADRE WEB CHARGE` ; T15 : modules autorisés.
@@ -4242,7 +4246,9 @@ L'essai ouvre une fenêtre 20 s sur l'écran du Mac ; aucune souris n'est pilot�
 ```
 Rouge attendu : `no member named 'webFrameProbe'`.
 
-- [ ] **Étape 2 : l'option.** `app/startup.h`, dans `StartupOptions` :
+- [ ] **Étape 2 : la licence versionnée.** `cp /opt/homebrew/opt/qtwebengine/LICENSE.Chromium LICENSES/LICENSE.Chromium && cmp /opt/homebrew/opt/qtwebengine/LICENSE.Chromium LICENSES/LICENSE.Chromium`. Cette copie sert quand la formule manque (voie `aqt`) ; la preuve de T16 reste la voie Homebrew.
+
+- [ ] **Étape 2 bis : l'option.** `app/startup.h`, dans `StartupOptions` :
 
 ```cpp
     // `--essai-cadre-web <adresse ou fichier>` (essai de l'image disque, S4) : un cadre posé au démarrage.
@@ -4345,15 +4351,11 @@ done
 Après la ligne 163 (`cp -R LICENSES …`) :
 
 ```bash
-# Texte de la licence de Chromium : celui de la formule ; Qt installé par aqt n'a pas de formule, le texte BSD-3-Clause
-# du dépôt et la ligne de copyright de Chromium le remplacent.
+# Texte de la licence de Chromium : celui de la formule ; Qt installé par aqt n'a pas de formule, la copie exacte du
+# dépôt (LICENSES/LICENSE.Chromium) le remplace.
 licence_chromium="$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium"
-if [ -f "$licence_chromium" ]; then
-  cp "$licence_chromium" "$app/Contents/Resources/LICENSE.Chromium" || echec "copie de LICENSE.Chromium"
-else
-  { echo "Copyright 2015 The Chromium Authors. All rights reserved."; echo; tail -n +3 LICENSES/BSD-3-Clause.txt; } \
-    > "$app/Contents/Resources/LICENSE.Chromium" || echec "écriture de LICENSE.Chromium"
-fi
+[ -f "$licence_chromium" ] || licence_chromium="LICENSES/LICENSE.Chromium"
+cp "$licence_chromium" "$app/Contents/Resources/LICENSE.Chromium" || echec "copie de LICENSE.Chromium"
 ```
 
 - [ ] **Étape 8 : repli si la signature refuse le lien.** Lancer `scripts/paquet-mac.sh --sans-construire` si la construction Release existe. Si `codesign --verify --deep --strict` échoue sur le lien (`invalid destination for symbolic link`), appliquer la réécriture prévue par DA4, à la place du `ln -s` de l'étape 6 :
@@ -4402,7 +4404,7 @@ fi
 - [ ] **Étape 11 : commit.**
 
 ```bash
-git add scripts/paquet-mac.sh scripts/essai-dmg.sh app/startup.h app/startup.cpp tests/tst_app_open.cpp
+git add scripts/paquet-mac.sh scripts/essai-dmg.sh app/startup.h app/startup.cpp tests/tst_app_open.cpp LICENSES/LICENSE.Chromium
 git commit -m "feat(paquet): Qt WebEngine dans le paquet Mac, vrai cadre à l'essai de l'image
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -4588,7 +4590,7 @@ Verdict : <BUDGET TENU ou DEPASSE>, résultat et non porte. JSON : <chemin>.
 `DMG OK`, `ESSAI DMG OK`, `CADRE WEB OK`, aucune bibliothèque hors du bundle.
 
 ## À ajouter à `release.yml` par O98
-`qtwebengine qtwebchannel qtpositioning` lignes 194 (Windows), 289 (`aqt` Mac), 314 (`modules=` du repli Mac mini). Commentaires à relire : lignes 273, 294, 312, 339. Lignes 415-416 : rien. Voie `aqt` du paquet Mac (lignes 289, 291, 343) : frameworks pris dans `$ACTCRAFT_QT_DIR/lib`, `LICENSE.Chromium` écrit par `paquet-mac.sh` depuis `LICENSES/BSD-3-Clause.txt`.
+`qtwebengine qtwebchannel qtpositioning` lignes 194 (Windows), 289 (`aqt` Mac), 314 (`modules=` du repli Mac mini). Commentaires à relire : lignes 273, 294, 312, 339. Lignes 415-416 : rien. Voie `aqt` du paquet Mac (lignes 289, 291, 343) : frameworks pris dans `$ACTCRAFT_QT_DIR/lib`, `LICENSE.Chromium` livré depuis la copie exacte `LICENSES/LICENSE.Chromium`.
 ```
 
 - [ ] **Étape 8 : commit.**
