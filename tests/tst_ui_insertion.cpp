@@ -483,6 +483,72 @@ private slots:
         QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
     }
 
+    void webDropOfNonImageDataUrlFails()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({QUrl(QStringLiteral("data:text/plain;base64,aGVsbG8="))}, {}, {},
+                                        {1, 1}));
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(failed.first().first().toString(), QStringLiteral("Adresse non prise en charge"));
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    void webDropOfPercentEncodedDataUrlDecodes()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        const QUrl url = QUrl::fromEncoded(QByteArray("data:image/png,") + pngBytes(10, 10).toPercentEncoding());
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {50, 50}));
+        QTRY_COMPARE(inserted.count(), 1);
+        QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
+    }
+
+    // Au-delà de la borne : le message des 25 Mo, pas « Adresse non prise en charge ».
+    void webDropOfOversizedDataUrlReportsTheSize()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        const QByteArray big(static_cast<qsizetype>(26) * 1024 * 1024, 'a');
+        const QUrl url = QUrl::fromEncoded(QByteArray("data:image/png;base64,") + big.toBase64());
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {1, 1}));
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(failed.first().first().toString().contains(QStringLiteral("25 Mo")));
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    // Cadrage n° 26 : un lien mailto: ou ftp: déposé garde son texte.
+    void webDropOfOtherSchemeFallsBackToText_data()
+    {
+        QTest::addColumn<QString>("address");
+        QTest::newRow("mailto") << QStringLiteral("mailto:a@b.c");
+        QTest::newRow("ftp") << QStringLiteral("ftp://a.example/x");
+    }
+
+    void webDropOfOtherSchemeFallsBackToText()
+    {
+        QFETCH(QString, address);
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({QUrl(address)}, QStringLiteral("Contact"), {}, {100, 100}));
+        QTRY_COMPARE(inserted.count(), 1);
+        const auto* text = lastAs<core::Text>(controller);
+        QVERIFY(text != nullptr);
+        QVERIFY(text->html.find("Contact") != std::string::npos);
+    }
+
     void webDropOfBlobFails()
     {
         ui::DocumentController controller;
@@ -693,6 +759,30 @@ private slots:
         QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/i"))}, {}, {}, {1, 1}));
         QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
         QCOMPARE(server.requests(), 0);
+    }
+
+    // Pendant positif : gardes allumées, origine saisie (autorisée) : l'image est téléchargée.
+    void guardsLetAnAllowedOriginThrough()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/i"), pngBytes(10, 10));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::WebFrameItems frames;
+        frames.setGuardsEnabled(true);
+        frames.setDocument(&controller);
+        QVERIFY(frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
+        QCOMPARE(frames.decideAddress(server.url(QStringLiteral("/i"))),
+                 ui::WebContentPolicy::Verdict::Load);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        insertion.setWebFrames(&frames);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/i"))}, {}, {}, {1, 1}));
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        QCOMPARE(failed.count(), 0);
     }
 
     // Review Focus 4 (n° 20) : le fichier temporaire du moteur a disparu : message, document intact.
