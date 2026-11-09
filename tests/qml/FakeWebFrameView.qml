@@ -29,4 +29,9 @@ Item {
     function reload() { _calls.push("reload") }
     function capture(callback) { callback(null) }
     function copySelection() { _calls.push("copySelection") }
+
+    function _emitReport(pageUrl, canBack, canForward, pageTitle, pageLoading) {
+        root.viewReported(pageUrl, canBack, canForward, pageTitle, pageLoading)
+    }
+    function _emitLoaded() { root.pageLoaded() }
 }

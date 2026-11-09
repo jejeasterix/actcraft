@@ -3,6 +3,7 @@
 #include "support/webframehost.h"
 
 #include <QFile>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
@@ -107,6 +108,88 @@ private slots:
                      host.frames->data(row, actcraft::ui::WebFrameItems::SerialRole).toInt());
         QVERIFY(view->property("_loads").toInt() >= 1);
         m_frames = nullptr;
+    }
+
+    // Sans gardes, l'adresse part telle quelle (showsView accepte une directUrl, n° 11).
+    void directUrlGoesToTheView()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        const QUrl address(QStringLiteral("https://exemple.invalide/"));
+        QVERIFY(host.frames->insertFrame({}, address.toString()));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        QTRY_COMPARE(view->property("directUrl").toUrl(), address);
+        QCOMPARE(view->property("guardsEnabled").toBool(), false);
+        QTRY_COMPARE(view->property("_loads").toInt(), 1);
+    }
+
+    // E2 : seule une vue native au-dessus de la scène est masquée par une boîte ouverte (n° 16).
+    void coveredOnlyHidesAnOverlayView()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>a</p>"), {}));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QQuickItem* viewHost = findItem(host.root.get(), QStringLiteral("webFrameViewHost"));
+        QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        QTRY_VERIFY(viewHost->isVisible());
+        host.root->setProperty("inputBlocked", true);
+        QVERIFY(viewHost->isVisible());
+        view->setProperty("_overlays", true);
+        QTRY_VERIFY(!viewHost->isVisible());
+    }
+
+    // E12 : changer le réglage recrée la vue (profil et JavaScript ne se changent pas à chaud, n° 10).
+    void toggleGuardsRecreatesTheView()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>a</p>"), {}));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QPointer<QQuickItem> first = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        QCOMPARE(first->property("guardsEnabled").toBool(), false);
+        host.frames->setGuardsEnabled(true);
+        QTRY_VERIFY_WITH_TIMEOUT(first.isNull(), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QCOMPARE(
+            findItem(host.root.get(), QStringLiteral("webFrameView"))->property("guardsEnabled").toBool(),
+            true);
+    }
+
+    // n° 32 : une vue par cadre de la page affichée, détruite au changement de page.
+    void pageChangeDestroysTheView()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>a</p>"), {}));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QPointer<QQuickItem> first = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        host.document.nextPage();
+        QTRY_VERIFY_WITH_TIMEOUT(first.isNull(), 5000);
+    }
+
+    void reportAndCommandsCrossTheContract()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        QVERIFY(host.frames->insertFrame({}, QStringLiteral("https://exemple.invalide/")));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        QVERIFY(QMetaObject::invokeMethod(view, "_emitReport",
+                                          Q_ARG(QVariant, QUrl(QStringLiteral("https://exemple.invalide/b"))),
+                                          Q_ARG(QVariant, true), Q_ARG(QVariant, false),
+                                          Q_ARG(QVariant, QStringLiteral("Page B")), Q_ARG(QVariant, false)));
+        const QModelIndex row = host.frames->index(0, 0);
+        QTRY_COMPARE(host.frames->data(row, actcraft::ui::WebFrameItems::TitleRole).toString(),
+                     QStringLiteral("Page B"));
+        host.frames->goBack(0);
+        QTRY_VERIFY(view->property("_calls").toStringList().contains(QStringLiteral("goBack")));
     }
 };
 
