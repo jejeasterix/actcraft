@@ -772,6 +772,8 @@ private slots:
 
         const auto held = tools->guide(inkOf(first, Phase::Press, onDial(d, 0, 3)));
         QVERIFY(onRim(held.x, held.y, d));
+        QVERIFY2(!tools->snapAt(onDial(d, 60, 3)).value(QStringLiteral("snapped")).toBool(),
+                 "pas d'aperçu d'accroche pendant le trait guidé");
 
         const QPointF intrusion = onDial(d, 90, 3);
         const auto ignored = tools->guide(inkOf(second, Phase::Press, intrusion));
@@ -783,6 +785,8 @@ private slots:
         QVERIFY2(onRim(moved.x, moved.y, d), "la prise du premier a survécu à l'appui du second");
         QVERIFY2(qAbs(toolValue(*tools, "swept").toInt() - 30) <= 1, "l'angle balayé reste publié");
         tools->guide(inkOf(first, Phase::Release, onDial(d, 30, 3)));
+        QVERIFY2(tools->snapAt(onDial(d, 60, 3)).value(QStringLiteral("snapped")).toBool(),
+                 "aperçu d'accroche rendu une fois le trait relâché");
     }
 
     // La règle ouverte par le second le guide lui, et ne guide pas le premier ; chacun range les siens.

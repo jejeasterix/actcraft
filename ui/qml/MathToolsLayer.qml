@@ -146,10 +146,10 @@ Item {
     function registerCommands() {
         if (!root.commands)
             return
-        root.commands.setHandler("math.ruler", function () { mathTools.openRuler() })
-        root.commands.setHandler("math.set-square", function () { mathTools.openSetSquare() })
-        root.commands.setHandler("math.protractor", function () { mathTools.openProtractor() })
-        root.commands.setHandler("math.compass", function () { mathTools.openCompass() })
+        root.commands.setHandler("math.ruler", function (argument, user) { mathTools.openRuler(user) })
+        root.commands.setHandler("math.set-square", function (argument, user) { mathTools.openSetSquare(user) })
+        root.commands.setHandler("math.protractor", function (argument, user) { mathTools.openProtractor(user) })
+        root.commands.setHandler("math.compass", function (argument, user) { mathTools.openCompass(user) })
         root.commands.setHandler("math.xy-origin", function () {
             mathTools.originVisible = !mathTools.originVisible
             if (root.commands)
