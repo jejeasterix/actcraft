@@ -987,10 +987,46 @@ void PageView::itemChange(ItemChange change, const ItemChangeData& value)
     }
 }
 
+std::optional<input::UserId> PageView::pressUser(const QEvent& event) const
+{
+    const QEvent::Type type = event.type();
+    if (type != QEvent::TabletPress && type != QEvent::MouseButtonPress && type != QEvent::TouchBegin &&
+        type != QEvent::TouchUpdate) {
+        return std::nullopt;
+    }
+    const auto* twoUsers = dynamic_cast<const input::TwoUserPolicy*>(m_router.policy());
+    if (!twoUsers) {
+        return std::nullopt;
+    }
+    if (type == QEvent::TabletPress) {
+        return twoUsers->stylusUser(deviceIdOf(static_cast<const QTabletEvent&>(event).pointingDevice()));
+    }
+    if (type == QEvent::MouseButtonPress) {
+        // La souris que Qt déduit d'un stylet suit son événement de tablette : l'appui est déjà attribué.
+        return static_cast<const QMouseEvent&>(event).source() == Qt::MouseEventNotSynthesized
+                   ? std::optional<input::UserId>(input::kFirstUser)
+                   : std::nullopt;
+    }
+    // Doigt : la moitié du second, prolongée hors de la vue sur toute la hauteur et vers la gauche (barre et
+    // menus au-dessus, palette ancrée à gauche), pour que le toucher d'un bouton suive la règle de la page.
+    std::optional<input::UserId> user;
+    for (const QEventPoint& point : static_cast<const QTouchEvent&>(event).points()) {
+        if (point.state() == QEventPoint::Pressed) {
+            const bool second = m_secondUserViewArea &&
+                                mapFromScene(point.scenePosition()).x() < m_secondUserViewArea->right();
+            user = second ? input::kSecondUser : input::kFirstUser;
+        }
+    }
+    return user;
+}
+
 bool PageView::eventFilter(QObject* watched, QEvent* event)
 {
     if (isActingInput(*event)) {
         postponeFold(); // lot 10 : rien n'est pris ni filtré de plus pour autant
+    }
+    if (const std::optional<input::UserId> user = pressUser(*event)) {
+        m_lastPressUser = *user; // L11-C24 : posé avant la livraison, le bouton le lit à son appui
     }
     const QEvent::Type type = event->type();
     if (type == QEvent::TabletPress || type == QEvent::TabletMove || type == QEvent::TabletRelease) {

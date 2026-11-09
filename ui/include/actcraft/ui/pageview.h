@@ -269,6 +269,9 @@ private:
     bool handlePointer(const QEvent& event, QPointF viewPos);
     // Échantillon d'un événement (deviceId compris), ou rien (pas de Pipeline, appareil exclu).
     std::optional<input::Sample> sampleFor(const QEvent& event, QPointF viewPos);
+    // L11-C24 : utilisateur de cet appui, où qu'il tombe dans la fenêtre ; rien si l'événement n'attribue
+    // aucun appui (autre événement, souris synthétisée d'un stylet, pas de input::TwoUserPolicy).
+    std::optional<input::UserId> pressUser(const QEvent& event) const;
     // Applique la décision du routeur ; pressesInEvent : appuis de doigt non couverts de l'événement.
     bool applyDecision(input::Sample& sample, const input::Decision& decision, QPointF viewPos,
                        int pressesInEvent);
@@ -415,6 +418,9 @@ public:
     std::uint64_t lastFirstStylusDevice() const noexcept { return m_lastFirstStylus; }
     // Utilisateur de la dernière décision d'appui routée vers l'outil ou le geste (tests).
     int lastContactUser() const noexcept;
+    // L11-C24 (F-303) : utilisateur du dernier appui vu par le filtre de la fenêtre, avant sa livraison, sur
+    // la vue ou hors d'elle (palette, menu). Sans sens hors du mode à deux : DualMode y veille.
+    input::UserId lastPressUser() const noexcept { return m_lastPressUser; }
     // Chaque contact en cours se termine comme un relâché à sa dernière position (trait gardé) ; le geste
     // est rendu, le routeur remis à zéro, contactActive devient faux. La suite d'un contact terminé n'écrit
     // plus (le reste d'un contact de stylet reste pris par la vue jusqu'à son relâché). Appelé par la vue au
@@ -456,7 +462,8 @@ private:
     void setStylusDrawing(std::uint64_t device, bool drawing);
     QVarLengthArray<std::uint64_t, 4> m_stylusesDrawing;
     std::optional<QRectF> m_secondUserViewArea;
-    std::uint64_t m_lastFirstStylus = 0; // L11-C6
+    std::uint64_t m_lastFirstStylus = 0;               // L11-C6
+    input::UserId m_lastPressUser = input::kFirstUser; // L11-C24
     // Horodatage du dernier événement de toucher à appuis : Qt Quick livre deux fois [A relâché, B appuyé]
     // à la vue ; la seconde livraison n'a aucun effet (L11-C1).
     quint64 m_lastPressEventTime = 0;

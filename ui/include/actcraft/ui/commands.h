@@ -11,6 +11,7 @@
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
 #include <vector>
 
 namespace actcraft::ui {
@@ -77,6 +78,10 @@ public:
     // refusedForSecondUser(id). Le gestionnaire JavaScript reçoit (argument, user) ; un gestionnaire C++,
     // l'argument seul.
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument, int user);
+    // L11-C24 (F-303) : utilisateur de l'appui en cours (0 hors du mode à deux), lu par un bouton à son appui
+    // pour le repasser à trigger au clic. La source est posée par DualMode.
+    Q_INVOKABLE int pressUser() const;
+    void setPressUserSource(std::function<int()> source);
     Q_INVOKABLE void setHandler(const QString& id, const QJSValue& handler);
     // Gestionnaire C++ (L6-T5 : `profile.activate`, posé par ProfileController), gardé à travers reload() et
     // prioritaire sur un gestionnaire JavaScript ; un gestionnaire vide le retire.
@@ -149,6 +154,7 @@ private:
     // Gestionnaire en cours : le registre qui le porte n'est ni remplacé ni modifié avant son retour.
     int m_triggerDepth = 0;
     int m_triggerUser = 0; // utilisateur du déclenchement en cours, passé au gestionnaire JavaScript
+    std::function<int()> m_pressUserSource; // L11-C24
     bool m_reloadPending = false;
     int m_revision = 0;
 };

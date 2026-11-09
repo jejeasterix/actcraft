@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 
 #include <algorithm>
+#include <utility>
 
 namespace actcraft::ui {
 
@@ -350,6 +351,16 @@ bool Commands::trigger(const QString& id, const QVariant& argument, int user)
     }
     emit triggered(id, argument);
     return true;
+}
+
+int Commands::pressUser() const
+{
+    return m_pressUserSource ? m_pressUserSource() : 0;
+}
+
+void Commands::setPressUserSource(std::function<int()> source)
+{
+    m_pressUserSource = std::move(source);
 }
 
 void Commands::setHandler(const QString& id, const QJSValue& handler)

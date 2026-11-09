@@ -135,37 +135,33 @@ private:
         QCoreApplication::sendEvent(app.window, &event);
     }
 
-    // L11-C24 : la souris que la plateforme déduit d'un stylet dont personne n'a pris l'événement : Qt la
-    // porte sur l'appareil du stylet, Windows sur la souris principale (d'où `device`).
-    static void synthMouseAt(App& app, QEvent::Type type, QPointF scene, Qt::MouseEventSource source,
-                             const QPointingDevice* device)
+    // L11-C24 : ce que Qt livre pour un stylet que rien n'accepte hors de la vue : la tablette, puis la
+    // souris qu'il en déduit, portée par l'appareil du stylet (Qt Quick jette MouseEventSynthesizedBySystem).
+    static void synthMouseAt(App& app, const QPointingDevice* device, QEvent::Type type, QPointF scene)
     {
         const bool release = type == QEvent::MouseButtonRelease;
         QMouseEvent event(type, scene, scene, app.window->mapToGlobal(scene), Qt::LeftButton,
-                          release ? Qt::NoButton : Qt::LeftButton, Qt::NoModifier, source, device);
+                          release ? Qt::NoButton : Qt::LeftButton, Qt::NoModifier,
+                          Qt::MouseEventSynthesizedByQt, device);
         QCoreApplication::sendEvent(app.window, &event);
     }
 
-    static void stylusPressOnButton(App& app, const QPointingDevice* device, QPointF scene,
-                                    Qt::MouseEventSource source, const QPointingDevice* mouse)
+    static void stylusPressOnButton(App& app, const QPointingDevice* device, QPointF scene)
     {
         tabletAt(app, device, QEvent::TabletPress, scene);
-        synthMouseAt(app, QEvent::MouseButtonPress, scene, source, mouse ? mouse : device);
+        synthMouseAt(app, device, QEvent::MouseButtonPress, scene);
     }
 
-    static void stylusReleaseOnButton(App& app, const QPointingDevice* device, QPointF scene,
-                                      Qt::MouseEventSource source, const QPointingDevice* mouse)
+    static void stylusReleaseOnButton(App& app, const QPointingDevice* device, QPointF scene)
     {
         tabletAt(app, device, QEvent::TabletRelease, scene);
-        synthMouseAt(app, QEvent::MouseButtonRelease, scene, source, mouse ? mouse : device);
+        synthMouseAt(app, device, QEvent::MouseButtonRelease, scene);
     }
 
-    static void stylusTapOnButton(App& app, const QPointingDevice* device, QPointF scene,
-                                  Qt::MouseEventSource source = Qt::MouseEventSynthesizedByQt,
-                                  const QPointingDevice* mouse = nullptr)
+    static void stylusTapOnButton(App& app, const QPointingDevice* device, QPointF scene)
     {
-        stylusPressOnButton(app, device, scene, source, mouse);
-        stylusReleaseOnButton(app, device, scene, source, mouse);
+        stylusPressOnButton(app, device, scene);
+        stylusReleaseOnButton(app, device, scene);
     }
 
     // L11-C24 : vrai CommandButton dans la vraie fenêtre, hors de la vue de page comme les palettes (aucune
@@ -265,22 +261,10 @@ private slots:
     }
 
     // L11-C24 (H11-O14, F-303) : mode à deux, le bouton math.ruler est hors de la vue (palette à droite) ;
-    // l'utilisateur vient de l'appareil du stylet, et il en va de même quelle que soit la souris synthétisée
-    // ensuite (Qt : portée par le stylet ; Windows : la souris principale). trigger(commandId) donnerait 0.
-    void stylusOnMathButtonRunsAsItsUser_data()
-    {
-        QTest::addColumn<int>("source");
-        QTest::addColumn<bool>("primaryMouse");
-        QTest::newRow("souris synthetisee par Qt") << int(Qt::MouseEventSynthesizedByQt) << false;
-        QTest::newRow("souris synthetisee par le systeme") << int(Qt::MouseEventSynthesizedBySystem) << true;
-    }
-
+    // l'utilisateur vient de l'appareil du stylet ; la souris que Qt en déduit ne le change pas.
+    // trigger(commandId) donnerait 0.
     void stylusOnMathButtonRunsAsItsUser()
     {
-        QFETCH(int, source);
-        QFETCH(bool, primaryMouse);
-        const auto mouseSource = Qt::MouseEventSource(source);
-        const QPointingDevice* mouse = primaryMouse ? QPointingDevice::primaryPointingDevice() : nullptr;
         App app;
         QVERIFY(start(app));
         ui::DualMode* dual = startDual(app);
@@ -293,11 +277,11 @@ private slots:
         QVERIFY(button->x() + button->width() <= app.window->width());
         const QPointF at = buttonCentre(button);
 
-        stylusTapOnButton(app, m_stylus22.get(), at, mouseSource, mouse);
+        stylusTapOnButton(app, m_stylus22.get(), at);
         QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
         QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 1);
 
-        stylusTapOnButton(app, m_stylus11.get(), at, mouseSource, mouse);
+        stylusTapOnButton(app, m_stylus11.get(), at);
         QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 2);
         QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 0);
     }
@@ -317,9 +301,9 @@ private slots:
         QVERIFY(button);
         const QPointF at = buttonCentre(button);
 
-        stylusPressOnButton(app, m_stylus22.get(), at, Qt::MouseEventSynthesizedByQt, nullptr);
+        stylusPressOnButton(app, m_stylus22.get(), at);
         tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(300, 500)); // le premier se met à écrire
-        stylusReleaseOnButton(app, m_stylus22.get(), at, Qt::MouseEventSynthesizedByQt, nullptr);
+        stylusReleaseOnButton(app, m_stylus22.get(), at);
         tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(300, 500));
 
         QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
@@ -367,6 +351,52 @@ private slots:
                                               app.view->mapToScene(QPointF(30, -20)));
         QVERIFY(button);
         QTest::mouseClick(app.window, Qt::LeftButton, Qt::NoModifier, buttonCentre(button).toPoint());
+        QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
+        QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 0);
+    }
+
+    // L11-C24 : l'entrée de menu suit la même règle que le bouton.
+    void stylusOnMathMenuEntryRunsAsItsUser()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DualMode* dual = startDual(app);
+        QVERIFY(dual);
+        QVERIFY(drawFirstStroke(app));
+        QJSValue sink = recordUser(app, dual->commands(), QStringLiteral("math.ruler"));
+        QQmlComponent component(&app.engine);
+        component.setData("import ActCraft.Ui\nCommandEntry {}\n", QUrl());
+        auto* entry = qobject_cast<QQuickItem*>(component.createWithInitialProperties(
+            {{QStringLiteral("commands"), QVariant::fromValue(dual->commands())},
+             {QStringLiteral("payload"), QStringLiteral("{\"id\":\"math.ruler\"}")}}));
+        QVERIFY(entry);
+        entry->setParent(app.window);
+        entry->setParentItem(app.window->contentItem());
+        entry->setPosition(app.view->mapToScene(QPointF(app.view->width() + 4, 40)));
+        entry->setSize(QSizeF(40, 40));
+        entry->setZ(1000);
+        QVERIFY(entry->x() + entry->width() <= app.window->width());
+        const QPointF at = buttonCentre(entry);
+
+        stylusTapOnButton(app, m_stylus22.get(), at);
+        QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
+        QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 1);
+    }
+
+    // L11-C24 : une autre commande garde le premier utilisateur (règles de boîtes et d'outils inchangées) ;
+    // élargir l'attribution à toute commande rendrait 1 ici.
+    void stylusOnOtherCommandRunsAsFirst()
+    {
+        App app;
+        QVERIFY(start(app));
+        ui::DualMode* dual = startDual(app);
+        QVERIFY(dual);
+        QVERIFY(drawFirstStroke(app));
+        QJSValue sink = recordUser(app, dual->commands(), QStringLiteral("view.page-zoom"));
+        QQuickItem* button = addCommandButton(app, dual->commands(), QStringLiteral("view.page-zoom"),
+                                              app.view->mapToScene(QPointF(app.view->width() + 12, 40)));
+        QVERIFY(button);
+        stylusTapOnButton(app, m_stylus22.get(), buttonCentre(button));
         QTRY_COMPARE(sink.property(QStringLiteral("calls")).toInt(), 1);
         QCOMPARE(sink.property(QStringLiteral("user")).toInt(), 0);
     }

@@ -17,6 +17,7 @@ DualMode::~DualMode()
 {
     if (m_commands) {
         m_commands->setNativeHandler(kToggle, {}); // le gestionnaire tient `this`
+        m_commands->setPressUserSource({});
     }
 }
 
@@ -32,10 +33,14 @@ void DualMode::setCommands(Commands* commands)
     }
     if (m_commands) {
         m_commands->setNativeHandler(kToggle, {});
+        m_commands->setPressUserSource({});
     }
     m_commands = commands;
     if (m_commands) {
         m_commands->setNativeHandler(kToggle, [this](const QVariant&) { toggle(); });
+        m_commands->setPressUserSource([this] {
+            return m_active && m_view ? m_view->lastPressUser() : input::kFirstUser; // L11-C24
+        });
         m_commands->setChecked(kToggle, m_active);
     }
     emit commandsChanged();
