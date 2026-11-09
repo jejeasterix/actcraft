@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1794184634.6215055,
-    "ast_hash": "8958b6277098bc133fcb8fb64e5e6715",
+    "mtime": 1794188631.8997006,
+    "ast_hash": "ecccc78296c2ef3ad46672075bb92ddd",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -4410,8 +4410,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_mathtools.cpp": {
-    "mtime": 1794177013.9677207,
-    "ast_hash": "b2a04d6a61c208c3892cc45677e756f9",
+    "mtime": 1794188630.0308216,
+    "ast_hash": "4481b37bbeea58ece25914430b75916e",
     "semantic_hash": ""
   },
   "tests/tst_ui_mediainsert.cpp": {
@@ -4685,13 +4685,13 @@
     "semantic_hash": ""
   },
   "ui/src/mathtoolscontroller.cpp": {
-    "mtime": 1794177013.9811206,
-    "ast_hash": "180fb695c89dd4065285b991de3e4942",
+    "mtime": 1794188630.0320253,
+    "ast_hash": "00ab2756805687718a48f81246636bb1",
     "semantic_hash": ""
   },
   "ui/src/mathtoolscontroller.h": {
-    "mtime": 1794177013.9812658,
-    "ast_hash": "46ccab266605c58acc2c7bf2a2e279c9",
+    "mtime": 1794188630.0325131,
+    "ast_hash": "7076b60db81fbd8e4a33846cc0c82053",
     "semantic_hash": ""
   },
   "ui/src/mediainsert.cpp": {
@@ -5190,8 +5190,8 @@
     "semantic_hash": ""
   },
   "tests/tst_tools_twousers.cpp": {
-    "mtime": 1794184632.5473888,
-    "ast_hash": "9b1b8355ebf473183d2c3fd46eb0eb71",
+    "mtime": 1794188630.0299704,
+    "ast_hash": "8bb84c0423f73ef7c53cae90986bde0c",
     "semantic_hash": ""
   },
   "tests/tst_ui_accessibility.cpp": {
@@ -5570,8 +5570,8 @@
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-22-lot11-porte.md": {
-    "mtime": 1794184632.5448537,
-    "ast_hash": "fa264b6c6a8792b4b7a6a0945fd70bf7",
+    "mtime": 1794188630.0295668,
+    "ast_hash": "d0585d52c94468df67da3598ece52ca6",
     "semantic_hash": ""
   },
   "docs/verifications/2026-10-22-lot11-release-prete.md": {
