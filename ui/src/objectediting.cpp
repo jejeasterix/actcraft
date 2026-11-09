@@ -14,6 +14,8 @@
 #include <QGuiApplication>
 #include <QImage>
 #include <QMimeData>
+#include <QRegularExpression>
+#include <QUrl>
 
 #include <algorithm>
 #include <map>
@@ -127,6 +129,8 @@ ObjectEditing::ObjectEditing(QObject* parent) : QObject(parent)
 {
     m_insertion = new Insertion(this);
     m_pages = new PagesController(this);
+    connect(m_insertion, &Insertion::failed, this, &ObjectEditing::insertionFailed);
+    connect(m_insertion, &Insertion::webFramesChanged, this, &ObjectEditing::webFramesChanged);
     connect(m_insertion, &Insertion::inserted, this, [this](int count) {
         if (m_document == nullptr || m_tools == nullptr || count <= 0)
             return;
@@ -330,7 +334,29 @@ std::optional<formats::ClipboardPayload> clipboardObjects()
         return std::nullopt;
     return formats::decodeClipboard(mime->data(formats::kObjectsMimeType));
 }
+
+// Une URL n'est reconnue que si le texte entier, sur une ligne, en est une (n° 22).
+bool singleWebAddress(const QString& text, QUrl& url)
+{
+    const QString trimmed = text.trimmed();
+    static const QRegularExpression space(QStringLiteral("\\s"));
+    if (trimmed.isEmpty() || trimmed.contains(space))
+        return false;
+    url = QUrl(trimmed, QUrl::StrictMode);
+    return url.isValid() && !url.host().isEmpty() &&
+           (url.scheme() == QLatin1String("http") || url.scheme() == QLatin1String("https"));
+}
 } // namespace
+
+WebFrameItems* ObjectEditing::webFrames() const
+{
+    return m_insertion->webFrames();
+}
+
+void ObjectEditing::setWebFrames(WebFrameItems* frames)
+{
+    m_insertion->setWebFrames(frames);
+}
 
 void ObjectEditing::paste()
 {
@@ -356,7 +382,12 @@ void ObjectEditing::paste()
     }
     if (mime->hasText()) { // texte brut seulement : un HTML venu d'ailleurs n'est jamais interprété
         const QSizeF size = m_document->pageSize();
-        m_insertion->acceptDrop({}, mime->text(), QPointF(size.width() / 2, size.height() / 2));
+        const QPointF center(size.width() / 2, size.height() / 2);
+        QUrl address;
+        if (singleWebAddress(mime->text(), address))
+            m_insertion->acceptWebDrop({address}, mime->text(), QString(), center);
+        else
+            m_insertion->acceptDrop({}, mime->text(), center);
     }
 }
 
@@ -367,10 +398,15 @@ void ObjectEditing::pasteAt(QPointF pagePoint)
     auto payload = clipboardObjects();
     if (!payload) {
         const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
-        if (mime != nullptr && !mime->hasImage() && mime->hasText())
-            m_insertion->acceptDrop({}, mime->text(), pagePoint);
-        else
+        if (mime != nullptr && !mime->hasImage() && mime->hasText()) {
+            QUrl address;
+            if (singleWebAddress(mime->text(), address))
+                m_insertion->acceptWebDrop({address}, mime->text(), QString(), pagePoint);
+            else
+                m_insertion->acceptDrop({}, mime->text(), pagePoint);
+        } else {
             paste();
+        }
         return;
     }
     std::optional<core::RectF> united;

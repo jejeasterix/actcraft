@@ -873,6 +873,10 @@ Window {
     }
     function insertImageAdmitted(url) { root.admitThen(url, function(u) { appInsertion.insertImage(u) }) }
     function importPdfAdmitted(url) { root.admitThen(url, function(u) { appExchange.importPdf(u) }) }
+    Connections {
+        target: appEditing
+        function onInsertionFailed(message) { messageBanner.show(message) } // collage d'une URL (S2)
+    }
     // Échanges de fichiers (L5-T25) : l'échec et la fin arrivent à la bannière.
     Connections {
         target: appExchange

@@ -1,6 +1,7 @@
 #pragma once
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/toolhost.h>
+#include <actcraft/ui/webframeitem.h>
 
 #include <QObject>
 #include <QPointF>
@@ -17,6 +18,8 @@ class ObjectEditing : public QObject
     QML_ELEMENT
     Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(ToolHost* tools READ tools WRITE setTools NOTIFY toolsChanged)
+    Q_PROPERTY(
+        actcraft::ui::WebFrameItems* webFrames READ webFrames WRITE setWebFrames NOTIFY webFramesChanged)
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionStateChanged)
     Q_PROPERTY(bool canPaste READ canPaste NOTIFY clipboardChanged)
     Q_PROPERTY(bool selectionLocked READ selectionLocked NOTIFY selectionStateChanged)
@@ -30,6 +33,8 @@ public:
     void setDocument(DocumentController* document);
     ToolHost* tools() const;
     void setTools(ToolHost* tools);
+    WebFrameItems* webFrames() const;
+    void setWebFrames(WebFrameItems* frames);
     bool hasSelection() const;
     bool canPaste() const;
     bool selectionLocked() const;
@@ -58,6 +63,8 @@ signals:
     void toolsChanged();
     void selectionStateChanged();
     void clipboardChanged();
+    void insertionFailed(const QString& message);
+    void webFramesChanged();
 
 private:
     DocumentController* m_document = nullptr;
