@@ -7,7 +7,7 @@
 #include <actcraft/bench/simulatedrecorders.h>
 #include <actcraft/bench/testroots.h>
 #include <actcraft/bench/verdict.h>
-#include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
+#include <actcraft/ui/webframeengine.h>
 
 #include <QDir>
 #include <QGuiApplication>
@@ -18,9 +18,6 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
-#if ACTCRAFT_WEBFRAME
-#include <QtWebView/QtWebView>
-#endif
 
 #include <cstdio>
 #ifdef Q_OS_ANDROID
@@ -61,9 +58,7 @@ QString androidExternalFilesDir()
 // Dernière ligne et code de sortie : BUDGET TENU (0), BUDGET DEPASSE (1), MESURE INVALIDE (2).
 int main(int argc, char* argv[])
 {
-#if ACTCRAFT_WEBFRAME
-    QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
-#endif
+    actcraft::ui::prepareWebFrameEngine(); // avant l'application (cadre web, DA2)
     QGuiApplication app(argc, argv);
 #ifdef Q_OS_ANDROID
     actcraft::bench::useSimulatedRecorders(); // aucune permission : ni micro ni fenêtre de permission

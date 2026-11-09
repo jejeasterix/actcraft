@@ -107,6 +107,18 @@ set(ACTCRAFT_UI_LOT11_SOURCES
     src/updatechecker.cpp
 )
 
+# Un seul composant de vue du cadre web par plateforme (DA1). Le composant du moteur est chargé depuis sa source :
+# QtWebEngine n'est pas lié, aucun cache compilé n'est possible.
+set(_actcraft_webframe_qml "")
+if(ACTCRAFT_WEBFRAME)
+    if(ANDROID)
+        set(_actcraft_webframe_qml qml/WebFrameSystemView.qml)
+    else()
+        set(_actcraft_webframe_qml qml/WebFrameEngineView.qml)
+        set_source_files_properties(qml/WebFrameEngineView.qml PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
+    endif()
+endif()
+
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
     VERSION 1.0
@@ -174,6 +186,7 @@ qt_add_qml_module(actcraft_ui
         qml/AreaSelector.qml
         qml/WebFrameLayer.qml
         qml/WebFrameDialog.qml
+        ${_actcraft_webframe_qml}
         qml/PublishDialog.qml
         ${ACTCRAFT_UI_LOT7_QML}
         ${ACTCRAFT_UI_LOT6_QML}
@@ -343,6 +356,8 @@ qt_add_qml_module(actcraft_ui
         src/webpolicy.cpp
         include/actcraft/ui/webframeitem.h
         src/webframeitem.cpp
+        include/actcraft/ui/webframeengine.h
+        src/webframeengine.cpp
         include/actcraft/ui/broadcastgate.h
         src/broadcastgate.cpp
         include/actcraft/ui/actionrunner.h
@@ -425,7 +440,10 @@ if(ACTCRAFT_MEDIA)
     target_link_libraries(actcraft_ui PUBLIC ActCraft::media)
 endif()
 if(ACTCRAFT_WEBFRAME)
-    target_link_libraries(actcraft_ui PUBLIC Qt6::WebView)
+    target_compile_definitions(actcraft_ui PUBLIC ACTCRAFT_WEBFRAME=1)
+    if(ANDROID)
+        target_link_libraries(actcraft_ui PUBLIC Qt6::WebView)
+    endif()
 endif()
 actcraft_set_warnings(actcraft_ui)
 

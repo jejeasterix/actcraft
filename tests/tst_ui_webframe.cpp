@@ -14,6 +14,7 @@
 #include <actcraft/core/document.h>
 #include <actcraft/core/pageedits.h>
 #include <actcraft/render/pagepainter.h>
+#include <actcraft/ui/webframeengine.h>
 
 #include <QByteArray>
 #include <QElapsedTimer>
@@ -41,10 +42,6 @@
 #include <functional>
 #include <limits>
 #include <memory>
-
-#if ACTCRAFT_WEBFRAME
-#include <QtWebView/QtWebView>
-#endif
 
 using namespace actcraft;
 using Verdict = ui::WebContentPolicy::Verdict;
@@ -728,6 +725,16 @@ void TstUiWebFrame::paintedAsANeutralFrame()
     QCOMPARE(lookups, 0);
 }
 
+#ifdef Q_OS_MACOS
+#define ACTCRAFT_ENGINE_REQUIRED(ok) QVERIFY2(ok, "moteur web absent sur Mac")
+#else
+#define ACTCRAFT_ENGINE_REQUIRED(ok)                                                                         \
+    do {                                                                                                     \
+        if (!(ok))                                                                                           \
+            QSKIP("moteur web indisponible hors écran");                                                     \
+    } while (false)
+#endif
+
 // Avec le moteur : la vue ne demande que les sous-ressources passées. Une balise que la réécriture n'aurait
 // pas vue (ajoutée ici après coup) est arrêtée par la règle de sécurité du contenu. Hors écran, si la vue ne
 // charge rien, le moteur manque : saut nommé.
@@ -757,18 +764,16 @@ void TstUiWebFrame::viewFetchesOnlyDecidedSubResources()
 #endif
     QQmlEngine engine;
     QQmlComponent component(&engine);
-    component.setData("import QtQuick\nimport QtWebView\nWebView { width: 400; height: 300; "
-                      "settings.javaScriptEnabled: false; settings.allowFileAccess: false; "
-                      "settings.localContentCanAccessFileUrls: false }",
+    component.setData("import QtQuick\nimport QtWebEngine\nWebEngineView { width: 400; height: 300; "
+                      "settings.javascriptEnabled: false; settings.localContentCanAccessFileUrls: false; "
+                      "settings.localContentCanAccessRemoteUrls: false }",
                       QUrl());
-    if (component.isError())
-        QSKIP("moteur web indisponible hors écran");
+    ACTCRAFT_ENGINE_REQUIRED(!component.isError());
     QQuickWindow window;
     window.resize(400, 300);
     std::unique_ptr<QObject> created(component.create());
     auto* view = qobject_cast<QQuickItem*>(created.get());
-    if (!view)
-        QSKIP("moteur web indisponible hors écran");
+    ACTCRAFT_ENGINE_REQUIRED(view != nullptr);
     view->setParentItem(window.contentItem());
     window.show();
     typed.reset();
@@ -776,8 +781,7 @@ void TstUiWebFrame::viewFetchesOnlyDecidedSubResources()
     QVERIFY(QMetaObject::invokeMethod(view, "loadHtml", Q_ARG(QString, html), Q_ARG(QUrl, QUrl())));
     const bool loaded =
         QTest::qWaitFor([&] { return typed.paths().contains(QStringLiteral("/ok.png")); }, 8000);
-    if (!loaded)
-        QSKIP("moteur web indisponible hors écran");
+    ACTCRAFT_ENGINE_REQUIRED(loaded);
     QTest::qWait(500);
     QCOMPARE(other.requests(), 0);
 #endif
@@ -1132,9 +1136,7 @@ void TstUiWebFrame::unblockDuringRewriteHolds()
 
 int main(int argc, char** argv)
 {
-#if ACTCRAFT_WEBFRAME
-    QtWebView::initialize();
-#endif
+    actcraft::ui::prepareWebFrameEngine();
     QGuiApplication app(argc, argv);
     TstUiWebFrame test;
     return QTest::qExec(&test, argc, argv);

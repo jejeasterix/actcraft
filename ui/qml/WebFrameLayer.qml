@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import ActCraft.Ui
 
-// Cadres web de la page (S27, F-302) : une vue Qt WebView par cadre visible, posée sur son repère, avec sa
+// Cadres web de la page (S27, F-302) : une vue par cadre visible, chargée par un Loader, posée sur son repère, avec sa
 // barre (précédent, suivant, recharger, image fixe) et sa poignée (une étape au relâché).
 //
 // La vue ne reçoit jamais d'adresse : elle charge le HTML que WebFrameItems a lu et réécrit après la décision
@@ -25,6 +25,11 @@ Item {
     property int currentRow: -1
     readonly property int targetRow: currentRow >= 0 && currentRow < count ? currentRow : (count > 0 ? 0 : -1)
     property var dialog: null
+    // Composant de la vue : celui du moteur construit ; un test en pose un autre avant le premier cadre.
+    property url viewSource: appWebFrames.engineKind === "engine" ? Qt.resolvedUrl("WebFrameEngineView.qml")
+                           : appWebFrames.engineKind === "system" ? Qt.resolvedUrl("WebFrameSystemView.qml") : ""
+    property int loadedViews: 0   // vues dont une page a fini de charger (lu par les tests et le banc)
+    property int snapshotCount: 0 // images fixes terminées
     // Vue native au-dessus de tout le QML : masquée tant qu'une boîte de la fenêtre est ouverte, la
     // nôtre (ci-dessous, relayée) ou toute autre (menus compris : Main.openPopups, via PageArea.inputBlocked).
     readonly property bool covered: confirm.opened || (dialog !== null && dialog.opened) ||
@@ -113,6 +118,7 @@ Item {
         commands.setHandler("webframe.snapshot", function (arg) {
             const ok = appWebFrames.snapshot(frameLayer.rowOf(arg))
             console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
+            frameLayer.snapshotCount += 1
         })
         // Déblocage : confirmation, puis cette page de ce document seulement.
         commands.setHandler("webframe.unblock", function (arg) {
@@ -149,55 +155,63 @@ Item {
 
             Item {
                 id: viewHost
+                objectName: "webFrameViewHost"
                 anchors.fill: parent
                 clip: true
-                visible: frame.showsView && !frameLayer.covered
-                property var web: null
-                // Magasin de cookies du moteur : commun à toutes les vues et gardé d'une session à l'autre ;
-                // vidé avant le premier contenu de chaque document et à la destruction de la vue (H8-13 :
-                // rien ne passe d'un document à un autre ; deleteAllCookies, Qt WebView 6.3+).
-                property string cookiesFor: ""
-                Component.onDestruction: if (web) web.deleteAllCookies()
-                function show() {
-                    if (!frame.showsView || !appWebFrames.engineBuilt)
-                        return
-                    if (!web) {
-                        try {
-                            web = Qt.createQmlObject("import QtQuick\nimport QtWebView\nWebView {\n"
-                                                     + " anchors.fill: parent\n"
-                                                     + " settings.javaScriptEnabled: false\n"
-                                                     + " settings.allowFileAccess: false\n"
-                                                     + " settings.localContentCanAccessFileUrls: false\n"
-                                                     + " settings.localStorageEnabled: false\n}",
-                                                     viewHost, "WebFrameView")
-                        } catch (e) {
-                            console.warn("Cadre web : vue indisponible (" + e + ")")
+                visible: frame.showsView && !(frameLayer.covered && loader.item !== null && loader.item.overlaysScene)
+                property bool reported: false
+
+                Loader {
+                    id: loader
+                    objectName: "webFrameLoader"
+                    anchors.fill: parent
+                    asynchronous: true // import QtWebEngine lu à la première vue (DA2)
+                    onStatusChanged: {
+                        if (status === Loader.Ready)
+                            viewHost.deliver()
+                        else if (status === Loader.Error)
+                            console.warn("Cadre web : vue indisponible (" + source + ")")
+                    }
+                }
+                Connections {
+                    target: loader.item
+                    ignoreUnknownSignals: true
+                    function onNavigationTaken(pageUrl) {
+                        // Toute adresse prise par la vue repasse par le modèle ; s'il la prend en charge, la vue s'arrête.
+                        if (appWebFrames.followLink(frame.index, pageUrl))
+                            loader.item.stop()
+                    }
+                    function onPageLoaded() {
+                        if (viewHost.reported)
                             return
-                        }
-                        // Toute adresse prise par la vue repasse par le modèle (renvoi interne ou navigation
-                        // du moteur) ; s'il la prend en charge, la vue s'arrête. Arrêt après coup : la requête
-                        // est déjà partie (Qt WebView 6.12 n'offre ni réglage ni décision de navigation) ; ce
-                        // risque résiduel est borné par la réécriture (aucune balise meta, aucun lien direct,
-                        // aucune action de formulaire), voir l'en-tête de webframeitem.h.
-                        web.urlChanged.connect(function () {
-                            if (appWebFrames.followLink(frame.index, web.url))
-                                web.stop()
-                        })
-                        web.loadingChanged.connect(function (request) {
-                            if (request.status === 0 && appWebFrames.followLink(frame.index, request.url))
-                                web.stop()
-                        })
+                        viewHost.reported = true
+                        frameLayer.loadedViews += 1
+                        console.info("ACTCRAFT CADRE WEB CHARGE")
                     }
-                    if (cookiesFor !== appWebFrames.documentKey) {
-                        web.deleteAllCookies()
-                        cookiesFor = appWebFrames.documentKey
+                }
+                function deliver() {
+                    if (loader.status !== Loader.Ready || !frame.showsView)
+                        return
+                    const view = loader.item
+                    view.html = frame.content
+                    view.baseUrl = frame.baseUrl
+                    view.serial = frame.serial
+                    view.load()
+                }
+                function show() {
+                    if (!frame.showsView || frameLayer.viewSource.toString() === "")
+                        return
+                    if (loader.status === Loader.Null) {
+                        viewHost.reported = false
+                        loader.setSource(frameLayer.viewSource, { guardsEnabled: true }) // T5 : réglage réel
+                        return
                     }
-                    // Sans base : le document est about:blank, ses adresses sont déjà absolues ; toute
-                    // navigation du moteur repasse par followLink et s'arrête.
-                    web.loadHtml(frame.content, "")
+                    deliver()
                 }
             }
-            onSerialChanged: viewHost.show()
+            // Reporté : dataChanged sans rôles notifie les rôles un à un, dans un ordre non garanti ; quand `serial`
+            // change, `content` peut être encore l'ancien (Loader jamais lancé, ou contenu périmé livré à la vue).
+            onSerialChanged: Qt.callLater(viewHost.show)
             Component.onCompleted: viewHost.show()
 
             // Repère de blocage : contenu distant d'un document reçu, page non débloquée.

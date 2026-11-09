@@ -5,15 +5,12 @@
 #include <actcraft/ui/language.h>
 #include <actcraft/ui/preferences.h>
 #include <actcraft/ui/viewtransform.h>
-#include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
+#include <actcraft/ui/webframeengine.h>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
-#if ACTCRAFT_WEBFRAME
-#include <QtWebView/QtWebView>
-#endif
 
 #include <cstdio>
 #include <cstring>
@@ -35,9 +32,7 @@ int main(int argc, char* argv[])
         }
     }
 
-#if ACTCRAFT_WEBFRAME
-    QtWebView::initialize(); // M10 : avant l'application (cadre web, L8-T30)
-#endif
+    actcraft::ui::prepareWebFrameEngine(); // avant l'application (cadre web, DA2)
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ActCraft"));
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));

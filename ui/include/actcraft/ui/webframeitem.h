@@ -16,15 +16,9 @@
 #include <cstdint>
 #include <functional>
 
-// Moteur web construit : vrai quand actcraft_ui est lié à Qt WebView (option
-// ACTCRAFT_WEBFRAME du CMakeLists.txt racine ; la cible Qt6::WebView pose
-// QT_WEBVIEW_LIB chez tous ceux qui la lient).
+// Moteur web construit : posé par ui/CMakeLists.txt (public) quand ACTCRAFT_WEBFRAME est ON.
 #ifndef ACTCRAFT_WEBFRAME
-#ifdef QT_WEBVIEW_LIB
-#define ACTCRAFT_WEBFRAME 1
-#else
 #define ACTCRAFT_WEBFRAME 0
-#endif
 #endif
 
 class QNetworkAccessManager;
@@ -73,6 +67,7 @@ class WebFrameItems : public QAbstractListModel
     Q_PROPERTY(bool unblockPending READ unblockPending NOTIFY unblockPendingChanged)
     Q_PROPERTY(QString documentKey READ documentKey NOTIFY documentKeyChanged)
     Q_PROPERTY(bool engineBuilt READ engineBuilt CONSTANT)
+    Q_PROPERTY(QString engineKind READ engineKind CONSTANT)
 
 public:
     enum Role
@@ -106,6 +101,7 @@ public:
     bool unblockPending() const noexcept { return m_pendingRow >= 0; }
     QString documentKey() const { return m_key; }
     static bool engineBuilt() noexcept { return ACTCRAFT_WEBFRAME != 0; }
+    static QString engineKind();
     // Conversions du HTML enregistré (std::string) en QString faites par rebuild(), depuis le début du
     // processus (fil de l'interface seulement) : la mesure que lisent les tests.
     static std::uint64_t htmlConversionCount() noexcept;

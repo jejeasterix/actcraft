@@ -11,6 +11,7 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -1005,6 +1006,22 @@ WebFrameItems::Prepared WebFrameItems::prepareHtml(const QString& html, const QU
     return prepared;
 }
 
+QString WebFrameItems::engineKind()
+{
+#if !ACTCRAFT_WEBFRAME
+    return QStringLiteral("none");
+#elif defined(Q_OS_ANDROID)
+    return QStringLiteral("system");
+#else
+#ifdef Q_OS_WIN
+    // Reste PC 4 : le moteur n'est pas prouvé hors écran sous Windows (cadrage n° 30).
+    if (QGuiApplication::platformName() == QLatin1String("offscreen"))
+        return QStringLiteral("none");
+#endif
+    return QStringLiteral("engine");
+#endif
+}
+
 WebFrameItems::WebFrameItems(QObject* parent) : QAbstractListModel(parent) {}
 
 WebFrameItems::~WebFrameItems()
@@ -1598,12 +1615,13 @@ bool WebFrameItems::followLink(int row, const QUrl& viewUrl)
         emit countChanged();
         return true;
     }
-    // La vue charge le contenu par loadHtml sans base : about:blank, et ses
+    // La vue charge le contenu par loadHtml sans base : about:blank ou data: (selon le moteur), et ses
     // renvois de fragment, sont à elle. Toute autre adresse, même celle de la
     // page affichée, serait chargée par le moteur sans la règle de sécurité du
     // contenu : rendue au modèle, la vue s'arrête.
     const QUrl page = viewUrl.adjusted(QUrl::RemoveFragment);
-    if (page.isEmpty() || page == QUrl(QStringLiteral("about:blank")))
+    if (page.isEmpty() || page == QUrl(QStringLiteral("about:blank")) ||
+        page.scheme() == QLatin1String("data"))
         return false;
     navigate(r, page, true); // navigation du moteur : rendue à la politique
     rowChanged(row);
