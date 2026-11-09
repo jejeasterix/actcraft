@@ -31,7 +31,8 @@ class Insertion : public QObject
     Q_PROPERTY(DocumentController* document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(MediaInsert* mediaInsert READ mediaInsert WRITE setMediaInsert NOTIFY mediaInsertChanged)
     Q_PROPERTY(actcraft::ui::DocumentPortal* portal READ portal WRITE setPortal)
-    Q_PROPERTY(actcraft::ui::WebFrameItems* webFrames READ webFrames WRITE setWebFrames NOTIFY webFramesChanged)
+    Q_PROPERTY(
+        actcraft::ui::WebFrameItems* webFrames READ webFrames WRITE setWebFrames NOTIFY webFramesChanged)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
     Q_PROPERTY(bool lastDecodeOffMainThread READ lastDecodeOffMainThread NOTIFY inserted)
 public:
@@ -51,9 +52,9 @@ public:
     Q_INVOKABLE void insertMedia(const QUrl& url);
     Q_INVOKABLE void insertImageData(const QImage& image); // collage, L5-T14
     Q_INVOKABLE bool acceptDrop(const QVariantList& urls, const QString& text, QPointF pagePoint);
-    // Dépôt ou collage venu d'une page web (cadrage n° 21) : `http(s)` téléchargé, `data:image` décodé, `file:` par
-    // acceptDrop, `blob:` refusé. `html` n'est jamais interprété (M13) : il est reçu pour que l'appelant n'ait pas à
-    // trier les formats. Vrai si quelque chose a été pris en charge.
+    // Dépôt ou collage venu d'une page web (cadrage n° 21) : `http(s)` téléchargé, `data:image` décodé,
+    // `file:` par acceptDrop, `blob:` refusé. `html` n'est jamais interprété (M13) : il est reçu pour que
+    // l'appelant n'ait pas à trier les formats. Vrai si quelque chose a été pris en charge.
     Q_INVOKABLE bool acceptWebDrop(const QVariantList& urls, const QString& text, const QString& html,
                                    QPointF pagePoint);
     WebFrameItems* webFrames() const { return m_webFrames; }

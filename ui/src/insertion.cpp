@@ -278,9 +278,9 @@ int place(DocumentController& controller, std::vector<Item>& items, std::size_t 
 
 } // namespace
 
-// Document et page devant lesquels l'insertion est demandée. La page est suivie par les changements de pages : son
-// indice se décale, ou elle disparaît et l'objet est abandonné (H5-32, L5-C23). Prise à la demande : un téléchargement
-// dure bien plus longtemps qu'un décodage.
+// Document et page devant lesquels l'insertion est demandée. La page est suivie par les changements de pages
+// : son indice se décale, ou elle disparaît et l'objet est abandonné (H5-32, L5-C23). Prise à la demande : un
+// téléchargement dure bien plus longtemps qu'un décodage.
 struct InsertionOrigin
 {
     std::uint64_t generation = 0;
@@ -490,8 +490,8 @@ void Insertion::placeText(const QString& text, QPointF point, std::size_t page)
     object.bounds = {point.x(), point.y(), std::max(size.width(), 1.0), std::max(size.height(), 1.0)};
     core::PageObject entry = std::move(object);
     entry.common.layer = core::Layer::Middle;
-    m_document->execute(std::make_unique<core::ReplaceObjectsCommand>(page, std::vector<core::ObjectId>{},
-                                                                      std::vector<core::PageObject>{std::move(entry)}));
+    m_document->execute(std::make_unique<core::ReplaceObjectsCommand>(
+        page, std::vector<core::ObjectId>{}, std::vector<core::PageObject>{std::move(entry)}));
 }
 
 void Insertion::setWebFrames(WebFrameItems* frames)

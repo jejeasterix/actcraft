@@ -708,6 +708,25 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
         QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
     }
+
+    // Seul acceptWebDrop télécharge : acceptDrop et insertImage refusent toujours http(s), sans requête.
+    void fileEntryPointsStillRefuseHttp()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/i.png"), pngBytes(10, 10));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptDrop({server.url(QStringLiteral("/i.png"))}, {}, {10, 10}));
+        QTRY_COMPARE(failed.count(), 1);
+        insertion.insertImage(server.url(QStringLiteral("/i.png")));
+        QTRY_COMPARE(failed.count(), 2);
+        QCOMPARE(server.requests(), 0);
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
 };
 
 QTEST_MAIN(TestInsertion)
