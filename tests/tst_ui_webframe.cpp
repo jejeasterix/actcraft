@@ -141,6 +141,10 @@ private slots:
     void viewOwnUrlsAreNotNavigations();
     void switchingGuardsOnDropsDirectContent();
     void switchingGuardsOnDropsTypedHtml();
+    void guardsOffCommandsGoToTheView();
+    void guardsOnCommandsStayInTheModel();
+    void reportFillsTitleAndHistory();
+    void reportIsIgnoredGuardsOn();
     void heavyWriteFailureShowsAMessage_data();
     void heavyWriteFailureShowsAMessage();
     void savingGivesTheResourceBase();
@@ -1433,8 +1437,9 @@ void TstUiWebFrame::savingGivesTheResourceBase()
     QVERIFY(role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl().isEmpty());
     f.document.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
     QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
-    QTRY_COMPARE(role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
-                 QUrl::fromLocalFile(QFileInfo(dir.filePath(QStringLiteral("a.actcraft"))).absolutePath() + u'/'));
+    QTRY_COMPARE(
+        role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
+        QUrl::fromLocalFile(QFileInfo(dir.filePath(QStringLiteral("a.actcraft"))).absolutePath() + u'/'));
 }
 
 void TstUiWebFrame::savingAsMovesTheResourceBase()
@@ -1448,8 +1453,9 @@ void TstUiWebFrame::savingAsMovesTheResourceBase()
     QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
     f.document.saveToUrl(QUrl::fromLocalFile(second.filePath(QStringLiteral("b.actcraft"))));
     QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
-    QTRY_COMPARE(role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
-                 QUrl::fromLocalFile(QFileInfo(second.filePath(QStringLiteral("b.actcraft"))).absolutePath() + u'/'));
+    QTRY_COMPARE(
+        role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
+        QUrl::fromLocalFile(QFileInfo(second.filePath(QStringLiteral("b.actcraft"))).absolutePath() + u'/'));
 }
 
 namespace {
@@ -1513,6 +1519,52 @@ void TstUiWebFrame::closingTheDocumentDropsTheHeavyFile()
     f.frames.setDocument(nullptr);
     QCOMPARE(f.frames.count(), 0);
     QVERIFY(!QFile::exists(path));
+}
+
+void TstUiWebFrame::guardsOffCommandsGoToTheView()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame({}, QStringLiteral("https://exemple.invalide/")));
+    QSignalSpy commands(&f.frames, &ui::WebFrameItems::viewCommand);
+    f.frames.goBack(0);
+    f.frames.goForward(0);
+    f.frames.reload(0);
+    QCOMPARE(commands.count(), 3);
+    QCOMPARE(commands.at(0).at(1).toString(), QStringLiteral("back"));
+    QCOMPARE(commands.at(1).at(1).toString(), QStringLiteral("forward"));
+    QCOMPARE(commands.at(2).at(1).toString(), QStringLiteral("reload"));
+}
+
+void TstUiWebFrame::guardsOnCommandsStayInTheModel()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>a</p>"), {}));
+    QSignalSpy commands(&f.frames, &ui::WebFrameItems::viewCommand);
+    f.frames.reload(0);
+    QCOMPARE(commands.count(), 0);
+}
+
+void TstUiWebFrame::reportFillsTitleAndHistory()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame({}, QStringLiteral("https://exemple.invalide/")));
+    const int serial = role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt();
+    f.frames.reportView(0, QUrl(QStringLiteral("https://exemple.invalide/b")), true, false,
+                        QStringLiteral("Page B"), false);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::TitleRole).toString(), QStringLiteral("Page B"));
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::CanGoBackRole).toBool());
+    QVERIFY(!role(f.frames, 0, ui::WebFrameItems::CanGoForwardRole).toBool());
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt(), serial);
+}
+
+void TstUiWebFrame::reportIsIgnoredGuardsOn()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>a</p>"), {}));
+    f.frames.reportView(0, QUrl(QStringLiteral("https://exemple.invalide/")), true, true, QStringLiteral("X"),
+                        false);
+    QVERIFY(!role(f.frames, 0, ui::WebFrameItems::CanGoBackRole).toBool());
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::TitleRole).toString() != QStringLiteral("X"));
 }
 
 int main(int argc, char** argv)

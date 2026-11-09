@@ -54,19 +54,34 @@ constexpr qsizetype kSurelyShortHtml = kLoadHtmlLimit / 9;
 
 // Fil secondaire seulement. Fichier écrit avec sa marque d'ordre : sans déclaration de charset, UTF-8 reste
 // lu comme tel.
-QUrl writeHeavyHtml(const QString& html, const QString& dir, std::uint64_t ticket)
+// `failed` : le contenu est lourd mais le fichier n'a pas pu être écrit en entier (disque plein, dossier
+// perdu) ; le fichier partiel est retiré et rien n'est rendu.
+QUrl writeHeavyHtml(const QString& html, const QString& dir, std::uint64_t ticket, bool* failed = nullptr)
 {
-    if (dir.isEmpty() || html.size() <= kSurelyShortHtml)
+    if (failed)
+        *failed = false;
+    if (html.size() <= kSurelyShortHtml)
         return {};
     const QByteArray utf8 = html.toUtf8();
     if (utf8.toPercentEncoding().size() <= kLoadHtmlLimit)
+        return {};
+    if (failed)
+        *failed = true;
+    if (dir.isEmpty())
         return {};
     const QString path = QDir(dir).filePath(QStringLiteral("cadre-%1.html").arg(ticket));
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly))
         return {};
-    file.write("\xEF\xBB\xBF");
-    file.write(utf8);
+    static constexpr char kBom[] = "\xEF\xBB\xBF";
+    if (file.write(kBom, 3) != 3 || file.write(utf8) != utf8.size() || !file.flush()) {
+        file.close();
+        QFile::remove(path);
+        return {};
+    }
+    file.close();
+    if (failed)
+        *failed = false;
     return QUrl::fromLocalFile(path);
 }
 
@@ -1121,8 +1136,10 @@ void WebFrameItems::setDocument(DocumentController* document)
             connect(document, &DocumentController::pagesChanged, this, &WebFrameItems::rebuild);
         m_connections[2] =
             connect(document, &DocumentController::liftingChanged, this, &WebFrameItems::rebuild);
-        m_connections[3] =
-            connect(document, &DocumentController::fileUrlChanged, this, &WebFrameItems::rebuild);
+        m_connections[3] = connect(document, &DocumentController::fileUrlChanged, this, [this] {
+            rebuild();
+            fileChanged();
+        });
         // Ouverture réussie : le document est reçu, même sans fichier (un
         // .flipchart, décision 18).
         m_connections[4] =
@@ -1141,6 +1158,29 @@ void WebFrameItems::setDocument(DocumentController* document)
     m_page = -1;
     rebuild();
     emit documentChanged();
+}
+
+// Enregistrer ou « Enregistrer sous » donne un autre dossier au document sans changer sa génération : la
+// base d'un HTML saisi le suit (n° 11), et les lignes de ce HTML sont repréparées (gardes coupées).
+void WebFrameItems::fileChanged()
+{
+    if (!m_document)
+        return;
+    const QUrl file = m_document->fileUrl();
+    const QUrl base = file.isLocalFile()
+                          ? QUrl::fromLocalFile(QFileInfo(file.toLocalFile()).absolutePath() + u'/')
+                          : QUrl();
+    if (base == m_resourceBase)
+        return;
+    m_resourceBase = base;
+    if (m_guardsEnabled)
+        return;
+    for (int i = 0; i < m_rows.size(); ++i) {
+        if (!m_rows[i].address.trimmed().isEmpty())
+            continue;
+        prepareRow(m_rows[i]);
+        rowChanged(i);
+    }
 }
 
 void WebFrameItems::documentReplaced()
@@ -1199,6 +1239,8 @@ void WebFrameItems::rebuild()
 {
     if (!m_document) {
         if (!m_rows.isEmpty()) {
+            for (Row& row : m_rows)
+                releaseContentFile(row);
             beginResetModel();
             m_rows.clear();
             endResetModel();
@@ -1327,6 +1369,9 @@ void WebFrameItems::prepareRow(Row& row)
     row.refused = false;
     row.loading = false;
     row.pendingUrl = QUrl();
+    row.viewUrl = QUrl(); // l'état rapporté par la vue ne vaut plus pour un contenu repris
+    row.viewTitle.clear();
+    row.viewCanBack = row.viewCanForward = false;
     if (!m_guardsEnabled) {
         showDirect(row);
         return;
@@ -1389,13 +1434,14 @@ void WebFrameItems::showDirect(Row& row)
     row.loading = true;
     const QPointer<WebFrameItems> self(this);
     QThreadPool::globalInstance()->start([self, id = row.id, ticket, html = row.html, dir = heavyDir()] {
-        const QUrl file = writeHeavyHtml(html, dir, ticket);
+        bool failed = false;
+        const QUrl file = writeHeavyHtml(html, dir, ticket, &failed);
         if (QCoreApplication* home = QCoreApplication::instance()) {
             QMetaObject::invokeMethod(
                 home,
-                [self, id, ticket, file] {
+                [self, id, ticket, file, failed] {
                     if (self)
-                        self->finishDirect(id, ticket, file);
+                        self->finishDirect(id, ticket, file, failed);
                     else if (!file.isEmpty())
                         QFile::remove(file.toLocalFile());
                 },
@@ -1404,7 +1450,7 @@ void WebFrameItems::showDirect(Row& row)
     });
 }
 
-void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file)
+void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed)
 {
     const int index = rowOf(id);
     if (index < 0 || m_rows[index].preparing != ticket) {
@@ -1416,7 +1462,7 @@ void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const Q
     row.preparing = 0;
     releaseContentFile(row);
     row.contentFile = file;
-    row.content = row.html;
+    row.content = failed ? messagePage(tr("Page trop lourde : le fichier n'a pas pu être écrit.")) : row.html;
     row.baseUrl = m_resourceBase;
     row.loading = false;
     ++row.serial;
@@ -1445,13 +1491,14 @@ void WebFrameItems::prepareContent(Row& row, std::function<QString()> source, co
                                           page = m_pageKey, source = std::move(source), dir] {
         const Prepared prepared =
             prepareHtml(source(), base, [&](const QUrl& url) { return policy.decide(url, key, page); });
-        const QUrl heavy = writeHeavyHtml(prepared.html, dir, ticket); // même limite (n° 38)
+        bool failed = false;
+        const QUrl heavy = writeHeavyHtml(prepared.html, dir, ticket, &failed); // même limite (n° 38)
         if (QCoreApplication* home = QCoreApplication::instance()) {
             QMetaObject::invokeMethod(
                 home,
-                [self, id, ticket, base, prepared, heavy] {
+                [self, id, ticket, base, prepared, heavy, failed] {
                     if (self)
-                        self->finishContent(id, ticket, base, prepared, heavy);
+                        self->finishContent(id, ticket, base, prepared, heavy, failed);
                     else if (!heavy.isEmpty())
                         QFile::remove(heavy.toLocalFile());
                 },
@@ -1461,7 +1508,7 @@ void WebFrameItems::prepareContent(Row& row, std::function<QString()> source, co
 }
 
 void WebFrameItems::finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base,
-                                  const Prepared& prepared, const QUrl& heavy)
+                                  const Prepared& prepared, const QUrl& heavy, bool failed)
 {
     const int index = rowOf(id);
     if (index < 0 || m_rows[index].preparing != ticket) {
@@ -1474,8 +1521,9 @@ void WebFrameItems::finishContent(std::uint64_t id, std::uint64_t ticket, const 
     releaseContentFile(row);
     row.contentFile = heavy;
     row.directUrl = QUrl();
-    row.content = prepared.html;
-    row.links = prepared.links;
+    row.content =
+        failed ? messagePage(tr("Page trop lourde : le fichier n'a pas pu être écrit.")) : prepared.html;
+    row.links = failed ? QVector<QUrl>() : prepared.links;
     row.baseUrl = base;
     row.blocked = prepared.blocked; // sous-ressource d'un document reçu, page non débloquée : repère
     row.loading = false;
@@ -1682,13 +1730,18 @@ QVariant WebFrameItems::data(const QModelIndex& index, int role) const
     case BaseUrlRole:
         return row.baseUrl;
     case TitleRole: {
-        const QUrl shown = row.blocked ? row.pendingUrl : row.baseUrl;
+        if (!m_guardsEnabled && !row.viewTitle.isEmpty())
+            return row.viewTitle;
+        const QUrl shown = row.blocked
+                               ? row.pendingUrl
+                               : (!m_guardsEnabled && row.viewUrl.isValid() ? row.viewUrl : row.baseUrl);
         return shown.host().isEmpty() ? tr("Cadre web") : shown.host();
     }
     case CanGoBackRole:
-        return row.historyIndex > 0;
+        return m_guardsEnabled ? row.historyIndex > 0 : row.viewCanBack;
     case CanGoForwardRole:
-        return row.historyIndex >= 0 && row.historyIndex + 1 < row.history.size();
+        return m_guardsEnabled ? row.historyIndex >= 0 && row.historyIndex + 1 < row.history.size()
+                               : row.viewCanForward;
     case SerialRole:
         return row.serial;
     case DirectUrlRole:
@@ -1824,7 +1877,13 @@ bool WebFrameItems::followLink(int row, const QUrl& viewUrl)
 
 void WebFrameItems::goBack(int row)
 {
-    if (row < 0 || row >= m_rows.size() || m_rows[row].historyIndex <= 0)
+    if (row < 0 || row >= m_rows.size())
+        return;
+    if (!m_guardsEnabled) {
+        emit viewCommand(row, QStringLiteral("back")); // l'historique est celui du moteur
+        return;
+    }
+    if (m_rows[row].historyIndex <= 0)
         return;
     Row& r = m_rows[row];
     --r.historyIndex;
@@ -1837,6 +1896,10 @@ void WebFrameItems::goForward(int row)
 {
     if (row < 0 || row >= m_rows.size())
         return;
+    if (!m_guardsEnabled) {
+        emit viewCommand(row, QStringLiteral("forward"));
+        return;
+    }
     Row& r = m_rows[row];
     if (r.historyIndex < 0 || r.historyIndex + 1 >= r.history.size())
         return;
@@ -1846,10 +1909,33 @@ void WebFrameItems::goForward(int row)
     emit countChanged();
 }
 
+// Gardes coupées : l'état de la vue (adresse, titre, historique) revient au modèle sans rien recharger ;
+// gardes allumées, l'historique et le titre sont ceux du modèle. `serial` n'avance pas.
+void WebFrameItems::reportView(int row, const QUrl& url, bool canBack, bool canForward, const QString& title,
+                               bool loading)
+{
+    if (m_guardsEnabled || row < 0 || row >= m_rows.size())
+        return;
+    Row& r = m_rows[row];
+    if (r.viewUrl == url && r.viewCanBack == canBack && r.viewCanForward == canForward &&
+        r.viewTitle == title && r.loading == loading)
+        return;
+    r.viewUrl = url;
+    r.viewCanBack = canBack;
+    r.viewCanForward = canForward;
+    r.viewTitle = title;
+    r.loading = loading;
+    rowChanged(row);
+}
+
 void WebFrameItems::reload(int row)
 {
     if (row < 0 || row >= m_rows.size())
         return;
+    if (!m_guardsEnabled) {
+        emit viewCommand(row, QStringLiteral("reload"));
+        return;
+    }
     prepareRow(m_rows[row]);
     rowChanged(row);
     emit countChanged();

@@ -137,6 +137,10 @@ public:
     Q_INVOKABLE void goBack(int row);
     Q_INVOKABLE void goForward(int row);
     Q_INVOKABLE void reload(int row);
+    // Gardes coupées : état de la vue (adresse, historique du moteur, titre, chargement) rapporté au modèle.
+    // Gardes allumées : ignoré.
+    Q_INVOKABLE void reportView(int row, const QUrl& url, bool canBack, bool canForward, const QString& title,
+                                bool loading);
     // webframe.snapshot : image de la zone du cadre dans la fenêtre (la vue
     // native échappe à grabToImage), posée sur la page en une étape. Faux sans
     // moyen de capture ou si la capture est vide.
@@ -174,6 +178,9 @@ signals:
     void documentKeyChanged();
     void guardsEnabledChanged();
     void profileChanged();
+    // Gardes coupées : précédent, suivant ou recharger, à exécuter par la vue (`action` : back, forward,
+    // reload).
+    void viewCommand(int row, const QString& action);
 
 private:
     struct Row
@@ -191,6 +198,10 @@ private:
         QUrl contentFile;
         QVector<QUrl> links;
         QUrl pendingUrl; // adresse bloquée, lue au déblocage
+        QUrl viewUrl;    // état rapporté par la vue (reportView), gardes coupées
+        QString viewTitle;
+        bool viewCanBack = false;
+        bool viewCanForward = false;
         QVector<QUrl> history;
         int historyIndex = -1;
         int serial = 0;
@@ -202,6 +213,7 @@ private:
 
     void rebuild();
     void documentReplaced();
+    void fileChanged();
     void prepareRow(Row& row);
     void navigate(Row& row, const QUrl& url, bool pushHistory);
     void fetch(Row& row, const QUrl& url, int redirects);
@@ -210,9 +222,9 @@ private:
     // `source` (lecture, décodage) et réécriture sur un fil secondaire ; résultat rendu par finishContent.
     void prepareContent(Row& row, std::function<QString()> source, const QUrl& base);
     void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared,
-                       const QUrl& heavy);
+                       const QUrl& heavy, bool failed);
     void showDirect(Row& row);
-    void finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file);
+    void finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed);
     void releaseContentFile(Row& row);
     QString heavyDir();
     int rowOf(std::uint64_t id) const;
