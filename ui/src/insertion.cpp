@@ -10,6 +10,7 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QFutureWatcher>
+#include <QImageReader>
 #include <QPointer>
 #include <QTextDocument>
 #include <QThread>
@@ -30,6 +31,7 @@ enum class Mode
     Image,
     Any, // dépôt : image si le fichier se décode, sinon média
     Pasted,
+    Downloaded, // octets déjà là (téléchargement ou data:)
 };
 
 struct InsertionJob
@@ -38,6 +40,8 @@ struct InsertionJob
     QString name; // nom affiché (fournisseur d'un content://), pris sur le fil principal
     Mode mode = Mode::Image;
     QImage pasted;
+    QByteArray bytes;
+    QString fallbackText;
     bool hasCenter = false;
     QPointF center;
 };
@@ -66,6 +70,12 @@ struct Result
     std::vector<Item> items;
     QString error;
     bool offMainThread = false;
+    struct TextFallback
+    {
+        QString text;
+        QPointF center;
+    };
+    std::vector<TextFallback> texts;
 };
 
 bool isMediaExtension(const QString& suffix)
@@ -93,6 +103,30 @@ Result work(const std::vector<InsertionJob>& jobs, QThread* mainThread)
             item.extension = "png";
             item.width = job.pasted.width();
             item.height = job.pasted.height();
+            result.items.push_back(std::move(item));
+            continue;
+        }
+        if (job.mode == Mode::Downloaded) {
+            QByteArray bytes = job.bytes;
+            QBuffer input(&bytes);
+            input.open(QIODevice::ReadOnly);
+            QImageReader reader(&input); // format déduit des octets, jamais du type annoncé (n° 24)
+            const QByteArray format = reader.format(); // avant read() : vide une fois l'image lue
+            const QImage image = reader.read();
+            if (image.isNull()) {
+                if (job.fallbackText.trimmed().isEmpty())
+                    result.error = QStringLiteral("Image illisible");
+                else
+                    result.texts.push_back({job.fallbackText, job.center});
+                continue;
+            }
+            item.name = job.name.toStdString();
+            item.extension = format.toLower().toStdString();
+            if (item.extension == "jpeg")
+                item.extension = "jpg";
+            item.width = image.width();
+            item.height = image.height();
+            item.data = job.bytes;
             result.items.push_back(std::move(item));
             continue;
         }
@@ -244,62 +278,95 @@ int place(DocumentController& controller, std::vector<Item>& items, std::size_t 
 
 } // namespace
 
-void Insertion::start(std::vector<InsertionJob> jobs)
+// Document et page devant lesquels l'insertion est demandée. La page est suivie par les changements de pages : son
+// indice se décale, ou elle disparaît et l'objet est abandonné (H5-32, L5-C23). Prise à la demande : un téléchargement
+// dure bien plus longtemps qu'un décodage.
+struct InsertionOrigin
 {
-    if (m_document == nullptr)
+    std::uint64_t generation = 0;
+    std::shared_ptr<std::optional<std::size_t>> page;
+    QPointer<DocumentController> watched;
+    int token = -1;
+};
+
+std::shared_ptr<InsertionOrigin> Insertion::trackOrigin()
+{
+    auto origin = std::make_shared<InsertionOrigin>();
+    origin->generation = m_document->generation();
+    origin->page =
+        std::make_shared<std::optional<std::size_t>>(static_cast<std::size_t>(m_document->currentIndex()));
+    origin->watched = m_document;
+    origin->token = m_document->addChangeObserver([page = origin->page](const core::Changes& changes, auto) {
+        for (const core::Change& change : changes) {
+            if (!*page)
+                return;
+            if (change.kind == core::Change::Kind::PageInserted && change.page <= **page)
+                ++**page;
+            else if (change.kind == core::Change::Kind::PageRemoved) {
+                if (change.page == **page)
+                    page->reset();
+                else if (change.page < **page)
+                    --**page;
+            }
+        }
+    });
+    return origin;
+}
+
+void Insertion::releaseOrigin(InsertionOrigin& origin)
+{
+    if (origin.watched && origin.token >= 0)
+        origin.watched->removeChangeObserver(origin.token);
+    origin.token = -1;
+}
+
+void Insertion::start(std::vector<InsertionJob> jobs, std::shared_ptr<InsertionOrigin> origin)
+{
+    if (m_document == nullptr) {
+        if (origin)
+            releaseOrigin(*origin);
         return;
+    }
     for (InsertionJob& job : jobs) {
-        if (job.mode != Mode::Pasted)
+        if (job.mode != Mode::Pasted && job.mode != Mode::Downloaded)
             job.name = DocumentPortal::nameOf(m_portal, job.url);
     }
     if (m_pending++ == 0)
         emit busyChanged();
     auto* watcher = new QFutureWatcher<Result>(this);
     QThread* mainThread = QThread::currentThread();
-    // Document et page devant lesquels l'insertion est demandée : un changement d'onglet pendant le décodage
-    // ne doit pas verser l'image dans l'autre.
-    const std::uint64_t generation = m_document->generation();
-    // La page d'origine est suivie par les changements de pages (insertion, retrait) : son indice se décale,
-    // ou elle disparaît (retirée ou déplacée) et l'image est abandonnée (H5-32, L5-C23).
-    auto origin =
-        std::make_shared<std::optional<std::size_t>>(static_cast<std::size_t>(m_document->currentIndex()));
-    QPointer<DocumentController> watched = m_document;
-    const int token = m_document->addChangeObserver([origin](const core::Changes& changes, auto) {
-        for (const core::Change& change : changes) {
-            if (!*origin)
-                return;
-            if (change.kind == core::Change::Kind::PageInserted && change.page <= **origin)
-                ++**origin;
-            else if (change.kind == core::Change::Kind::PageRemoved) {
-                if (change.page == **origin)
-                    origin->reset();
-                else if (change.page < **origin)
-                    --**origin;
+    if (!origin)
+        origin = trackOrigin();
+    connect(watcher, &QFutureWatcher<Result>::finished, this, [this, watcher, origin]() {
+        Result result = watcher->result();
+        watcher->deleteLater();
+        releaseOrigin(*origin);
+        m_lastOff = result.offMainThread;
+        const bool sameOrigin = m_document != nullptr && m_document->generation() == origin->generation &&
+                                *origin->page && **origin->page < m_document->document().pageCount();
+        const QString abandoned = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
+        int count = 0;
+        if (m_document != nullptr && !result.items.empty()) {
+            if (sameOrigin)
+                count = place(*m_document, result.items, **origin->page);
+            else if (result.error.isEmpty())
+                result.error = abandoned;
+        }
+        for (const Result::TextFallback& text : result.texts) {
+            if (sameOrigin) {
+                placeText(text.text, text.center, **origin->page);
+                ++count;
+            } else if (result.error.isEmpty()) {
+                result.error = abandoned;
             }
         }
+        if (--m_pending == 0)
+            emit busyChanged();
+        if (!result.error.isEmpty())
+            emit failed(result.error);
+        if (count > 0)
+            emit inserted(count);
     });
-    connect(watcher, &QFutureWatcher<Result>::finished, this,
-            [this, watcher, generation, origin, watched, token]() {
-                Result result = watcher->result();
-                watcher->deleteLater();
-                if (watched)
-                    watched->removeChangeObserver(token);
-                m_lastOff = result.offMainThread;
-                int count = 0;
-                if (m_document != nullptr && !result.items.empty()) {
-                    if (m_document->generation() == generation && *origin &&
-                        **origin < m_document->document().pageCount())
-                        count = place(*m_document, result.items, **origin);
-                    else if (result.error.isEmpty())
-                        result.error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
-                }
-                if (--m_pending == 0)
-                    emit busyChanged();
-                if (!result.error.isEmpty())
-                    emit failed(result.error);
-                if (count > 0)
-                    emit inserted(count);
-            });
     watcher->setFuture(
         QtConcurrent::run([moved = std::move(jobs), mainThread]() { return work(moved, mainThread); }));
 }
@@ -407,20 +474,132 @@ bool Insertion::acceptDrop(const QVariantList& urls, const QString& text, QPoint
         return true;
     if (text.trimmed().isEmpty())
         return false;
-    // Texte brut seulement : jamais d'HTML interprété, donc rien à charger (M13).
+    placeText(text, pagePoint, static_cast<std::size_t>(m_document->currentIndex()));
+    emit inserted(1);
+    return true;
+}
+
+// Texte brut seulement : jamais d'HTML interprété, donc rien à charger (M13).
+void Insertion::placeText(const QString& text, QPointF point, std::size_t page)
+{
     QTextDocument doc;
     doc.setPlainText(text);
     core::Text object;
     object.html = doc.toHtml().toStdString();
     const QSizeF size = doc.size();
-    object.bounds = {pagePoint.x(), pagePoint.y(), std::max(size.width(), 1.0), std::max(size.height(), 1.0)};
-    core::PageObject page = std::move(object);
-    page.common.layer = core::Layer::Middle;
-    m_document->execute(std::make_unique<core::ReplaceObjectsCommand>(
-        static_cast<std::size_t>(m_document->currentIndex()), std::vector<core::ObjectId>{},
-        std::vector<core::PageObject>{std::move(page)}));
-    emit inserted(1);
+    object.bounds = {point.x(), point.y(), std::max(size.width(), 1.0), std::max(size.height(), 1.0)};
+    core::PageObject entry = std::move(object);
+    entry.common.layer = core::Layer::Middle;
+    m_document->execute(std::make_unique<core::ReplaceObjectsCommand>(page, std::vector<core::ObjectId>{},
+                                                                      std::vector<core::PageObject>{std::move(entry)}));
+}
+
+void Insertion::setWebFrames(WebFrameItems* frames)
+{
+    if (m_webFrames == frames)
+        return;
+    m_webFrames = frames;
+    emit webFramesChanged();
+}
+
+WebImageFetch::Decide Insertion::webDecider() const
+{
+    if (!m_webFrames || !m_webFrames->guardsEnabled())
+        return {}; // gardes coupées : aucune politique
+    return [frames = m_webFrames](const QUrl& url) {
+        return frames ? frames->decideAddress(url) : WebContentPolicy::Verdict::Refuse;
+    };
+}
+
+void Insertion::startDownload(const QUrl& url, const QString& fallback, QPointF center)
+{
+    if (m_pending++ == 0)
+        emit busyChanged();
+    auto origin = trackOrigin();
+    auto* fetch = new WebImageFetch(this);
+    connect(fetch, &WebImageFetch::finished, this,
+            [this, fetch, url, fallback, center, origin](const QByteArray& data, const QString& error) {
+                fetch->deleteLater();
+                if (!error.isEmpty()) {
+                    releaseOrigin(*origin);
+                    if (--m_pending == 0)
+                        emit busyChanged();
+                    emit failed(error);
+                    return;
+                }
+                InsertionJob job;
+                job.url = url;
+                job.mode = Mode::Downloaded;
+                job.bytes = data;
+                job.fallbackText = fallback;
+                job.name = QFileInfo(url.path()).completeBaseName();
+                job.hasCenter = true;
+                job.center = center;
+                std::vector<InsertionJob> jobs;
+                jobs.push_back(std::move(job));
+                start(std::move(jobs), origin); // compte sa propre attente : pas de clignotement de `busy`
+                if (--m_pending == 0)
+                    emit busyChanged();
+            });
+    fetch->start(url, webDecider());
+}
+
+bool Insertion::insertDataUrl(const QUrl& url, QPointF center)
+{
+    const QByteArray encoded = url.toEncoded();
+    const qsizetype comma = encoded.indexOf(',');
+    if (comma < 0 || !encoded.startsWith("data:image/"))
+        return false;
+    QByteArray payload = QByteArray::fromPercentEncoding(encoded.mid(comma + 1));
+    if (encoded.left(comma).endsWith(";base64"))
+        payload = QByteArray::fromBase64(payload);
+    if (payload.isEmpty() || payload.size() > WebImageFetch::kMaxBytes)
+        return false;
+    InsertionJob job;
+    job.url = url;
+    job.mode = Mode::Downloaded;
+    job.bytes = std::move(payload);
+    job.hasCenter = true;
+    job.center = center;
+    std::vector<InsertionJob> jobs;
+    jobs.push_back(std::move(job));
+    start(std::move(jobs));
     return true;
+}
+
+bool Insertion::acceptWebDrop(const QVariantList& urls, const QString& text, const QString& /*html*/,
+                              QPointF pagePoint)
+{
+    if (m_document == nullptr)
+        return false;
+    const QString unsupported = QStringLiteral("Adresse non prise en charge");
+    QVariantList local;
+    bool handled = false;
+    for (const QVariant& value : urls) {
+        const QUrl url = value.canConvert<QUrl>() ? value.toUrl() : QUrl::fromUserInput(value.toString());
+        if (!url.isValid() || url.isEmpty())
+            continue;
+        const QString scheme = url.scheme().toLower();
+        if (scheme == QLatin1String("http") || scheme == QLatin1String("https")) {
+            startDownload(url, text.trimmed().isEmpty() ? url.toString() : text, pagePoint);
+            handled = true;
+        } else if (scheme == QLatin1String("data")) {
+            if (!insertDataUrl(url, pagePoint))
+                emit failed(unsupported);
+            handled = true;
+        } else if (scheme == QLatin1String("blob")) {
+            emit failed(unsupported);
+            handled = true;
+        } else {
+            local.append(url);
+        }
+    }
+    if (handled) {
+        if (!local.isEmpty())
+            acceptDrop(local, {}, pagePoint);
+        return true;
+    }
+    return acceptDrop(local, text, pagePoint);
 }
 
 } // namespace actcraft::ui

@@ -153,6 +153,8 @@ public:
     void setGrabber(Grabber grabber) { m_grabber = std::move(grabber); }
 
     const WebContentPolicy& policy() const noexcept { return m_policy; }
+    // Même réponse que pour une requête du cadre : sert au téléchargement d'une image déposée (T10).
+    WebContentPolicy::Verdict decideAddress(const QUrl& url) const { return decide(url); }
 
     // Dossier des fichiers de HTML lourd ; les tests y mettent un dossier inutilisable (disque plein).
     void setHeavyDirectory(const QString& path) { m_heavyOverride = path; }
