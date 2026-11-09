@@ -1945,10 +1945,14 @@ bool WebFrameItems::snapshot(int row)
 {
     if (!m_document || !m_grabber || row < 0 || row >= m_rows.size())
         return false;
-    const QRectF zone = m_rows[row].bounds;
-    const QImage image = m_grabber(zone);
-    if (image.isNull())
+    return insertSnapshot(row, m_grabber(m_rows[row].bounds));
+}
+
+bool WebFrameItems::insertSnapshot(int row, const QImage& image)
+{
+    if (!m_document || row < 0 || row >= m_rows.size() || image.isNull())
         return false;
+    const QRectF zone = m_rows[row].bounds;
     QByteArray png;
     QBuffer buffer(&png);
     buffer.open(QIODevice::WriteOnly);

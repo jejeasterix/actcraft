@@ -99,11 +99,56 @@ Item {
             view.removeInputCover(item)
     }
 
-    onViewChanged: if (view) appWebFrames.useWindowCapture(view)
+    // Image fixe du cadre (n° 18). Vue du moteur : grabToImage, répété jusqu'à deux images identiques, car
+    // pageLoaded précède la peinture du texte. Vue native (Android) : capture par la fenêtre.
+    property var pendingSnapshot: null
+    function takeSnapshot(arg) {
+        const row = rowOf(arg)
+        const delegate = row >= 0 ? frames.itemAt(row) : null
+        const webView = delegate ? delegate.webView : null
+        if (webView && !webView.overlaysScene) {
+            if (pendingSnapshot) {
+                finishSnapshot(false)
+                return
+            }
+            pendingSnapshot = { row: row, web: webView, first: true, tries: 20 }
+            snapshotStep()
+            return
+        }
+        finishSnapshot(appWebFrames.snapshot(row))
+    }
+    function snapshotStep() {
+        const job = pendingSnapshot
+        job.web.capture(function (image) {
+            if (pendingSnapshot !== job)
+                return
+            if (!image) {
+                pendingSnapshot = null
+                finishSnapshot(false)
+            } else if ((appWebFrames.sameAsPreviousCapture(image, job.first)) || --job.tries <= 0) {
+                pendingSnapshot = null
+                finishSnapshot(appWebFrames.insertSnapshot(job.row, image))
+            } else {
+                job.first = false
+                snapshotTimer.restart()
+            }
+        })
+    }
+    function finishSnapshot(ok) {
+        console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
+        snapshotCount += 1
+    }
+    Timer {
+        id: snapshotTimer
+        interval: 100
+        onTriggered: if (frameLayer.pendingSnapshot) frameLayer.snapshotStep()
+    }
+
+    onViewChanged: if (view && Qt.platform.os === "android") appWebFrames.useWindowCapture(view)
 
     Component.onCompleted: {
         dialog = findDialog()
-        if (view)
+        if (view && Qt.platform.os === "android")
             appWebFrames.useWindowCapture(view)
         if (!commands)
             return
@@ -119,9 +164,7 @@ Item {
         commands.setHandler("webframe.forward", function (arg) { appWebFrames.goForward(frameLayer.rowOf(arg)) })
         commands.setHandler("webframe.reload", function (arg) { appWebFrames.reload(frameLayer.rowOf(arg)) })
         commands.setHandler("webframe.snapshot", function (arg) {
-            const ok = appWebFrames.snapshot(frameLayer.rowOf(arg))
-            console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
-            frameLayer.snapshotCount += 1
+            frameLayer.takeSnapshot(arg)
         })
         // Déblocage : confirmation, puis cette page de ce document seulement.
         commands.setHandler("webframe.unblock", function (arg) {

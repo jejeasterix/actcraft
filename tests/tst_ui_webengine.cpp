@@ -248,8 +248,8 @@ private slots:
         QCOMPARE(host.document.shownObjectCount(), before + 1);
         const auto& resources = host.document.document().resources();
         QCOMPARE(resources.size(), std::size_t(1));
-        const QImage image = QImage::fromData(resources.begin()->second.data, "PNG").convertToFormat(
-            QImage::Format_RGB32);
+        const QImage image =
+            QImage::fromData(resources.begin()->second.data, "PNG").convertToFormat(QImage::Format_RGB32);
         QVERIFY(image.width() > 60 && image.height() > 60);
         QCOMPARE(image.pixelColor(8, 8), QColor(0x1e, 0x1e, 0xc8));
         QCOMPARE(image.pixelColor(image.width() - 8, image.height() - 8), QColor(0xc8, 0x1e, 0x1e));
