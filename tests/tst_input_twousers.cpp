@@ -124,6 +124,20 @@ private slots:
         QCOMPARE(router.route(moved(DeviceKind::Stylus, 910, 310, 11)).route, Route::Tool);
     }
 
+    // L11-C24 : knownStylusUser lit sans retenir ; seul decide retient le premier stylet.
+    void knownStylusUserRetainsNothing()
+    {
+        const input::TwoUserPolicy policy(kLeftHalf);
+        QCOMPARE(policy.knownStylusUser(22), UserId{0}); // aucun stylet retenu : le premier
+        QCOMPARE(policy.knownStylusUser(0), UserId{0});
+        QCOMPARE(policy.firstStylusDevice(), std::uint64_t{0});
+        QCOMPARE(policy.decide(press(DeviceKind::Stylus, 100, 100, 11), RouterState{}).user, UserId{0});
+        QCOMPARE(policy.knownStylusUser(11), UserId{0});
+        QCOMPARE(policy.knownStylusUser(22), UserId{1});
+        QCOMPARE(policy.knownStylusUser(0), UserId{0});
+        QCOMPARE(policy.firstStylusDevice(), std::uint64_t{11});
+    }
+
     // Souris → utilisateur 0, même dans la moitié de l'utilisateur 1 ; ce n'est pas un stylet.
     void mouseIsFirstUser()
     {

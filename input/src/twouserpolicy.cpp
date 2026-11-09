@@ -22,6 +22,14 @@ UserId TwoUserPolicy::stylusUser(std::uint64_t deviceId) const noexcept
     return deviceId == m_firstStylus ? kFirstUser : kSecondUser;
 }
 
+UserId TwoUserPolicy::knownStylusUser(std::uint64_t deviceId) const noexcept
+{
+    if (deviceId == 0 || m_firstStylus == 0) {
+        return kFirstUser; // sans identifiant, ou aucun stylet retenu : le premier, rien n'est retenu
+    }
+    return deviceId == m_firstStylus ? kFirstUser : kSecondUser;
+}
+
 Decision TwoUserPolicy::decide(const Sample& press, const RouterState& state) const
 {
     Decision decision; // fingerTool reste Current

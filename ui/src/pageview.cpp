@@ -999,7 +999,7 @@ std::optional<input::UserId> PageView::pressUser(const QEvent& event) const
         return std::nullopt;
     }
     if (type == QEvent::TabletPress) {
-        return twoUsers->stylusUser(deviceIdOf(static_cast<const QTabletEvent&>(event).pointingDevice()));
+        return twoUsers->knownStylusUser(deviceIdOf(static_cast<const QTabletEvent&>(event).pointingDevice()));
     }
     if (type == QEvent::MouseButtonPress) {
         // La souris que Qt déduit d'un stylet suit son événement de tablette : l'appui est déjà attribué.
