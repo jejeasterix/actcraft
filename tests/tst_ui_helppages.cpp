@@ -48,9 +48,9 @@ const QList<QPair<QString, QString>> kMathPresentCommands = {
     {QStringLiteral("present.spotlight-solid-square"), QStringLiteral("spotlight")}};
 const QStringList kAllTools = kLots1To5Tools + kLots6To11Tools;
 // Pages propres aux outils de maths et de présentation (une par page distincte de la table ci-dessus).
-const QStringList kMathPresentPages = {QStringLiteral("ruler"),    QStringLiteral("set-square"),
+const QStringList kMathPresentPages = {QStringLiteral("ruler"),      QStringLiteral("set-square"),
                                        QStringLiteral("protractor"), QStringLiteral("compass"),
-                                       QStringLiteral("xy-origin"), QStringLiteral("curtain"),
+                                       QStringLiteral("xy-origin"),  QStringLiteral("curtain"),
                                        QStringLiteral("spotlight")};
 // Commandes math.* / present.* qui ne sont pas un outil : aucune pour l'instant. present.curtain-color est
 // un réglage (argument « color »), mais son gestionnaire est celui du rideau : il ouvre la page du rideau.

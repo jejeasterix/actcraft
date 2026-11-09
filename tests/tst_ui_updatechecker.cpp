@@ -653,10 +653,10 @@ void TstUiUpdatechecker::updateBannerDoesNotCoverMessageBanner()
     QVERIFY(QMetaObject::invokeMethod(close, "click"));
     QTRY_VERIFY(!banner->isVisible());
     // Même repère (la scène) des deux côtés : message->y() est en repère de la page, b en repère de la scène.
-    QTRY_VERIFY2(sceneRect(message).top() < b.bottom() - 0.5,
-                 qPrintable(QStringLiteral("message %1, bas du bandeau %2")
-                                .arg(sceneRect(message).top())
-                                .arg(b.bottom())));
+    QTRY_VERIFY2(
+        sceneRect(message).top() < b.bottom() - 0.5,
+        qPrintable(
+            QStringLiteral("message %1, bas du bandeau %2").arg(sceneRect(message).top()).arg(b.bottom())));
 }
 
 // L11-C22 : sans bandeau de mise à jour, le message commence sous le bandeau de reprise (Main.qml, ancrage du
