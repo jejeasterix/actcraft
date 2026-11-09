@@ -13,7 +13,11 @@
 
 #include <actcraft/core/document.h>
 #include <actcraft/core/pageedits.h>
+#include <actcraft/actions/profilestore.h>
 #include <actcraft/render/pagepainter.h>
+#include <actcraft/ui/commands.h>
+#include <actcraft/ui/preferences.h>
+#include <actcraft/ui/profilecontroller.h>
 #include <actcraft/ui/webframeengine.h>
 
 #include <QByteArray>
@@ -28,6 +32,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QRegularExpression>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTcpServer>
@@ -63,8 +68,10 @@ struct Fixture
 {
     ui::DocumentController document;
     ui::WebFrameItems frames;
-    Fixture()
+    // Tout ce fichier éprouve le chemin de la politique : gardes allumées, sauf demande (cadrage n° 9, DA5).
+    explicit Fixture(bool guards = true)
     {
+        frames.setGuardsEnabled(guards);
         document.newDocument(1024, 768);
         frames.setDocument(&document);
     }
@@ -116,6 +123,8 @@ private slots:
     void unblockFollowsThePageNotItsNumber();
     void dialogRefusesEmptyFields();
     void rebuildConvertsOnlyChangedHtml();
+    void guardsFollowTheProfileSetting();
+    void unrelatedProfileChangeReloadsNothing();
 };
 
 namespace {
@@ -756,11 +765,10 @@ void TstUiWebFrame::viewFetchesOnlyDecidedSubResources()
         content(f.frames, 0) +
         QStringLiteral("<img src=\"%1\">").arg(other.url(QStringLiteral("/missed.png")).toString());
 #ifdef Q_OS_WIN
-    // L8-PC-CI : sous Windows, Qt WebView passe par WebView2, qui exige une vraie fenêtre ; hors écran, il
-    // plante (0xC0000005 dans CreateWebViewEnvironmentWithOptionsInternal) au lieu d'échouer. Sans WebView2
-    // installé (serveur GitHub), le composant échoue et le test se sautait déjà.
+    // Reste PC 4 : le moteur (Qt WebEngine) n'est pas prouvé hors écran sous Windows ; ce test charge
+    // QtWebEngine et se saute donc là.
     if (QGuiApplication::platformName() == QLatin1String("offscreen"))
-        QSKIP("WebView2 sans fenêtre native hors écran");
+        QSKIP("Qt WebEngine hors écran sous Windows : preuve au PC (Reste PC 4)");
 #endif
     QQmlEngine engine;
     QQmlComponent component(&engine);
@@ -1132,6 +1140,62 @@ void TstUiWebFrame::unblockDuringRewriteHolds()
     QTest::qWait(100);
     QVERIFY2(content(reader.frames, 1).contains(image), "image decidee apres deblocage");
     QVERIFY(!role(reader.frames, 1, ui::WebFrameItems::BlockedRole).toBool());
+}
+
+namespace {
+
+// Profil d'essai, construit comme tst_ui_classroomlock : aucun réglage du poste touché.
+struct ProfileFixture
+{
+    QTemporaryDir dir;
+    ui::Commands commands;
+    std::unique_ptr<ui::Preferences> preferences;
+    std::unique_ptr<ui::ProfileController> profile;
+    ProfileFixture()
+    {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.path());
+        preferences = std::make_unique<ui::Preferences>();
+        actions::ProfileStore store(dir.filePath(QStringLiteral("profiles")),
+                                    QStringLiteral(":/actcraft/actions/profiles"),
+                                    ui::ProfileController::builtinOrder());
+        profile = std::make_unique<ui::ProfileController>(std::move(store), preferences.get(), &commands);
+        profile->start();
+    }
+};
+
+} // namespace
+
+// Effet immédiat, sans relancer (S3, E12) : la ligne est relue et son `serial` avance.
+void TstUiWebFrame::guardsFollowTheProfileSetting()
+{
+    ProfileFixture p;
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>a</p>"), {}));
+    QTRY_VERIFY(content(f.frames, 0).contains(QStringLiteral("a")));
+    f.frames.setProfile(p.profile.get());
+    QVERIFY(!f.frames.guardsEnabled());
+    QSignalSpy changed(&f.frames, &ui::WebFrameItems::guardsEnabledChanged);
+    const int before = role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt();
+    p.profile->setSetting(QStringLiteral("tools"), QStringLiteral("web-frame-guards"), true);
+    QVERIFY(f.frames.guardsEnabled());
+    QCOMPARE(changed.count(), 1);
+    QTRY_VERIFY(role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt() > before);
+}
+
+// `profileChanged` part aussi à chaque couleur ou outil récent (cadrage n° 10) : valeur inchangée, rien.
+void TstUiWebFrame::unrelatedProfileChangeReloadsNothing()
+{
+    ProfileFixture p;
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>a</p>"), {}));
+    QTRY_VERIFY(content(f.frames, 0).contains(QStringLiteral("a")));
+    f.frames.setProfile(p.profile.get());
+    QTest::qWait(100);
+    const int before = role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt();
+    p.profile->pushRecentTool(QStringLiteral("pen"));
+    QTest::qWait(200);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt(), before);
 }
 
 int main(int argc, char** argv)
