@@ -175,6 +175,7 @@ toujours :: (taskkill|Stop-Process)[^|;&\n]*\b(Inspire|actcraft)\b(?![^|;&\n]*-I
 \bgit(\.exe)?\b(\s+-[Cc]\s+("[^"]*"|'[^']*'|\S+))*\s+push\b(?=.*(refs/tags/|[\s"'+:]v\d|\s--tags\b|\s--follow-tags\b|\s--mirror\b|\stag\s)) :: publication du tag de release
 \bgh(\.exe)?\s+release\s+(create|edit|upload|delete)\b :: écriture d'une release GitHub (création, publication du brouillon, fichiers, suppression)
 \bgh(\.exe)?\s+api\b(?=.*(releases|refs/tags))(?!.*(-X|--method)[\s=]*(GET|get)\b)(?=.*(\s-X|\s--method|\s(-f|-F|--field|--raw-field|--input)[\s=])) :: écriture dans les releases ou les tags par l'API
+\bgh(\.exe)?\s+workflow\s+run\b(?=.*\brelease\b)(?=.*\bmode=["']?reel\b) :: workflow de release en mode réel (brouillon signé)
 ```
 
 - Go requis : oui — une release est publique et téléchargeable ; jamais sans accord explicite de Jérôme.
@@ -184,10 +185,13 @@ toujours :: (taskkill|Stop-Process)[^|;&\n]*\b(Inspire|actcraft)\b(?![^|;&\n]*-I
   sa poussée et la publication du brouillon (`gh release edit --draft=false` ou appel d'API) relèvent du **même**
   go. Aucune distribution hors de ce go : les paquets de chaque lot sont remis localement (`build/paquet/`), la CI
   les construit et les essaie sans les téléverser.
-- Fichier go : `<git-common-dir>/chantiers/go-action-finale` est écrit au go, **reste en place après le tag
-  jusqu'à la publication du brouillon** (le brouillon n'existe qu'à la fin du workflow `release.yml`), dans la
-  limite de 6 h que lit `interdits.js`, puis est supprimé aussitôt la publication faite. Passé 6 h sans publication, le go est
-  redemandé à Jérôme.
+- Go nominatif (décision 0231 du coffre), à consigner au go :
+  `node ~/.claude/scripts/chaine/go-release.cjs --tag v<version> --commit <commit complet> --mots "<mots de Jérôme>" --fin release`.
+  Il vaut 6 h pour ce dépôt, ce tag et ce commit. `--fin release` le **garde après le tag et sa poussée, jusqu'à la
+  publication du brouillon** (le brouillon n'existe qu'à la fin du workflow `release.yml`), qui le consomme. Passé 6 h sans
+  publication, le go est redemandé à Jérôme. `go-action-finale` n'ouvre plus aucune release. Formes acceptées :
+  `git tag v<version> <commit complet>`, `git push origin v<version>`, `gh release edit v<version> --draft=false`, et
+  `gh workflow run release.yml --ref v<version> -f mode=reel`, avec le tag déjà sur origin. `-f mode=essai` reste libre.
 - Porte avant merge : non — rien ne part en production au merge.
 - CI couverte par la suite complète : non — la CI compile et teste aussi sous macOS, que la suite locale ne
   couvre pas. Le merge attend la CI verte.

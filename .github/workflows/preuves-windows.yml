@@ -152,6 +152,8 @@ jobs:
             $fin = (Get-Date).AddMinutes(4); $relances = 0
             foreach ($t in $rouges) {
               $nom = $t.name; $commande = @($t.command | Where-Object { $_ })
+              # Windows : actcraft_test_launcher <journal> <test> ... ; la relance vise le test lui-même.
+              if ($commande.Count -gt 2 -and (Split-Path $commande[0] -LeafBase) -eq 'actcraft_test_launcher') { $commande = @($commande | Select-Object -Skip 2) }
               $exe = if ($commande.Count -gt 0 -and (Split-Path $commande[0] -Leaf) -like 'tst_*') { $commande[0] } else { $null }
               $arguments = @($commande | Select-Object -Skip 1) + @('-v2', '-o', 'sortie-test.txt,txt')
               if ($exe -and ($relances -ge 5 -or (Get-Date) -ge $fin)) { Write-Output "== $nom non relancé (plafond : 5 relances, 4 min)"; $exe = $null }
