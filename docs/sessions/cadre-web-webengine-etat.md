@@ -2,7 +2,7 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 18/21 tâches terminées
+Avancement : 19/22 tâches terminées
 Étage : 3 (vague 2)
 Tâche : T21 — simplifications C++, tests inchangés — depuis 2026-11-10 09:40
 Questions à Jérôme : aucune
@@ -28,7 +28,7 @@ Mélange retenu : Homebrew tel quel. `aqt` non nécessaire.
 Rapide et complète (base 76315dbc, Mac debug, `ctest -j2 --timeout 120` hors écran) : 329/330. Seul rouge : `tst_ui_linklauncher` (`htaRefused`, 184 dossiers d'extraction contre 183 attendus : le test compte les dossiers du temp commun, une autre suite du Mac en crée en même temps). Rouge préexistant, instable, pas une régression.
 
 ## Compteurs
-contre-relecture cadrage 1/2 (1 bloquant, 5 majeurs, 6 mineurs corrigés, ea065489) · relecture plan 2/3 · vagues sans progrès 0/2 · correctifs de fin 0/2
+contre-relecture cadrage 1/2 (1 bloquant, 5 majeurs, 6 mineurs corrigés, ea065489) · relecture plan 2/3 · vagues sans progrès 0/2 · correctifs de fin 1/2
 
 ## Scénarios
 S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d'image, échecs, changement d'onglet · S3 gardes rallumées par le réglage, effet immédiat, cookie A/B · S4 paquet Mac : poids avant/après, H.264, provenance de Qt, pas de Chromium sans cadre, coût du premier cadre · S5 Android sans WebEngine, greffon dans l'APK
@@ -52,11 +52,12 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T12 | T8, T11 | implementeur-tdd | terminée | 1/3 | 20ffd48b | 334/334 ; tst_ui_webdrop 9/9, droppedRemoteImageSurvivesReopening, guardsCoverDropAndPasteThroughTheWiring PASS ; banc résultat |
 | T13 | T12 | implementeur-tdd | terminée | 1/3 | 0885ca8d | 334/334 ; editCopyCopiesTheSelection, inputFieldKeepsPaste, editCopyWithoutFocusedFrameCopiesObjects PASS |
 | T16 | T13, T15 | concepteur-critique | terminée | 1/3 | 944ba429 | 334/334 ; DMG OK 188 680 277 octets ; CADRE WEB OK, ESSAI DMG OK ; borne 5 s en échec ; tst_app_open 5/5 |
-| T17 | T13 | implementeur-tdd (isolé) | en cours : étapes 1 et 2 écrites, non commitées (`ci.yml`, `preuves-windows.yml`, `YAML OK`) ; APK à construire après Q1 | 0/3 | — | — |
+| T17 | T13 | implementeur-tdd (isolé) | en cours : modules commités (9c385284), `YAML OK` ; APK à construire | 0/3 | — | — |
 | T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
 | T19 | T13 | implementeur-tdd | terminée | 1/3 | 7f8d4aa9 | 332/334, tst_ui_shell et tst_ui_mathtools en délai dépassé sous charge 14-18, verts seuls ; downloadedImageDoesNotOverride, webDropOfHugeDataUrl, refusedRedirectDropsTheHeavyFile PASS |
 | T20 | T13 | implementeur-tdd | terminée | 1/3 | 775f6bb0 | 334/334 (ctest --timeout 300, charge 30-40) ; clickOnThePageTakesTheFocusBack, tst_ui_webengine 33/33, tst_ui_webdrop 11/11 PASS |
-| T21 | T19, T20 | implementeur-tdd | à faire | 0/1 | — | — |
+| T21 | T19, T20 | implementeur-tdd | terminée | 1/1 | 8931fbc2 | simplifications sans test modifié ; rejeu sous charge 26-135 : 328/334, 5 délais dépassés et `tst_ui_drawing` (attente de 3 s), repris par la suite de T22 |
+| T22 | T21 | implementeur-tdd | à faire | 0/3 | — | — |
 
 ## Terminé quand
 toutes les tâches terminées (aucune bloquée) · double relecture sans bloquant ni majeur · suite complète Mac verte en debug et en release · S1…S5 réussis · poids du `.dmg` et H.264 écrits · PR en brouillon ouverte vers `feat/livraison-complete-l11`, non fusionnée
@@ -65,7 +66,7 @@ toutes les tâches terminées (aucune bloquée) · double relecture sans bloquan
 T19 (C++) : `objectediting.cpp:134-142`, sélection et changement d'outil 20 s après le collage (Majeur) ; `insertion.cpp:549-555`, `data:` décodé sur le fil de l'interface, borne avant décodage (Majeur) ; `fetched` garde `contentFile` sur redirection refusée (`clearShown`) ; `sameAsPreviousCapture` et `m_lastCapture` ; tests : un enregistrement dans le même dossier ne recharge pas, `row.history.clear`, redirection vers `file:`.
 T20 (QML) : `Main.qml:858`, `appInsertion.failed` non relié au bandeau (Majeur) ; tests du bandeau de dépôt et de collage (Majeur) ; `viewFocused` reste vrai après un clic sur la page (`WebFrameEngineView.qml:18`, Majeur, deux relecteurs) ; `pendingSnapshot` jamais annulé (`WebFrameLayer.qml:116-136`, Majeur) ; `navigateOnDropEnabled` gardes allumées à vérifier ; commentaires périmés ; `qWait(300)` ; `CHANGELOG.md:45-46` ; `docs/banc.md:302` ; `skipReason` de `cadre-web.json`.
 T21 : simplifications C++ sûres, tests inchangés, un essai.
-Relecture finale à faire sur T16 à T21.
+Relecture finale T16 à T21, tête 8931fbc2 : 0 bloquant, 2 majeurs (clic droit sans `pointerPressed`, repris en T22 ; S5 sans preuve, repris par l'APK de T17), mineurs repris en T22.
 
 ## Reprise après Q1
 Go reçu ou verrou libéré : relire `.tmp/essai-dmg.txt`, relancer `scripts/paquet-mac.sh` puis `scripts/essai-dmg.sh --lancer` sous le jeton avec `--duree-max-minutes 20` (le correctif `9c917b22` n'est pas construit), attendre `CADRE WEB OK`, `ESSAI DMG OK`, puis suite complète. Ensuite T19, T20, T21, T17, T18, relecture finale, PR. Toujours `nohup` et attente au premier plan, jamais de fond. Le jeton de T16 sans `--duree-max-minutes` a causé ce blocage.
