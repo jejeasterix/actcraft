@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 19/22 tâches terminées
+Avancement : 20/22 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T21 — simplifications C++, tests inchangés — depuis 2026-11-10 09:40
+Tâche : T17 — APK sans WebEngine — depuis 2026-11-10 12:40
 Questions à Jérôme : aucune
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -57,7 +57,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T19 | T13 | implementeur-tdd | terminée | 1/3 | 7f8d4aa9 | 332/334, tst_ui_shell et tst_ui_mathtools en délai dépassé sous charge 14-18, verts seuls ; downloadedImageDoesNotOverride, webDropOfHugeDataUrl, refusedRedirectDropsTheHeavyFile PASS |
 | T20 | T13 | implementeur-tdd | terminée | 1/3 | 775f6bb0 | 334/334 (ctest --timeout 300, charge 30-40) ; clickOnThePageTakesTheFocusBack, tst_ui_webengine 33/33, tst_ui_webdrop 11/11 PASS |
 | T21 | T19, T20 | implementeur-tdd | terminée | 1/1 | 8931fbc2 | simplifications sans test modifié ; rejeu sous charge 26-135 : 328/334, 5 délais dépassés et `tst_ui_drawing` (attente de 3 s), repris par la suite de T22 |
-| T22 | T21 | implementeur-tdd | à faire | 0/3 | — | — |
+| T22 | T21 | implementeur-tdd | terminée | 1/3 | af40b9f8 | 334/334 (ctest --timeout 300, 4 sautés) ; rightClickOnThePageTakesTheFocusBack, snapshotIsCancelledWhenTheGuardsToggle PASS ; correctifs de la relecture finale |
 
 ## Terminé quand
 toutes les tâches terminées (aucune bloquée) · double relecture sans bloquant ni majeur · suite complète Mac verte en debug et en release · S1…S5 réussis · poids du `.dmg` et H.264 écrits · PR en brouillon ouverte vers `feat/livraison-complete-l11`, non fusionnée
