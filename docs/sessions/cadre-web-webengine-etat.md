@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 13/18 tâches terminées
+Avancement : 14/18 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T12 — Récepteur de dépôt sur la page — depuis 2026-11-10 02:40
+Tâche : T13 — Copier la sélection du cadre — depuis 2026-11-10 03:24
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -49,7 +49,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T6 | T5 | implementeur-tdd | terminée | 1/3 | 25255137 | 333/333 ; snapshotInsertsAnImage, insertSnapshotIsOneStep PASS ; preuves moteur de revue T5 ajoutées, mutations rouges |
 | T7 | T6 | implementeur-tdd | terminée | 1/3 | 8592a98b | 333/333 ; stylusOnWebFrameDrawsNothing PASS ; banc résultat (BUDGET DEPASSE, logiciel) |
 | T8 | T7 | implementeur-tdd | terminée | 1/3 | d4283cda | 333/333 ; dialogNoteFollowsTheGuards PASS ; tst_ui_desktop 60/60 |
-| T12 | T8, T11 | implementeur-tdd | à faire | 0/3 | — | — |
+| T12 | T8, T11 | implementeur-tdd | terminée | 1/3 | 20ffd48b | 334/334 ; tst_ui_webdrop 9/9, droppedRemoteImageSurvivesReopening, guardsCoverDropAndPasteThroughTheWiring PASS ; banc résultat |
 | T13 | T12 | implementeur-tdd | à faire | 0/3 | — | — |
 | T16 | T13, T15 | concepteur-critique | à faire | 0/3 | — | — |
 | T17 | T13 | implementeur-tdd (isolé) | à faire | 0/3 | — | — |
