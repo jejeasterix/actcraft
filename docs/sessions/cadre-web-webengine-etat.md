@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 10/18 tâches terminées
+Avancement : 11/18 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T6 — Capture du cadre, et preuves du vrai moteur — depuis 2026-11-10 00:44
+Tâche : T7 — Stylet : couverture d'entrée de la vue — depuis 2026-11-10 01:27
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -46,7 +46,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T10 | T4, T9 | concepteur-critique | terminée | 1/3 | b0ab9ab6 | 333/333 ; webDropDownloadsAnImage, downloadNeverLandsInAnotherTab, webDropOfOversizeFails PASS ; revue : 0 bloquant, 0 majeur |
 | T11 | T10 | implementeur-tdd | terminée | 1/3 | 36470cae | 333/333 ; pasteImageAddressDownloads, pasteNonImagePageBecomesText PASS ; tst_ui_insertion 41/41 |
 | T5 | T2, T4 | concepteur-critique | terminée | 1/3 | d721ebaf | 333/333 ; javaScriptRunsGuardsOff, cookieStaysInItsDocument, heavyHtmlLoads PASS ; banc résultat ; revue : 1 majeur repris en T6 |
-| T6 | T5 | implementeur-tdd | à faire | 0/3 | — | — |
+| T6 | T5 | implementeur-tdd | terminée | 1/3 | 25255137 | 333/333 ; snapshotInsertsAnImage, insertSnapshotIsOneStep PASS ; preuves moteur de revue T5 ajoutées, mutations rouges |
 | T7 | T6 | implementeur-tdd | à faire | 0/3 | — | — |
 | T8 | T7 | implementeur-tdd | à faire | 0/3 | — | — |
 | T12 | T8, T11 | implementeur-tdd | à faire | 0/3 | — | — |
