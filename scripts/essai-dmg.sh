@@ -3,7 +3,8 @@
 # valide, qt.conf, aucune dépendance hors du bundle (otool), `actcraft --version`, lancement de 3 s si --lancer, démontée.
 # Bibliothèques réellement chargées (DYLD_PRINT_LIBRARIES) : toutes dans le bundle ou le système, à --version (cadres
 # liés) et au lancement (greffons cocoa, images, QML, chargés après QGuiApplication) ; `--lancer` ouvre aussi un vrai
-# cadre web depuis l'image. Journaux sous .tmp/.
+# cadre web depuis l'image. Journaux sous .tmp/. Une application qui ne se termine pas seule (fenêtre en attente d'une
+# réponse) est arrêtée et l'essai échoue : ACTCRAFT_ESSAI_DELAI (secondes, 90 par défaut) borne le lancement.
 # Usage : scripts/essai-dmg.sh [<image.dmg>] [--lancer]   (--lancer : fenêtre ouverte 20 s sur l'écran du Mac)
 # Dernière ligne et code : « ESSAI DMG OK » (0) ou « ESSAI DMG EN ECHEC : <raison> » (1).
 set -u
@@ -30,13 +31,43 @@ mkdir -p .tmp
 # Chemin réel (/private/tmp) : c'est celui qu'écrit dyld.
 point="$(cd "$(mktemp -d /tmp/actcraft-dmg.XXXXXX)" && pwd -P)"
 monte=0
+enfant=""
 fin() {
+  if [ -n "$enfant" ]; then
+    kill -KILL "$enfant" 2>/dev/null
+    wait "$enfant" 2>/dev/null
+  fi
   if [ "$monte" = 1 ]; then
     hdiutil detach "$point" -quiet || hdiutil detach "$point" -force -quiet
   fi
   rmdir "$point" 2>/dev/null
 }
 trap fin EXIT
+trap 'exit 143' TERM INT HUP
+
+# Lance une commande et l'arrête si elle dépasse <secondes> : code 124. Sans processus de garde à côté, rien ne survit
+# à l'essai, et le jeton est rendu.
+borne() {
+  local limite=$(($1 * 2)) tours=0 code=0
+  shift
+  "$@" &
+  enfant=$!
+  while kill -0 "$enfant" 2>/dev/null; do
+    if [ "$tours" -ge "$limite" ]; then
+      kill -TERM "$enfant" 2>/dev/null
+      sleep 3
+      kill -KILL "$enfant" 2>/dev/null
+      wait "$enfant" 2>/dev/null
+      enfant=""
+      return 124
+    fi
+    sleep 0.5
+    tours=$((tours + 1))
+  done
+  wait "$enfant" || code=$?
+  enfant=""
+  return "$code"
+}
 
 # Chemins chargés, complets (espaces compris) : préfixe « dyld[pid]: <UUID> » retiré de chaque ligne du journal.
 chemins_dyld() {
@@ -68,9 +99,10 @@ restes="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |
   grep -E '^[[:space:]]+(/opt/homebrew|/usr/local)/' | sort -u)"
 [ -z "$restes" ] || echec "dépendances hors du bundle : $(echo "$restes" | head -3 | tr -s '[:space:]' ' ')"
 
-sortie="$("$exe" --version)" || echec "--version : code $?"
+sortie="$(borne 60 "$exe" --version)" || echec "--version : code $?"
 [ "$sortie" = "ActCraft $version" ] || echec "--version a rendu « $sortie », attendu « ActCraft $version »"
-DYLD_PRINT_LIBRARIES=1 "$exe" --version > /dev/null 2> .tmp/essai-dmg-dyld-version.txt
+borne 60 env DYLD_PRINT_LIBRARIES=1 "$exe" --version > /dev/null 2> .tmp/essai-dmg-dyld-version.txt ||
+  echec "--version sous dyld : code $?"
 chemins_dyld .tmp/essai-dmg-dyld-version.txt > .tmp/essai-dmg-chemins-version.txt
 grep -qF "$app/Contents/Frameworks/QtCore.framework/" .tmp/essai-dmg-chemins-version.txt ||
   echec "journal de dyld muet ou QtCore chargé hors du bundle (.tmp/essai-dmg-dyld-version.txt)"
@@ -82,8 +114,11 @@ if [ "$lancer" = 1 ]; then
   echo "Fenêtre d'ActCraft ouverte 20 s sur l'écran du Mac (un vrai cadre web)."
   page="$(pwd -P)/.tmp/essai-cadre.html"
   printf '%s\n' '<title>ESSAI</title><script>console.warn("ACTCRAFT JS OK")</script><p>Cadre chargé.</p>' > "$page"
-  QT_FORCE_STDERR_LOGGING=1 DYLD_PRINT_LIBRARIES=1 "$exe" --essai-cadre-web "$page" --quitter-apres 20000 > /dev/null 2> .tmp/essai-dmg-dyld-lancement.txt ||
-    echec "lancement : code $? (.tmp/essai-dmg-dyld-lancement.txt)"
+  delai="${ACTCRAFT_ESSAI_DELAI:-90}"
+  borne "$delai" env QT_FORCE_STDERR_LOGGING=1 DYLD_PRINT_LIBRARIES=1 "$exe" --essai-cadre-web "$page" --quitter-apres 20000 > /dev/null 2> .tmp/essai-dmg-dyld-lancement.txt
+  code=$?
+  [ "$code" != 124 ] || echec "l'application ne s'est pas terminée seule en $delai s, arrêtée (.tmp/essai-dmg-dyld-lancement.txt)"
+  [ "$code" = 0 ] || echec "lancement : code $code (.tmp/essai-dmg-dyld-lancement.txt)"
   chemins_dyld .tmp/essai-dmg-dyld-lancement.txt > .tmp/essai-dmg-chemins-lancement.txt
   grep -qF "$app/Contents/PlugIns/platforms/libqcocoa.dylib" .tmp/essai-dmg-chemins-lancement.txt ||
     echec "greffon cocoa non chargé depuis le bundle (.tmp/essai-dmg-dyld-lancement.txt)"
