@@ -49,6 +49,15 @@ private slots:
                     .openUrl.isLocalFile());
     }
 
+    void parsesWebFrameProbe()
+    {
+        const StartupOptions options =
+            parseStartupOptions({QStringLiteral("actcraft"), QStringLiteral("--essai-cadre-web"),
+                                 QStringLiteral("/tmp/page.html")});
+        QCOMPARE(options.webFrameProbe, QStringLiteral("/tmp/page.html"));
+        QVERIFY(parseStartupOptions({QStringLiteral("actcraft")}).webFrameProbe.isEmpty());
+    }
+
     void startupOpensTheFile()
     {
         QTemporaryDir dir;
