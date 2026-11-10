@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 12/18 tâches terminées
+Avancement : 13/18 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T8 — Textes selon les gardes — depuis 2026-11-10 02:00
+Tâche : T12 — Récepteur de dépôt sur la page — depuis 2026-11-10 02:40
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -48,7 +48,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T5 | T2, T4 | concepteur-critique | terminée | 1/3 | d721ebaf | 333/333 ; javaScriptRunsGuardsOff, cookieStaysInItsDocument, heavyHtmlLoads PASS ; banc résultat ; revue : 1 majeur repris en T6 |
 | T6 | T5 | implementeur-tdd | terminée | 1/3 | 25255137 | 333/333 ; snapshotInsertsAnImage, insertSnapshotIsOneStep PASS ; preuves moteur de revue T5 ajoutées, mutations rouges |
 | T7 | T6 | implementeur-tdd | terminée | 1/3 | 8592a98b | 333/333 ; stylusOnWebFrameDrawsNothing PASS ; banc résultat (BUDGET DEPASSE, logiciel) |
-| T8 | T7 | implementeur-tdd | à faire | 0/3 | — | — |
+| T8 | T7 | implementeur-tdd | terminée | 1/3 | d4283cda | 333/333 ; dialogNoteFollowsTheGuards PASS ; tst_ui_desktop 60/60 |
 | T12 | T8, T11 | implementeur-tdd | à faire | 0/3 | — | — |
 | T13 | T12 | implementeur-tdd | à faire | 0/3 | — | — |
 | T16 | T13, T15 | concepteur-critique | à faire | 0/3 | — | — |
