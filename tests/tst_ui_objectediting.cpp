@@ -494,6 +494,30 @@ private slots:
     }
 
     // S2 : 404 → message, document inchangé.
+    // Le téléchargement collé finit longtemps après : l'outil et la sélection choisis entre-temps restent.
+    void downloadedImageDoesNotOverrideWhatTheUserDidMeanwhile()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        QImage picture(50, 40, QImage::Format_RGB32);
+        picture.fill(Qt::green);
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        picture.save(&buffer, "PNG");
+        server.page(QStringLiteral("/lente.png"), bytes);
+        server.hold(QStringLiteral("/lente.png"));
+        Fixture f(1, false);
+        QGuiApplication::clipboard()->setText(server.url(QStringLiteral("/lente.png")).toString());
+        f.editing.paste();
+        QTRY_COMPARE_WITH_TIMEOUT(server.requests(), 1, 10000);
+        f.tools.activate(QStringLiteral("pen"));
+        server.release();
+        QTRY_VERIFY_WITH_TIMEOUT(f.objectCount() == 2 && f.lastObjectIs<core::ImageObject>(), 10000);
+        QCOMPARE(f.tools.currentTool(), QStringLiteral("pen"));
+        QVERIFY(f.selection().empty());
+    }
+
     void pasteMissingAddressReportsTheFailure()
     {
         TestServer server;

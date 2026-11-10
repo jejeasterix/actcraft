@@ -527,6 +527,22 @@ private slots:
         QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
     }
 
+    // La taille est bornée avant le décodage : un contenu énorme est refusé sans être décodé (ici, des
+    // octets hors alphabet, qui donneraient un résultat vide une fois décodés).
+    void webDropOfHugeDataUrlIsRefusedBeforeDecoding()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        const QUrl url = QUrl::fromEncoded(QByteArray("data:image/png;base64,") +
+                                           QByteArray(static_cast<qsizetype>(40) * 1024 * 1024, '*'));
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {1, 1}));
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(failed.first().first().toString().contains(QStringLiteral("25 Mo")));
+    }
+
     // Cadrage n° 26 : un lien mailto: ou ftp: déposé garde son texte.
     void webDropOfOtherSchemeFallsBackToText_data()
     {

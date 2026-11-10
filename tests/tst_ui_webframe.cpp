@@ -153,6 +153,11 @@ private slots:
     void savingAsMovesTheResourceBase();
     void otherLocalFileIsANavigation();
     void refusedRowDropsItsHeavyFile();
+    void refusedRedirectDropsTheHeavyFile_data();
+    void refusedRedirectDropsTheHeavyFile();
+    void sameAsPreviousCaptureComparesPixels();
+    void saveInTheSameFolderReloadsNothing();
+    void guardsToggleForgetsTheHistory();
     void blockedRowDropsItsHeavyFile();
     void closingTheDocumentDropsTheHeavyFile();
 };
@@ -1545,6 +1550,83 @@ void TstUiWebFrame::refusedRowDropsItsHeavyFile()
     QVERIFY(role(f.frames, 0, ui::WebFrameItems::RefusedRole).toBool());
     QVERIFY(heavyFilePath(f.frames, 0).isEmpty());
     QVERIFY(!QFile::exists(path));
+}
+
+// Une redirection refusée (autre origine, file:) emporte le fichier lourd de la page qu'elle remplace.
+void TstUiWebFrame::refusedRedirectDropsTheHeavyFile_data()
+{
+    QTest::addColumn<QString>("target");
+    QTest::newRow("autre origine") << QStringLiteral("http://exemple.invalide/ailleurs");
+    QTest::newRow("file") << QStringLiteral("file:///etc/hosts");
+}
+
+void TstUiWebFrame::refusedRedirectDropsTheHeavyFile()
+{
+    QFETCH(QString, target);
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/gros"), QByteArray("<p>") + QByteArray(3 * 1024 * 1024, 'a'));
+    server.redirect(QStringLiteral("/saut"), QUrl(target));
+    Fixture f(true);
+    QVERIFY(f.frames.insertFrame({}, server.url(QStringLiteral("/gros")).toString()));
+    QTRY_VERIFY_WITH_TIMEOUT(!heavyFilePath(f.frames, 0).isEmpty(), 60000);
+    const QString path = heavyFilePath(f.frames, 0);
+    QVERIFY(f.frames.followLink(0, server.url(QStringLiteral("/saut"))));
+    QTRY_VERIFY_WITH_TIMEOUT(role(f.frames, 0, ui::WebFrameItems::RefusedRole).toBool(), 5000);
+    QVERIFY(heavyFilePath(f.frames, 0).isEmpty());
+    QVERIFY(!QFile::exists(path));
+}
+
+// Deux captures successives identiques ; la première d'une série ne l'est jamais.
+void TstUiWebFrame::sameAsPreviousCaptureComparesPixels()
+{
+    Fixture f(false);
+    QImage a(40, 30, QImage::Format_ARGB32);
+    a.fill(Qt::red);
+    QImage b(40, 30, QImage::Format_ARGB32);
+    b.fill(Qt::blue);
+    QVERIFY(!f.frames.sameAsPreviousCapture(a, true));
+    QVERIFY(f.frames.sameAsPreviousCapture(a.copy(), false));
+    QVERIFY(!f.frames.sameAsPreviousCapture(b, false));
+    QVERIFY(!f.frames.sameAsPreviousCapture(b, true));
+    QVERIFY(!f.frames.sameAsPreviousCapture(QImage(), false));
+    QVERIFY(!f.frames.sameAsPreviousCapture(QImage(), false));
+}
+
+// Un enregistrement dans le dossier déjà connu ne recharge aucun cadre de code HTML.
+void TstUiWebFrame::saveInTheSameFolderReloadsNothing()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>code</p>"), {}));
+    f.document.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("un.actcraft"))));
+    QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
+    QTest::qWait(100);
+    QSignalSpy changed(&f.frames, &QAbstractItemModel::dataChanged);
+    f.document.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("deux.actcraft"))));
+    QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
+    QTest::qWait(100);
+    QCOMPARE(f.document.fileUrl(), QUrl::fromLocalFile(dir.filePath(QStringLiteral("deux.actcraft"))));
+    QCOMPARE(changed.count(), 0);
+}
+
+// E12 : couper puis rallumer les gardes oublie la session du cadre.
+void TstUiWebFrame::guardsToggleForgetsTheHistory()
+{
+    TestServer server;
+    QVERIFY(server.listening());
+    server.page(QStringLiteral("/a"), "<p>a</p>");
+    server.page(QStringLiteral("/b"), "<p>b</p>");
+    Fixture f(true);
+    QVERIFY(f.frames.insertFrame({}, server.url(QStringLiteral("/a")).toString()));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("<p>a</p>")), 5000);
+    QVERIFY(f.frames.followLink(0, server.url(QStringLiteral("/b"))));
+    QTRY_VERIFY_WITH_TIMEOUT(content(f.frames, 0).contains(QStringLiteral("<p>b</p>")), 5000);
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::CanGoBackRole).toBool());
+    f.frames.setGuardsEnabled(false);
+    f.frames.setGuardsEnabled(true);
+    QVERIFY(!role(f.frames, 0, ui::WebFrameItems::CanGoBackRole).toBool());
 }
 
 void TstUiWebFrame::blockedRowDropsItsHeavyFile()
