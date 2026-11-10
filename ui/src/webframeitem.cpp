@@ -57,17 +57,15 @@ constexpr qsizetype kSurelyShortHtml = kLoadHtmlLimit / 9;
 // lu comme tel.
 // `failed` : le contenu est lourd mais le fichier n'a pas pu être écrit en entier (disque plein, dossier
 // perdu) ; le fichier partiel est retiré et rien n'est rendu.
-QUrl writeHeavyHtml(const QString& html, const QString& dir, std::uint64_t ticket, bool* failed = nullptr)
+QUrl writeHeavyHtml(const QString& html, const QString& dir, std::uint64_t ticket, bool& failed)
 {
-    if (failed)
-        *failed = false;
+    failed = false;
     if (html.size() <= kSurelyShortHtml)
         return {};
     const QByteArray utf8 = html.toUtf8();
     if (utf8.toPercentEncoding().size() <= kLoadHtmlLimit)
         return {};
-    if (failed)
-        *failed = true;
+    failed = true;
     if (dir.isEmpty())
         return {};
     const QString path = QDir(dir).filePath(QStringLiteral("cadre-%1.html").arg(ticket));
@@ -81,8 +79,7 @@ QUrl writeHeavyHtml(const QString& html, const QString& dir, std::uint64_t ticke
         return {};
     }
     file.close();
-    if (failed)
-        *failed = false;
+    failed = false;
     return QUrl::fromLocalFile(path);
 }
 
@@ -1463,7 +1460,7 @@ void WebFrameItems::showDirect(Row& row)
     const QPointer<WebFrameItems> self(this);
     QThreadPool::globalInstance()->start([self, id = row.id, ticket, html = row.html, dir = heavyDir()] {
         bool failed = false;
-        const QUrl file = writeHeavyHtml(html, dir, ticket, &failed);
+        const QUrl file = writeHeavyHtml(html, dir, ticket, failed);
         if (QCoreApplication* home = QCoreApplication::instance()) {
             QMetaObject::invokeMethod(
                 home,
@@ -1520,7 +1517,7 @@ void WebFrameItems::prepareContent(Row& row, std::function<QString()> source, co
         const Prepared prepared =
             prepareHtml(source(), base, [&](const QUrl& url) { return policy.decide(url, key, page); });
         bool failed = false;
-        const QUrl heavy = writeHeavyHtml(prepared.html, dir, ticket, &failed); // même limite (n° 38)
+        const QUrl heavy = writeHeavyHtml(prepared.html, dir, ticket, failed); // même limite (n° 38)
         if (QCoreApplication* home = QCoreApplication::instance()) {
             QMetaObject::invokeMethod(
                 home,

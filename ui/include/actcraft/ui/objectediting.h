@@ -67,6 +67,7 @@ signals:
     void webFramesChanged();
 
 private:
+    void pasteText(const QString& text, QPointF pagePoint);
     DocumentController* m_document = nullptr;
     ToolHost* m_tools = nullptr;
     Insertion* m_insertion = nullptr;   // collage d'image et de texte venus d'ailleurs

@@ -359,6 +359,15 @@ void ObjectEditing::setWebFrames(WebFrameItems* frames)
     m_insertion->setWebFrames(frames);
 }
 
+void ObjectEditing::pasteText(const QString& text, QPointF pagePoint)
+{
+    QUrl address;
+    if (singleWebAddress(text, address))
+        m_insertion->acceptWebDrop({address}, text, QString(), pagePoint);
+    else
+        m_insertion->acceptDrop({}, text, pagePoint);
+}
+
 void ObjectEditing::paste()
 {
     if (m_document == nullptr)
@@ -383,12 +392,7 @@ void ObjectEditing::paste()
     }
     if (mime->hasText()) { // texte brut seulement : un HTML venu d'ailleurs n'est jamais interprété
         const QSizeF size = m_document->pageSize();
-        const QPointF center(size.width() / 2, size.height() / 2);
-        QUrl address;
-        if (singleWebAddress(mime->text(), address))
-            m_insertion->acceptWebDrop({address}, mime->text(), QString(), center);
-        else
-            m_insertion->acceptDrop({}, mime->text(), center);
+        pasteText(mime->text(), QPointF(size.width() / 2, size.height() / 2));
     }
 }
 
@@ -400,11 +404,7 @@ void ObjectEditing::pasteAt(QPointF pagePoint)
     if (!payload) {
         const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
         if (mime != nullptr && !mime->hasImage() && mime->hasText()) {
-            QUrl address;
-            if (singleWebAddress(mime->text(), address))
-                m_insertion->acceptWebDrop({address}, mime->text(), QString(), pagePoint);
-            else
-                m_insertion->acceptDrop({}, mime->text(), pagePoint);
+            pasteText(mime->text(), pagePoint);
         } else {
             paste();
         }
