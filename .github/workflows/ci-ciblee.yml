@@ -44,7 +44,8 @@ jobs:
     runs-on: ${{ inputs.plateforme == 'macos' && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]') }}
     # Le temps d'attente du runner (occupé par la CI) ne compte pas dans ce délai. Attente de mémoire du Mac (15 min au
     # plus) + compilation + tests (25 min au plus, délai de l'étape) : l'upload des journaux garde de la marge.
-    timeout-minutes: 50
+    # Windows (PC), 220 min = 50 + 170 : garde du PC (O177) : l'attente de l'autre runner compte dans ce délai (hook de début de job), 2 h 30 au plus, plus 15 min de mémoire basse ; délai = 170 min + durée du job.
+    timeout-minutes: ${{ inputs.plateforme == 'macos' && 50 || 220 }}
     steps:
       # Dossier des journaux créé avant tout : un échec de garde, de checkout, de configuration ou de compilation
       # téléverse quand même l'artefact journaux-tests (contrat avec ci-ciblee.cjs), avec au moins ce contexte.
