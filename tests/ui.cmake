@@ -297,6 +297,7 @@ actcraft_add_test(tst_ui_pageinput
     SOURCES tst_ui_pageinput.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_include_directories(tst_ui_pageinput PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_compile_definitions(tst_ui_pageinput PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 actcraft_add_test(tst_ui_touchmode
     SOURCES tst_ui_touchmode.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
