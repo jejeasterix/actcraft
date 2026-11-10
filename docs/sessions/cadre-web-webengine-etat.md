@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 20/22 tâches terminées
+Avancement : 21/22 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T17 — APK sans WebEngine — depuis 2026-11-10 12:40
+Tâche : T18 — mesures avant/après et preuve finale — depuis 2026-11-10 12:50
 Questions à Jérôme : aucune
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -52,7 +52,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T12 | T8, T11 | implementeur-tdd | terminée | 1/3 | 20ffd48b | 334/334 ; tst_ui_webdrop 9/9, droppedRemoteImageSurvivesReopening, guardsCoverDropAndPasteThroughTheWiring PASS ; banc résultat |
 | T13 | T12 | implementeur-tdd | terminée | 1/3 | 0885ca8d | 334/334 ; editCopyCopiesTheSelection, inputFieldKeepsPaste, editCopyWithoutFocusedFrameCopiesObjects PASS |
 | T16 | T13, T15 | concepteur-critique | terminée | 1/3 | 944ba429 | 334/334 ; DMG OK 188 680 277 octets ; CADRE WEB OK, ESSAI DMG OK ; borne 5 s en échec ; tst_app_open 5/5 |
-| T17 | T13 | implementeur-tdd (isolé) | en cours : modules commités (9c385284), `YAML OK` ; APK à construire | 0/3 | — | — |
+| T17 | T13 | implementeur-tdd (isolé) | terminée | 1/3 | 9c385284 | YAML OK ; release.yml non touché ; APK construit : libqml_QtWebView_ 1, WebEngine 0 ; APK OK non atteint, licences Qt6FFmpegStub (Reste PC 9, cause écrite) |
 | T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
 | T19 | T13 | implementeur-tdd | terminée | 1/3 | 7f8d4aa9 | 332/334, tst_ui_shell et tst_ui_mathtools en délai dépassé sous charge 14-18, verts seuls ; downloadedImageDoesNotOverride, webDropOfHugeDataUrl, refusedRedirectDropsTheHeavyFile PASS |
 | T20 | T13 | implementeur-tdd | terminée | 1/3 | 775f6bb0 | 334/334 (ctest --timeout 300, charge 30-40) ; clickOnThePageTakesTheFocusBack, tst_ui_webengine 33/33, tst_ui_webdrop 11/11 PASS |
@@ -94,7 +94,7 @@ Voir le cadrage : 15 hypothèses (H1 JavaScript et adresses distantes sur Androi
 6. Poids de l'installateur avant et après.
 7. H2 : `canPlayType` H.264 sur la version officielle.
 8. H4 : mémoire et banc sur le Dell 3510 ; captures D3D11 sous le jeton `ecran`.
-9. Conditionnel : S5, si l'APK ne se construit pas sur le Mac en T17.
+9. S5, fin : obtenir `APK OK`. L'APK se construit sur le Mac sans WebEngine (`libqml_QtWebView_` : 1, `WebEngine` : 0, `build/android-arm64/app/android-build/actcraft.apk`, 110 Mo). `scripts/verifier-licences.ps1` le refuse : « LICENCES EN ECHEC : libQt6FFmpegStub-crypto_arm64-v8a.so (nom de module illisible), libQt6FFmpegStub-ssl_arm64-v8a.so (nom de module illisible) ». Ces bibliothèques viennent de Qt Multimedia et le script n'a pas changé dans ce chantier : décider de leur licence, puis accepter ce nom (`Qt6FFmpegStub-…`) dans le script et dans `packaging/qt-autorises.txt`.
 
 Restes pour Jérôme : R1 glisser réel sur Mac, R2 appui long, collage et capture sous Android, R3 décision de licence sur la redistribution des décodeurs H.264 avant la première release avec WebEngine.
 
