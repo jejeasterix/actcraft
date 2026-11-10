@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 14/18 tâches terminées
+Avancement : 15/18 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T13 — Copier la sélection du cadre — depuis 2026-11-10 03:24
+Tâche : T16 — Paquet Mac et essai de l'image — depuis 2026-11-10 03:53
 Questions à Jérôme : —
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -50,7 +50,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T7 | T6 | implementeur-tdd | terminée | 1/3 | 8592a98b | 333/333 ; stylusOnWebFrameDrawsNothing PASS ; banc résultat (BUDGET DEPASSE, logiciel) |
 | T8 | T7 | implementeur-tdd | terminée | 1/3 | d4283cda | 333/333 ; dialogNoteFollowsTheGuards PASS ; tst_ui_desktop 60/60 |
 | T12 | T8, T11 | implementeur-tdd | terminée | 1/3 | 20ffd48b | 334/334 ; tst_ui_webdrop 9/9, droppedRemoteImageSurvivesReopening, guardsCoverDropAndPasteThroughTheWiring PASS ; banc résultat |
-| T13 | T12 | implementeur-tdd | à faire | 0/3 | — | — |
+| T13 | T12 | implementeur-tdd | terminée | 1/3 | 0885ca8d | 334/334 ; editCopyCopiesTheSelection, inputFieldKeepsPaste, editCopyWithoutFocusedFrameCopiesObjects PASS |
 | T16 | T13, T15 | concepteur-critique | à faire | 0/3 | — | — |
 | T17 | T13 | implementeur-tdd (isolé) | à faire | 0/3 | — | — |
 | T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
