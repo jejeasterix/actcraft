@@ -56,6 +56,18 @@ Ecarter-Anr
 $processus = Install-ActCraftApk -Apk $Apk -Paquet $paquet
 Write-Output "processus : $processus"
 
+# Le processus vivant ne dit pas que l'accueil est affiché : sur une machine chargée, le chargement dure plus que les
+# 10 s d'Install-ActCraftApk (cause probable, non prouvée, du rouge du run 42764427092). Attente bornée à 120 s du premier
+# point de contrôle ; le contrôle reste celui, inchangé, qui suit la capture définitive.
+$voile = @($fondPalette | ForEach-Object { [int][math]::Floor($_ / 2) })
+$limiteAccueil = (Get-Date).AddSeconds(120)
+do {
+    $attente = Capture 'accueil'
+    $dimensions = ("$(& $python -I scripts/lire-pixel.py $attente --taille)".Trim()).Split(' ')
+    if (Proche (Pixel $attente ([int]$dimensions[0] - 3) ([int]([int]$dimensions[1] * 0.25))) $voile 16) { break }
+    Start-Sleep -Seconds 3
+} while ((Get-Date) -lt $limiteAccueil)
+
 # Journal : l'application ne doit avoir ni plantage fatal ni SecurityException (permissions retirées, L1-T17).
 $journal = Join-Path $Sortie 'logcat.txt'
 Adb 60 logcat -d -v threadtime | Set-Content -Path $journal
@@ -78,7 +90,6 @@ if ($largeur -ne 2560 -or $hauteur -ne 1600) { Echec "écran $largeur × $hauteu
 # comme un utilisateur, d'un toucher sur le voile à gauche de la carte (880 points de large, centrée) ; les contrôles
 # suivants restent ceux d'avant l'accueil. tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) lit
 # `$accueil` et rejoue ce toucher hors écran.
-$voile = @($fondPalette | ForEach-Object { [int][math]::Floor($_ / 2) })
 foreach ($f in 0.25, 0.5, 0.75) {
     $y = [int]($hauteur * $f)
     $lu = Pixel $ecranAccueil ($largeur - 3) $y
