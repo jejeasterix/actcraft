@@ -51,6 +51,10 @@ Correctifs :
   reproduit : `tst_bench_result` reste à 0 sur 360, 6 copies, sur un JSON déjà écrit.
 - `tst_ui_layouteditor` (PR #22) : non reproduit, 0 sur 372 sous charge, 0 sur 42 passages à `-j 4`. Cause inconnue. Le
   prochain rouge laissera son message dans `par-test/`.
+- `tst_media_displayrecorder` (`pauseExcludesThePause(simulee)`) : rouge à la CI complète 42738454526, « trou de 228 ms
+  dans le fichier » pour une limite de 200 ms ; relancé dans le même job, il passe. Non reproduit en local : 0 sur 72 avec
+  6 copies, 0 sur 12 seul, 0 sur 100 avec le processeur chargé. Hypothèse : retard d'images sous la charge des
+  `tst_captures_*` voisins. Aucun correctif posé sans preuve.
 - La recherche par mots-clés lit aussi des fragments dans un autre fil. Le même refus de Windows y est possible, sans
   reproduction.
 
@@ -61,7 +65,13 @@ Correctifs :
 - Suite complète locale à `-j 4`, avant les derniers correctifs : 304 sur 305 à chaque passage. Rouges :
   `tst_ui_mediaitems` (5 519 s), puis `tst_bench_verdict` (4 160 s). Tous deux traités ci-dessus.
 
-Coût de `RUN_SERIAL` : à mesurer sur la CI complète, référence 4 250,87 s (run 42528727502).
+- CI ciblée 42736461140 : 7 sur 7, dont `tst_ui_layouteditor`, `tst_ui_resources`, `tst_ui_mediaitems`, `tst_bench_result`.
+- CI complète 42738454526 : 304 sur 305 sous Windows, Mac, Android, paquet Windows et format verts. Seul rouge :
+  `tst_media_displayrecorder` (§ 3). Son journal `par-test/` donne le message réel et le code de sortie : le correctif du
+  § 1 est prouvé en CI.
+
+Coût de `RUN_SERIAL` : 5 070,30 s contre 4 250,87 s (run 42528727502), soit 819 s de plus. Un seul run de chaque côté :
+cet écart compte aussi la variation d'un run à l'autre.
 
 ## 5. Noté, non traité
 
