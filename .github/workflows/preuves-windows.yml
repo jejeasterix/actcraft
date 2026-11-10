@@ -89,7 +89,7 @@ jobs:
         if: runner.environment == 'github-hosted'
         shell: bash
         run: |
-          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtmultimedia qtwebview qtpdf --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtmultimedia qtwebview qtpdf qtwebengine qtwebchannel qtpositioning --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
