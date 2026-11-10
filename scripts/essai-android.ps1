@@ -56,6 +56,18 @@ Ecarter-Anr
 $processus = Install-ActCraftApk -Apk $Apk -Paquet $paquet
 Write-Output "processus : $processus"
 
+# Le processus vivant ne dit pas que l'accueil est affiché : sur une machine chargée, le chargement dure plus que les
+# 10 s d'Install-ActCraftApk (cause probable, non prouvée, du rouge du run 42764427092). Attente bornée à 120 s du premier
+# point de contrôle ; le contrôle reste celui, inchangé, qui suit la capture définitive.
+$voile = @($fondPalette | ForEach-Object { [int][math]::Floor($_ / 2) })
+$limiteAccueil = (Get-Date).AddSeconds(120)
+do {
+    $attente = Capture 'accueil'
+    $dimensions = ("$(& $python -I scripts/lire-pixel.py $attente --taille)".Trim()).Split(' ')
+    if (Proche (Pixel $attente ([int]$dimensions[0] - 3) ([int]([int]$dimensions[1] * 0.25))) $voile 16) { break }
+    Start-Sleep -Seconds 3
+} while ((Get-Date) -lt $limiteAccueil)
+
 # Journal : l'application ne doit avoir ni plantage fatal ni SecurityException (permissions retirées, L1-T17).
 $journal = Join-Path $Sortie 'logcat.txt'
 Adb 60 logcat -d -v threadtime | Set-Content -Path $journal
@@ -78,7 +90,6 @@ if ($largeur -ne 2560 -or $hauteur -ne 1600) { Echec "écran $largeur × $hauteu
 # comme un utilisateur, d'un toucher sur le voile à gauche de la carte (880 points de large, centrée) ; les contrôles
 # suivants restent ceux d'avant l'accueil. tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) lit
 # `$accueil` et rejoue ce toucher hors écran.
-$voile = @($fondPalette | ForEach-Object { [int][math]::Floor($_ / 2) })
 foreach ($f in 0.25, 0.5, 0.75) {
     $y = [int]($hauteur * $f)
     $lu = Pixel $ecranAccueil ($largeur - 3) $y
@@ -88,13 +99,23 @@ Write-Output 'accueil : ouvert au démarrage'
 $accueil = @{ X = [int]($largeur * 0.08); Y = [int]($hauteur * 0.5) }
 $null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
 if ($LASTEXITCODE -ne 0) { Echec 'toucher de l''accueil refusé' }
-Start-Sleep -Seconds 2
-$avant = Capture 'avant'
-foreach ($f in 0.25, 0.5, 0.75) {
-    $y = [int]($hauteur * $f)
-    $lu = Pixel $avant ($largeur - 3) $y
-    if (-not (Proche $lu $fondPalette 16)) { Echec "palette absente au bord droit, y = $y (lu $($lu -join ' '), attendu $($fondPalette -join ' '))" }
-}
+# Sous charge, l'accueil peut rester affiché plus de 2 s après le toucher (cause probable, non prouvée, du rouge du run
+# 42829974229). Attente bornée à 60 s, nouvelle capture toutes les 2 s, sans second toucher : il masquerait un défaut.
+$limitePalette = (Get-Date).AddSeconds(60)
+do {
+    Start-Sleep -Seconds 2
+    $avant = Capture 'avant'
+    $defautPalette = $null
+    foreach ($f in 0.25, 0.5, 0.75) {
+        $y = [int]($hauteur * $f)
+        $lu = Pixel $avant ($largeur - 3) $y
+        if (-not (Proche $lu $fondPalette 16)) {
+            $defautPalette = "palette absente au bord droit, y = $y (lu $($lu -join ' '), attendu $($fondPalette -join ' '))"
+            break
+        }
+    }
+} while ($defautPalette -and (Get-Date) -lt $limitePalette)
+if ($defautPalette) { Echec $defautPalette }
 Write-Output 'palette : visible au bord droit'
 
 # Rectangles entiers : un rendu défectueux (émulateur à GPU logiciel SwiftShader, voir docs/verifications) ne dessine
@@ -126,11 +147,16 @@ $blanc = Pixel $avant $xm $y
 if (-not (Proche $blanc @(255, 255, 255) 12)) { Echec "page non blanche avant le trait (lu $($blanc -join ' '))" }
 $null = Adb 30 shell input swipe $x0 $y $x1 $y 600
 if ($LASTEXITCODE -ne 0) { Echec 'glissement du doigt refusé' }
-Start-Sleep -Seconds 2
-$apres = Capture 'apres'
-$trait = Pixel $apres $xm $y
+# Même attente bornée que pour la palette : sous charge, le trait peut s'afficher plus de 2 s après le glissement.
+$limiteTrait = (Get-Date).AddSeconds(60)
+do {
+    Start-Sleep -Seconds 2
+    $apres = Capture 'apres'
+    $trait = Pixel $apres $xm $y
+    $traitVu = $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100
+} while (-not $traitVu -and (Get-Date) -lt $limiteTrait)
 Write-Output "trait : lu $($trait -join ' ')"
-if (-not ($trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100)) { Echec 'trait absent après le glissement' }
+if (-not $traitVu) { Echec 'trait absent après le glissement' }
 if ("$(Adb 30 shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus a redémarré ou s''est arrêté' }
 } catch {
     # Refus du module commun : sa raison telle quelle (mêmes messages qu'avant l'extraction) ; le reste est imprévu,

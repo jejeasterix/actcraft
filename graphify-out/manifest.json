@@ -630,8 +630,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1794177013.7500682,
-    "ast_hash": "0ba398d603bd5c045735493efffcb23d",
+    "mtime": 1794345657.0263772,
+    "ast_hash": "b6b43762c6e134577d74ab73effaf3af",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -720,8 +720,8 @@
     "semantic_hash": ""
   },
   "tests/CMakeLists.txt": {
-    "mtime": 1794177013.9586403,
-    "ast_hash": "61484ab52e325382dde9920234b44e05",
+    "mtime": 1794345657.1005993,
+    "ast_hash": "94c10e7524bdfe8d6739b8e4ca2359f6",
     "semantic_hash": ""
   },
   "tools/CMakeLists.txt": {
@@ -805,8 +805,8 @@
     "semantic_hash": ""
   },
   "scripts/essai-android.ps1": {
-    "mtime": 1794035264.7385416,
-    "ast_hash": "4a20f64971274e910cffa0f7bb276482",
+    "mtime": 1794345657.0994935,
+    "ast_hash": "e10e8bb49319c180c4396b27157202b6",
     "semantic_hash": ""
   },
   "scripts/essai-installateur.ps1": {
@@ -1195,8 +1195,8 @@
     "semantic_hash": ""
   },
   "scripts/android-commun.ps1": {
-    "mtime": 1794035264.7373405,
-    "ast_hash": "be0202a0cdfa0fd81bffde4e0fb0bcd9",
+    "mtime": 1794345657.0979123,
+    "ast_hash": "365d8daf56e064f94ce2095207e494da",
     "semantic_hash": ""
   },
   "scripts/essai-android-fichiers.ps1": {
@@ -2790,8 +2790,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/preuves-windows.yml": {
-    "mtime": 1794177013.7504592,
-    "ast_hash": "da16603d17a52110510888f6376b2115",
+    "mtime": 1794345657.0272288,
+    "ast_hash": "09d006f1000b3ba7d194cb0fa388fe65",
     "semantic_hash": ""
   },
   "docs/sessions/2026-10-27-handoff-livraison-complete.md": {
@@ -3260,8 +3260,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_resources.cpp": {
-    "mtime": 1794035264.7644527,
-    "ast_hash": "1ac1712e737bc0fb253a1a54a25d06ed",
+    "mtime": 1794345657.1037798,
+    "ast_hash": "ecb41cfdb277950771cfc7208021abd7",
     "semantic_hash": ""
   },
   "tests/tst_ui_settingsschema.cpp": {
@@ -3360,8 +3360,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/resourcelibrary.h": {
-    "mtime": 1794035264.7986758,
-    "ast_hash": "dfb4186c2541e0d962ce0e60288dbf06",
+    "mtime": 1794345657.1044593,
+    "ast_hash": "8fcbd9a622b795b2ddb2bdf3d1422d46",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/secretstore.h": {
@@ -3460,8 +3460,8 @@
     "semantic_hash": ""
   },
   "ui/src/resourcelibrary.cpp": {
-    "mtime": 1794035264.8245823,
-    "ast_hash": "2a31ea02f175e886ce5d4ee84a2f8d8b",
+    "mtime": 1794345657.1048994,
+    "ast_hash": "86e67a3cc879bbc866254c5e23f35fd1",
     "semantic_hash": ""
   },
   "ui/src/secretstore_other.cpp": {
@@ -4420,8 +4420,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_mediaitems.cpp": {
-    "mtime": 1794035264.7621691,
-    "ast_hash": "a39c084f0991f77396418a9fd9004dcd",
+    "mtime": 1794345657.1033452,
+    "ast_hash": "280bd61db2f04e744e34773835a664ba",
     "semantic_hash": ""
   },
   "tests/tst_ui_othertools.cpp": {
@@ -5009,6 +5009,46 @@
     "ast_hash": "62705b30de0cfd391cd31fbb62a4f57a",
     "semantic_hash": ""
   },
+  "scripts/ci/emulateur-mac.sh": {
+    "mtime": 1794177013.9583907,
+    "ast_hash": "c5ee8773f9c515608e5bbf47b4162648",
+    "semantic_hash": ""
+  },
+  "scripts/ci/outils-android-mac.sh": {
+    "mtime": 1794177013.958484,
+    "ast_hash": "2c85b189b58928cce638a9a409c218a1",
+    "semantic_hash": ""
+  },
+  "tests/lanceur_test_windows.cpp": {
+    "mtime": 1794345657.1020947,
+    "ast_hash": "edde2fb21c14214ffd68e9a9081a10a3",
+    "semantic_hash": ""
+  },
+  ".github/actions/gardes-mac/action.yml": {
+    "mtime": 1794177013.7493904,
+    "ast_hash": "644b60f1e1dc114e49630742626469c9",
+    "semantic_hash": ""
+  },
+  ".github/actions/pwsh-mac/action.yml": {
+    "mtime": 1794177013.7495325,
+    "ast_hash": "b24d45c12170e47f6b665bd65476d433",
+    "semantic_hash": ""
+  },
+  ".github/workflows/ci-ciblee.yml": {
+    "mtime": 1794345657.0253162,
+    "ast_hash": "1a2a6f1ff894eee9d9f10a18904a25a6",
+    "semantic_hash": ""
+  },
+  "docs/ci-ciblee.md": {
+    "mtime": 1794345657.0273416,
+    "ast_hash": "5ff5002c466890dcbda520d24c6a0026",
+    "semantic_hash": ""
+  },
+  "docs/verifications/2026-11-09-tests-intermittents-windows.md": {
+    "mtime": 1794345657.0275815,
+    "ast_hash": "cc172af842d69b734051e5a8d2d9716c",
+    "semantic_hash": ""
+  },
   "bench/scenarios/aide-complete.json": {
     "mtime": 1794126210.99816,
     "ast_hash": "8a7652276839a31db36b6b3358baa265",
@@ -5087,16 +5127,6 @@
   "scripts/banc-android.ps1": {
     "mtime": 1794064946.0347958,
     "ast_hash": "471d108ac7ac00b0b25d7198dd4dcb1a",
-    "semantic_hash": ""
-  },
-  "scripts/ci/emulateur-mac.sh": {
-    "mtime": 1794177013.9583907,
-    "ast_hash": "c5ee8773f9c515608e5bbf47b4162648",
-    "semantic_hash": ""
-  },
-  "scripts/ci/outils-android-mac.sh": {
-    "mtime": 1794177013.958484,
-    "ast_hash": "2c85b189b58928cce638a9a409c218a1",
     "semantic_hash": ""
   },
   "scripts/essai-android-cycle.ps1": {
@@ -5362,16 +5392,6 @@
   "ui/src/updatechecker.cpp": {
     "mtime": 1794076923.9281526,
     "ast_hash": "72e3f3db6201a0952cdcac718ab09b39",
-    "semantic_hash": ""
-  },
-  ".github/actions/gardes-mac/action.yml": {
-    "mtime": 1794177013.7493904,
-    "ast_hash": "644b60f1e1dc114e49630742626469c9",
-    "semantic_hash": ""
-  },
-  ".github/actions/pwsh-mac/action.yml": {
-    "mtime": 1794177013.7495325,
-    "ast_hash": "b24d45c12170e47f6b665bd65476d433",
     "semantic_hash": ""
   },
   "LICENSES/0BSD.txt": {

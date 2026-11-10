@@ -39,19 +39,19 @@ actcraft_add_test(tst_bench_options
     LIBS ActCraft::bench)
 
 # Verdict et validité ; les contrôles de la chaîne réelle chargent la vraie interface (startup.cpp).
-# Sortie de Qt Test aussi écrite dans <build>/tests/tst_bench_verdict.txt : sous ctest, la sortie standard de ce test
-# n'apparaît pas (journal du runner vide, même en échec), et ses échecs sous charge ne se reproduisent pas seuls.
 actcraft_add_test(tst_bench_verdict
     SOURCES tst_bench_verdict.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
-    LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick
-    ARGS -o tst_bench_verdict.txt,txt -o -,txt)
+    LIBS ActCraft::bench ActCraft::ui actcraft_uiplugin Qt6::Quick)
 target_include_directories(tst_bench_verdict PRIVATE ${PROJECT_SOURCE_DIR}/app)
 # Chien de garde de Qt Test : 300 s par fonction par défaut (QTEST_FUNCTION_TIMEOUT). Les fonctions qui jouent le
 # vrai banc (runBench) le dépassaient sous charge : abandon par qFatal (« Test function timed out »), rien dans la
 # sortie de ctest, échec 397 s après le départ (L3-C3 ; même signature reproduite avec un chien de 15 s). 259 s
 # seul, 355 s sous charge pour tout l'exécutable : 1200 s par fonction et 1800 s en tout ne détectent qu'un blocage.
 set_property(TEST tst_bench_verdict APPEND PROPERTY ENVIRONMENT "QTEST_FUNCTION_TIMEOUT=1200000")
-set_tests_properties(tst_bench_verdict PROPERTIES TIMEOUT 1800)
+# RUN_SERIAL : ces essais jouent le vrai banc, en temps réel. Avec 6 copies en parallèle, 3 lancements sur 36 sont
+# rouges (« command edition.paste refused », « injection incomplete »), 0 sur 8 seul ; condition exacte non isolée :
+# docs/verifications/2026-11-09-tests-intermittents-windows.md.
+set_tests_properties(tst_bench_verdict PROPERTIES TIMEOUT 1800 RUN_SERIAL TRUE)
 
 actcraft_add_test(tst_bench_content
     SOURCES tst_bench_content.cpp
@@ -86,6 +86,7 @@ add_test(NAME tst_bench_smoke
 # 2026-10-19, Timeout à 300,39 s). Le fichier JSON qu'il écrit alimente tst_bench_result et tst_bench_summary.
 set_tests_properties(tst_bench_smoke PROPERTIES
     TIMEOUT 1800
+    RUN_SERIAL TRUE # même banc en temps réel que tst_bench_verdict ; son JSON alimente tst_bench_result
     ENVIRONMENT "${_bench_env_offscreen}"
     FIXTURES_REQUIRED bench_smoke_clean
     FIXTURES_SETUP bench_smoke_json)

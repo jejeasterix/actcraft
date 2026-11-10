@@ -99,8 +99,10 @@ jobs:
     # Repli manuel : gh workflow run ci.yml --ref <branche> -f runner_macos=macos-latest (ou -f runner_windows=windows-latest).
     runs-on: ${{ matrix.os == 'macos-latest' && (inputs.runner_macos == 'macos-latest' && 'macos-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]')) || (inputs.runner_windows == 'windows-latest' && 'windows-latest' || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]')) }}
     # Lot 4 : la suite debug Windows, jouée en série, dépasse 20 min (73/138 tests à 11 min, PR #8). Lot 5 : 170 tests,
-    # coupée à 99/170 à 50 min (run 41715403316, PR #9) ; 90 min de marge.
-    timeout-minutes: 90
+    # coupée à 99/170 à 50 min (run 41715403316, PR #9) ; 90 min de marge. Windows, 120 min : tst_bench_verdict et
+    # tst_bench_smoke jouent seuls (RUN_SERIAL, O149), la suite prenait déjà 71 min à 4 tests à la fois (run 42528727502).
+    # Windows du PC, 290 min = 120 + 170 : garde du PC (O177) : l'attente de l'autre runner compte dans ce délai (hook de début de job), 2 h 30 au plus, plus 15 min de mémoire basse ; délai = 170 min + durée du job.
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && (inputs.runner_windows == 'windows-latest' && 120 || 290) || 90 }}
     steps:
       # Runner auto-hébergé : dépôt privé seulement, et pas de job lourd sous 3 Go de mémoire disponible (le Mac porte
       # aussi les sessions Claude). La garde qui fait foi est côté Mac, hors de portée d'une PR :
@@ -254,10 +256,32 @@ jobs:
         run: cmake --preset debug ${{ (runner.environment != 'github-hosted' && runner.os == 'Windows') && '--fresh' || '' }}
 
       - name: Compiler
+        timeout-minutes: 120
         run: cmake --build --preset debug
 
-      - name: Tester
-        run: ctest --preset debug --output-on-failure
+      # Journaux des tests rouges téléversés en cas d'échec (artefact journaux-tests-<plateforme>, docs/ci-ciblee.md).
+      - id: tester
+        name: Tester
+        timeout-minutes: 120
+        run: |
+          cmake -E make_directory "${{ runner.temp }}/journaux-tests"
+          cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
+          cmake -E rm -rf build/debug/journaux-tests
+          ctest --preset debug --output-on-failure --output-log "${{ runner.temp }}/journaux-tests/ctest-sortie.txt" --output-junit "${{ runner.temp }}/journaux-tests/ctest-junit.xml"
+
+      # Relances en direct plafonnées à 2 min : la suite Windows a de 71 à 81 min de tests (run 42434070554).
+      - name: Journaux des tests rouges
+        if: failure() && steps.tester.outcome == 'failure'
+        run: cmake -DBUILD_DIR=build/debug "-DOUT_DIR=${{ runner.temp }}/journaux-tests" -DMAX_SECONDES=120 -P scripts/ci/journaux-tests.cmake
+
+      - name: Téléverser les journaux des tests
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: journaux-tests-${{ runner.os == 'Windows' && 'windows' || 'macos' }}
+          path: ${{ runner.temp }}/journaux-tests
+          if-no-files-found: warn
+          retention-days: 14
 
       # N1-8 : premier contact avec Metal ; informatif, ne bloque jamais la CI.
       - name: Banc sur la plateforme native (informatif)
@@ -282,8 +306,8 @@ jobs:
     runs-on: ${{ inputs.runner_windows == 'windows-latest' && 'windows-latest' || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]') }}
     # Lot 5 : compilation release coupée à 693/808 à 15 min (run 41715403316, PR #9). Lot 8 : coupée à 25 min avec
     # Qt Multimedia et Qt WebView (run 42337666352, PR #16). Le PC compile plus lentement qu'un exécuteur GitHub au
-    # premier run (arbre build/release vide), puis en incrémental : 90 min.
-    timeout-minutes: 90
+    # premier run (arbre build/release vide), puis en incrémental : 90 min. PC, 260 min = 90 + 170 : garde du PC (O177) : l'attente de l'autre runner compte dans ce délai (hook de début de job), 2 h 30 au plus, plus 15 min de mémoire basse ; délai = 170 min + durée du job.
+    timeout-minutes: ${{ inputs.runner_windows == 'windows-latest' && 90 || 260 }}
     steps:
       # Même garde que le job build (la garde qui fait foi est C:\actions-runner-actcraft\garde-job.ps1).
       - name: Garde du runner auto-hébergé Windows (visibilité)
@@ -385,11 +409,33 @@ jobs:
         shell: pwsh
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/CMakeCache.txt, build/release/CMakeFiles
 
-      # Chaque script finit par une ligne de verdict (« … OK » / « … EN ECHEC : … ») : la CI l'exige en plus du code.
-      - name: Construire l'installateur
+      # PC : l'installateur ne livre que actcraft.exe. Les tests en RelWithDebInfo (exécutables, PDB, ILK) ont rempli le
+      # disque du PC (link.exe : code 112, ERROR_DISK_FULL, run 42459120044) : seule la cible actcraft est compilée, et
+      # les binaires de test d'un run précédent sont retirés de build/release.
+      - name: Compiler actcraft seul en release (PC)
+        if: runner.environment != 'github-hosted'
+        timeout-minutes: 90
         shell: pwsh
         run: |
-          pwsh -NoProfile -File ./scripts/paquet.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/tests
+          Get-ChildItem -ErrorAction SilentlyContinue build/release -File -Filter 'tst_*' | Remove-Item -Force
+          $libre = (Get-PSDrive (Get-Location).Drive.Name).Free / 1GB
+          "Espace libre : {0:N1} Go" -f $libre
+          cmake --preset release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build --preset release --target actcraft
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Chaque script finit par une ligne de verdict (« … OK » / « … EN ECHEC : … ») : la CI l'exige en plus du code.
+      # Sur le PC, actcraft.exe vient de l'étape précédente (-SansConstruire).
+      - name: Construire l'installateur
+        timeout-minutes: 90
+        shell: pwsh
+        env:
+          SANS_CONSTRUIRE: ${{ runner.environment != 'github-hosted' && '-SansConstruire' || '' }}
+        run: |
+          $options = @($env:SANS_CONSTRUIRE | Where-Object { $_ })
+          pwsh -NoProfile -File ./scripts/paquet.ps1 @options | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/paquet.txt" -Tail 1) -notmatch '^PAQUET OK : ') { exit 1 }
 
       # S1 dans une vraie fenêtre, rendu D3D11 (WARP sur l'exécuteur sans GPU).

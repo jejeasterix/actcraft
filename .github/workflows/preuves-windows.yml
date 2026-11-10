@@ -44,7 +44,8 @@ jobs:
     runs-on: ${{ inputs.runner_windows == 'windows-latest' && 'windows-latest' || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]') }}
     # PC : la suite debug complète prend 81 min avec 4 tests à la fois (ci.yml, run 42434070554) ; 40 min suffisent
     # sur windows-latest avec un motif.
-    timeout-minutes: 120
+    # PC, 290 min = 120 + 170 : garde du PC (O177) : l'attente de l'autre runner compte dans ce délai (hook de début de job), 2 h 30 au plus, plus 15 min de mémoire basse ; délai = 170 min + durée du job.
+    timeout-minutes: ${{ inputs.runner_windows == 'windows-latest' && 120 || 290 }}
     steps:
       # Même garde que le job build de ci.yml (la garde qui fait foi est C:\actions-runner-actcraft\garde-job.ps1).
       - id: garde
@@ -133,12 +134,14 @@ jobs:
 
       - id: compiler
         name: Compiler
+        timeout-minutes: 120
         env:
           PRESET: ${{ inputs.preset }}
         run: cmake --build --preset $env:PRESET
 
       - id: tester
         name: Tester
+        timeout-minutes: 120
         env:
           PRESET: ${{ inputs.preset }}
           MOTIF: ${{ inputs.tests }}
@@ -152,6 +155,8 @@ jobs:
             $fin = (Get-Date).AddMinutes(4); $relances = 0
             foreach ($t in $rouges) {
               $nom = $t.name; $commande = @($t.command | Where-Object { $_ })
+              # Windows : actcraft_test_launcher <journal> <test> ... ; la relance vise le test lui-même.
+              if ($commande.Count -gt 2 -and (Split-Path $commande[0] -LeafBase) -eq 'actcraft_test_launcher') { $commande = @($commande | Select-Object -Skip 2) }
               $exe = if ($commande.Count -gt 0 -and (Split-Path $commande[0] -Leaf) -like 'tst_*') { $commande[0] } else { $null }
               $arguments = @($commande | Select-Object -Skip 1) + @('-v2', '-o', 'sortie-test.txt,txt')
               if ($exe -and ($relances -ge 5 -or (Get-Date) -ge $fin)) { Write-Output "== $nom non relancé (plafond : 5 relances, 4 min)"; $exe = $null }
