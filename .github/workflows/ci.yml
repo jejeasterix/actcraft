@@ -409,12 +409,33 @@ jobs:
         shell: pwsh
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/CMakeCache.txt, build/release/CMakeFiles
 
-      # Chaque script finit par une ligne de verdict (« … OK » / « … EN ECHEC : … ») : la CI l'exige en plus du code.
-      - name: Construire l'installateur
+      # PC : l'installateur ne livre que actcraft.exe. Les tests en RelWithDebInfo (exécutables, PDB, ILK) ont rempli le
+      # disque du PC (link.exe : code 112, ERROR_DISK_FULL, run 42459120044) : seule la cible actcraft est compilée, et
+      # les binaires de test d'un run précédent sont retirés de build/release.
+      - name: Compiler actcraft seul en release (PC)
+        if: runner.environment != 'github-hosted'
         timeout-minutes: 90
         shell: pwsh
         run: |
-          pwsh -NoProfile -File ./scripts/paquet.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/tests
+          Get-ChildItem -ErrorAction SilentlyContinue build/release -File -Filter 'tst_*' | Remove-Item -Force
+          $libre = (Get-PSDrive (Get-Location).Drive.Name).Free / 1GB
+          "Espace libre : {0:N1} Go" -f $libre
+          cmake --preset release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build --preset release --target actcraft
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Chaque script finit par une ligne de verdict (« … OK » / « … EN ECHEC : … ») : la CI l'exige en plus du code.
+      # Sur le PC, actcraft.exe vient de l'étape précédente (-SansConstruire).
+      - name: Construire l'installateur
+        timeout-minutes: 90
+        shell: pwsh
+        env:
+          SANS_CONSTRUIRE: ${{ runner.environment != 'github-hosted' && '-SansConstruire' || '' }}
+        run: |
+          $options = @($env:SANS_CONSTRUIRE | Where-Object { $_ })
+          pwsh -NoProfile -File ./scripts/paquet.ps1 @options | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/paquet.txt" -Tail 1) -notmatch '^PAQUET OK : ') { exit 1 }
 
       # S1 dans une vraie fenêtre, rendu D3D11 (WARP sur l'exécuteur sans GPU).
