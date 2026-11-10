@@ -1,10 +1,28 @@
+# Windows : la sortie de Qt Test et le code de sortie de chaque test vont dans <build>/journaux-tests/<test>.txt
+# (tests/lanceur_test_windows.cpp) ; repris par l'artefact journaux-tests (scripts/ci/journaux-tests.cmake).
+if(WIN32)
+    add_executable(actcraft_test_launcher lanceur_test_windows.cpp)
+    actcraft_set_warnings(actcraft_test_launcher)
+endif()
+
+# Entrée ctest d'un exécutable Qt Test ; sous Windows, par le lanceur. Tout `add_test` d'un exécutable Qt Test passe ici.
+function(actcraft_register_test name target)
+    if(WIN32)
+        add_test(NAME ${name} COMMAND actcraft_test_launcher "${CMAKE_BINARY_DIR}/journaux-tests/${name}.txt"
+            $<TARGET_FILE:${target}> ${ARGN})
+        add_dependencies(${target} actcraft_test_launcher)
+    else()
+        add_test(NAME ${name} COMMAND ${target} ${ARGN})
+    endif()
+endfunction()
+
 # Ajoute un test Qt Test : actcraft_add_test(<nom> SOURCES ... LIBS ... [ARGS ...]) ; ARGS : arguments de Qt Test.
 function(actcraft_add_test name)
     cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;ARGS" ${ARGN})
     qt_add_executable(${name} ${ARG_SOURCES})
     target_link_libraries(${name} PRIVATE Qt6::Test ${ARG_LIBS})
     actcraft_set_warnings(${name})
-    add_test(NAME ${name} COMMAND ${name} ${ARG_ARGS})
+    actcraft_register_test(${name} ${name} ${ARG_ARGS})
     # Sans écran : fenêtres hors écran, rendu logiciel (le secours doit toujours marcher).
     set(env_test "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     if(WIN32)

@@ -39,13 +39,13 @@ if(NOT _lot7_env)
     message(FATAL_ERROR "tst_ui_shell : environnement introuvable (tests/ui.cmake), les 17 tests du lot 7 n'en ont pas")
 endif()
 foreach(_key IN LISTS _lot7_ui_keys)
-    add_test(NAME tst_ui_${_key} COMMAND tst_ui_lot7 ${_key})
+    actcraft_register_test(tst_ui_${_key} tst_ui_lot7 ${_key})
     set_tests_properties(tst_ui_${_key} PROPERTIES ENVIRONMENT "${_lot7_env}")
 endforeach()
 # Passe Windows du lot 7 : liste des fenêtres du bureau en pixels logiques avec un rapport de pixels de 2
 # (camera_win.cpp, toQtPixels). Une entrée de plus que le compte figé ci-dessus (N = N_F + 30).
 if(WIN32)
-    add_test(NAME tst_ui_camera_ratio2 COMMAND tst_ui_lot7 camera topLevelWindowsListsOurWindow)
+    actcraft_register_test(tst_ui_camera_ratio2 tst_ui_lot7 camera topLevelWindowsListsOurWindow)
     set_tests_properties(tst_ui_camera_ratio2 PROPERTIES ENVIRONMENT "${_lot7_env};QT_SCALE_FACTOR=2")
 endif()
 

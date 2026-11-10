@@ -1049,7 +1049,10 @@ void TstUiMediaitems::lastSoundRequestWins()
 {
     core::Document d(1024, 768);
     const std::string a = d.addResource(bigTone(), "wav");
-    const std::string b = d.addResource(toneWav(400), "wav");
+    // B dure bien plus que l'attente ci-dessous : avec 400 ms, il finissait avant la vérification sous charge
+    // (7 lancements sur 240 avec 6 copies en parallèle).
+    const int bMs = 8000;
+    const std::string b = d.addResource(toneWav(bMs), "wav");
     d.page(0).objects.push_back(mediaObject(81, a, 50, 50, 64, 64));
     d.page(0).objects.push_back(mediaObject(82, b, 150, 50, 64, 64));
     open(std::move(d));
@@ -1059,7 +1062,7 @@ void TstUiMediaitems::lastSoundRequestWins()
     QThreadPool::globalInstance()->waitForDone();
     QTest::qWait(500);
     QVERIFY(m_items->player()->isPlaying(Player::First));
-    QCOMPARE(QFileInfo(playedFile(m_items->player(), Player::First)).size(), qint64(toneWav(400).size()));
+    QCOMPARE(QFileInfo(playedFile(m_items->player(), Player::First)).size(), qint64(toneWav(bMs).size()));
 }
 
 // Troisième revue L8-T25. Arrêter pendant l'écriture annule la demande.

@@ -44,6 +44,7 @@ struct TestHooks
     bool trashFails = false;
     QMutex observerMutex;
     std::function<void()> renderObserver;
+    std::function<void()> thumbnailReadObserver;
     std::function<void()> searchObserver;
 };
 
@@ -201,10 +202,23 @@ QImage imageThumbnail(const QString& path, int width)
     QImageReader reader(path);
     reader.setAutoTransform(true);
     const QSize size = reader.size();
+    notify(&TestHooks::thumbnailReadObserver); // le fichier reste ouvert jusqu'à la fin de la lecture
     if (size.isValid() && size.width() > width)
         reader.setScaledSize(
             QSize(width, std::max(1, qRound(size.height() * static_cast<double>(width) / size.width()))));
     return reader.read();
+}
+
+// Windows refuse de renommer ou de supprimer un fichier ouvert, ce que fait la vignette en vol (une au plus).
+// L'opération est rejouée après sa fin, et le fil principal n'attend que dans ce cas.
+template <typename Edit> bool withFileReleased(QThreadPool& pool, const Edit& edit)
+{
+    if (edit())
+        return true;
+    if (pool.activeThreadCount() == 0)
+        return false;
+    pool.waitForDone();
+    return edit();
 }
 
 struct ThumbnailJob
@@ -525,6 +539,12 @@ void ResourceLibrary::setRenderObserverForTests(std::function<void()> observer)
     hooks().renderObserver = std::move(observer);
 }
 
+void ResourceLibrary::setThumbnailReadObserverForTests(std::function<void()> observer)
+{
+    QMutexLocker lock(&hooks().observerMutex);
+    hooks().thumbnailReadObserver = std::move(observer);
+}
+
 void ResourceLibrary::setSearchObserverForTests(std::function<void()> observer)
 {
     QMutexLocker lock(&hooks().observerMutex);
@@ -756,7 +776,9 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
     const QString destination = info.dir().filePath(target);
     if (QFileInfo::exists(destination))
         return false;
-    const bool done = info.isDir() ? QDir().rename(source, destination) : QFile::rename(source, destination);
+    const bool done = withFileReleased(m_pool, [&] {
+        return info.isDir() ? QDir().rename(source, destination) : QFile::rename(source, destination);
+    });
     if (done) {
         leaveFolder(source);
         refresh();
@@ -771,17 +793,15 @@ bool ResourceLibrary::remove(const QString& path, bool permanently)
     if (m_commands == nullptr || m_commands->isLocked() || m_contactActive || target == m_rootPath ||
         !info.exists())
         return false;
-    bool done = false;
-    if (usesTrash() && !permanently) {
-        done = !hooks().trashFails && QFile::moveToTrash(target);
-        if (!done) {
-            emit trashFailed(target); // rien n'est supprimé ; le QML peut proposer la suppression définitive
-            return false;
-        }
-    } else if (info.isDir()) {
-        done = QDir(target).removeRecursively();
-    } else {
-        done = QFile::remove(target);
+    const bool toTrash = usesTrash() && !permanently;
+    const bool done = withFileReleased(m_pool, [&] {
+        if (toTrash)
+            return !hooks().trashFails && QFile::moveToTrash(target);
+        return info.isDir() ? QDir(target).removeRecursively() : QFile::remove(target);
+    });
+    if (!done && toTrash) {
+        emit trashFailed(target); // rien n'est supprimé ; le QML peut proposer la suppression définitive
+        return false;
     }
     if (done) {
         leaveFolder(target);

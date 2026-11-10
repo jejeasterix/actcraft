@@ -121,10 +121,12 @@ public:
     static QString sharedRoot(); // <AppDataLocation>/ressources-partagees (réglable par le profil)
 
     // Essais : racines, corbeille (`fails` : moveToTrash simulé en échec), observateurs du rendu (fil de la
-    // tâche de vignette, à chaque rendu) et de la recherche (fil de la recherche, à chaque fichier visité).
+    // tâche de vignette, à chaque rendu), de la lecture d'une image par cette tâche (fichier ouvert) et de la
+    // recherche (fil de la recherche, à chaque fichier visité).
     static void setRootPathsForTests(const QString& mine, const QString& shared);
     static void setTrashForTests(bool useTrash, bool fails = false);
     static void setRenderObserverForTests(std::function<void()> observer);
+    static void setThumbnailReadObserverForTests(std::function<void()> observer);
     static void setSearchObserverForTests(std::function<void()> observer);
 
 signals:

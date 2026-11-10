@@ -217,6 +217,7 @@ private slots:
     {
         QDir(cacheDir()).removeRecursively(); // chaque essai rend ses vignettes
         ui::ResourceLibrary::setRenderObserverForTests({});
+        ui::ResourceLibrary::setThumbnailReadObserverForTests({});
         ui::ResourceLibrary::setSearchObserverForTests({});
         QMutexLocker lock(&g_threadsMutex);
         g_renderThreads.clear();
@@ -396,6 +397,32 @@ private slots:
         QVERIFY(!QFile::exists(b));
         QTRY_COMPARE(f.library.itemCount(), 1);
         QCOMPARE(f.paths(), QStringList{c});
+    }
+
+    void fileEditsWaitForTheThumbnailBeingRead_data()
+    {
+        QTest::addColumn<bool>("rename");
+        QTest::newRow("supprimer") << false;
+        QTest::newRow("renommer") << true;
+    }
+
+    // La tâche de vignette garde l'image ouverte pendant sa lecture ; Windows refuse alors de la supprimer ou
+    // de la renommer (ERROR_SHARING_VIOLATION). Intermittent sans cette attente : 5 lancements sur 1 800.
+    void fileEditsWaitForTheThumbnailBeingRead()
+    {
+        QFETCH(bool, rename);
+        std::atomic<int> reading{0};
+        ui::ResourceLibrary::setThumbnailReadObserverForTests([&reading] {
+            reading.fetch_add(1);
+            QThread::msleep(400);
+        });
+        Fixture f;
+        const QString a = QDir(f.mine).filePath(QStringLiteral("a.png"));
+        QVERIFY(writeImage(a, "PNG"));
+        f.library.openFolder(f.mine);
+        QTRY_COMPARE_WITH_TIMEOUT(reading.load(), 1, 10000);
+        QVERIFY(rename ? f.library.rename(a, QStringLiteral("b")) : f.library.remove(a));
+        QVERIFY(!QFile::exists(a));
     }
 
     void addSelectionCreatesTheNextName()
