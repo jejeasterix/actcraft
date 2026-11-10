@@ -51,7 +51,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T12 | T8, T11 | implementeur-tdd | terminée | 1/3 | 20ffd48b | 334/334 ; tst_ui_webdrop 9/9, droppedRemoteImageSurvivesReopening, guardsCoverDropAndPasteThroughTheWiring PASS ; banc résultat |
 | T13 | T12 | implementeur-tdd | terminée | 1/3 | 0885ca8d | 334/334 ; editCopyCopiesTheSelection, inputFieldKeepsPaste, editCopyWithoutFocusedFrameCopiesObjects PASS |
 | T16 | T13, T15 | concepteur-critique | essai bloqué (`DMG OK` acquis, 179 Mo ; verrou tenu par PID 92125, Q1) | 1/3 | 9c917b22 (non construit) | tst_app_open 5/5 |
-| T17 | T13 | implementeur-tdd (isolé) | à faire | 0/3 | — | — |
+| T17 | T13 | implementeur-tdd (isolé) | en cours : étapes 1 et 2 écrites, non commitées (`ci.yml`, `preuves-windows.yml`, `YAML OK`) ; APK à construire après Q1 | 0/3 | — | — |
 | T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
 | T19 | T13 | implementeur-tdd | à faire | 0/3 | — | — |
 | T20 | T13 | implementeur-tdd | à faire | 0/3 | — | — |
@@ -83,7 +83,17 @@ Go reçu ou verrou libéré : relire `.tmp/essai-dmg.txt`, relancer `scripts/paq
 Voir le cadrage : 15 hypothèses (H1 JavaScript et adresses distantes sur Android, H2 codecs selon la provenance de Qt, H3 `initialize()` sous Windows, H4 mémoire du Dell, H5 glisser réel à l'écran, H8 fichiers du système acceptés, H14 URL collée sans réseau, H15 premier cadre vide le temps du `Loader`).
 
 ## Restes pour le PC
-À compléter depuis le cadrage § 7 à la clôture. Restes pour Jérôme : R1 glisser réel sur Mac, R2 appui long, collage et capture sous Android, R3 décision de licence sur la redistribution des décodeurs H.264 avant la première release avec WebEngine.
+1. Installer `qtwebengine qtwebchannel qtpositioning` dans `C:\Qt\6.12.0\msvc2022_64`.
+2. H3 : démarrer sous D3D11 sans `initialize()` ; repli si échec.
+3. MSVC `/W4 /WX`, preset `release`, suite complète.
+4. `tst_ui_webengine` et saut hors écran Windows : décider du maintien ; retirer le repli de `WebFrameItems::engineKind` sous Windows hors écran si la preuve PC passe.
+5. `scripts/paquet.ps1` et `scripts/essai-installateur.ps1` : `windeployqt` trouve-t-il `QtWebEngineProcess.exe` et les ressources ; noms exacts à ajouter à `qt-autorises.txt`.
+6. Poids de l'installateur avant et après.
+7. H2 : `canPlayType` H.264 sur la version officielle.
+8. H4 : mémoire et banc sur le Dell 3510 ; captures D3D11 sous le jeton `ecran`.
+9. Conditionnel : S5, si l'APK ne se construit pas sur le Mac en T17.
+
+Restes pour Jérôme : R1 glisser réel sur Mac, R2 appui long, collage et capture sous Android, R3 décision de licence sur la redistribution des décodeurs H.264 avant la première release avec WebEngine.
 
 ## Portes
 ouvertes : — · passées : —
