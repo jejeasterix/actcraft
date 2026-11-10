@@ -654,6 +654,43 @@ private slots:
         QVERIFY(!taken.toBool());
     }
 
+    // Revue finale : le clic droit sur la page reprend lui aussi le focus à la vue web (pointerPressed part à
+    // chaque appui sur la vue), sans quoi Échap puis Ctrl+C copieraient la sélection du cadre.
+    void rightClickOnThePageTakesTheFocusBack()
+    {
+        presentationharness::MainWindow main;
+        QVERIFY(main.window());
+        QQuickItem* layer = main.item(QStringLiteral("webFrameLayer"));
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        bool inserted = false;
+        QVERIFY(QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
+                                          Q_ARG(QString, QStringLiteral("<p>x</p>")),
+                                          Q_ARG(QString, QString())));
+        QTRY_COMPARE_WITH_TIMEOUT(layer->property("loadedViews").toInt(), 1, 60000);
+        QQuickItem* web = main.item(QStringLiteral("webFrameEngine"));
+        QVERIFY(web);
+        QVERIFY(main.waitReady());
+        main.window()->requestActivate();
+        web->forceActiveFocus();
+        QTRY_VERIFY(main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        const QRectF cadre = web->mapRectToScene(web->boundingRect());
+        const QRectF area = main.pageView()->mapRectToScene(main.pageView()->boundingRect());
+        QPoint outside(int(area.left()) + 12, int(area.top()) + 12);
+        if (cadre.adjusted(-8, -8, 8, 8).contains(outside))
+            outside = QPoint(int(area.right()) - 12, int(area.bottom()) - 12);
+        QVERIFY(!cadre.adjusted(-8, -8, 8, 8).contains(outside));
+        QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, outside);
+        // Échap ferme le menu contextuel, qui rend le focus à celui qui l'avait : la vue web, si le clic droit ne
+        // le lui a pas repris.
+        QTest::keyClick(main.window(), Qt::Key_Escape);
+        QTest::qWait(300);
+        QVERIFY(!main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
+        QVariant taken;
+        QVERIFY(QMetaObject::invokeMethod(layer, "copyFromFocusedView", Q_RETURN_ARG(QVariant, taken)));
+        QVERIFY(!taken.toBool());
+    }
+
     // Revue T20 : gardes allumées, déposer une adresse ou un fichier sur la vue ne la fait pas naviguer.
     void dropNavigationFollowsTheGuards_data()
     {

@@ -3,6 +3,7 @@
 #include "support/webframehost.h"
 
 #include <QFile>
+#include <QJSValue>
 #include <QPointer>
 #include <QRegularExpression>
 #include <QTemporaryDir>
@@ -144,6 +145,32 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(host.layer->property("pendingSnapshot").isNull(), 5000);
         QCOMPARE(host.layer->property("snapshotCount").toInt(), 1); // abandon compté, pas d'image posée
         QCOMPARE(host.frames->rowCount(), 0);
+    }
+
+    // Revue finale : les gardes basculent pendant une capture (la vue est détruite par `loader.source = ""`, le
+    // délégué reste) : l'image fixe en suspens est abandonnée, et la réponse tardive de l'ancienne vue est ignorée.
+    void snapshotIsCancelledWhenTheGuardsToggle()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>a</p>"), {}));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        view->setProperty("_deferCapture", true);
+        QVERIFY(QMetaObject::invokeMethod(host.layer, "takeSnapshot", Q_ARG(QVariant, QVariant())));
+        QVERIFY(!host.layer->property("pendingSnapshot").isNull());
+        const QJSValue late = qvariant_cast<QJSValue>(view->property("_pendingCapture"));
+        QVERIFY(late.isCallable());
+        QPointer<QQuickItem> first = view;
+        host.frames->setGuardsEnabled(true);
+        QTRY_VERIFY_WITH_TIMEOUT(first.isNull(), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(host.layer->property("pendingSnapshot").isNull(), 5000);
+        QCOMPARE(host.layer->property("snapshotCount").toInt(), 1);
+        // Réponse tardive de la capture abandonnée : ignorée (pendingSnapshot !== job), rien de compté.
+        QJSValue ignored = late.call({QJSValue(QJSValue::NullValue)});
+        QVERIFY(!ignored.isError());
+        QCOMPARE(host.layer->property("snapshotCount").toInt(), 1);
     }
 
     // E2 : seule une vue native au-dessus de la scène est masquée par une boîte ouverte (n° 16).
