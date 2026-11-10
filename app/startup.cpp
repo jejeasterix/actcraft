@@ -5,7 +5,11 @@
 
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickWindow>
+#include <QTimer>
+
+#include <functional>
 
 StartupOptions parseStartupOptions(const QStringList& args)
 {
@@ -15,6 +19,10 @@ StartupOptions parseStartupOptions(const QStringList& args)
     const qsizetype at = args.indexOf(QStringLiteral("--ouvrir"));
     if (at >= 0 && at + 1 < args.size()) {
         options.openUrl = actcraft::formats::urlFromArgument(args.at(at + 1));
+    }
+    const qsizetype probe = args.indexOf(QStringLiteral("--essai-cadre-web"));
+    if (probe >= 0 && probe + 1 < args.size()) {
+        options.webFrameProbe = args.at(probe + 1);
     }
     return options;
 }
@@ -26,7 +34,7 @@ QString openFileArgument(const QStringList& args)
         return args.at(explicitIndex + 1);
     }
     static const QStringList withValue{QStringLiteral("--rendu"), QStringLiteral("--quitter-apres"),
-                                       QStringLiteral("--ouvrir")};
+                                       QStringLiteral("--ouvrir"), QStringLiteral("--essai-cadre-web")};
     for (qsizetype i = 1; i < args.size(); ++i) {
         const QString& a = args.at(i);
         if (withValue.contains(a)) {
@@ -69,6 +77,28 @@ QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions
         QMetaObject::invokeMethod(window, "runCommand", Q_RETURN_ARG(QVariant, result),
                                   Q_ARG(QVariant, QVariant(QStringLiteral("file.open"))),
                                   Q_ARG(QVariant, QVariant(options.openUrl)));
+    }
+    if (window && !options.webFrameProbe.isEmpty()) {
+        const QString address = options.webFrameProbe;
+        QTimer::singleShot(1000, window, [window, address] {
+            const std::function<QQuickItem*(QQuickItem*)> find = [&](QQuickItem* item) -> QQuickItem* {
+                if (item->objectName() == QLatin1String("webFrameLayer"))
+                    return item;
+                for (QQuickItem* child : item->childItems()) {
+                    if (QQuickItem* found = find(child))
+                        return found;
+                }
+                return nullptr;
+            };
+            QQuickItem* layer = find(window->contentItem());
+            QObject* frames = layer ? layer->findChild<QObject*>(QStringLiteral("appWebFrames")) : nullptr;
+            bool ok = false;
+            if (frames)
+                QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, ok),
+                                          Q_ARG(QString, QString()),
+                                          Q_ARG(QString, QUrl::fromUserInput(address).toString()));
+            qInfo("ACTCRAFT ESSAI CADRE WEB %s", ok ? "POSE" : "ECHEC");
+        });
     }
     return window;
 }

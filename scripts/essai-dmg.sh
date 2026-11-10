@@ -2,8 +2,9 @@
 # Essai de l'image disque macOS (amendement 3 du plan du lot 11) : montée sans Finder, bundle complet, signature ad hoc
 # valide, qt.conf, aucune dépendance hors du bundle (otool), `actcraft --version`, lancement de 3 s si --lancer, démontée.
 # Bibliothèques réellement chargées (DYLD_PRINT_LIBRARIES) : toutes dans le bundle ou le système, à --version (cadres
-# liés) et au lancement (greffons cocoa, images, webview, QML, chargés après QGuiApplication). Journaux sous .tmp/.
-# Usage : scripts/essai-dmg.sh [<image.dmg>] [--lancer]   (--lancer : fenêtre ouverte 3 s sur l'écran du Mac)
+# liés) et au lancement (greffons cocoa, images, QML, chargés après QGuiApplication) ; `--lancer` ouvre aussi un vrai
+# cadre web depuis l'image. Journaux sous .tmp/.
+# Usage : scripts/essai-dmg.sh [<image.dmg>] [--lancer]   (--lancer : fenêtre ouverte 20 s sur l'écran du Mac)
 # Dernière ligne et code : « ESSAI DMG OK » (0) ou « ESSAI DMG EN ECHEC : <raison> » (1).
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -78,12 +79,21 @@ hors_systeme .tmp/essai-dmg-chemins-version.txt .tmp/essai-dmg-refuses-version.t
 echo "VERSION OK : $sortie"
 
 if [ "$lancer" = 1 ]; then
-  echo "Fenêtre d'ActCraft ouverte 3 s sur l'écran du Mac."
-  DYLD_PRINT_LIBRARIES=1 "$exe" --quitter-apres 3000 > /dev/null 2> .tmp/essai-dmg-dyld-lancement.txt ||
+  echo "Fenêtre d'ActCraft ouverte 20 s sur l'écran du Mac (un vrai cadre web)."
+  page="$(pwd -P)/.tmp/essai-cadre.html"
+  printf '%s\n' '<title>ESSAI</title><script>console.warn("ACTCRAFT JS OK")</script><p>Cadre chargé.</p>' > "$page"
+  QT_FORCE_STDERR_LOGGING=1 DYLD_PRINT_LIBRARIES=1 "$exe" --essai-cadre-web "$page" --quitter-apres 20000 > /dev/null 2> .tmp/essai-dmg-dyld-lancement.txt ||
     echec "lancement : code $? (.tmp/essai-dmg-dyld-lancement.txt)"
   chemins_dyld .tmp/essai-dmg-dyld-lancement.txt > .tmp/essai-dmg-chemins-lancement.txt
   grep -qF "$app/Contents/PlugIns/platforms/libqcocoa.dylib" .tmp/essai-dmg-chemins-lancement.txt ||
     echec "greffon cocoa non chargé depuis le bundle (.tmp/essai-dmg-dyld-lancement.txt)"
+  grep -qF "$app/Contents/Frameworks/QtWebEngineCore.framework/" .tmp/essai-dmg-chemins-lancement.txt ||
+    echec "QtWebEngineCore non chargé depuis le bundle (.tmp/essai-dmg-dyld-lancement.txt)"
+  grep -q 'ACTCRAFT CADRE WEB CHARGE' .tmp/essai-dmg-dyld-lancement.txt ||
+    echec "le cadre web n'a pas fini de charger (.tmp/essai-dmg-dyld-lancement.txt)"
+  grep -q 'ACTCRAFT JS OK' .tmp/essai-dmg-dyld-lancement.txt ||
+    echec "le script de la page n'a pas tourné (.tmp/essai-dmg-dyld-lancement.txt)"
+  echo "CADRE WEB OK"
   hors_systeme .tmp/essai-dmg-chemins-lancement.txt .tmp/essai-dmg-refuses-lancement.txt ||
     echec "greffons ou bibliothèques chargés hors du bundle : $(head -3 .tmp/essai-dmg-refuses-lancement.txt | tr '\n' ';') (liste : .tmp/essai-dmg-refuses-lancement.txt)"
   echo "LANCEMENT OK"
