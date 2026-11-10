@@ -2,9 +2,9 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 16/21 tâches terminées
+Avancement : 17/21 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T19 — correctifs C++ de la double relecture — depuis 2026-11-10 06:39
+Tâche : T20 — correctifs QML de la double relecture — depuis 2026-11-10 07:38
 Questions à Jérôme : aucune
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -54,7 +54,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T16 | T13, T15 | concepteur-critique | terminée | 1/3 | 944ba429 | 334/334 ; DMG OK 188 680 277 octets ; CADRE WEB OK, ESSAI DMG OK ; borne 5 s en échec ; tst_app_open 5/5 |
 | T17 | T13 | implementeur-tdd (isolé) | en cours : étapes 1 et 2 écrites, non commitées (`ci.yml`, `preuves-windows.yml`, `YAML OK`) ; APK à construire après Q1 | 0/3 | — | — |
 | T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
-| T19 | T13 | implementeur-tdd | à faire | 0/3 | — | — |
+| T19 | T13 | implementeur-tdd | terminée | 1/3 | 7f8d4aa9 | 332/334, tst_ui_shell et tst_ui_mathtools en délai dépassé sous charge 14-18, verts seuls ; downloadedImageDoesNotOverride, webDropOfHugeDataUrl, refusedRedirectDropsTheHeavyFile PASS |
 | T20 | T13 | implementeur-tdd | à faire | 0/3 | — | — |
 | T21 | T19, T20 | implementeur-tdd | à faire | 0/1 | — | — |
 
