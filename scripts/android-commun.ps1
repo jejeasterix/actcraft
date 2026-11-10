@@ -98,8 +98,22 @@ function Wait-ActCraftDemarrage {
     while ([double]("$(Adb 15 shell cat /proc/loadavg)".Trim().Split(' ')[0]) -gt 4 -and (Get-Date) -lt $limite) { Start-Sleep -Seconds 5 }
 }
 
+# 80 dernières lignes de « adb logcat -d », écrites à l'hôte avant un refus. Un échec d'adb ici n'efface pas la raison
+# du refus qui suit.
+function Write-ActCraftLogcat {
+    Write-Host 'logcat : 80 dernières lignes'
+    try {
+        Adb 60 logcat -d | Select-Object -Last 80 | ForEach-Object { Write-Host "logcat : $_" }
+    } catch {
+        Write-Host "logcat : illisible ($($_.Exception.Message))"
+    }
+}
+
 # Installe l'APK (install -r), vide le journal (logcat -c : refus si adb échoue), lance l'application et rend son
-# PID, vivant 10 s après le lancement. Lignes « install : … » écrites à l'hôte : la valeur rendue n'est que le PID.
+# PID : attendu 120 s au plus (pidof toutes les 2 s), car une machine chargée peut lancer l'application après plus de
+# 10 s (cause probable, non prouvée, du rouge du run 42790149282), puis le même PID vivant 10 s plus tard, pour qu'un
+# plantage au démarrage reste un refus. Lignes « install : … » et « logcat : … » écrites à l'hôte : la valeur rendue
+# n'est que le PID.
 function Install-ActCraftApk([Parameter(Mandatory)][string]$Apk, [Parameter(Mandatory)][string]$Paquet) {
     if (-not (Test-Path -LiteralPath $Apk)) { Lever-ActCraftAndroid "APK introuvable : $Apk" }
     Adb 240 install -r (Resolve-Path -LiteralPath $Apk).Path | ForEach-Object { Write-Host "install : $_" }
@@ -107,8 +121,21 @@ function Install-ActCraftApk([Parameter(Mandatory)][string]$Apk, [Parameter(Mand
     $null = Adb 30 logcat -c
     if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid "adb logcat -c (code $LASTEXITCODE)$(Get-ActCraftAdbErreur)" }
     $null = Adb 60 shell monkey -p $Paquet -c android.intent.category.LAUNCHER 1
-    Start-Sleep -Seconds 10
+    $limite = (Get-Date).AddSeconds(120)
     $processus = "$(Adb 30 shell pidof $Paquet)".Trim()
-    if (-not $processus) { Lever-ActCraftAndroid 'processus absent 10 s après le lancement' }
+    while (-not $processus -and (Get-Date) -lt $limite) {
+        Start-Sleep -Seconds 2
+        $processus = "$(Adb 30 shell pidof $Paquet)".Trim()
+    }
+    if (-not $processus) {
+        Write-ActCraftLogcat
+        Lever-ActCraftAndroid 'processus absent 120 s après le lancement'
+    }
+    Start-Sleep -Seconds 10
+    $encore = "$(Adb 30 shell pidof $Paquet)".Trim()
+    if ($encore -ne $processus) {
+        Write-ActCraftLogcat
+        Lever-ActCraftAndroid "processus $processus disparu 10 s après son apparition (pidof : « $encore »)"
+    }
     return $processus
 }
