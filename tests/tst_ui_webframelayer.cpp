@@ -147,8 +147,9 @@ private slots:
         QCOMPARE(host.frames->rowCount(), 0);
     }
 
-    // Revue finale : les gardes basculent pendant une capture (la vue est détruite par `loader.source = ""`, le
-    // délégué reste) : l'image fixe en suspens est abandonnée, et la réponse tardive de l'ancienne vue est ignorée.
+    // Revue finale : les gardes basculent pendant une capture (la vue est détruite par `loader.source = ""`,
+    // le délégué reste) : l'image fixe en suspens est abandonnée, et la réponse tardive de l'ancienne vue est
+    // ignorée.
     void snapshotIsCancelledWhenTheGuardsToggle()
     {
         WebFrameHost host;

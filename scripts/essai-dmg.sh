@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Essai de l'image disque macOS (amendement 3 du plan du lot 11) : montée sans Finder, bundle complet, signature ad hoc
-# valide, qt.conf, aucune dépendance hors du bundle (otool), `actcraft --version`, lancement de 3 s si --lancer, démontée.
+# valide, qt.conf, aucune dépendance hors du bundle (otool), `actcraft --version`, lancement de 20 s si --lancer, démontée.
 # Bibliothèques réellement chargées (DYLD_PRINT_LIBRARIES) : toutes dans le bundle ou le système, à --version (cadres
 # liés) et au lancement (greffons cocoa, images, QML, chargés après QGuiApplication) ; `--lancer` ouvre aussi un vrai
 # cadre web depuis l'image. Journaux sous .tmp/. Une application qui ne se termine pas seule (fenêtre en attente d'une

@@ -681,8 +681,8 @@ private slots:
             outside = QPoint(int(area.right()) - 12, int(area.bottom()) - 12);
         QVERIFY(!cadre.adjusted(-8, -8, 8, 8).contains(outside));
         QTest::mouseClick(main.window(), Qt::RightButton, Qt::NoModifier, outside);
-        // Échap ferme le menu contextuel, qui rend le focus à celui qui l'avait : la vue web, si le clic droit ne
-        // le lui a pas repris.
+        // Échap ferme le menu contextuel, qui rend le focus à celui qui l'avait : la vue web, si le clic
+        // droit ne le lui a pas repris.
         QTest::keyClick(main.window(), Qt::Key_Escape);
         QTest::qWait(300);
         QVERIFY(!main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());

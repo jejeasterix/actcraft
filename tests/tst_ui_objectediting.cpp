@@ -493,7 +493,6 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(f.objectCount() == 1 && f.lastObjectIs<core::Text>(), 10000);
     }
 
-    // S2 : 404 → message, document inchangé.
     // Le téléchargement collé finit longtemps après : l'outil et la sélection choisis entre-temps restent.
     void downloadedImageDoesNotOverrideWhatTheUserDidMeanwhile()
     {
@@ -518,6 +517,7 @@ private slots:
         QVERIFY(f.selection().empty());
     }
 
+    // S2 : 404 → message, document inchangé.
     void pasteMissingAddressReportsTheFailure()
     {
         TestServer server;

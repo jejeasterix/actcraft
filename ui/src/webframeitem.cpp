@@ -9,7 +9,6 @@
 
 #include <QBuffer>
 #include <QCoreApplication>
-#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -1405,16 +1404,15 @@ bool WebFrameItems::sameAsPreviousCapture(const QImage& image, bool first)
 {
     QByteArray print;
     if (!image.isNull()) {
-        // Format, taille et pixels (lignes sans leur remplissage) : égal à `image == précédente`.
-        QCryptographicHash hash(QCryptographicHash::Sha256);
-        const QByteArray head = QByteArray::number(image.format()) + ':' + QByteArray::number(image.width()) +
-                                'x' + QByteArray::number(image.height());
-        hash.addData(head);
+        // Format, taille et pixels (lignes sans leur remplissage) : empreinte rapide non cryptographique (une
+        // capture pèse 8 Mo à 1920 x 1080, jusqu'à 20 fois par image fixe, sur le fil de l'interface).
+        size_t seed = qHashMulti(0, static_cast<int>(image.format()), image.width(), image.height());
         const qsizetype rowBytes =
             (static_cast<qsizetype>(image.width()) * image.pixelFormat().bitsPerPixel() + 7) / 8;
         for (int y = 0; y < image.height(); ++y)
-            hash.addData(QByteArrayView(reinterpret_cast<const char*>(image.constScanLine(y)), rowBytes));
-        print = hash.result();
+            seed = qHashBits(image.constScanLine(y), static_cast<size_t>(rowBytes), seed);
+        print = QByteArray::number(static_cast<qulonglong>(seed)) + ':' + QByteArray::number(image.width()) +
+                'x' + QByteArray::number(image.height());
     }
     const bool same = !first && !print.isEmpty() && print == m_lastCapture;
     m_lastCapture = print;

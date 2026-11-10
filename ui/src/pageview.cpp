@@ -678,8 +678,9 @@ std::optional<input::Sample> PageView::sampleFor(const QEvent& event, QPointF vi
         m_pointerPosition = viewPos;
         emit pointerPositionChanged();
     }
-    if (const QEvent::Type type = event.type();
-        type == QEvent::MouseButtonPress || type == QEvent::TabletPress || type == QEvent::TouchBegin) {
+    // Souris et stylet émettent avant d'arriver ici, après leur test de couverture (mousePressEvent,
+    // eventFilter) : un appui sur une couverture ne reprend pas le focus à la page.
+    if (event.type() == QEvent::TouchBegin) {
         emit pointerPressed(viewPos);
     }
     if (!m_pipeline) {
@@ -926,6 +927,7 @@ void PageView::mousePressEvent(QMouseEvent* event)
             return;
         }
         event->accept();
+        emit pointerPressed(event->position()); // chaque appui sur la vue, pas seulement ceux d'un outil
         selectForContextMenu(m_tools.data(), m_transform.viewToPage(event->position()), zoom());
         emit contextMenuRequested(event->position());
         return;
@@ -934,6 +936,7 @@ void PageView::mousePressEvent(QMouseEvent* event)
         event->ignore();
         return;
     }
+    emit pointerPressed(event->position());
     event->setAccepted(handlePointer(*event, event->position()));
 }
 
@@ -1047,6 +1050,9 @@ bool PageView::eventFilter(QObject* watched, QEvent* event)
         bool taken = false;
         if (type == QEvent::TabletPress) {
             if (canStartStroke(viewPos) && acceptsDevice(tablet->pointingDevice())) {
+                if (!coveredAt(viewPos))
+                    emit pointerPressed(
+                        viewPos); // comme la souris : un appui couvert ne reprend pas le focus
                 // Un seul trait à la fois : si un doigt écrit, la politique du routeur le fait passer à
                 // Ignore (endToolContacts) et handlePointer termine son trait ; un appui couvert (Cover) ne
                 // le termine pas.

@@ -37,6 +37,8 @@ enum class Mode
 struct InsertionJob
 {
     QUrl url;
+    bool dataUrl = false; // `bytes` est la partie codée d'une data: (décodée par le fil de travail)
+    bool dataBase64 = false;
     QString name; // nom affiché (fournisseur d'un content://), pris sur le fil principal
     Mode mode = Mode::Image;
     QImage pasted;
@@ -108,6 +110,15 @@ Result work(const std::vector<InsertionJob>& jobs, QThread* mainThread)
         }
         if (job.mode == Mode::Downloaded) {
             QByteArray bytes = job.bytes;
+            if (job.dataUrl) { // décodage hors du fil de l'interface
+                bytes = QByteArray::fromPercentEncoding(bytes);
+                if (job.dataBase64)
+                    bytes = QByteArray::fromBase64(bytes);
+                if (bytes.size() > WebImageFetch::kMaxBytes) {
+                    result.error = QStringLiteral("Image trop lourde (plus de 25 Mo).");
+                    continue;
+                }
+            }
             QBuffer input(&bytes);
             input.open(QIODevice::ReadOnly);
             QImageReader reader(&input); // format déduit des octets, jamais du type annoncé (n° 24)
@@ -126,7 +137,7 @@ Result work(const std::vector<InsertionJob>& jobs, QThread* mainThread)
                 item.extension = "jpg";
             item.width = image.width();
             item.height = image.height();
-            item.data = job.bytes;
+            item.data = bytes;
             result.items.push_back(std::move(item));
             continue;
         }
@@ -562,19 +573,16 @@ bool Insertion::insertDataUrl(const QUrl& url, QPointF center)
         emit failed(tr("Image trop lourde (plus de 25 Mo)."));
         return true; // refus annoncé
     }
-    QByteArray payload = QByteArray::fromPercentEncoding(encoded.mid(comma + 1));
-    if (base64)
-        payload = QByteArray::fromBase64(payload);
-    if (payload.size() > WebImageFetch::kMaxBytes) {
-        emit failed(tr("Image trop lourde (plus de 25 Mo)."));
-        return true; // refus déjà annoncé
-    }
-    if (payload.isEmpty())
+    if (comma + 1 >= encoded.size())
         return false;
+    // Le décodage (pourcentage, base64) et la borne exacte se font sur le fil de travail, avec celui de
+    // l'image.
     InsertionJob job;
     job.url = url;
     job.mode = Mode::Downloaded;
-    job.bytes = std::move(payload);
+    job.dataUrl = true;
+    job.dataBase64 = base64;
+    job.bytes = encoded.mid(comma + 1);
     job.hasCenter = true;
     job.center = center;
     std::vector<InsertionJob> jobs;

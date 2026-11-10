@@ -121,11 +121,6 @@ Item {
     }
     function snapshotStep() {
         const job = pendingSnapshot
-        if (!job.web) { // la vue a disparu entre deux essais
-            pendingSnapshot = null
-            finishSnapshot(false)
-            return
-        }
         job.web.capture(function (image) {
             if (pendingSnapshot !== job)
                 return
@@ -169,6 +164,7 @@ Item {
     // Ctrl+C copierait la sélection du cadre au lieu des objets (n° 37).
     Connections {
         target: frameLayer.view
+        ignoreUnknownSignals: true
         function onPointerPressed(viewPos) {
             let focused = false
             const here = frameLayer.mapFromItem(frameLayer.view, viewPos)
@@ -344,8 +340,10 @@ Item {
                     const guards = appWebFrames.guardsEnabled
                     // Profil et JavaScript ne se changent pas à chaud (n° 10, 33) ; avant le test de showsView : une
                     // vue active ne survit pas, cachée, au passage d'un cadre au repère de blocage.
-                    if (loader.status !== Loader.Null && madeGuards !== guards)
+                    if (loader.status !== Loader.Null && madeGuards !== guards) {
+                        frameLayer.cancelSnapshotOf(loader.item) // le délégué reste : onItemRemoved ne part pas
                         loader.source = ""
+                    }
                     if (!frame.showsView || frameLayer.viewSource.toString() === "")
                         return
                     if (loader.status === Loader.Null) {
