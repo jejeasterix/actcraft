@@ -41,6 +41,8 @@ Un motif qui ne trouve aucun test fait échouer le run (`noTestsAction: error` d
 - `contexte.txt` : motif, ref, runner, run ; seul fichier si l'échec précède les tests (garde, compilation) ;
 - `ctest-sortie.txt`, `ctest-junit.xml` : sortie de ctest et résultat par test ;
 - `LastTest.log`, `LastTestsFailed.log` : copiés de `build/debug/Testing/Temporary` ;
+- `par-test/<test>.txt` (Windows) : sortie QtTest du passage sous ctest, pour chaque test, code de sortie en dernière
+  ligne ; sans cette ligne, le lanceur n'a pas fini (délai de ctest, job annulé) ;
 - `<test>.txt` : sortie QtTest `-v2` du test rouge relancé en direct ;
 - `<test>-console.txt` : sa console (messages de Qt, plantage), code de sortie en dernière ligne.
 

@@ -229,6 +229,7 @@ jobs:
           if (-not $env:MOTIF) { '::error::Entrée tests vide : elle lancerait toute la suite.'; exit 1 }
           # Arbre build/ gardé d'un run à l'autre : un LastTestsFailed.log d'un ancien run ferait relancer ses tests.
           cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
+          cmake -E rm -rf build/debug/journaux-tests
           ctest --preset debug --output-on-failure -R $env:MOTIF --output-log "$env:JOURNAUX/ctest-sortie.txt" --output-junit "$env:JOURNAUX/ctest-junit.xml"
 
       - id: tester_macos

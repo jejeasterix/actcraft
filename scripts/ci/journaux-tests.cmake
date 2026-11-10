@@ -5,6 +5,8 @@
 # Contenu de OUT_DIR :
 #   ctest-sortie.txt, ctest-junit.xml  écrits par ctest lui-même (--output-log, --output-junit) ;
 #   LastTest.log, LastTestsFailed.log  copiés de <BUILD_DIR>/Testing/Temporary ;
+#   par-test/<test>.txt                Windows : sortie QtTest et code de sortie du passage sous ctest, pour chaque test
+#                                      (tests/lanceur_test_windows.cpp) ;
 #   <test>.txt                         sortie QtTest -v2 du test rouge relancé en direct ;
 #   <test>-console.txt                 sa sortie console (qDebug, plantage), code de sortie en dernière ligne.
 # Relance en direct (même logique que preuves-windows.yml) : ctest n'affiche rien quand le test meurt avant d'écrire.
@@ -30,6 +32,10 @@ if(journaux)
     file(COPY ${journaux} DESTINATION "${OUT_DIR}")
 else()
     message(STATUS "journaux-tests : aucun journal dans ${BUILD_DIR}/Testing/Temporary")
+endif()
+file(GLOB par_test "${BUILD_DIR}/journaux-tests/*.txt")
+if(par_test)
+    file(COPY ${par_test} DESTINATION "${OUT_DIR}/par-test")
 endif()
 if(NOT EXISTS "${BUILD_DIR}/Testing/Temporary/LastTestsFailed.log")
     message(STATUS "journaux-tests : aucun test rouge à relancer")
@@ -70,6 +76,12 @@ foreach(i RANGE 0 ${dernier})
         list(APPEND commande "${arg}")
     endforeach()
     list(GET commande 0 exe)
+    # Windows : actcraft_test_launcher <journal> <test> ... ; la relance vise le test lui-même.
+    get_filename_component(lanceur "${exe}" NAME_WE)
+    if(lanceur STREQUAL "actcraft_test_launcher")
+        list(REMOVE_AT commande 0 1)
+        list(GET commande 0 exe)
+    endif()
     get_filename_component(exe_nom "${exe}" NAME)
     if(NOT exe_nom MATCHES "^tst_")
         message(STATUS "== ${nom} : ${exe_nom} n'est pas un exécutable QtTest, non relancé")
