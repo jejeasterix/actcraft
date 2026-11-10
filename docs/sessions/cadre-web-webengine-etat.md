@@ -1,10 +1,11 @@
 # État — cadre-web-webengine
 
-Statut : en cours — bloqué sur Q2 (suite de Q1) depuis 2026-11-10 04:28
+Statut : en cours
 Gabarit : chantier
-Avancement : 15/21 tâches terminées
+Avancement : 16/21 tâches terminées
 Étage : 3 (vague 2)
-Questions à Jérôme : Q2 (Q1 a reçu Go le 2026-11-10 06:17, mais garde-arret refuse encore `kill 92125` ; Jérôme clique « Ne pas enregistrer » ou ordonne l'arrêt au pilote)
+Tâche : T19 — correctifs C++ de la double relecture — depuis 2026-11-10 06:39
+Questions à Jérôme : aucune
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
 Cadrage : docs/specs/2026-11-09-cadre-web-webengine-cadrage.md   Plan(s) : docs/plans/2026-11-09-cadre-web-webengine-PLAN.md
@@ -50,7 +51,7 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T8 | T7 | implementeur-tdd | terminée | 1/3 | d4283cda | 333/333 ; dialogNoteFollowsTheGuards PASS ; tst_ui_desktop 60/60 |
 | T12 | T8, T11 | implementeur-tdd | terminée | 1/3 | 20ffd48b | 334/334 ; tst_ui_webdrop 9/9, droppedRemoteImageSurvivesReopening, guardsCoverDropAndPasteThroughTheWiring PASS ; banc résultat |
 | T13 | T12 | implementeur-tdd | terminée | 1/3 | 0885ca8d | 334/334 ; editCopyCopiesTheSelection, inputFieldKeepsPaste, editCopyWithoutFocusedFrameCopiesObjects PASS |
-| T16 | T13, T15 | concepteur-critique | essai bloqué (`DMG OK` acquis, 179 Mo ; verrou tenu par PID 92125, Q1) | 1/3 | 9c917b22 (non construit) | tst_app_open 5/5 |
+| T16 | T13, T15 | concepteur-critique | terminée | 1/3 | 944ba429 | 334/334 ; DMG OK 188 680 277 octets ; CADRE WEB OK, ESSAI DMG OK ; borne 5 s en échec ; tst_app_open 5/5 |
 | T17 | T13 | implementeur-tdd (isolé) | en cours : étapes 1 et 2 écrites, non commitées (`ci.yml`, `preuves-windows.yml`, `YAML OK`) ; APK à construire après Q1 | 0/3 | — | — |
 | T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
 | T19 | T13 | implementeur-tdd | à faire | 0/3 | — | — |
@@ -77,6 +78,7 @@ Go reçu ou verrou libéré : relire `.tmp/essai-dmg.txt`, relancer `scripts/paq
 - **Consigne du canal ActCraft (2026-11-09, jusqu'à la fin du chantier)** : aucun `run_in_background`, aucun sous-agent en fond, ne jamais terminer le tour pour attendre (en `claude -p`, la fin du tour tue le fond). Construction longue : `nohup … > .tmp/x.txt 2>&1 &` sous le jeton, attente au premier plan par appels Bash (`timeout` 600000, boucle sur un fichier de fin). Même règle pour les sous-agents, écarte « tâche de fond » des références de la chaîne.
 - Revue de T10 : 4 mineurs. Câblage `webFrames` sans test au plan de T12 : test ajouté à T12 (`MainWindow`, gardes allumées, dépôt puis collage, `requests() == 0`). Autres mineurs d'`insertion` joints à T11.
 - Revue de T5 : 1 majeur (historique et bascule non prouvés sur le vrai moteur, gardes coupées) et mineurs de test joints à T6 ; titre illisible joint à T8. Hors périmètre consigné : ajouter ou retirer un cadre recrée toutes les vues (`webframeitem.cpp:1350`). Banc T1 → T5 : 11 → 13 dépassements en logiciel, non imputable à T5 (aucun scénario court n'a de cadre).
+- T16 : essai borné (`ACTCRAFT_ESSAI_DELAI`, 90 s) sur ordre du général du 2026-11-10 : un essai qui ne finit pas seul échoue sans garder le verrou. Preuve : borne de 5 s en échec, aucune application restante. Revue de T16 jointe à la relecture finale. Q1 close par le pilote après Go, Q2 annulée. Reste un auxiliaire orphelin PID 92196 de l'ancien essai, refusé par `garde-arret`, sans effet sur le verrou.
 - Phase 0 (3.1) : la preuve `ctest` détecte un échec, vu sur la référence (`tests failed`, code de `tst_ui_linklauncher`).
 
 ## Hypothèses à revoir
