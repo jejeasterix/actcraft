@@ -511,6 +511,34 @@ private slots:
         QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
     }
 
+    // Revue T23 : la ressource insérée porte les octets décodés, pas le texte codé de l'adresse.
+    void webDropOfDataUrlInsertsTheDecodedBytes_data()
+    {
+        QTest::addColumn<bool>("base64");
+        QTest::newRow("base64") << true;
+        QTest::newRow("pourcent") << false;
+    }
+
+    void webDropOfDataUrlInsertsTheDecodedBytes()
+    {
+        QFETCH(bool, base64);
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        const QByteArray png = pngBytes(10, 10);
+        const QUrl url = base64 ? QUrl::fromEncoded(QByteArray("data:image/png;base64,") + png.toBase64())
+                                : QUrl::fromEncoded(QByteArray("data:image/png,") + png.toPercentEncoding());
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {50, 50}));
+        QTRY_COMPARE(inserted.count(), 1);
+        const auto* image = lastAs<core::ImageObject>(controller);
+        QVERIFY(image != nullptr);
+        const auto* resource = controller.document().resource(image->resource);
+        QVERIFY(resource != nullptr);
+        QCOMPARE(resource->data, png);
+    }
+
     // Au-delà de la borne : le message des 25 Mo, pas « Adresse non prise en charge ».
     void webDropOfOversizedDataUrlReportsTheSize()
     {

@@ -73,6 +73,47 @@ private slots:
         QVERIFY2(run.error().contains(QStringLiteral("25 Mo")), qPrintable(run.error()));
     }
 
+    // Revue T23 : la taille annoncée refuse une réponse 2xx seulement, pas une redirection ni une erreur.
+    void announcedSizeIsRefusedWithoutTheBody()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.rawResponse(QStringLiteral("/annonce"),
+                           "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 30000000\r\n"
+                           "Connection: close\r\n\r\nABC");
+        Run run;
+        run.fetch.start(server.url(QStringLiteral("/annonce")));
+        QTRY_COMPARE_WITH_TIMEOUT(run.finished.count(), 1, 30000);
+        QVERIFY2(run.error().contains(QStringLiteral("25 Mo")), qPrintable(run.error()));
+    }
+
+    void redirectAnnouncingALargeBodyIsFollowed()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/fin"), "OK");
+        server.rawResponse(QStringLiteral("/depart"),
+                           "HTTP/1.1 302 Found\r\nLocation: " + server.url(QStringLiteral("/fin")).toEncoded() +
+                               "\r\nContent-Length: 30000000\r\nConnection: close\r\n\r\n");
+        Run run;
+        run.fetch.start(server.url(QStringLiteral("/depart")));
+        QTRY_COMPARE_WITH_TIMEOUT(run.finished.count(), 1, 30000);
+        QCOMPARE(run.error(), QString());
+        QCOMPARE(run.data(), QByteArray("OK"));
+    }
+
+    void errorAnnouncingALargeBodyKeepsItsMessage()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.rawResponse(QStringLiteral("/err"),
+                           "HTTP/1.1 404 Not Found\r\nContent-Length: 30000000\r\nConnection: close\r\n\r\n");
+        Run run;
+        run.fetch.start(server.url(QStringLiteral("/err")));
+        QTRY_COMPARE_WITH_TIMEOUT(run.finished.count(), 1, 30000);
+        QVERIFY2(run.error().contains(QStringLiteral("404")), qPrintable(run.error()));
+    }
+
     void redirectIsFollowed()
     {
         TestServer server;

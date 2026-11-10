@@ -39,8 +39,12 @@ void WebImageFetch::request(const QUrl& url)
     request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
     request.setTransferTimeout(kTimeoutMs);
     QNetworkReply* reply = m_network->get(request);
-    connect(reply, &QNetworkReply::downloadProgress, this, [this, reply](qint64 received, qint64) {
-        if (received > kMaxBytes) {
+    connect(reply, &QNetworkReply::downloadProgress, this, [this, reply](qint64 received, qint64 total) {
+        // Taille annoncée : refus dès le premier octet, sans attendre 25 Mo ni la fin de la connexion. Pour une
+        // réponse 2xx seulement : une redirection ou une erreur annonçant un gros corps garde son sort.
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const bool announcedTooLarge = status >= 200 && status < 300 && total > kMaxBytes;
+        if (received > kMaxBytes || announcedTooLarge) {
             m_tooLarge = true;
             reply->abort();
         }

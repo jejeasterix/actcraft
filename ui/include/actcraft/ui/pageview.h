@@ -292,6 +292,9 @@ private:
     // la souris ou le doigt à ce point. Qt Quick le leur livre avant la vue ; le stylet, capté par le filtre
     // de la fenêtre, doit leur être laissé de même. Consulté à l'appui seulement, jamais par point.
     bool coveredAt(QPointF viewPos) const;
+    // Seul point d'émission de pointerPressed (souris, stylet, doigt) : rien sur une couverture, dont l'appui
+    // n'appartient pas à la page et ne doit pas lui reprendre le focus.
+    void emitPressedUnlessCovered(QPointF viewPos);
     // Termine le trait de chaque doigt routé vers l'outil (annulation, saisie volée) par un relâché à son
     // dernier point brut, et rend son contact au routeur.
     void finishTouchStroke();

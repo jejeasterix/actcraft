@@ -691,6 +691,44 @@ private slots:
         QVERIFY(!taken.toBool());
     }
 
+    // Revue T23 : un appui gauche sur une couverture déclarée (rideau, bande du ruban) ne reprend pas le focus
+    // à la vue web : il n'appartient pas à la page, et Ctrl+C doit continuer de copier la sélection web.
+    void leftClickOnACoverKeepsTheFocus()
+    {
+        presentationharness::MainWindow main;
+        QVERIFY(main.window());
+        QQuickItem* layer = main.item(QStringLiteral("webFrameLayer"));
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        bool inserted = false;
+        QVERIFY(QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
+                                          Q_ARG(QString, QStringLiteral("<p>x</p>")),
+                                          Q_ARG(QString, QString())));
+        QTRY_COMPARE_WITH_TIMEOUT(layer->property("loadedViews").toInt(), 1, 60000);
+        QQuickItem* web = main.item(QStringLiteral("webFrameEngine"));
+        QVERIFY(web);
+        QVERIFY(main.waitReady());
+        main.window()->requestActivate();
+        web->forceActiveFocus();
+        QTRY_VERIFY(main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        const QRectF cadre = web->mapRectToScene(web->boundingRect());
+        const QRectF area = main.pageView()->mapRectToScene(main.pageView()->boundingRect());
+        QPoint outside(int(area.left()) + 12, int(area.top()) + 12);
+        if (cadre.adjusted(-8, -8, 8, 8).contains(outside))
+            outside = QPoint(int(area.right()) - 12, int(area.bottom()) - 12);
+        QVERIFY(!cadre.adjusted(-8, -8, 8, 8).contains(outside));
+        // Couverture déclarée sans prise de souris : l'appui arrive à la vue, qui doit le reconnaître couvert.
+        QQuickItem cover;
+        cover.setParentItem(main.window()->contentItem());
+        cover.setPosition(QPointF(outside) - QPointF(10, 10));
+        cover.setSize(QSizeF(20, 20));
+        main.pageView()->addInputCover(&cover);
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, outside);
+        QTest::qWait(300);
+        QVERIFY(main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
+        main.pageView()->removeInputCover(&cover);
+    }
+
     // Revue T20 : gardes allumées, déposer une adresse ou un fichier sur la vue ne la fait pas naviguer.
     void dropNavigationFollowsTheGuards_data()
     {
