@@ -3173,6 +3173,10 @@
         <source>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</source>
         <translation>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</translation>
     </message>
+    <message>
+        <source>Le contenu du cadre s&apos;exécute tel quel : JavaScript actif, aucune adresse filtrée.</source>
+        <translation>Le contenu du cadre s&apos;exécute tel quel : JavaScript actif, aucune adresse filtrée.</translation>
+    </message>
 </context>
 <context>
     <name>WebFrameLayer</name>
@@ -3210,6 +3214,10 @@
         <location filename="../qml/WebFrameLayer.qml" line="335"/>
         <source>Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.</source>
         <translation>Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.</translation>
+    </message>
+    <message>
+        <source>Le cadre web chargera le contenu distant de cette page, pour ce document seulement.</source>
+        <translation>Le cadre web chargera le contenu distant de cette page, pour ce document seulement.</translation>
     </message>
 </context>
 <context>

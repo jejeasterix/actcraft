@@ -381,6 +381,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Math.max(0, bar.width - x - 4)
                         elide: Text.ElideRight
+                        color: "#5A606B"
                         text: frame.loading ? qsTr("Chargement…") : frame.title
                     }
                 }
@@ -432,10 +433,13 @@ Item {
         modal: true
         title: qsTr("Débloquer le contenu distant")
         standardButtons: Dialog.Yes | Dialog.No
+        width: 380 + leftPadding + rightPadding
         Label {
-            width: 380
+            width: confirm.availableWidth
             wrapMode: Text.Wrap
-            text: qsTr("Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.")
+            text: appWebFrames.guardsEnabled
+                  ? qsTr("Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.")
+                  : qsTr("Le cadre web chargera le contenu distant de cette page, pour ce document seulement.")
         }
         onAccepted: appWebFrames.answer(true)
         onRejected: appWebFrames.answer(false)
