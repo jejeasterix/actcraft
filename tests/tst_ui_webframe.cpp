@@ -126,6 +126,7 @@ private slots:
     void replyOfARecreatedRowIsNotTakenForANewNavigation();
     void unblockFollowsThePageNotItsNumber();
     void dialogRefusesEmptyFields();
+    void dialogNoteFollowsTheGuards();
     void rebuildConvertsOnlyChangedHtml();
     void guardsFollowTheProfileSetting();
     void unrelatedProfileChangeReloadsNothing();
@@ -380,6 +381,42 @@ void TstUiWebFrame::replyOfARecreatedRowIsNotTakenForANewNavigation()
 // L8-C12, constat 7. « OK » avec l'adresse et le code vides appelait insertFrame("", "") : le modèle refuse,
 // mais la boîte se fermait comme si tout allait bien. « OK » est grisé tant que rien n'est saisi (blancs
 // compris), et accepter à vide ne crée rien. Sous l'ancienne boîte, « OK » est actif d'emblée.
+// E7 : le message de la boîte suit le réglage.
+void TstUiWebFrame::dialogNoteFollowsTheGuards()
+{
+    const QString qmlDir =
+        QDir::cleanPath(QFileInfo(QStringLiteral(__FILE__)).absolutePath() + QStringLiteral("/../ui/qml"));
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(QByteArrayLiteral(R"qml(
+import QtQuick
+import QtQuick.Controls.Basic
+Item {
+    width: 800
+    height: 600
+    property alias dialog: d
+    property bool guards: false
+    QtObject { id: fakeFrames; property bool guardsEnabled: guards }
+    WebFrameDialog { id: d; frames: fakeFrames }
+}
+)qml"),
+                      QUrl::fromLocalFile(qmlDir + QStringLiteral("/essai-note.qml")));
+    std::unique_ptr<QObject> root(component.create());
+    QVERIFY2(root, qPrintable(component.errorString()));
+    QObject* dialog = root->property("dialog").value<QObject*>();
+    QVERIFY(dialog);
+    const auto note = [&] {
+        for (QObject* object : dialog->findChildren<QObject*>()) {
+            if (object->objectName() == QLatin1String("webFrameDialogNote"))
+                return object->property("text").toString();
+        }
+        return QString();
+    };
+    QVERIFY2(note().contains(QStringLiteral("JavaScript actif")), qPrintable(note()));
+    root->setProperty("guards", true);
+    QVERIFY2(note().contains(QStringLiteral("JavaScript reste coupé")), qPrintable(note()));
+}
+
 void TstUiWebFrame::dialogRefusesEmptyFields()
 {
     const QString qmlDir =
