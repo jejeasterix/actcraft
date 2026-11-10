@@ -1,10 +1,10 @@
 # État — cadre-web-webengine
 
-Statut : en cours — bloqué sur Q1 depuis 2026-11-10 04:28
+Statut : en cours — bloqué sur Q2 (suite de Q1) depuis 2026-11-10 04:28
 Gabarit : chantier
 Avancement : 15/21 tâches terminées
 Étage : 3 (vague 2)
-Questions à Jérôme : Q1 (arrêter PID 92125, essai du .dmg bloqué qui tient ~/.verrou-suite ? garde-arret refuse)
+Questions à Jérôme : Q2 (Q1 a reçu Go le 2026-11-10 06:17, mais garde-arret refuse encore `kill 92125` ; Jérôme clique « Ne pas enregistrer » ou ordonne l'arrêt au pilote)
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
 Cadrage : docs/specs/2026-11-09-cadre-web-webengine-cadrage.md   Plan(s) : docs/plans/2026-11-09-cadre-web-webengine-PLAN.md
