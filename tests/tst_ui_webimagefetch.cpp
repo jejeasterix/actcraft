@@ -92,9 +92,10 @@ private slots:
         TestServer server;
         QVERIFY(server.listening());
         server.page(QStringLiteral("/fin"), "OK");
-        server.rawResponse(QStringLiteral("/depart"),
-                           "HTTP/1.1 302 Found\r\nLocation: " + server.url(QStringLiteral("/fin")).toEncoded() +
-                               "\r\nContent-Length: 30000000\r\nConnection: close\r\n\r\n");
+        server.rawResponse(
+            QStringLiteral("/depart"),
+            "HTTP/1.1 302 Found\r\nLocation: " + server.url(QStringLiteral("/fin")).toEncoded() +
+                "\r\nContent-Length: 30000000\r\nConnection: close\r\n\r\n");
         Run run;
         run.fetch.start(server.url(QStringLiteral("/depart")));
         QTRY_COMPARE_WITH_TIMEOUT(run.finished.count(), 1, 30000);

@@ -691,8 +691,9 @@ private slots:
         QVERIFY(!taken.toBool());
     }
 
-    // Revue T23 : un appui gauche sur une couverture déclarée (rideau, bande du ruban) ne reprend pas le focus
-    // à la vue web : il n'appartient pas à la page, et Ctrl+C doit continuer de copier la sélection web.
+    // Revue T23 : un appui gauche sur une couverture déclarée (rideau, bande du ruban) ne reprend pas le
+    // focus à la vue web : il n'appartient pas à la page, et Ctrl+C doit continuer de copier la sélection
+    // web.
     void leftClickOnACoverKeepsTheFocus()
     {
         presentationharness::MainWindow main;
@@ -717,7 +718,8 @@ private slots:
         if (cadre.adjusted(-8, -8, 8, 8).contains(outside))
             outside = QPoint(int(area.right()) - 12, int(area.bottom()) - 12);
         QVERIFY(!cadre.adjusted(-8, -8, 8, 8).contains(outside));
-        // Couverture déclarée sans prise de souris : l'appui arrive à la vue, qui doit le reconnaître couvert.
+        // Couverture déclarée sans prise de souris : l'appui arrive à la vue, qui doit le reconnaître
+        // couvert.
         QQuickItem cover;
         cover.setParentItem(main.window()->contentItem());
         cover.setPosition(QPointF(outside) - QPointF(10, 10));
