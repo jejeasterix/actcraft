@@ -126,6 +126,26 @@ private slots:
         QTRY_COMPARE(view->property("_loads").toInt(), 1);
     }
 
+    // Revue T20 : la vue disparaît (nouveau document) pendant que l'image fixe attend sa capture. Le travail
+    // en cours est abandonné, sans quoi il resterait en suspens et refuserait toute image fixe suivante.
+    void snapshotIsCancelledWhenTheViewGoesAway()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>a</p>"), {}));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        findItem(host.root.get(), QStringLiteral("webFrameView"))->setProperty("_deferCapture", true);
+        QVERIFY(QMetaObject::invokeMethod(host.layer, "takeSnapshot", Q_ARG(QVariant, QVariant())));
+        QVERIFY(host.layer->property("pendingSnapshot").isValid());
+        QVERIFY(!host.layer->property("pendingSnapshot").isNull());
+        QCOMPARE(host.layer->property("snapshotCount").toInt(), 0);
+        host.document.newDocument(1024, 768);
+        QTRY_VERIFY_WITH_TIMEOUT(host.layer->property("pendingSnapshot").isNull(), 5000);
+        QCOMPARE(host.layer->property("snapshotCount").toInt(), 1); // abandon compté, pas d'image posée
+        QCOMPARE(host.frames->rowCount(), 0);
+    }
+
     // E2 : seule une vue native au-dessus de la scène est masquée par une boîte ouverte (n° 16).
     void coveredOnlyHidesAnOverlayView()
     {

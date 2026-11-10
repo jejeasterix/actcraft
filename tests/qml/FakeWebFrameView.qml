@@ -21,13 +21,20 @@ Item {
     property var _calls: []
     property bool _overlays: false
     property bool _focused: false
+    property bool _deferCapture: false // la capture ne répond pas tant que le test ne le décide pas
+    property var _pendingCapture: null
 
     function load() { _loads += 1 }
     function stop() { _calls.push("stop") }
     function goBack() { _calls.push("goBack") }
     function goForward() { _calls.push("goForward") }
     function reload() { _calls.push("reload") }
-    function capture(callback) { callback(null) }
+    function capture(callback) {
+        if (_deferCapture)
+            _pendingCapture = callback
+        else
+            callback(null)
+    }
     function copySelection() { _calls.push("copySelection") }
 
     function _emitReport(pageUrl, canBack, canForward, pageTitle, pageLoading) {

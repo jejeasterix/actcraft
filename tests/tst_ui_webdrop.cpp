@@ -182,6 +182,43 @@ private slots:
         QCOMPARE(document->document().page(0).objects.size(), std::size_t{0});
     }
 
+    // Revue T20 : l'échec d'un dépôt arrive au bandeau de la fenêtre (le signal seul ne montre rien à
+    // l'écran).
+    void failedDropReachesTheBanner()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        MainWindow main;
+        QVERIFY(main.window());
+        QQuickItem* banner = main.item(QStringLiteral("messageBanner"));
+        QVERIFY(banner);
+        QVERIFY(banner->property("message").toString().isEmpty());
+        QMimeData mime;
+        mime.setUrls({server.url(QStringLiteral("/absente.png"))});
+        dropAt(main.window(), &mime, main.pageView()->pageToScene(QPointF(300, 200)));
+        QTRY_VERIFY_WITH_TIMEOUT(!banner->property("message").toString().isEmpty(), 10000);
+    }
+
+    // Revue T20 : de même pour un collage d'adresse refusé (gardes allumées, hôte non autorisé).
+    void failedPasteReachesTheBanner()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/photo.png"), png(40, 40));
+        MainWindow main;
+        QVERIFY(main.window());
+        main.window()
+            ->findChild<QObject*>(QStringLiteral("appWebFrames"))
+            ->setProperty("guardsEnabled", true);
+        QQuickItem* banner = main.item(QStringLiteral("messageBanner"));
+        QVERIFY(banner);
+        QVERIFY(banner->property("message").toString().isEmpty());
+        QGuiApplication::clipboard()->setText(server.url(QStringLiteral("/photo.png")).toString());
+        main.window()->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing"))->paste();
+        QTRY_VERIFY_WITH_TIMEOUT(!banner->property("message").toString().isEmpty(), 10000);
+        QCOMPARE(server.requests(), 0);
+    }
+
     // Revue de T10 : le câblage `insertion.webFrames` / `editing.webFrames` de la couche. Gardes allumées, un
     // dépôt puis un collage vers un hôte non autorisé sont refusés sans requête ; sans le câblage, le
     // téléchargement partirait.

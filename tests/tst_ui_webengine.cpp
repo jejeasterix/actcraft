@@ -620,6 +620,57 @@ private slots:
                                   10000);
     }
 
+    // Revue T20 : un clic sur la page, hors du cadre, reprend le focus au cadre. Sinon edit.copy (Ctrl+C)
+    // resterait pris par la vue web et ne copierait plus les objets.
+    void clickOnThePageTakesTheFocusBack()
+    {
+        presentationharness::MainWindow main;
+        QVERIFY(main.window());
+        QQuickItem* layer = main.item(QStringLiteral("webFrameLayer"));
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        bool inserted = false;
+        QVERIFY(QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
+                                          Q_ARG(QString, QStringLiteral("<p>x</p>")),
+                                          Q_ARG(QString, QString())));
+        QTRY_COMPARE_WITH_TIMEOUT(layer->property("loadedViews").toInt(), 1, 60000);
+        QQuickItem* web = main.item(QStringLiteral("webFrameEngine"));
+        QVERIFY(web);
+        QVERIFY(main.waitReady());
+        main.window()->requestActivate();
+        web->forceActiveFocus();
+        QTRY_VERIFY(main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
+        QVERIFY(main.run(QStringLiteral("tool.select")));
+        // Un point de la page hors du cadre : le coin opposé de la zone, hors de l'emprise de la vue.
+        const QRectF cadre = web->mapRectToScene(web->boundingRect());
+        const QRectF area = main.pageView()->mapRectToScene(main.pageView()->boundingRect());
+        QPoint outside(int(area.left()) + 12, int(area.top()) + 12);
+        if (cadre.adjusted(-8, -8, 8, 8).contains(outside))
+            outside = QPoint(int(area.right()) - 12, int(area.bottom()) - 12);
+        QVERIFY(!cadre.adjusted(-8, -8, 8, 8).contains(outside));
+        QTest::mouseClick(main.window(), Qt::LeftButton, Qt::NoModifier, outside);
+        QTRY_VERIFY(!main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
+        QVariant taken;
+        QVERIFY(QMetaObject::invokeMethod(layer, "copyFromFocusedView", Q_RETURN_ARG(QVariant, taken)));
+        QVERIFY(!taken.toBool());
+    }
+
+    // Revue T20 : gardes allumées, déposer une adresse ou un fichier sur la vue ne la fait pas naviguer.
+    void dropNavigationFollowsTheGuards_data()
+    {
+        QTest::addColumn<bool>("guards");
+        QTest::newRow("gardes") << true;
+        QTest::newRow("sans gardes") << false;
+    }
+    void dropNavigationFollowsTheGuards()
+    {
+        QFETCH(bool, guards);
+        DirectView view;
+        QVERIFY(view.start(guards));
+        auto* settings = qvariant_cast<QObject*>(view.web->property("settings"));
+        QVERIFY(settings);
+        QCOMPARE(settings->property("navigateOnDropEnabled").toBool(), !guards);
+    }
+
     // E10 : dans un champ de saisie, le moteur garde ses touches (ShortcutOverride) : Ctrl+V n'atteint pas la
     // page.
     void inputFieldKeepsPaste()
@@ -641,7 +692,7 @@ private slots:
         const int objects = main.pageObjectCount();
         main.window()->requestActivate();
         web->forceActiveFocus();
-        QTest::qWait(300);
+        QTRY_VERIFY(main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
         QTest::keyClick(main.window(), Qt::Key_V, Qt::ControlModifier);
         QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), QStringLiteral("VAL:xyz"), 10000);
         QCOMPARE(main.pageObjectCount(), objects);
