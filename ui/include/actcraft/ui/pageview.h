@@ -231,6 +231,7 @@ signals:
     void toolsChanged();
     void gestureActiveChanged();
     void pointerPositionChanged();
+    void pointerPressed(QPointF viewPos);       // appui sur la vue, qu'un outil le prenne ou non
     void contextMenuRequested(QPointF viewPos); // clic droit non couvert sur la vue (F-202)
 
 protected:

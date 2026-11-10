@@ -42,8 +42,10 @@ et 0.7.0 ne sont pas encore publiées : leurs nouveautés viennent avec celle-ci
 - Encre révélatrice : un trait qui laisse apparaître, sous lui, une couche cachée de la page.
 - Médias : lecteur intégré pour le son et la vidéo, deux pistes, lecteur de sons, choix de lecture en boucle.
 - Enregistreurs : enregistrer le son, ou l'écran entier ou une zone de l'écran, et placer le résultat sur la page.
-- Cadre web : une page web dans un cadre du paperboard, sans JavaScript, avec des sous-ressources décidées une à une.
-  Glisser du texte ou une image du cadre vers la page n'est pas possible : le composant web ne l'offre pas.
+- Cadre web : une page web dans un cadre du paperboard. Sur PC et Mac, le cadre utilise Qt WebEngine : JavaScript actif,
+  sélection et copie du texte, image fixe du cadre. Un réglage allume les gardes (JavaScript coupé, sous-ressources
+  décidées une à une). Une image ou une adresse web déposée ou collée sur la page s'insère ; un échec s'affiche en
+  bandeau. Sur Android, le cadre garde la vue du système.
 - Diffusion protégée : un paperboard peut interdire la copie, la coupe et la modification ; la bannière dit pourquoi.
 - Profil « Son et image » : les commandes de médias et d'enregistrement regroupées.
 

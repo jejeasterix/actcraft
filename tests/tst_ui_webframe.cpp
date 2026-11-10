@@ -1285,7 +1285,8 @@ void TstUiWebFrame::unrelatedProfileChangeReloadsNothing()
     QCOMPARE(role(f.frames, 0, ui::WebFrameItems::SerialRole).toInt(), before);
 }
 
-// E1 : gardes coupées, le modèle ne lit rien et ne bloque rien, même pour un document reçu.
+// E1 : gardes coupées, le modèle ne lit rien, ne bloque rien et n'envoie aucune requête, même pour une
+// adresse distante.
 void TstUiWebFrame::guardsOffSendsNoRequest()
 {
     TestServer server;

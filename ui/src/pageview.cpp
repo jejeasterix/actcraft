@@ -678,6 +678,10 @@ std::optional<input::Sample> PageView::sampleFor(const QEvent& event, QPointF vi
         m_pointerPosition = viewPos;
         emit pointerPositionChanged();
     }
+    if (const QEvent::Type type = event.type();
+        type == QEvent::MouseButtonPress || type == QEvent::TabletPress || type == QEvent::TouchBegin) {
+        emit pointerPressed(viewPos);
+    }
     if (!m_pipeline) {
         return std::nullopt;
     }

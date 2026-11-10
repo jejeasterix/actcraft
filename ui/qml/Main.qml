@@ -857,6 +857,7 @@ Window {
     Connections {
         target: appInsertion
         function onBusyChanged() { root.returnLentPermissions() }
+        function onFailed(message) { messageBanner.show(message) } // dépôt ou insertion d'image refusé ou en échec
     }
     Connections {
         target: appExchange

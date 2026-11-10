@@ -9,8 +9,8 @@ import ActCraft.Ui
 // après la décision de la politique (L8-T29) ; une navigation qu'elle prendrait d'elle-même est rendue au
 // modèle et arrêtée. JavaScript, accès aux fichiers et stockage local coupés. Hors de la scène que le cache
 // photographie : miniatures, exports et page fixe montrent le repère neutre de paintPage. Sur Android, la vue
-// native passe au-dessus de tout le QML ; sur PC et Mac, c'est un élément de la scène, couvert par la
-// couverture ci-dessous. Dans les deux cas elle est masquée tant qu'une boîte de la fenêtre est ouverte.
+// native passe au-dessus de tout le QML : une boîte ouverte la masque. Sur PC et Mac, c'est un élément de la scène,
+// couvert par la couverture ci-dessous, et elle reste visible sous une fenêtre surgissante.
 Item {
     id: frameLayer
     objectName: "webFrameLayer"
@@ -121,6 +121,11 @@ Item {
     }
     function snapshotStep() {
         const job = pendingSnapshot
+        if (!job.web) { // la vue a disparu entre deux essais
+            pendingSnapshot = null
+            finishSnapshot(false)
+            return
+        }
         job.web.capture(function (image) {
             if (pendingSnapshot !== job)
                 return
@@ -135,6 +140,14 @@ Item {
                 snapshotTimer.restart()
             }
         })
+    }
+    // La vue d'un cadre disparaît (autre document, page changée) : l'image fixe qui l'attendait est abandonnée, sinon
+    // elle resterait en suspens et refuserait toutes les suivantes.
+    function cancelSnapshotOf(webView) {
+        if (pendingSnapshot && webView && pendingSnapshot.web === webView) {
+            pendingSnapshot = null
+            finishSnapshot(false)
+        }
     }
     function finishSnapshot(ok) {
         console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
@@ -151,6 +164,25 @@ Item {
             }
         }
         return false
+    }
+    // Un appui sur la page, hors des cadres, reprend le focus à la vue web : sans cela viewFocused resterait vrai et
+    // Ctrl+C copierait la sélection du cadre au lieu des objets (n° 37).
+    Connections {
+        target: frameLayer.view
+        function onPointerPressed(viewPos) {
+            let focused = false
+            const here = frameLayer.mapFromItem(frameLayer.view, viewPos)
+            for (let i = 0; i < frames.count; ++i) {
+                const delegate = frames.itemAt(i)
+                const webView = delegate ? delegate.webView : null
+                if (webView && webView.viewFocused)
+                    focused = true
+                if (delegate && delegate.contains(delegate.mapFromItem(frameLayer, here)))
+                    return
+            }
+            if (focused)
+                frameLayer.forceActiveFocus()
+        }
     }
     Timer {
         id: snapshotTimer
@@ -216,6 +248,7 @@ Item {
     Repeater {
         id: frames
         model: appWebFrames
+        onItemRemoved: function (index, item) { frameLayer.cancelSnapshotOf(item.webView) }
         delegate: Item {
             id: frame
             required property int index

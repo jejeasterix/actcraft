@@ -58,6 +58,8 @@ Item {
         settings.localStorageEnabled: !root.guardsEnabled
         settings.localContentCanAccessFileUrls: !root.guardsEnabled
         settings.localContentCanAccessRemoteUrls: !root.guardsEnabled
+        // Un fichier ou une adresse lâché sur la vue ne la fait pas naviguer gardes allumées : seul le modèle décide.
+        settings.navigateOnDropEnabled: !root.guardsEnabled
         // E8 : une fenêtre surgissante reste dans le cadre ; les permissions de la page sont refusées.
         onNewWindowRequested: function (request) { web.url = request.requestedUrl }
         onPermissionRequested: function (permission) { permission.deny() }
