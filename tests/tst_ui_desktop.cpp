@@ -285,6 +285,21 @@ private slots:
         profile->setSetting(QStringLiteral("tools"), QStringLiteral("web-frame-guards"), false);
     }
 
+    // E13 : la seconde PageArea n'accepte aucun dépôt (`appInsertion` vise `appDocument`, cadrage n° 19).
+    void desktopDropAreaStaysOff()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QQuickItem* area = presentationharness::findItem(desktop->window()->contentItem(),
+                                                         QStringLiteral("webFrameDropArea"));
+        QVERIFY(area);
+        QVERIFY(!area->isEnabled());
+    }
+
     void annotationWindowIsTransparentAndAbove()
     {
         MainWindow main;

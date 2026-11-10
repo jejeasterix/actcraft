@@ -389,3 +389,8 @@ endif()
 actcraft_add_test(tst_ui_webimagefetch
     SOURCES tst_ui_webimagefetch.cpp
     LIBS ActCraft::ui)
+
+actcraft_add_test(tst_ui_webdrop
+    SOURCES tst_ui_webdrop.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_webdrop PRIVATE ${PROJECT_SOURCE_DIR}/app)
