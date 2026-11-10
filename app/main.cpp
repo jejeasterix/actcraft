@@ -74,7 +74,14 @@ int main(int argc, char* argv[])
     // `--quitter-apres <ms>` : fermeture automatique, pour les essais de démarrage et le banc.
     const qsizetype quitIndex = args.indexOf(QStringLiteral("--quitter-apres"));
     if (quitIndex >= 0 && quitIndex + 1 < args.size()) {
-        QTimer::singleShot(args.at(quitIndex + 1).toInt(), &app, &QCoreApplication::quit);
+        const int delay = args.at(quitIndex + 1).toInt();
+        if (options.webFrameProbe.isEmpty()) {
+            QTimer::singleShot(delay, &app, &QCoreApplication::quit);
+        } else {
+            // Le cadre posé par l'essai rend le document modifié : `quit` passerait par la demande
+            // d'enregistrement de Main.qml (onClosing), qui attendrait une réponse sans fin.
+            QTimer::singleShot(delay, &app, [] { QCoreApplication::exit(0); });
+        }
     }
 
     return QGuiApplication::exec();

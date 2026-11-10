@@ -103,6 +103,9 @@ for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/S
 done
 rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
 rm -rf "$app/Contents/PlugIns/webview" # Qt WebView : Android seulement (cadrage n° 8)
+# Greffon NMEA de Qt Positioning (récepteur GPS série) : il lie Qt Serial Port, hors de qt-autorises.txt, que la boucle
+# plus bas retire une fois ce greffon parti. Qt Positioning reste : Qt WebEngine le lie.
+rm -f "$app/Contents/PlugIns/position/libqtposition_nmea.dylib"
 
 # Références @rpath laissées par macdeployqt (voir plus haut) : réécrites sous la forme des siennes
 # (@executable_path/../Frameworks/…) quand le framework est dans le bundle ; les autres restent, refusées plus bas.
