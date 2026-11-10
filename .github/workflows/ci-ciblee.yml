@@ -142,7 +142,7 @@ jobs:
           cache="$HOME/actions-runner-actcraft/_cache"
           mkdir -p "$cache"
           brew_qt=/opt/homebrew/opt/qt
-          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1)
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1) || true
           if [ "$version" = "$QT_VERSION" ]; then
             qt_dir="$brew_qt"
           else
