@@ -267,20 +267,22 @@ private slots:
     {
         App app;
         QVERIFY(start(app));
-        QQuickItem* layer = presentationharness::findItem(app.window->contentItem(), QStringLiteral("webFrameLayer"));
+        QQuickItem* layer =
+            presentationharness::findItem(app.window->contentItem(), QStringLiteral("webFrameLayer"));
         QVERIFY(layer);
-        layer->setProperty("viewSource", QUrl::fromLocalFile(QStringLiteral(ACTCRAFT_SOURCE_DIR
-                                                                            "/tests/qml/FakeWebFrameView.qml")));
+        layer->setProperty("viewSource", QUrl::fromLocalFile(QStringLiteral(
+                                             ACTCRAFT_SOURCE_DIR "/tests/qml/FakeWebFrameView.qml")));
         QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
         QVERIFY(frames);
         bool inserted = false;
         QVERIFY(QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
-                                          Q_ARG(QString, QStringLiteral("<p>a</p>")), Q_ARG(QString, QString())));
+                                          Q_ARG(QString, QStringLiteral("<p>a</p>")),
+                                          Q_ARG(QString, QString())));
         QVERIFY(inserted);
-        QTRY_VERIFY_WITH_TIMEOUT(presentationharness::findItem(app.window->contentItem(), QStringLiteral("webFrameView")),
-                                 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(
+            presentationharness::findItem(app.window->contentItem(), QStringLiteral("webFrameView")), 5000);
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 1, 5000); // le cadre
-        const QPointF inside(512, 384); // centre du cadre, au centre de la page
+        const QPointF inside(512, 384);                               // centre du cadre, au centre de la page
         tablet(app, m_stylus11.get(), QEvent::TabletPress, inside);
         tablet(app, m_stylus11.get(), QEvent::TabletMove, inside + QPointF(40, 10));
         tablet(app, m_stylus11.get(), QEvent::TabletRelease, inside + QPointF(40, 10));

@@ -210,6 +210,9 @@ Item {
                 clip: true
                 visible: frame.showsView && !(frameLayer.covered && loader.item !== null && loader.item.overlaysScene)
                 property bool reported: false
+                // Vue déclarée couverture d'entrée (n° 17) : sans cela le filtre de PageView prend le stylet.
+                property var covering: null
+                Component.onDestruction: if (covering) frameLayer.uncover(covering)
                 // Réglage pour lequel la vue a été créée. Un autre document : le modèle est remis à zéro (rebuild), le
                 // délégué et sa vue sont recréés, donc un profil neuf par document (H8-13).
                 property bool madeGuards: false
@@ -221,10 +224,18 @@ Item {
                     anchors.fill: parent
                     asynchronous: true // import QtWebEngine lu à la première vue (DA2)
                     onStatusChanged: {
-                        if (status === Loader.Ready)
+                        if (status === Loader.Ready) {
+                            if (!item.overlaysScene) {
+                                viewHost.covering = item
+                                frameLayer.cover(item)
+                            }
                             viewHost.deliver()
-                        else if (status === Loader.Error)
+                        } else if (status === Loader.Error) {
                             console.warn("Cadre web : vue indisponible (" + source + ")")
+                        } else if (status === Loader.Null && viewHost.covering) {
+                            frameLayer.uncover(viewHost.covering)
+                            viewHost.covering = null
+                        }
                     }
                 }
                 Connections {
