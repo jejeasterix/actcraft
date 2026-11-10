@@ -54,7 +54,9 @@ Correctifs :
 - `tst_media_displayrecorder` (`pauseExcludesThePause(simulee)`) : rouge à la CI complète 42738454526, « trou de 228 ms
   dans le fichier » pour une limite de 200 ms ; relancé dans le même job, il passe. Non reproduit en local : 0 sur 72 avec
   6 copies, 0 sur 12 seul, 0 sur 100 avec le processeur chargé. Hypothèse : retard d'images sous la charge des
-  `tst_captures_*` voisins. Aucun correctif posé sans preuve.
+  `tst_captures_*` voisins. Aucun correctif du code ni du seuil. O152 pose `RUN_SERIAL` sur ce test sur cette hypothèse,
+  sans reproduction : une CI verte ensuite ne prouvera pas la cause, le rouge étant trop rare. `RUN_SERIAL` n'écarte que
+  les autres tests de ctest, pas la charge du reste de la machine.
 - La recherche par mots-clés lit aussi des fragments dans un autre fil. Le même refus de Windows y est possible, sans
   reproduction.
 
