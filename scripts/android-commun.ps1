@@ -8,9 +8,10 @@
 
 # Refus du module : exception marquée, pour que l'appelant rende la raison telle quelle (mêmes messages qu'avant
 # l'extraction) et garde « erreur imprévue » pour le reste.
-function Lever-ActCraftAndroid([string]$Raison) {
+function Lever-ActCraftAndroid([string]$Raison, [switch]$DelaiAdb) {
     $exception = [System.Exception]::new($Raison)
     $exception.Data['ActCraftAndroid'] = $true
+    if ($DelaiAdb) { $exception.Data['ActCraftAdbDelai'] = $true }
     throw $exception
 }
 
@@ -50,7 +51,7 @@ function Adb {
     $erreur = $p.StandardError.ReadToEndAsync()
     if (-not $p.WaitForExit($secondes * 1000)) {
         try { $p.Kill($true) } catch { $null = $_ }
-        Lever-ActCraftAndroid "adb $(($arguments | Select-Object -First 2) -join ' ') sans réponse ($secondes s)"
+        Lever-ActCraftAndroid "adb $(($arguments | Select-Object -First 2) -join ' ') sans réponse ($secondes s)" -DelaiAdb
     }
     $p.WaitForExit()
     $global:LASTEXITCODE = $p.ExitCode
@@ -109,6 +110,18 @@ function Write-ActCraftLogcat {
     }
 }
 
+# PID rendu par pidof, ou '' si aucun processus. Un dépassement du délai d'Adb compte comme une lecture vide : sous
+# charge, adb peut geler un tour. Toute autre erreur reste levée.
+function Read-ActCraftPidof([string]$Paquet, [int]$Secondes) {
+    try {
+        return "$(Adb $Secondes shell pidof $Paquet)".Trim()
+    } catch {
+        if (-not $_.Exception.Data.Contains('ActCraftAdbDelai')) { throw }
+        Write-Host 'pidof : délai dépassé'
+        return ''
+    }
+}
+
 # Installe l'APK (install -r), vide le journal (logcat -c : refus si adb échoue), lance l'application et rend son
 # PID : attendu 120 s au plus (pidof toutes les 2 s), car une machine chargée peut lancer l'application après plus de
 # 10 s (cause probable, non prouvée, du rouge du run 42790149282), puis le même PID vivant 10 s plus tard, pour qu'un
@@ -122,17 +135,19 @@ function Install-ActCraftApk([Parameter(Mandatory)][string]$Apk, [Parameter(Mand
     if ($LASTEXITCODE -ne 0) { Lever-ActCraftAndroid "adb logcat -c (code $LASTEXITCODE)$(Get-ActCraftAdbErreur)" }
     $null = Adb 60 shell monkey -p $Paquet -c android.intent.category.LAUNCHER 1
     $limite = (Get-Date).AddSeconds(120)
-    $processus = "$(Adb 30 shell pidof $Paquet)".Trim()
-    while (-not $processus -and (Get-Date) -lt $limite) {
+    $processus = Read-ActCraftPidof $Paquet 30
+    while (-not $processus -and (Get-Date).AddSeconds(2) -lt $limite) {
         Start-Sleep -Seconds 2
-        $processus = "$(Adb 30 shell pidof $Paquet)".Trim()
+        # Limite totale : une lecture ne dépasse pas le temps restant.
+        $reste = [int][math]::Ceiling(($limite - (Get-Date)).TotalSeconds)
+        $processus = Read-ActCraftPidof $Paquet ([math]::Max(1, [math]::Min(30, $reste)))
     }
     if (-not $processus) {
         Write-ActCraftLogcat
         Lever-ActCraftAndroid 'processus absent 120 s après le lancement'
     }
     Start-Sleep -Seconds 10
-    $encore = "$(Adb 30 shell pidof $Paquet)".Trim()
+    $encore = Read-ActCraftPidof $Paquet 30
     if ($encore -ne $processus) {
         Write-ActCraftLogcat
         Lever-ActCraftAndroid "processus $processus disparu 10 s après son apparition (pidof : « $encore »)"
