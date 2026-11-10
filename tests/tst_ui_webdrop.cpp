@@ -201,14 +201,16 @@ private slots:
         auto* editing = main.window()->findChild<ui::ObjectEditing*>(QStringLiteral("appEditing"));
         QVERIFY(insertion);
         QVERIFY(editing);
+        // `editing` a sa propre insertion : son refus sort par `insertionFailed`.
         QSignalSpy failed(insertion, &ui::Insertion::failed);
+        QSignalSpy pasteFailed(editing, &ui::ObjectEditing::insertionFailed);
         QMimeData mime;
         mime.setUrls({server.url(QStringLiteral("/photo.png"))});
         dropAt(main.window(), &mime, main.pageView()->pageToScene(QPointF(300, 200)));
         QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 10000);
         QGuiApplication::clipboard()->setText(server.url(QStringLiteral("/photo.png")).toString());
         editing->paste();
-        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 2, 10000);
+        QTRY_COMPARE_WITH_TIMEOUT(pasteFailed.count(), 1, 10000);
         QCOMPARE(server.requests(), 0);
         QCOMPARE(document->document().page(0).objects.size(), std::size_t{0});
     }

@@ -17,6 +17,8 @@ Item {
     anchors.fill: parent
     property var commands: null
     property var profile: null
+    property var insertion: null // appInsertion ; null : aucun dépôt possible (annotation du bureau)
+    property var editing: null   // appEditing : ses collages suivent la politique
 
     // Zone de page qui porte la couche ; la vue de page s'atteint par pageArea.view (plan 8a, l. 248).
     readonly property Item pageArea: findArea()
@@ -150,6 +152,10 @@ Item {
         dialog = findDialog()
         if (view && Qt.platform.os === "android")
             appWebFrames.useWindowCapture(view)
+        if (insertion)
+            insertion.webFrames = appWebFrames
+        if (editing)
+            editing.webFrames = appWebFrames
         if (!commands)
             return
         // Argument (scénarios) : { html, address } crée le cadre sans la boîte.
@@ -172,6 +178,27 @@ Item {
             if (appWebFrames.unblockPending)
                 confirm.open()
         })
+    }
+
+    // Dépôt sur la page, hors des vues (n° 19) : texte, URL, image, fichier du système (E4). Inactif sans `commands`
+    // (seconde PageArea : `appInsertion` viserait le mauvais document) et sous Android.
+    DropArea {
+        id: pageDrop
+        objectName: "webFrameDropArea"
+        anchors.fill: parent
+        enabled: frameLayer.commands !== null && frameLayer.insertion !== null && Qt.platform.os !== "android"
+        onEntered: function (drag) { drag.accepted = drag.hasUrls || drag.hasText }
+        onDropped: function (drop) {
+            if (!frameLayer.view || !frameLayer.insertion)
+                return
+            const scene = pageDrop.mapToItem(null, drop.x, drop.y)
+            const point = frameLayer.view.sceneToPage(Qt.point(scene.x, scene.y))
+            const ok = frameLayer.insertion.acceptWebDrop(drop.hasUrls ? drop.urls : [],
+                                                          drop.hasText ? drop.text : "",
+                                                          drop.hasHtml ? drop.html : "", point)
+            if (ok)
+                drop.accept(Qt.CopyAction)
+        }
     }
 
     Repeater {

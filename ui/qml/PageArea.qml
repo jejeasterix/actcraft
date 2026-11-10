@@ -13,6 +13,8 @@ Item {
     property Tools tools: null
     property Commands commands: null
     property var profile: null
+    property var insertion: null
+    property var editing: null
     // Lot 4 : édition du texte (TextEditing de la fenêtre) ; null pour une annotation de bureau.
     property TextEditing textEditing: null
     property bool textListOpen: false // une liste de la barre de texte est ouverte : Échap la ferme, il ne valide pas
@@ -242,6 +244,8 @@ Item {
                     z: 3
                     commands: area.commands
                     profile: area.profile
+                    insertion: area.insertion
+                    editing: area.editing
                 }
                 MediaLayer { z: 4 }
                 ActionOverlays {

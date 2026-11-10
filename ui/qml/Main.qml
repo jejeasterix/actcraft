@@ -389,6 +389,8 @@ Window {
         PageArea {
             id: pageArea
             profile: appProfile
+            insertion: appInsertion
+            editing: appEditing
             Layout.fillWidth: true
             Layout.fillHeight: true
             cacheEnabled: root.cacheEnabled
