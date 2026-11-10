@@ -335,9 +335,10 @@ void Insertion::start(std::vector<InsertionJob> jobs, std::shared_ptr<InsertionO
         emit busyChanged();
     auto* watcher = new QFutureWatcher<Result>(this);
     QThread* mainThread = QThread::currentThread();
+    const bool afterWaiting = origin != nullptr; // origine suivie depuis le collage : téléchargement
     if (!origin)
         origin = trackOrigin();
-    connect(watcher, &QFutureWatcher<Result>::finished, this, [this, watcher, origin]() {
+    connect(watcher, &QFutureWatcher<Result>::finished, this, [this, watcher, origin, afterWaiting]() {
         Result result = watcher->result();
         watcher->deleteLater();
         releaseOrigin(*origin);
@@ -364,8 +365,11 @@ void Insertion::start(std::vector<InsertionJob> jobs, std::shared_ptr<InsertionO
             emit busyChanged();
         if (!result.error.isEmpty())
             emit failed(result.error);
-        if (count > 0)
+        if (count > 0) {
+            m_lastSelects = !afterWaiting;
             emit inserted(count);
+            m_lastSelects = true;
+        }
     });
     watcher->setFuture(
         QtConcurrent::run([moved = std::move(jobs), mainThread]() { return work(moved, mainThread); }));
@@ -550,8 +554,16 @@ bool Insertion::insertDataUrl(const QUrl& url, QPointF center)
     const qsizetype comma = encoded.indexOf(',');
     if (comma < 0 || !encoded.startsWith("data:image/"))
         return false;
+    const bool base64 = encoded.left(comma).endsWith(";base64");
+    // Borne avant tout décodage (fil de l'interface) : même limite que WebImageFetch, ramenée à la forme
+    // codée.
+    const qint64 codedLimit = base64 ? (WebImageFetch::kMaxBytes / 3 + 1) * 4 : WebImageFetch::kMaxBytes * 3;
+    if (encoded.size() - comma - 1 > codedLimit) {
+        emit failed(tr("Image trop lourde (plus de 25 Mo)."));
+        return true; // refus annoncé
+    }
     QByteArray payload = QByteArray::fromPercentEncoding(encoded.mid(comma + 1));
-    if (encoded.left(comma).endsWith(";base64"))
+    if (base64)
         payload = QByteArray::fromBase64(payload);
     if (payload.size() > WebImageFetch::kMaxBytes) {
         emit failed(tr("Image trop lourde (plus de 25 Mo)."));

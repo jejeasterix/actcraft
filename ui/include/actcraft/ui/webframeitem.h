@@ -148,14 +148,10 @@ public:
     // Image obtenue hors du modèle (grabToImage de la vue, n° 18) : posée en une étape sur la zone du cadre.
     // Faux si `row` est invalide ou l'image nulle.
     Q_INVOKABLE bool insertSnapshot(int row, const QImage& image);
-    // Deux captures successives identiques : la vue a fini de peindre (WebFrameLayer.qml). Le modèle garde la
-    // précédente (une image gardée côté QML devient invalide). `first` : début d'une série.
-    Q_INVOKABLE bool sameAsPreviousCapture(const QImage& image, bool first)
-    {
-        const bool same = !first && !image.isNull() && image == m_lastCapture;
-        m_lastCapture = image;
-        return same;
-    }
+    // Deux captures successives identiques : la vue a fini de peindre (WebFrameLayer.qml). Le modèle garde
+    // l'empreinte de la précédente, pas l'image (une image gardée côté QML devient invalide ; une image
+    // pleine page resterait en mémoire). `first` : début d'une série.
+    Q_INVOKABLE bool sameAsPreviousCapture(const QImage& image, bool first);
     // Capture par la fenêtre de `pageView` (ui::PageView, pageToScene) : posée
     // par WebFrameLayer.qml.
     Q_INVOKABLE void useWindowCapture(QQuickItem* pageView);
@@ -239,6 +235,7 @@ private:
     void showDirect(Row& row);
     void finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed);
     void releaseContentFile(Row& row);
+    void dropShown(Row& row); // contenu affiché abandonné : fichier lourd, adresse directe, liens
     QString heavyDir();
     int rowOf(std::uint64_t id) const;
     void rowChanged(int row);
@@ -274,7 +271,7 @@ private:
     QMetaObject::Connection m_profileConnection;
     int m_pendingRow = -1;
     Grabber m_grabber;
-    QImage m_lastCapture;
+    QByteArray m_lastCapture; // empreinte de la dernière capture ; vide : aucune
     QNetworkAccessManager* m_network = nullptr;
     QHash<QNetworkReply*, Pending> m_replies;
 };

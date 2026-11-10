@@ -132,7 +132,8 @@ ObjectEditing::ObjectEditing(QObject* parent) : QObject(parent)
     connect(m_insertion, &Insertion::failed, this, &ObjectEditing::insertionFailed);
     connect(m_insertion, &Insertion::webFramesChanged, this, &ObjectEditing::webFramesChanged);
     connect(m_insertion, &Insertion::inserted, this, [this](int count) {
-        if (m_document == nullptr || m_tools == nullptr || count <= 0)
+        // Une insertion arrivée après une attente réseau ne touche ni à l'outil ni à la sélection.
+        if (m_document == nullptr || m_tools == nullptr || count <= 0 || !m_insertion->lastInsertionSelects())
             return;
         // Les objets insérés portent les plus grands identifiants de la page (compteur du document).
         const std::set<ObjectId> present = idsOf(shownPage(*m_document));

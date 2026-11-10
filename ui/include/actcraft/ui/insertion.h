@@ -43,6 +43,9 @@ public:
     void setPortal(DocumentPortal* portal); // noms d'URL content://
     bool isBusy() const;
     bool lastDecodeOffMainThread() const;
+    // Faux quand la dernière insertion arrive après une attente réseau : l'utilisateur a pu agir entre-temps,
+    // l'appelant ne doit ni changer d'outil ni sélectionner.
+    bool lastInsertionSelects() const { return m_lastSelects; }
 
     // Un son ou une vidéo (déposé, ou choisi dans un dialogue) passe par lui : action de lecture, espace
     // réservé et verrou de classe. Absent, un MediaInsert propre à l'insertion est créé à la demande.
@@ -84,6 +87,7 @@ private:
     QPointer<DocumentPortal> m_portal;
     int m_forwarded = 0; // médias confiés à MediaInsert dont le signal final n'est pas encore revenu
     bool m_lastOff = false;
+    bool m_lastSelects = true;
 };
 
 } // namespace actcraft::ui

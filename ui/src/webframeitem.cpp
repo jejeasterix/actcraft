@@ -9,6 +9,7 @@
 
 #include <QBuffer>
 #include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -1396,6 +1397,33 @@ QString WebFrameItems::heavyDir()
     return m_heavy->isValid() ? m_heavy->path() : QString();
 }
 
+void WebFrameItems::dropShown(Row& row)
+{
+    releaseContentFile(row);
+    row.directUrl = QUrl();
+    row.links.clear();
+}
+
+bool WebFrameItems::sameAsPreviousCapture(const QImage& image, bool first)
+{
+    QByteArray print;
+    if (!image.isNull()) {
+        // Format, taille et pixels (lignes sans leur remplissage) : égal à `image == précédente`.
+        QCryptographicHash hash(QCryptographicHash::Sha256);
+        const QByteArray head = QByteArray::number(image.format()) + ':' + QByteArray::number(image.width()) +
+                                'x' + QByteArray::number(image.height());
+        hash.addData(head);
+        const qsizetype rowBytes =
+            (static_cast<qsizetype>(image.width()) * image.pixelFormat().bitsPerPixel() + 7) / 8;
+        for (int y = 0; y < image.height(); ++y)
+            hash.addData(QByteArrayView(reinterpret_cast<const char*>(image.constScanLine(y)), rowBytes));
+        print = hash.result();
+    }
+    const bool same = !first && !print.isEmpty() && print == m_lastCapture;
+    m_lastCapture = print;
+    return same;
+}
+
 void WebFrameItems::releaseContentFile(Row& row)
 {
     if (!row.contentFile.isEmpty())
@@ -1641,15 +1669,18 @@ void WebFrameItems::fetched(QNetworkReply* reply)
                 }
                 row.refused = true;
                 row.content.clear();
+                dropShown(row);
                 break;
             case Verdict::Blocked:
                 row.blocked = true;
                 row.pendingUrl = next;
                 row.content.clear();
+                dropShown(row);
                 break;
             case Verdict::Refuse:
                 row.refused = true;
                 row.content.clear();
+                dropShown(row);
                 break;
             }
             row.loading = false;
