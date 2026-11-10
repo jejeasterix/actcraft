@@ -6,6 +6,7 @@
 
 #include <actcraft/ui/webframeengine.h>
 
+#include <QClipboard>
 #include <QFile>
 #include <QGuiApplication>
 #include <QPointer>
@@ -592,6 +593,55 @@ private slots:
             QVERIFY(profileOf(a.web)->property("offTheRecord").toBool());
             QVERIFY(profileOf(b.web)->property("offTheRecord").toBool());
         }
+    }
+
+    // S1, E10 : du texte sélectionné, vue au focus : edit.copy le met au presse-papiers.
+    void editCopyCopiesTheSelection()
+    {
+        QGuiApplication::clipboard()->clear();
+        presentationharness::MainWindow main;
+        QVERIFY(main.window());
+        QQuickItem* layer = main.item(QStringLiteral("webFrameLayer"));
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        bool inserted = false;
+        QVERIFY(QMetaObject::invokeMethod(
+            frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
+            Q_ARG(QString, QStringLiteral("<body id=b>copie-moi<script>getSelection().selectAllChildren(b)</script>")),
+            Q_ARG(QString, QString())));
+        QTRY_COMPARE_WITH_TIMEOUT(layer->property("loadedViews").toInt(), 1, 60000);
+        QQuickItem* web = main.item(QStringLiteral("webFrameEngine"));
+        QVERIFY(web);
+        main.window()->requestActivate();
+        web->forceActiveFocus();
+        QTRY_VERIFY(main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
+        QVERIFY(main.run(QStringLiteral("edit.copy")));
+        QTRY_COMPARE_WITH_TIMEOUT(QGuiApplication::clipboard()->text().trimmed(), QStringLiteral("copie-moi"), 10000);
+    }
+
+    // E10 : dans un champ de saisie, le moteur garde ses touches (ShortcutOverride) : Ctrl+V n'atteint pas la page.
+    void inputFieldKeepsPaste()
+    {
+        QGuiApplication::clipboard()->setText(QStringLiteral("xyz"));
+        presentationharness::MainWindow main;
+        QVERIFY(main.window());
+        QQuickItem* layer = main.item(QStringLiteral("webFrameLayer"));
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        bool inserted = false;
+        QVERIFY(QMetaObject::invokeMethod(
+            frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
+            Q_ARG(QString, QStringLiteral("<input id=i autofocus oninput=\"document.title='VAL:'+value\">")),
+            Q_ARG(QString, QString())));
+        QTRY_COMPARE_WITH_TIMEOUT(layer->property("loadedViews").toInt(), 1, 60000);
+        QQuickItem* web = main.item(QStringLiteral("webFrameEngine"));
+        QVERIFY(web);
+        QVERIFY(main.waitReady());
+        const int objects = main.pageObjectCount();
+        main.window()->requestActivate();
+        web->forceActiveFocus();
+        QTest::qWait(300);
+        QTest::keyClick(main.window(), Qt::Key_V, Qt::ControlModifier);
+        QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), QStringLiteral("VAL:xyz"), 10000);
+        QCOMPARE(main.pageObjectCount(), objects);
     }
 };
 

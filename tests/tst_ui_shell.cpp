@@ -2,6 +2,7 @@
 
 #include <actcraft/actions/commandregistry.h>
 #include <actcraft/core/document.h>
+#include <actcraft/formats/clipboard.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/inkitem.h>
 #include <actcraft/ui/commands.h>
@@ -11,7 +12,10 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QClipboard>
 #include <QFile>
+#include <QGuiApplication>
+#include <QMimeData>
 #include <QImage>
 #include <QJSValue>
 #include <QJsonArray>
@@ -1543,6 +1547,26 @@ private slots:
         // browser.properties et resources.add (L6-P2) = 16.
         QCOMPARE(menu->property("visibleCommandCount").toInt(), 16);
         QVERIFY(menuIds(menu->property("entries").toList()).contains(QStringLiteral("transform")));
+    }
+
+    // E10 : sans vue web au focus, Ctrl+C copie toujours les objets.
+    void editCopyWithoutFocusedFrameCopiesObjects()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QGuiApplication::clipboard()->clear();
+        QVERIFY(run(s, QStringLiteral("pen.width"), 8));
+        const QPoint a = s.view->pageToScene(QPointF(300, 400)).toPoint();
+        const QPoint b = s.view->pageToScene(QPointF(700, 400)).toPoint();
+        QTest::mousePress(s.window, Qt::LeftButton, Qt::NoModifier, a);
+        for (int i = 1; i <= 20; ++i)
+            QTest::mouseMove(s.window, a + (b - a) * i / 20);
+        QTest::mouseRelease(s.window, Qt::LeftButton, Qt::NoModifier, b);
+        QTRY_COMPARE_WITH_TIMEOUT(s.fixed->objectCount(), 1, 3000);
+        QVERIFY(run(s, QStringLiteral("tool.select")));
+        QVERIFY(run(s, QStringLiteral("edit.select-all")));
+        QVERIFY(run(s, QStringLiteral("edit.copy")));
+        QVERIFY(QGuiApplication::clipboard()->mimeData()->hasFormat(formats::kObjectsMimeType));
     }
 
     // L5-T18 : « Convertir en forme » ne s'offre que pour une annotation ; « Convertir en texte » aussi sous
