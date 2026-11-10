@@ -2,9 +2,8 @@
 
 Statut : en cours
 Gabarit : chantier
-Avancement : 21/22 tâches terminées
-Étage : 3 (vague 2)
-Tâche : T18 — mesures avant/après et preuve finale — depuis 2026-11-10 12:50
+Avancement : 23/23 tâches terminées
+Étage : 4 — depuis 2026-11-10 15:00
 Questions à Jérôme : aucune
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
@@ -28,7 +27,7 @@ Mélange retenu : Homebrew tel quel. `aqt` non nécessaire.
 Rapide et complète (base 76315dbc, Mac debug, `ctest -j2 --timeout 120` hors écran) : 329/330. Seul rouge : `tst_ui_linklauncher` (`htaRefused`, 184 dossiers d'extraction contre 183 attendus : le test compte les dossiers du temp commun, une autre suite du Mac en crée en même temps). Rouge préexistant, instable, pas une régression.
 
 ## Compteurs
-contre-relecture cadrage 1/2 (1 bloquant, 5 majeurs, 6 mineurs corrigés, ea065489) · relecture plan 2/3 · vagues sans progrès 0/2 · correctifs de fin 1/2
+contre-relecture cadrage 1/2 (1 bloquant, 5 majeurs, 6 mineurs corrigés, ea065489) · relecture plan 2/3 · vagues sans progrès 0/2 · correctifs de fin 2/2
 
 ## Scénarios
 S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d'image, échecs, changement d'onglet · S3 gardes rallumées par le réglage, effet immédiat, cookie A/B · S4 paquet Mac : poids avant/après, H.264, provenance de Qt, pas de Chromium sans cadre, coût du premier cadre · S5 Android sans WebEngine, greffon dans l'APK
@@ -53,11 +52,12 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T13 | T12 | implementeur-tdd | terminée | 1/3 | 0885ca8d | 334/334 ; editCopyCopiesTheSelection, inputFieldKeepsPaste, editCopyWithoutFocusedFrameCopiesObjects PASS |
 | T16 | T13, T15 | concepteur-critique | terminée | 1/3 | 944ba429 | 334/334 ; DMG OK 188 680 277 octets ; CADRE WEB OK, ESSAI DMG OK ; borne 5 s en échec ; tst_app_open 5/5 |
 | T17 | T13 | implementeur-tdd (isolé) | terminée | 1/3 | 9c385284 | YAML OK ; release.yml non touché ; APK construit : libqml_QtWebView_ 1, WebEngine 0 ; APK OK non atteint, licences Qt6FFmpegStub (Reste PC 9, cause écrite) |
-| T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
+| T18 | T16, T17 | implementeur-tdd | terminée | 1/3 | 99cc0c24 | `docs/mesures/2026-11-09-cadre-web-webengine.md` : `.dmg` 61,5 → 180,6 Mo ; `ACTCRAFT H264 w=320 h=240 t=2.362454` ; DMG OK, ESSAI DMG OK, CADRE WEB OK |
 | T19 | T13 | implementeur-tdd | terminée | 1/3 | 7f8d4aa9 | 332/334, tst_ui_shell et tst_ui_mathtools en délai dépassé sous charge 14-18, verts seuls ; downloadedImageDoesNotOverride, webDropOfHugeDataUrl, refusedRedirectDropsTheHeavyFile PASS |
 | T20 | T13 | implementeur-tdd | terminée | 1/3 | 775f6bb0 | 334/334 (ctest --timeout 300, charge 30-40) ; clickOnThePageTakesTheFocusBack, tst_ui_webengine 33/33, tst_ui_webdrop 11/11 PASS |
 | T21 | T19, T20 | implementeur-tdd | terminée | 1/1 | 8931fbc2 | simplifications sans test modifié ; rejeu sous charge 26-135 : 328/334, 5 délais dépassés et `tst_ui_drawing` (attente de 3 s), repris par la suite de T22 |
 | T22 | T21 | implementeur-tdd | terminée | 1/3 | af40b9f8 | 334/334 (ctest --timeout 300, 4 sautés) ; rightClickOnThePageTakesTheFocusBack, snapshotIsCancelledWhenTheGuardsToggle PASS ; correctifs de la relecture finale |
+| T23 | T22 | implementeur-tdd | terminée | 1/3 | 6f796c6f | debug 334/334, release 334/334 (ctest --timeout 300, 4 sautés préexistants) ; tst_ui_webimagefetch 5 fois vert ; leftClickOnACoverKeepsTheFocus, redirectAnnouncingALargeBodyIsFollowed PASS |
 
 ## Terminé quand
 toutes les tâches terminées (aucune bloquée) · double relecture sans bloquant ni majeur · suite complète Mac verte en debug et en release · S1…S5 réussis · poids du `.dmg` et H.264 écrits · PR en brouillon ouverte vers `feat/livraison-complete-l11`, non fusionnée
@@ -68,8 +68,15 @@ T20 (QML) : `Main.qml:858`, `appInsertion.failed` non relié au bandeau (Majeur)
 T21 : simplifications C++ sûres, tests inchangés, un essai.
 Relecture finale T16 à T21, tête 8931fbc2 : 0 bloquant, 2 majeurs (clic droit sans `pointerPressed`, repris en T22 ; S5 sans preuve, repris par l'APK de T17), mineurs repris en T22.
 
-## Reprise après Q1
-Go reçu ou verrou libéré : relire `.tmp/essai-dmg.txt`, relancer `scripts/paquet-mac.sh` puis `scripts/essai-dmg.sh --lancer` sous le jeton avec `--duree-max-minutes 20` (le correctif `9c917b22` n'est pas construit), attendre `CADRE WEB OK`, `ESSAI DMG OK`, puis suite complète. Ensuite T19, T20, T21, T17, T18, relecture finale, PR. Toujours `nohup` et attente au premier plan, jamais de fond. Le jeton de T16 sans `--duree-max-minutes` a causé ce blocage.
+## Rapport (clôture, 2026-11-10)
+Tête `6f796c6f` + graphe. Debug et release sur le Mac : 334/334, `ctest -j2 --timeout 300` (écart au 120 du profil : charge 25 à 135 des autres ouvriers, la limite de 120 s donnait des dépassements verts seuls). Sautés : 4, préexistants. Aucun test retiré ; 3 `QSKIP` ajoutés, Windows hors écran, prévus (Reste PC 4).
+Relectures : double sur T1-T13 (6 majeurs fermés) ; finale sur T16-T21 ; ciblées sur T22 puis T23 : à la dernière, 0 bloquant, 0 majeur, 2 mineurs non corrigés (branche du doigt de `pointerPressed` sans test ; refus sur taille annoncée prouvé sans socket ouvert). Plafond de 2 tours de correctifs atteint.
+Simplifications non appliquées, pour le prochain audit : doublons `showDirect`/`prepareContent`, `finishDirect`/`finishContent`, base de dossier de `fileChanged`/`documentReplaced`.
+Scénarios : S1, S2, S3 par les suites nommées ; S4 par T18 (mesures, sur 1c15aa4c, avant T22 et T23 qui ne changent pas le poids) ; S5 partiel : APK construit sans WebEngine, contrôle de licences en échec, voir Reste PC 9.
+Banc : `BUDGET DEPASSE` en logiciel hors écran sur machine chargée, résultat et non porte ; aucune comparaison avant/après (non mesuré).
+Instabilité observée : `tst_ui_webimagefetch` `oversizeIsRefused` (course « Connection closed ») : refus désormais sur la taille annoncée, 5 fois vert.
+Essai du `.dmg` : `scripts/essai-dmg.sh` borne maintenant l'application (90 s) et échoue sans garder le verrou, preuve à 5 s.
+Release due : aucune décidée ici (interdit par O146). `release.yml` : voir « Sortie pour O98 » du plan et `docs/mesures/2026-11-09-cadre-web-webengine.md`.
 
 ## Décisions de l'orchestrateur
 - Banc limité à T1, T5, T7, T12, T18 (Mac, Release, 8 Go) : T6, T8, T13 touchent le QML du cadre, pas le chemin d'encre ; T18 mesure le cumul. Écart assumé au n° 36 du cadrage.
