@@ -1180,7 +1180,10 @@ Window {
     // Lot 5 : un gestionnaire par commande, une ligne vers sa cible chacune.
     function setLot5Handlers() {
         appCommands.setHandler("edit.cut", function () { appEditing.cut() })
-        appCommands.setHandler("edit.copy", function () { appEditing.copy() })
+        appCommands.setHandler("edit.copy", function () {
+            if (!pageArea.copyFromWebFrame())
+                appEditing.copy()
+        })
         appCommands.setHandler("edit.paste", function () { appEditing.paste() })
         appCommands.setHandler("edit.paste-onto", function () { appEditing.pasteOnto() })
         appCommands.setHandler("edit.duplicate", function () { appEditing.duplicate() })

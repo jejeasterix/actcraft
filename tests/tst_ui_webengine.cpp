@@ -606,7 +606,8 @@ private slots:
         bool inserted = false;
         QVERIFY(QMetaObject::invokeMethod(
             frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
-            Q_ARG(QString, QStringLiteral("<body id=b>copie-moi<script>getSelection().selectAllChildren(b)</script>")),
+            Q_ARG(QString,
+                  QStringLiteral("<body id=b>copie-moi<script>getSelection().selectAllChildren(b)</script>")),
             Q_ARG(QString, QString())));
         QTRY_COMPARE_WITH_TIMEOUT(layer->property("loadedViews").toInt(), 1, 60000);
         QQuickItem* web = main.item(QStringLiteral("webFrameEngine"));
@@ -615,10 +616,12 @@ private slots:
         web->forceActiveFocus();
         QTRY_VERIFY(main.item(QStringLiteral("webFrameView"))->property("viewFocused").toBool());
         QVERIFY(main.run(QStringLiteral("edit.copy")));
-        QTRY_COMPARE_WITH_TIMEOUT(QGuiApplication::clipboard()->text().trimmed(), QStringLiteral("copie-moi"), 10000);
+        QTRY_COMPARE_WITH_TIMEOUT(QGuiApplication::clipboard()->text().trimmed(), QStringLiteral("copie-moi"),
+                                  10000);
     }
 
-    // E10 : dans un champ de saisie, le moteur garde ses touches (ShortcutOverride) : Ctrl+V n'atteint pas la page.
+    // E10 : dans un champ de saisie, le moteur garde ses touches (ShortcutOverride) : Ctrl+V n'atteint pas la
+    // page.
     void inputFieldKeepsPaste()
     {
         QGuiApplication::clipboard()->setText(QStringLiteral("xyz"));

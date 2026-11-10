@@ -15,12 +15,12 @@
 #include <QClipboard>
 #include <QFile>
 #include <QGuiApplication>
-#include <QMimeData>
 #include <QImage>
 #include <QJSValue>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMimeData>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>

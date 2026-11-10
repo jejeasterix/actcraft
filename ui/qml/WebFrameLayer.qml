@@ -140,6 +140,18 @@ Item {
         console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
         snapshotCount += 1
     }
+    // edit.copy (n° 37) : vrai si une vue web au focus a pris la copie.
+    function copyFromFocusedView() {
+        for (let i = 0; i < frames.count; ++i) {
+            const delegate = frames.itemAt(i)
+            const webView = delegate ? delegate.webView : null
+            if (webView && webView.viewFocused) {
+                webView.copySelection()
+                return true
+            }
+        }
+        return false
+    }
     Timer {
         id: snapshotTimer
         interval: 100
