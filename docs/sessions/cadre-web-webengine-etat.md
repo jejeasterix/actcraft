@@ -1,6 +1,6 @@
 # État — cadre-web-webengine
 
-Statut : en cours
+Statut : clos — PR #26 en brouillon vers `feat/livraison-complete-l11`, non fusionnée
 Gabarit : chantier
 Avancement : 23/23 tâches terminées
 Étage : 4 — depuis 2026-11-10 15:00
@@ -106,7 +106,7 @@ Voir le cadrage : 15 hypothèses (H1 JavaScript et adresses distantes sur Androi
 Restes pour Jérôme : R1 glisser réel sur Mac, R2 appui long, collage et capture sous Android, R3 décision de licence sur la redistribution des décodeurs H.264 avant la première release avec WebEngine.
 
 ## Portes
-ouvertes : — · passées : —
+ouvertes : — · passées : Q1 (Go de Jérôme, arrêt du PID 92125 par le pilote)
 
 ## Pièges trouvés
 - `CMAKE_PREFIX_PATH` sur `opt/qt` casse le lien à WebEngine (voir essai) ; l'application ne lie pas WebEngine (chargement QML au premier cadre, DA2), donc `opt/qt` reste.
