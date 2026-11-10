@@ -1,11 +1,10 @@
 # État — cadre-web-webengine
 
-Statut : en cours
+Statut : en cours — bloqué sur Q1 depuis 2026-11-10 04:28
 Gabarit : chantier
-Avancement : 15/18 tâches terminées
+Avancement : 15/21 tâches terminées
 Étage : 3 (vague 2)
-Tâche : T16 — Paquet Mac et essai de l'image — depuis 2026-11-10 03:53
-Questions à Jérôme : —
+Questions à Jérôme : Q1 (arrêter PID 92125, essai du .dmg bloqué qui tient ~/.verrou-suite ? garde-arret refuse)
 Worktree : /Users/jeromedenis/projets/actcraft/.worktrees/cadre-web-webengine   Branche : feat/cadre-web-webengine   Base : origin/feat/livraison-complete-l11 @ 76315dbc
 Branche principale locale au lancement : 8a293f30
 Cadrage : docs/specs/2026-11-09-cadre-web-webengine-cadrage.md   Plan(s) : docs/plans/2026-11-09-cadre-web-webengine-PLAN.md
@@ -51,12 +50,24 @@ S1 dépôt et copie hors écran, formats exacts du moteur · S2 coller une URL d
 | T8 | T7 | implementeur-tdd | terminée | 1/3 | d4283cda | 333/333 ; dialogNoteFollowsTheGuards PASS ; tst_ui_desktop 60/60 |
 | T12 | T8, T11 | implementeur-tdd | terminée | 1/3 | 20ffd48b | 334/334 ; tst_ui_webdrop 9/9, droppedRemoteImageSurvivesReopening, guardsCoverDropAndPasteThroughTheWiring PASS ; banc résultat |
 | T13 | T12 | implementeur-tdd | terminée | 1/3 | 0885ca8d | 334/334 ; editCopyCopiesTheSelection, inputFieldKeepsPaste, editCopyWithoutFocusedFrameCopiesObjects PASS |
-| T16 | T13, T15 | concepteur-critique | à faire | 0/3 | — | — |
+| T16 | T13, T15 | concepteur-critique | essai bloqué (`DMG OK` acquis, 179 Mo ; verrou tenu par PID 92125, Q1) | 1/3 | 9c917b22 (non construit) | tst_app_open 5/5 |
 | T17 | T13 | implementeur-tdd (isolé) | à faire | 0/3 | — | — |
 | T18 | T16, T17 | implementeur-tdd | à faire | 0/3 | — | — |
+| T19 | T13 | implementeur-tdd | à faire | 0/3 | — | — |
+| T20 | T13 | implementeur-tdd | à faire | 0/3 | — | — |
+| T21 | T19, T20 | implementeur-tdd | à faire | 0/1 | — | — |
 
 ## Terminé quand
 toutes les tâches terminées (aucune bloquée) · double relecture sans bloquant ni majeur · suite complète Mac verte en debug et en release · S1…S5 réussis · poids du `.dmg` et H.264 écrits · PR en brouillon ouverte vers `feat/livraison-complete-l11`, non fusionnée
+
+## Double relecture, tête 0885ca8d (4 relecteurs, 0 bloquant, 6 majeurs)
+T19 (C++) : `objectediting.cpp:134-142`, sélection et changement d'outil 20 s après le collage (Majeur) ; `insertion.cpp:549-555`, `data:` décodé sur le fil de l'interface, borne avant décodage (Majeur) ; `fetched` garde `contentFile` sur redirection refusée (`clearShown`) ; `sameAsPreviousCapture` et `m_lastCapture` ; tests : un enregistrement dans le même dossier ne recharge pas, `row.history.clear`, redirection vers `file:`.
+T20 (QML) : `Main.qml:858`, `appInsertion.failed` non relié au bandeau (Majeur) ; tests du bandeau de dépôt et de collage (Majeur) ; `viewFocused` reste vrai après un clic sur la page (`WebFrameEngineView.qml:18`, Majeur, deux relecteurs) ; `pendingSnapshot` jamais annulé (`WebFrameLayer.qml:116-136`, Majeur) ; `navigateOnDropEnabled` gardes allumées à vérifier ; commentaires périmés ; `qWait(300)` ; `CHANGELOG.md:45-46` ; `docs/banc.md:302` ; `skipReason` de `cadre-web.json`.
+T21 : simplifications C++ sûres, tests inchangés, un essai.
+Relecture finale à faire sur T16 à T21.
+
+## Reprise après Q1
+Go reçu ou verrou libéré : relire `.tmp/essai-dmg.txt`, relancer `scripts/paquet-mac.sh` puis `scripts/essai-dmg.sh --lancer` sous le jeton avec `--duree-max-minutes 20` (le correctif `9c917b22` n'est pas construit), attendre `CADRE WEB OK`, `ESSAI DMG OK`, puis suite complète. Ensuite T19, T20, T21, T17, T18, relecture finale, PR. Toujours `nohup` et attente au premier plan, jamais de fond. Le jeton de T16 sans `--duree-max-minutes` a causé ce blocage.
 
 ## Décisions de l'orchestrateur
 - Banc limité à T1, T5, T7, T12, T18 (Mac, Release, 8 Go) : T6, T8, T13 touchent le QML du cadre, pas le chemin d'encre ; T18 mesure le cumul. Écart assumé au n° 36 du cadrage.
