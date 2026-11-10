@@ -20,6 +20,7 @@
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
+using actcraft::ui::WebFrameItems;
 using presentationharness::findItem;
 
 namespace {
@@ -66,11 +67,54 @@ struct DirectView
 
 const int kLoadMs = 60000;
 
+// Suit les demandes de téléchargement du profil par défaut : la vue n'en accepte aucune. `acceptIt` sert de
+// témoin positif (la demande acceptée écrit bien un fichier, donc l'observable discrimine).
+struct DownloadWatch
+{
+    std::unique_ptr<QObject> owner;
+
+    bool start(QQmlEngine& engine, const QString& dir, bool acceptIt)
+    {
+        QQmlComponent component(&engine);
+        component.setData(QByteArray("import QtQuick\nimport QtWebEngine\nQtObject {\n"
+                                     "  property bool acceptIt: false\n  property string dir: \"\"\n"
+                                     "  property int requests: 0\n"
+                                     "  Component.onCompleted: WebEngine.defaultProfile.downloadPath = dir\n"
+                                     "  property Connections watch: Connections {\n"
+                                     "    target: WebEngine.defaultProfile\n"
+                                     "    function onDownloadRequested(request) {\n"
+                                     "      requests += 1\n"
+                                     "      if (acceptIt) request.accept()\n"
+                                     "    }\n"
+                                     "  }\n}\n"),
+                          QUrl());
+        owner.reset(component.createWithInitialProperties(
+            {{QStringLiteral("acceptIt"), acceptIt}, {QStringLiteral("dir"), dir}}));
+        if (!owner) {
+            qWarning() << component.errors();
+            return false;
+        }
+        return true;
+    }
+    int requests() const { return owner->property("requests").toInt(); }
+};
+
+QVariant roleOf(const WebFrameHost& host, int role)
+{
+    return host.frames->data(host.frames->index(0, 0), role);
+}
+
+QObject* profileOf(QQuickItem* web)
+{
+    return web->property("profile").value<QObject*>();
+}
+
 } // namespace
 
 class TstUiWebEngine : public QObject
 {
     Q_OBJECT
+
 private slots:
     void initTestCase()
     {
@@ -371,16 +415,29 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(view.title(), QStringLiteral("REFUS1"), kLoadMs);
     }
 
-    // E8 : un téléchargement lancé par la page est ignoré ; la page reste.
+    // E8 : un téléchargement lancé par la page est ignoré ; la page reste. L'observable : un fichier écrit si
+    // la demande est acceptée (témoin positif), absent sinon ; la demande a bien été faite dans les deux cas.
+    void pageDownloadIsIgnored_data()
+    {
+        QTest::addColumn<bool>("acceptIt");
+        QTest::newRow("ignore (le comportement de la vue)") << false;
+        QTest::newRow("temoin : accepte") << true;
+    }
+
     void pageDownloadIsIgnored()
     {
+        QFETCH(bool, acceptIt);
         TestServer server;
         QVERIFY(server.listening());
         server.page(QStringLiteral("/f.bin"), "x");
         // Vraie réponse de téléchargement : depuis un document sans origine, un <a download> seul serait
         // suivi comme un lien (attribut ignoré hors de la même origine) et le test ne prouverait rien.
         server.header(QStringLiteral("/f.bin"), "Content-Disposition: attachment; filename=f.bin");
+        QTemporaryDir downloads;
+        QVERIFY(downloads.isValid());
         DirectView view;
+        DownloadWatch watch;
+        QVERIFY(watch.start(view.engine, downloads.path(), acceptIt));
         QVERIFY(view.start(false));
         QSignalSpy loaded(view.root.get(), SIGNAL(pageLoaded()));
         view.load(
@@ -390,8 +447,151 @@ private slots:
                 .arg(server.url(QStringLiteral("/f.bin")).toString()));
         QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
         QTRY_VERIFY_WITH_TIMEOUT(server.requests() >= 1, 10000); // le téléchargement a bien été demandé
-        QTest::qWait(500);
+        QTRY_VERIFY_WITH_TIMEOUT(watch.requests() >= 1, 10000);
+        const QString written = downloads.filePath(QStringLiteral("f.bin"));
+        if (acceptIt) {
+            QTRY_VERIFY_WITH_TIMEOUT(QFile::exists(written), 10000);
+        } else {
+            QTest::qWait(1000);
+            QVERIFY(!QFile::exists(written));
+            QVERIFY(QDir(downloads.path()).isEmpty());
+        }
         QCOMPARE(view.title(), QStringLiteral("RESTE"));
+    }
+
+    // n° 11, 12 : chaque réglage du moteur suit l'interrupteur (jamais une valeur constante).
+    void engineSettingsFollowTheGuards_data()
+    {
+        QTest::addColumn<bool>("guards");
+        QTest::newRow("gardes coupees") << false;
+        QTest::newRow("gardes allumees") << true;
+    }
+
+    void engineSettingsFollowTheGuards()
+    {
+        QFETCH(bool, guards);
+        DirectView view;
+        QVERIFY(view.start(guards));
+        QObject* settings = view.web->property("settings").value<QObject*>();
+        QVERIFY(settings);
+        for (const char* name : {"javascriptEnabled", "localStorageEnabled", "localContentCanAccessFileUrls",
+                                 "localContentCanAccessRemoteUrls"})
+            QVERIFY2(settings->property(name).toBool() == !guards, name);
+    }
+
+    // Gardes coupées (état par défaut), vrai moteur : clic sur un lien, titre et historique rapportés au
+    // modèle, précédent, suivant, recharger.
+    void realNavigationReportsToTheModel()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(
+            QStringLiteral("/a"),
+            "<title>PAGE A</title><style>body{margin:0}a{display:block;width:100%;height:100%}</style>"
+            "<a id=l href=\"/b\">suite</a>");
+        server.page(QStringLiteral("/b"), "<title>PAGE B</title><p>b</p>");
+        WebFrameHost host;
+        QVERIFY(host.start());
+        QVERIFY(!host.frames->guardsEnabled());
+        QVERIFY(host.frames->insertFrame(QString(), server.url(QStringLiteral("/a")).toString()));
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 1, kLoadMs);
+        QTRY_COMPARE_WITH_TIMEOUT(roleOf(host, WebFrameItems::TitleRole).toString(), QStringLiteral("PAGE A"),
+                                  10000);
+        QVERIFY(!roleOf(host, WebFrameItems::CanGoBackRole).toBool());
+        QQuickItem* web = findItem(host.root.get(), QStringLiteral("webFrameEngine"));
+        QVERIFY(web);
+        // Vrai clic de souris : un clic scripté (sans geste de l'utilisateur) ne laisse pas d'entrée
+        // d'historique.
+        QTest::mouseClick(&host.window, Qt::LeftButton, {}, web->mapToScene(QPointF(30, 30)).toPoint());
+        QTRY_COMPARE_WITH_TIMEOUT(roleOf(host, WebFrameItems::TitleRole).toString(), QStringLiteral("PAGE B"),
+                                  10000);
+        QTRY_VERIFY_WITH_TIMEOUT(roleOf(host, WebFrameItems::CanGoBackRole).toBool(), 10000);
+        host.frames->goBack(0);
+        QTRY_COMPARE_WITH_TIMEOUT(roleOf(host, WebFrameItems::TitleRole).toString(), QStringLiteral("PAGE A"),
+                                  10000);
+        QTRY_VERIFY_WITH_TIMEOUT(roleOf(host, WebFrameItems::CanGoForwardRole).toBool(), 10000);
+        QVERIFY(!roleOf(host, WebFrameItems::CanGoBackRole).toBool());
+        // « Suivant » est bien le suivant, pas un rechargement : la page B revient.
+        host.frames->goForward(0);
+        QTRY_COMPARE_WITH_TIMEOUT(roleOf(host, WebFrameItems::TitleRole).toString(), QStringLiteral("PAGE B"),
+                                  10000);
+        // « Recharger » est bien un rechargement : la page B est redemandée (réponse sans cache).
+        server.reset();
+        host.frames->reload(0);
+        QTRY_VERIFY_WITH_TIMEOUT(server.paths().contains(QStringLiteral("/b")), 10000);
+        QCOMPARE(roleOf(host, WebFrameItems::TitleRole).toString(), QStringLiteral("PAGE B"));
+    }
+
+    // n° 10, E12 : bascule à chaud des gardes sur le vrai moteur ; la vue est refaite avec le bon réglage.
+    void guardsToggleRebuildsTheRealView()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        QVERIFY(host.frames->insertFrame(
+            QStringLiteral("<title>avant</title><script>document.title='JS'</script>"), {}));
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 1, kLoadMs);
+        QQuickItem* web = findItem(host.root.get(), QStringLiteral("webFrameEngine"));
+        QVERIFY(web);
+        QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), QStringLiteral("JS"), 10000);
+        host.frames->setGuardsEnabled(true);
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 2, kLoadMs);
+        QQuickItem* guarded = findItem(host.root.get(), QStringLiteral("webFrameEngine"));
+        QVERIFY(guarded);
+        QVERIFY(
+            findItem(host.root.get(), QStringLiteral("webFrameView"))->property("guardsEnabled").toBool());
+        QVERIFY(profileOf(guarded)->property("offTheRecord").toBool());
+        QVERIFY(!guarded->property("settings").value<QObject*>()->property("javascriptEnabled").toBool());
+        QTest::qWait(300);
+        QCOMPARE(guarded->property("title").toString(), QStringLiteral("avant"));
+        host.frames->setGuardsEnabled(false);
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 3, kLoadMs);
+        QQuickItem* open = findItem(host.root.get(), QStringLiteral("webFrameEngine"));
+        QVERIFY(open);
+        QVERIFY(
+            !findItem(host.root.get(), QStringLiteral("webFrameView"))->property("guardsEnabled").toBool());
+        QTRY_COMPARE_WITH_TIMEOUT(open->property("title").toString(), QStringLiteral("JS"), 10000);
+    }
+
+    // n° 33 : deux vues vivantes en même temps, gardes allumées : un profil chacune, le cookie de A absent de
+    // B. Gardes coupées : un profil commun, le cookie de A part avec la requête de B.
+    void liveViewsShareOrIsolateTheirProfile_data()
+    {
+        QTest::addColumn<bool>("guards");
+        QTest::newRow("gardes allumees") << true;
+        QTest::newRow("gardes coupees") << false;
+    }
+
+    void liveViewsShareOrIsolateTheirProfile()
+    {
+        QFETCH(bool, guards);
+        const QByteArray cookie = guards ? "marque=oui" : "commun=oui";
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/doc"), "<title>DOC</title>");
+        server.header(QStringLiteral("/doc"), "Set-Cookie: " + cookie);
+        const QUrl address = server.url(QStringLiteral("/doc"));
+        DirectView a;
+        DirectView b;
+        QVERIFY(a.start(guards));
+        QVERIFY(b.start(guards));
+        QSignalSpy loadedA(a.root.get(), SIGNAL(pageLoaded()));
+        QSignalSpy loadedB(b.root.get(), SIGNAL(pageLoaded()));
+        a.root->setProperty("directUrl", address);
+        b.root->setProperty("directUrl", address);
+        QMetaObject::invokeMethod(a.root.get(), "load");
+        QTRY_COMPARE_WITH_TIMEOUT(loadedA.count(), 1, kLoadMs);
+        QMetaObject::invokeMethod(a.root.get(), "load"); // A, vivante, a reçu le cookie : il repart
+        QTRY_COMPARE_WITH_TIMEOUT(loadedA.count(), 2, kLoadMs);
+        QVERIFY2(server.lastRequest(QStringLiteral("/doc")).contains(cookie), "cookie de A non stocké");
+        QMetaObject::invokeMethod(b.root.get(), "load");
+        QTRY_COMPARE_WITH_TIMEOUT(loadedB.count(), 1, kLoadMs);
+        const bool seenByB = server.lastRequest(QStringLiteral("/doc")).contains(cookie);
+        QCOMPARE(seenByB, !guards);
+        QCOMPARE(profileOf(a.web) == profileOf(b.web), !guards);
+        if (guards) {
+            QVERIFY(profileOf(a.web)->property("offTheRecord").toBool());
+            QVERIFY(profileOf(b.web)->property("offTheRecord").toBool());
+        }
     }
 };
 
