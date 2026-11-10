@@ -96,11 +96,12 @@ function Test-Provenance($fichier) {
 
 $refuses = [System.Collections.Generic.List[string]]::new()
 
-# Qt6Core.dll (Windows), libQt6Core_arm64-v8a.so (Android) → Qt6Core.
+# Qt6Core.dll (Windows), libQt6Core_arm64-v8a.so (Android) → Qt6Core ;
+# libQt6FFmpegStub-crypto_arm64-v8a.so (stub de Qt Multimedia, Android) → Qt6FFmpegStub-crypto.
 $modules = [System.Collections.Generic.List[string]]::new()
 $qtNoms = @($fichiers | Where-Object { $_.Nom -match '^(?:lib)?Qt6.*\.(?:dll|so)$' } | ForEach-Object { $_.Nom } | Sort-Object -Unique)
 foreach ($nom in $qtNoms) {
-    if ($nom -match '^(?:lib)?(Qt6[A-Za-z0-9]+?)(?:_[A-Za-z0-9_-]+)?\.(?:dll|so)$') {
+    if ($nom -match '^(?:lib)?(Qt6[A-Za-z0-9]+?(?:-[A-Za-z0-9]+)?)(?:_[A-Za-z0-9_-]+)?\.(?:dll|so)$') {
         if (-not $modules.Contains($Matches[1])) { $modules.Add($Matches[1]) }
     } else {
         $refuses.Add("$nom (nom de module illisible)")
