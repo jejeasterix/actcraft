@@ -22,8 +22,8 @@ la release ; les versions 0.6.0 à 0.9.0 ne sont pas toutes publiées : leurs no
   permet de le faire au démarrage. Rien ne s'installe sans votre accord.
 - Accessibilité et langues : les textes visibles sont traduisibles, les profils de commandes (cinq) fonctionnent de
   bout en bout, et les raccourcis clavier ne se déclenchent pas pendant la saisie d'un texte.
-- Paquet macOS (Mac à puce Apple), non signé : clic droit > Ouvrir au premier lancement ; le guide de démarrage du
-  `README.md` détaille les deux façons de l'ouvrir.
+- Paquet macOS (Mac à puce Apple, macOS 27 ou plus récent), non signé : « Ouvrir quand même » dans Réglages Système au
+  premier lancement ; le guide de démarrage du `README.md` détaille les deux façons de l'ouvrir.
 - Depuis la 0.1.0 : de la page blanche et du stylo (0.1.0) jusqu'aux formes, au texte, aux pages et aux fichiers
   (0.2.0 à 0.5.0), à l'édition des objets, à l'export et à l'impression (0.6.0), puis aux actions, aux médias et au
   cadre web (0.9.0), la 1.0.0 rend le tout utilisable au doigt, à deux et sur tablette.

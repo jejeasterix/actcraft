@@ -70,6 +70,12 @@ if(APPLE)
         PASS_REGULAR_EXPRESSION "LICENCES EN ECHEC : avis-brevets-H.264")
 endif()
 
+# Minimum macOS d'un bundle (verifier-minos-mac.sh) : de petits bundles construits par clang, minimum conforme, absent, dépassé.
+if(APPLE)
+    add_test(NAME tst_minos_mac COMMAND ${PROJECT_SOURCE_DIR}/tests/verifier-minos-mac.sh)
+    set_tests_properties(tst_minos_mac PROPERTIES PASS_REGULAR_EXPRESSION "MINOS ESSAI OK")
+endif()
+
 # Fichier ouvert au lancement (S4, décision 26).
 actcraft_add_test(tst_app_open
     SOURCES tst_app_open.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp

@@ -98,6 +98,9 @@ nom="$(plutil -extract CFBundleName raw "$app/Contents/Info.plist" 2>/dev/null)"
 [ "$nom" = ActCraft ] || echec "CFBundleName = « $nom », attendu « ActCraft »"
 grep -q 'PlugIns' "$app/Contents/Resources/qt.conf" 2>/dev/null || echec "qt.conf absent ou sans chemin des greffons"
 codesign --verify --deep --strict "$app" 2> /dev/null || echec "signature ad hoc invalide"
+# Minimum macOS déclaré et respecté par chaque binaire du bundle monté.
+minos="$(scripts/verifier-minos-mac.sh "$app")" || echec "minimum macOS : $minos"
+echo "$minos"
 
 # Tous les fichiers (binaires de framework sans extension ni droit x) ; les non Mach-O sont ignorés.
 restes="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |

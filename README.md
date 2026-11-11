@@ -24,7 +24,7 @@ soutenu par Promethean.
 
 - **Windows 10 ou 11** : `ActCraft-<version>-setup.exe`, sans droits d'administrateur.
 - **Android 9 ou plus** : `ActCraft-<version>-arm64-v8a.apk`.
-- **macOS** (Mac à puce Apple) : `ActCraft-<version>-macos-arm64.dmg`, non signé.
+- **macOS 27 ou plus récent** (Mac à puce Apple) : `ActCraft-<version>-macos-arm64.dmg`, non signé.
 
 Les paquets seront publiés sur la page des [versions](https://github.com/jejeasterix/actcraft/releases) du dépôt.
 Les paquets de la prochaine version ne sont pas encore publiés.
@@ -45,14 +45,13 @@ installez.
 
 ### Installer sous macOS
 
-1. Ouvrez `ActCraft-<version>-macos-arm64.dmg` (Mac à puce Apple), puis glissez ActCraft dans le dossier
-   Applications.
-2. Le paquet n'est **pas signé** : ni certificat de développeur, ni notarisation par Apple. macOS le dit au premier
-   lancement.
-   - macOS 14 et avant : dans Applications, clic droit sur ActCraft, puis « Ouvrir », puis « Ouvrir ».
-   - macOS 15 et après : ouvrez ActCraft une fois (macOS le refuse), puis Réglages Système > Confidentialité et
-     sécurité > « Ouvrir quand même ».
-3. Pourquoi : macOS marque tout fichier téléchargé (attribut `com.apple.quarantine`) et refuse d'ouvrir une
+1. Vérifiez que votre Mac est à puce Apple et sous **macOS 27 ou plus récent** : le paquet déclare ce minimum, et
+   macOS refuse de l'ouvrir sur un système plus ancien.
+2. Ouvrez `ActCraft-<version>-macos-arm64.dmg`, puis glissez ActCraft dans le dossier Applications.
+3. Le paquet n'est **pas signé** : ni certificat de développeur, ni notarisation par Apple. macOS le dit au premier
+   lancement : ouvrez ActCraft une fois (macOS le refuse), puis Réglages Système > Confidentialité et sécurité >
+   « Ouvrir quand même ».
+4. Pourquoi : macOS marque tout fichier téléchargé (attribut `com.apple.quarantine`) et refuse d'ouvrir une
    application marquée qui n'a pas été notarisée par Apple. Cette marque se retire en une ligne, dans le Terminal :
 
    ```sh

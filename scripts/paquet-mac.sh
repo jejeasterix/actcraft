@@ -28,6 +28,18 @@ qt="${ACTCRAFT_QT_DIR:-$(brew --prefix qt 2>/dev/null)}"
 macdeployqt="$qt/bin/macdeployqt"
 [ -x "$macdeployqt" ] || echec "macdeployqt introuvable ($macdeployqt) : ACTCRAFT_QT_DIR ou brew install qt"
 
+# Minimum macOS déclaré (LSMinimumSystemVersion) et cible de déploiement de la construction. Qt de Homebrew : ses
+# bibliothèques (ICU, PCRE2, double-conversion copiées par macdeployqt, Qt WebEngine) sont construites pour le macOS du
+# Mac qui les a produites (minos 27.0 relevé le 2026-11-11), le paquet exige donc macOS 27. Qt officiel (aqt) :
+# 14.4, le minimum de Qt 6.12. scripts/verifier-minos-mac.sh refuse un bundle dont un binaire exigerait plus.
+# Le Qt est celui de Homebrew s'il en porte le chemin, que ACTCRAFT_QT_DIR le désigne ou non (ci-ciblee.yml le fait).
+brew_qt_minimum="$(brew --prefix qt 2>/dev/null)"
+if [ -n "$brew_qt_minimum" ] && [ "$qt" = "$brew_qt_minimum" ]; then
+  minimum_macos=27.0
+else
+  minimum_macos=14.4
+fi
+
 build="$racine/build/macos-paquet"
 if [ "$construire" = 1 ]; then
   lanceur=""
@@ -35,7 +47,8 @@ if [ "$construire" = 1 ]; then
     lanceur="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
   fi
   # shellcheck disable=SC2086 # $lanceur : zéro ou deux options
-  cmake -S . -B "$build" -G Ninja -DCMAKE_PREFIX_PATH="$qt" -DCMAKE_BUILD_TYPE=Release $lanceur ||
+  cmake -S . -B "$build" -G Ninja -DCMAKE_PREFIX_PATH="$qt" -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET="$minimum_macos" $lanceur ||
     echec "configuration CMake"
   cmake --build "$build" --target actcraft --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-2}" || echec "compilation Release"
 fi
@@ -251,6 +264,13 @@ code=$?
 echo "$licences"
 [ "$code" = 0 ] && [ "$(echo "$licences" | tail -1)" = "LICENCES OK" ] || echec "licences (voir ci-dessus)"
 
+# Minimum macOS : déclaré dans l'Info.plist, et aucun binaire du bundle n'en exige plus (après le dernier retrait de
+# bibliothèque, avant la signature).
+minos="$(scripts/verifier-minos-mac.sh "$app")"
+code=$?
+echo "$minos"
+[ "$code" = 0 ] && [ "$(echo "$minos" | tail -1)" = "MINOS OK : minimum $minimum_macos" ] || echec "minimum macOS (voir ci-dessus)"
+
 # Signature ad hoc, après toute écriture dans le bundle (elle scelle Contents/Resources).
 codesign --force --deep -s - "$app" || echec "signature ad hoc"
 codesign --verify --deep --strict "$app" || echec "signature ad hoc invalide"
@@ -258,15 +278,17 @@ codesign --verify --deep --strict "$app" || echec "signature ad hoc invalide"
 ln -s /Applications "$stage/Applications"
 cp LICENSE "$stage/LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$stage/"
-cat > "$stage/LISEZ-MOI.txt" <<'TEXTE'
+cat > "$stage/LISEZ-MOI.txt" <<TEXTE
 ActCraft pour macOS (Mac Apple Silicon)
 
 Installer : glisser ActCraft dans le dossier Applications.
+Système requis : macOS $minimum_macos ou plus récent (sur un macOS plus ancien, le Finder refuse de l'ouvrir).
 
 Cette version n'est pas signée par un certificat de développeur Apple. Au premier lancement, macOS la bloque :
-- macOS 14 et avant : clic droit (ou Contrôle + clic) sur ActCraft, « Ouvrir », puis « Ouvrir » encore ;
 - macOS 15 et après : ouvrir ActCraft une fois, puis Réglages Système > Confidentialité et sécurité,
   « Ouvrir quand même ».
+- macOS 14 (Qt officiel seulement, minimum 14.4) : clic droit (ou Contrôle + clic) sur ActCraft, « Ouvrir », puis
+  « Ouvrir » encore.
 Autre manière, dans le Terminal : xattr -dr com.apple.quarantine /Applications/ActCraft.app
 (retire la marque que macOS pose sur les fichiers téléchargés).
 TEXTE
