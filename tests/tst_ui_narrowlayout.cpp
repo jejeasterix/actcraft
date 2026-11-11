@@ -5,11 +5,14 @@
 #include <actcraft/ui/pageview.h>
 #include <actcraft/ui/preferences.h>
 
+#include <QFont>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QStyleHints>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QWheelEvent>
@@ -410,6 +413,12 @@ void TstUiNarrowlayout::paletteFitsShortWindow()
             QCoreApplication::sendEvent(s.window, &wheel);
             QTest::qWait(20);
         }
+        qDebug() << "SONDE" << size << "contentY" << flick->property("contentY") << "contentH"
+                 << flick->property("contentHeight") << "flickH" << flick->height() << "last"
+                 << last->objectName() << last->mapToItem(flick, QPointF(0, 0)) << "lines"
+                 << QGuiApplication::styleHints()->wheelScrollLines() << "moving" << flick->property("moving")
+                 << "maxV" << flick->property("maximumFlickVelocity") << "decel"
+                 << flick->property("flickDeceleration");
         QTRY_VERIFY(inView());
     }
 }

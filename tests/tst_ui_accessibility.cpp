@@ -4,18 +4,22 @@
 #include <actcraft/actions/commandregistry.h>
 
 #include <QAccessible>
+#include <QFont>
+#include <QGuiApplication>
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QStyleHints>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <algorithm>
+#include <functional>
 
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
@@ -383,6 +387,33 @@ private slots:
             ++opened;
             QTest::qWait(300); // fin de l'animation d'ouverture
             const QImage image = s.window->grabWindow();
+            if (id == QStringLiteral("file.print")) { // SONDE
+                const QString dir = qEnvironmentVariable("JOURNAUX");
+                if (!dir.isEmpty())
+                    image.save(dir + QStringLiteral("/sonde-impression.png"));
+                qDebug() << "SONDE dpr" << dpr << "window" << s.window->size();
+                for (QObject* p : openPopups(s)) {
+                    QQuickItem* r = popupRoot(p);
+                    qDebug() << "SONDE popup" << p->objectName() << r->mapRectToScene(r->boundingRect())
+                             << "implicitW" << p->property("implicitWidth");
+                    QList<QQuickItem*> all;
+                    std::function<void(QQuickItem*)> walk = [&](QQuickItem* i) {
+                        all << i;
+                        for (QQuickItem* c : i->childItems())
+                            walk(c);
+                    };
+                    walk(r);
+                    for (QQuickItem* it : std::as_const(all)) {
+                        const QString n = it->objectName();
+                        const QByteArray c = it->metaObject()->className();
+                        if (!n.isEmpty() || c.contains("Layout") || c.contains("CheckLabel"))
+                            qDebug().noquote()
+                                << "SONDE" << c << n << it->mapRectToScene(it->boundingRect()) << "impl"
+                                << it->implicitWidth() << it->implicitHeight() << "vis" << it->isVisible()
+                                << "font" << it->property("font").value<QFont>().toString();
+                    }
+                }
+            }
             for (QObject* popup : openPopups(s)) {
                 collectTexts(popupRoot(popup), image, dpr, failures, id, checked);
             }
