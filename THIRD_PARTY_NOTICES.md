@@ -81,6 +81,8 @@ Tous sous `LGPL-3.0-only`, liés dynamiquement.
 - `Qt6Concurrent` : calculs en parallèle.
 - `Qt6Multimedia` : lecture et enregistrement du son et de la vidéo, avec FFmpeg (voir plus bas).
 - `Qt6MultimediaQuick` : lecteur multimédia de l'interface.
+- `Qt6FFmpegStub-crypto` : bibliothèque de substitution de Qt Multimedia (Android), à la place de la bibliothèque `crypto` d'OpenSSL qu'attend FFmpeg. ActCraft ne livre pas OpenSSL.
+- `Qt6FFmpegStub-ssl` : bibliothèque de substitution de Qt Multimedia (Android), à la place de la bibliothèque `ssl` d'OpenSSL qu'attend FFmpeg.
 - `Qt6WebView` : cadre web intégré, par le moteur web du système.
 - `Qt6WebViewQuick` : cadre web de l'interface.
 - `Qt6DBus` : bus de messages D-Bus, tiré par QtGui de Homebrew (paquet macOS).
