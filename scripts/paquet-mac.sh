@@ -63,8 +63,21 @@ journal="$paquet/macdeployqt.txt"
 # bundle. Ces lignes ne sont pas un verdict : la référence est réécrite plus bas si son framework est dans le bundle,
 # son greffon est retiré si son module n'est pas importé, et toute référence @rpath restée sans cible est refusée
 # après la boucle des retraits.
+# Qt officiel (aqt) : greffons SQL des bases externes (Mimer, ODBC, PostgreSQL), liés à des clients absents du Mac ;
+# macdeployqt signale chacun de ces clients (« can't open file », « no file at »). ActCraft n'utilise que SQLite (stockage
+# local de Qt Quick) : ces greffons sont retirés, et seules les lignes qui nomment un de leurs clients sont écartées.
+sql_externes="libqsqlmimer.dylib libqsqlodbc.dylib libqsqlpsql.dylib"
+clients_sql="$journal.clients-sql"
+: > "$clients_sql"
+for greffon in $sql_externes; do
+  [ -f "$qt/plugins/sqldrivers/$greffon" ] || continue
+  otool -arch arm64 -L "$qt/plugins/sqldrivers/$greffon" | awk 'NR > 1 && $1 ~ /^\// && $1 !~ /^\/(usr\/lib|System)\// { print $1 }' >> "$clients_sql"
+  rm -f "$app/Contents/PlugIns/sqldrivers/$greffon"
+done
 erreur="$(grep '^ERROR' "$journal" | grep -v 'ActCraft\.Ui' |
-  grep -vE '^ERROR: +using QList\(|^ERROR: Cannot resolve rpath "@rpath/' | head -1)"
+  grep -vE '^ERROR: +using QList\(|^ERROR: Cannot resolve rpath "@rpath/' |
+  { if [ -s "$clients_sql" ]; then grep -vF -f "$clients_sql"; else cat; fi; } | head -1)"
+rm -f "$clients_sql"
 [ -z "$erreur" ] || echec "macdeployqt : $erreur"
 
 # Qt WebEngine (cadrage DA4) : le greffon référence @rpath/QtWebEngine…, que macdeployqt ne résout pas chez Homebrew, et
@@ -86,6 +99,20 @@ copier_framework qtwebchannel QtWebChannel
 copier_framework qtwebchannel QtWebChannelQuick
 copier_framework qtpositioning QtPositioning
 
+# Qt officiel (aqt) : binaires universels (x86_64 et arm64). L'image ne vise que les Mac Apple Silicon : chaque Mach-O
+# universel est réduit à arm64 (moitié du poids), et otool -L n'écrit plus qu'une section par fichier, comme les
+# analyses plus bas l'attendent (sinon « fichier (architecture x86_64): » rend leurs listes aveugles).
+while IFS= read -r -d '' fichier; do
+  archs="$(lipo -archs "$fichier" 2>/dev/null)" || continue
+  [ "$archs" = arm64 ] && continue
+  case " $archs " in
+    *" arm64 "*) ;;
+    *) echec "binaire sans arm64 : ${fichier#"$app"/} ($archs)" ;;
+  esac
+  chmod u+w "$fichier"
+  lipo -thin arm64 "$fichier" -output "$fichier" || echec "réduction à arm64 : ${fichier#"$app"/}"
+done < <(find "$app" -type f -print0)
+
 # macdeployqt copie en entier les dossiers d'import de Qt (QtQuick/, QtQml/) : il y entraîne des modules qu'ActCraft
 # n'importe pas, dont deux sous GPL seule (Qt Virtual Keyboard, Qt Quick Timeline : « Jamais » de qt-autorises.txt),
 # Qt 3D (Scene2D, Scene3D) et State Machine. Chaque module part avec les greffons que ses liens désignent
@@ -103,6 +130,13 @@ for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/S
 done
 rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
 rm -rf "$app/Contents/PlugIns/webview" # Qt WebView : Android seulement (cadrage n° 8)
+# Greffon FFmpeg de Qt Multimedia (Qt officiel) : il embarque les bibliothèques de FFmpeg, décodeur H.264 compris, que la
+# release ne redistribue pas sur Mac (décision de Jérôme : release sans H.264). Le greffon darwin reste (AVFoundation,
+# codecs du système), comme avec Qt Homebrew, qui n'a que lui ; les bibliothèques de FFmpeg, plus référencées, partent
+# dans la boucle plus bas.
+rm -f "$app/Contents/PlugIns/multimedia/libffmpegmediaplugin.dylib"
+[ -f "$app/Contents/PlugIns/multimedia/libdarwinmediaplugin.dylib" ] ||
+  echec "greffon multimédia darwin absent du bundle (PlugIns/multimedia)"
 # Greffon NMEA de Qt Positioning (récepteur GPS série) : il lie Qt Serial Port, hors de qt-autorises.txt, que la boucle
 # plus bas retire une fois ce greffon parti. Qt Positioning reste : Qt WebEngine le lie.
 rm -f "$app/Contents/PlugIns/position/libqtposition_nmea.dylib"
@@ -174,9 +208,10 @@ find "$app/Contents/Frameworks" -type f | while read -r fichier; do
   esac
 done
 
-# Tous les fichiers (binaires de framework sans extension ni droit x) ; les non Mach-O sont ignorés.
+# Tous les fichiers (binaires de framework sans extension ni droit x) ; les non Mach-O sont ignorés. Tout chemin absolu
+# hors du système (/usr/lib, /System) est refusé : Homebrew, /usr/local, ou un client installé ailleurs (Postgres.app).
 restes="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |
-  grep -E '^[[:space:]]+(/opt/homebrew|/usr/local)/' | sort -u)"
+  grep -E '^[[:space:]]+/' | grep -vE '^[[:space:]]+/(usr/lib|System)/' | sort -u)"
 [ -z "$restes" ] || echec "dépendances hors du bundle : $(echo "$restes" | head -3 | tr -s '[:space:]' ' ')"
 # Une référence @rpath que macdeployqt n'a pas réécrite doit trouver sa cible dans Contents/Frameworks : sinon dyld la
 # cherche ailleurs (rpaths de Homebrew restés dans un greffon) ou ne la trouve pas.
