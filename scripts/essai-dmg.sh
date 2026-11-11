@@ -5,7 +5,10 @@
 # liés) et au lancement (greffons cocoa, images, QML, chargés après QGuiApplication) ; `--lancer` ouvre aussi un vrai
 # cadre web depuis l'image. Journaux sous .tmp/. Une application qui ne se termine pas seule (fenêtre en attente d'une
 # réponse) est arrêtée et l'essai échoue : ACTCRAFT_ESSAI_DELAI (secondes, 90 par défaut) borne le lancement.
-# Usage : scripts/essai-dmg.sh [<image.dmg>] [--lancer]   (--lancer : fenêtre ouverte 20 s sur l'écran du Mac)
+# --h264 (implique --lancer) : le cadre ouvre tests/data/media/essai-h264.html, qui lit essai-h264.mp4 (H.264 et AAC,
+# 4 s, mire et son synthétiques produits par ffmpeg) ; il doit en décoder 2 s (« ACTCRAFT H264 w=… h=… t=… ») et annoncer AAC lisible (codecs
+# propriétaires de Qt WebEngine, release).
+# Usage : scripts/essai-dmg.sh [<image.dmg>] [--lancer] [--h264]   (fenêtre ouverte 20 s sur l'écran du Mac)
 # Dernière ligne et code : « ESSAI DMG OK » (0) ou « ESSAI DMG EN ECHEC : <raison> » (1).
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -17,9 +20,11 @@ echec() {
 [ -n "$version" ] || echec "version introuvable dans CMakeLists.txt"
 dmg=""
 lancer=0
+h264=0
 for option in "$@"; do
   case "$option" in
     --lancer) lancer=1 ;;
+    --h264) lancer=1 h264=1 ;;
     -*) echec "option inconnue : $option" ;;
     *) dmg="$option" ;;
   esac
@@ -114,6 +119,10 @@ if [ "$lancer" = 1 ]; then
   echo "Fenêtre d'ActCraft ouverte 20 s sur l'écran du Mac (un vrai cadre web)."
   page="$(pwd -P)/.tmp/essai-cadre.html"
   printf '%s\n' '<title>ESSAI</title><script>console.warn("ACTCRAFT JS OK")</script><p>Cadre chargé.</p>' > "$page"
+  if [ "$h264" = 1 ]; then
+    cp tests/data/media/essai-h264.html tests/data/media/essai-h264.mp4 .tmp/ || echec "copie de tests/data/media/essai-h264.*"
+    page="$(pwd -P)/.tmp/essai-h264.html"
+  fi
   delai="${ACTCRAFT_ESSAI_DELAI:-90}"
   borne "$delai" env QT_FORCE_STDERR_LOGGING=1 DYLD_PRINT_LIBRARIES=1 "$exe" --essai-cadre-web "$page" --quitter-apres 20000 > /dev/null 2> .tmp/essai-dmg-dyld-lancement.txt
   code=$?
@@ -129,6 +138,14 @@ if [ "$lancer" = 1 ]; then
   grep -q 'ACTCRAFT JS OK' .tmp/essai-dmg-dyld-lancement.txt ||
     echec "le script de la page n'a pas tourné (.tmp/essai-dmg-dyld-lancement.txt)"
   echo "CADRE WEB OK"
+  if [ "$h264" = 1 ]; then
+    ligne="$(grep -o 'ACTCRAFT H264 w=[1-9][0-9]* h=[1-9][0-9]* t=[0-9.]*' .tmp/essai-dmg-dyld-lancement.txt | head -1)"
+    [ -n "$ligne" ] || echec "vidéo H.264 non décodée dans le cadre : $(grep -o 'ACTCRAFT H264 ECHEC[^"]*' .tmp/essai-dmg-dyld-lancement.txt | head -1) (.tmp/essai-dmg-dyld-lancement.txt)"
+    grep -q 'ACTCRAFT AAC probably' .tmp/essai-dmg-dyld-lancement.txt ||
+      echec "AAC non lisible dans le cadre : $(grep -o 'ACTCRAFT AAC[^"]*' .tmp/essai-dmg-dyld-lancement.txt | head -1)"
+    echo "$ligne"
+    echo "AAC OK"
+  fi
   hors_systeme .tmp/essai-dmg-chemins-lancement.txt .tmp/essai-dmg-refuses-lancement.txt ||
     echec "greffons ou bibliothèques chargés hors du bundle : $(head -3 .tmp/essai-dmg-refuses-lancement.txt | tr '\n' ';') (liste : .tmp/essai-dmg-refuses-lancement.txt)"
   echo "LANCEMENT OK"

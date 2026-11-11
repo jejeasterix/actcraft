@@ -13,8 +13,10 @@ name: Release
 # PC, étapes de paquet-windows de ci.yml), et sauf « secrets » et « android » en mode réel (ubuntu-latest) : ce sont
 # les deux seuls jobs qui lisent les secrets de signature, et le Mac, dont le cache d'outils et le runner sont réécrits
 # par les jobs de PR, ne les reçoit jamais. Aucun repli sur macos-latest ni windows-latest.
-# Qt officiel (aqtinstall), jamais celui de Homebrew : son Qt WebEngine a les codecs propriétaires (H.264), que la
-# release ne redistribue pas (décision de Jérôme). Chaque job de paquet le vérifie avant de construire.
+# H.264 et AAC dans le cadre web (décision de Jérôme, 2026-11-11 : « inclus h264 directement sans demander de
+# contrats ») : chaque job de paquet du PC et du Mac exige un Qt WebEngine construit avec les codecs propriétaires
+# (docs/etudes/2026-11-11-h264-webengine.md). Mac : Qt de Homebrew, en lecture seule. Windows : Qt officiel copié dans
+# C:\Qt\<version>-h264, avec Qt WebEngine 6.11.3 construit sur le PC avec les codecs (scripts/qtwebengine-h264.ps1).
 # Mode « essai » : tout est construit et essayé, l'APK est signé par une clé de débogage (non publiable) ; aucun
 # secret lu, aucun artefact téléversé, aucune release. Un job y prouve que le mode réel, privé de secrets, échoue avec
 # son message. Le tag, sa poussée et la publication du brouillon relèvent du go écrit de Jérôme (action finale,
@@ -233,20 +235,24 @@ jobs:
       - name: Nettoyer la copie de travail, sauf build/
         run: git clean -ffdx -e /build/
 
-      # Qt de C:\Qt (aqtinstall, Qt officiel), comme ci.yml, mais Qt WebEngine exigé : la release l'embarque. Son
-      # Qt WebEngine doit être sans codecs propriétaires (H.264), relevé dans les fonctions activées de son module.
-      - name: Qt du PC (Qt WebEngine sans H.264)
+      # Qt de la release : copie du Qt officiel de C:\Qt (celui de ci.yml, inchangé) où Qt WebEngine 6.11.3 a été construit
+      # avec les codecs propriétaires (H.264, AAC) par scripts/qtwebengine-h264.ps1, une fois, hors CI. Témoin de ce
+      # script et fonctions activées de Qt WebEngine exigés ; aucune construction de Chromium dans ce job.
+      - name: Qt du PC (Qt WebEngine avec H.264)
         shell: pwsh
         run: |
-          $qt = "C:\Qt\$env:QT_VERSION\msvc2022_64"
+          $qt = "C:\Qt\$env:QT_VERSION-h264\msvc2022_64"
+          $temoin = Join-Path $qt '.actcraft-h264'
+          if (-not (Test-Path $temoin)) { "::error::$temoin absent : construire Qt WebEngine avec H.264 sur le PC (pwsh -NoProfile -File ./scripts/qtwebengine-h264.ps1)"; exit 1 }
+          Get-Content $temoin
           foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf', 'Qt6Multimedia', 'Qt6WebEngineQuick', 'Qt6WebChannel', 'Qt6Positioning') {
-            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning)"; exit 1 }
+            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (copie du Qt officiel incomplète : relancer scripts/qtwebengine-h264.ps1)"; exit 1 }
           }
           $pri = "$qt\mkspecs\modules\qt_lib_webenginecore_private.pri"
           $actives = Select-String -LiteralPath $pri -Pattern '^QT\.webenginecore_private\.enabled_features\s*=' -ErrorAction SilentlyContinue
           if (-not $actives) { "::error::fonctions de Qt WebEngine illisibles ($pri)"; exit 1 }
-          if ($actives.Line -match '(^|\s)webengine-proprietary-codecs(\s|$)') { "::error::Qt WebEngine de $qt avec codecs propriétaires (H.264) : refusé pour la release"; exit 1 }
-          "Qt WebEngine sans codecs propriétaires ($pri)"
+          if ($actives.Line -notmatch '(^|\s)webengine-proprietary-codecs(\s|$)') { "::error::Qt WebEngine de $qt sans codecs propriétaires (H.264) : refusé pour la release"; exit 1 }
+          "Qt WebEngine avec codecs propriétaires ($pri)"
           "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
           "$qt\bin" >> $env:GITHUB_PATH
           # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.
@@ -280,7 +286,8 @@ jobs:
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
       # build/release est partagé avec les runs d'autres branches (ci.yml, preuves-windows.yml) : le cache CMake est
-      # retiré pour que les options de ce commit s'appliquent ; Ninja garde les objets compilés.
+      # retiré pour que les options de ce commit s'appliquent ; Ninja garde les objets compilés. Le Qt de la release
+      # (copie à codecs) diffère de celui de ci.yml : la première compilation après un run de ci.yml est complète.
       - name: Cache CMake de build/release retiré
         shell: pwsh
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/CMakeCache.txt, build/release/CMakeFiles
@@ -320,6 +327,15 @@ jobs:
           pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -HorsEcran | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/s1.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
 
+      # Informatif : le cadre web exige une vraie fenêtre, que le runner (service) n'a pas sûrement. La preuve H.264 de
+      # la release se joue sur le PC, en session ouverte : pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -H264.
+      - name: Essai H.264 dans un cadre web (informatif)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -H264 | Tee-Object -FilePath "$env:RUNNER_TEMP/h264.txt"
+          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/h264.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
+
       - name: Somme SHA-256
         shell: pwsh
         env:
@@ -343,8 +359,8 @@ jobs:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     runs-on: [self-hosted, macOS, ARM64, actcraft]
-    # 45 min d'attente possible au hook de début de job (place de compilation), puis premier run : Qt officiel
-    # téléchargé dans le cache du runner (Qt WebEngine compris), compilation Release, image disque.
+    # 45 min d'attente possible au hook de début de job (place de compilation), puis compilation Release (ccache) et
+    # image disque.
     timeout-minutes: 135
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -352,55 +368,39 @@ jobs:
       # Dépôt privé, et 3 Go de mémoire disponible avant de compiler (le Mac porte aussi les sessions Claude).
       - uses: ./.github/actions/gardes-mac
 
-      # Qt officiel installé une fois dans le cache du runner (hors des worktrees des sessions), jamais celui de
-      # Homebrew (codecs propriétaires). Dossier propre à ce job et nommé par la liste des modules : un cache trouvé
-      # n'est jamais réinstallé, et le cache Qt/ de ci.yml (autres modules, autre témoin) ne l'efface pas. Une autre
-      # liste de modules prend un autre dossier ; les anciens dossiers sont retirés à l'installation. Témoin écrit en
-      # dernier : une installation interrompue est refaite au run suivant. ccache garde la compilation chaude.
-      - name: Qt officiel, Ninja et ccache du Mac
+      # Qt de Homebrew, en lecture seule (jamais installé ni mis à jour ici) : son Qt WebEngine (formule qtwebengine) a
+      # les codecs propriétaires, que le Qt officiel n'a pas. Version de qtbase exigée égale à QT_VERSION. ACTCRAFT_QT_DIR
+      # reste vide : paquet-mac.sh prend alors $(brew --prefix qt) et les frameworks de Qt WebEngine dans leur formule.
+      - name: Qt de Homebrew, Ninja et ccache du Mac
         shell: bash
         run: |
           cache="$HOME/actions-runner-actcraft/_cache"
-          modules="qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning"
-          base="$cache/Qt-officiel"
-          racine="$base/$QT_VERSION-$(echo "$modules" | tr ' ' '-')"
-          if [ -f "$racine/.complet" ]; then
-            echo "Qt $QT_VERSION officiel trouvé dans le cache : $racine"
-          else
-            rm -rf "$base"
-            mkdir -p "$racine"
-            python3 -m venv "$cache/venv-aqt"
-            "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-            # shellcheck disable=SC2086 # $modules : un mot par module
-            "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m $modules --outputdir "$racine"
-            touch "$racine/.complet"
-          fi
-          qt_dir="$racine/$QT_VERSION/macos"
-          [ -x "$qt_dir/bin/macdeployqt" ] || { echo "::error::macdeployqt absent de $qt_dir"; exit 1; }
+          brew_qt="$(brew --prefix qt 2>/dev/null)" || { echo "::error::Homebrew ou sa formule qt absents du Mac"; exit 1; }
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1)
+          [ "$version" = "$QT_VERSION" ] || { echo "::error::Qt de Homebrew ${version:-illisible} ≠ $QT_VERSION (brew install qt qtwebengine)"; exit 1; }
+          [ -x "$brew_qt/bin/macdeployqt" ] || { echo "::error::macdeployqt absent de $brew_qt"; exit 1; }
+          brew_we="$(brew --prefix qtwebengine 2>/dev/null)"
+          [ -d "$brew_we/lib/QtWebEngineCore.framework" ] || { echo "::error::formule qtwebengine absente du Mac (brew install qtwebengine)"; exit 1; }
           command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
-          echo "Qt : $qt_dir"
-          echo "ACTCRAFT_QT_DIR=$qt_dir" >> "$GITHUB_ENV"
-          echo "$qt_dir/bin" >> "$GITHUB_PATH"
+          echo "Qt de Homebrew $version : $brew_qt ; Qt WebEngine : $brew_we"
+          echo "QTWEBENGINE_PRI=$brew_we/share/qt/mkspecs/modules/qt_lib_webenginecore_private.pri" >> "$GITHUB_ENV"
           # 4 compilations à la fois : le Mac (8 Go) garde de la mémoire pour les sessions pendant le build.
           echo "CMAKE_BUILD_PARALLEL_LEVEL=4" >> "$GITHUB_ENV"
           if command -v ccache >/dev/null; then
-            echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
-            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
             echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
           fi
 
-      # Qt WebEngine sans codecs propriétaires (H.264) : relevé dans les fonctions activées de son module.
-      - name: Qt WebEngine sans H.264
+      # Qt WebEngine avec codecs propriétaires (H.264, AAC) : relevé dans les fonctions activées de son module.
+      - name: Qt WebEngine avec H.264
         shell: bash
         run: |
-          pri="$ACTCRAFT_QT_DIR/mkspecs/modules/qt_lib_webenginecore_private.pri"
-          actives=$(grep -E '^QT\.webenginecore_private\.enabled_features[[:space:]]*=' "$pri") ||
-            { echo "::error::fonctions de Qt WebEngine illisibles ($pri)"; exit 1; }
-          if grep -qE '(^|[[:space:]])webengine-proprietary-codecs([[:space:]]|$)' <<<"$actives"; then
-            echo "::error::Qt WebEngine de $ACTCRAFT_QT_DIR avec codecs propriétaires (H.264) : refusé pour la release"
+          actives=$(grep -E '^QT\.webenginecore_private\.enabled_features[[:space:]]*=' "$QTWEBENGINE_PRI") ||
+            { echo "::error::fonctions de Qt WebEngine illisibles ($QTWEBENGINE_PRI)"; exit 1; }
+          if ! grep -qE '(^|[[:space:]])webengine-proprietary-codecs([[:space:]]|$)' <<<"$actives"; then
+            echo "::error::Qt WebEngine de Homebrew sans codecs propriétaires (H.264) : refusé pour la release"
             exit 1
           fi
-          echo "Qt WebEngine sans codecs propriétaires ($pri)"
+          echo "Qt WebEngine avec codecs propriétaires ($QTWEBENGINE_PRI)"
 
       # paquet-mac.sh refuse une construction où ACTCRAFT_MEDIA ou ACTCRAFT_WEBFRAME vaut OFF (module Qt manquant), et
       # appelle verifier-licences-mac.sh (LICENCES OK exigé).

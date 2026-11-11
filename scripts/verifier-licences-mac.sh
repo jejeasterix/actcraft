@@ -70,6 +70,12 @@ for lib in "$app"/Contents/Frameworks/*.dylib; do
   sans_gpl_seule "$licence" || refuses="$refuses $nom(GPL)"
   echo "  $nom : $licence"
 done
+# Qt WebEngine livré avec les codecs propriétaires (release) : l'avis sur les brevets H.264 et AAC doit être dans le
+# bundle (packaging/qt-autorises.txt, fin du fichier).
+if [ -d "$app/Contents/Frameworks/QtWebEngineCore.framework" ] &&
+  ! grep -qx '### Brevets des codecs H.264 et AAC' "$app/Contents/Resources/THIRD_PARTY_NOTICES.md" 2>/dev/null; then
+  refuses="$refuses avis-brevets-H.264(Contents/Resources/THIRD_PARTY_NOTICES.md)"
+fi
 if [ -n "$refuses" ]; then
   echo "LICENCES EN ECHEC :$refuses"
   exit 1

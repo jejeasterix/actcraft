@@ -82,8 +82,8 @@ rm -f "$clients_sql"
 
 # Qt WebEngine (cadrage DA4) : le greffon référence @rpath/QtWebEngine…, que macdeployqt ne résout pas chez Homebrew, et
 # le processus auxiliaire exige Helpers/ et Resources/ complets : frameworks copiés entiers, en-têtes retirés.
-# Repli sur la formule Homebrew seulement sans ACTCRAFT_QT_DIR : avec un Qt désigné (Qt officiel de release.yml), un
-# framework manquant arrête le paquet au lieu de prendre celui de Homebrew (Qt WebEngine à codecs propriétaires).
+# Repli sur la formule Homebrew seulement sans ACTCRAFT_QT_DIR (cas de release.yml) : avec un Qt désigné, un framework
+# manquant arrête le paquet au lieu de mêler un Qt WebEngine d'une autre provenance.
 copier_framework() { # <formule Homebrew> <nom du framework>
   local source="$qt/lib/$2.framework"
   [ -d "$source" ] || [ -n "${ACTCRAFT_QT_DIR:-}" ] || source="$(brew --prefix "$1" 2>/dev/null)/lib/$2.framework"
@@ -133,9 +133,9 @@ done
 rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
 rm -rf "$app/Contents/PlugIns/webview" # Qt WebView : Android seulement (cadrage n° 8)
 # Greffon FFmpeg de Qt Multimedia (Qt officiel ; Qt Homebrew n'a que le greffon darwin) : il tire les bibliothèques de
-# FFmpeg, décodeur H.264 compris. Le paquet Mac n'en a jamais livré (THIRD_PARTY_NOTICES.md : FFmpeg sous Windows et
-# Android) et la release n'ajoute pas de H.264 (décision de Jérôme) : retiré. Le greffon darwin reste (AVFoundation,
-# codecs du système) ; les bibliothèques de FFmpeg, plus référencées, partent dans la boucle plus bas.
+# FFmpeg. Le paquet Mac n'en livre pas (THIRD_PARTY_NOTICES.md : FFmpeg sous Windows et Android) : retiré. Le greffon
+# darwin reste (AVFoundation, codecs du système, H.264 compris) ; les bibliothèques de FFmpeg, plus référencées, partent
+# dans la boucle plus bas.
 rm -f "$app/Contents/PlugIns/multimedia/libffmpegmediaplugin.dylib"
 [ -f "$app/Contents/PlugIns/multimedia/libdarwinmediaplugin.dylib" ] ||
   echec "greffon multimédia darwin absent du bundle (PlugIns/multimedia)"
