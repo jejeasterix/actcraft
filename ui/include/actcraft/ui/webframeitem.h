@@ -85,9 +85,10 @@ public:
         TitleRole,   // titre du repère
         CanGoBackRole,
         CanGoForwardRole,
-        SerialRole,     // change à chaque contenu neuf : la vue recharge
-        DirectUrlRole,  // adresse donnée telle quelle à la vue (gardes coupées)
-        ContentFileRole // HTML au-delà de la limite de loadHtml : fichier du modèle
+        SerialRole,      // change à chaque contenu neuf : la vue recharge
+        DirectUrlRole,   // adresse donnée telle quelle à la vue (gardes coupées)
+        ContentFileRole, // HTML au-delà de la limite de loadHtml : fichier du modèle
+        ExternalUrlRole  // adresse http(s) à ouvrir dans le navigateur du système, vide sinon (OA27)
     };
     Q_ENUM(Role)
 
@@ -137,6 +138,16 @@ public:
     Q_INVOKABLE void goBack(int row);
     Q_INVOKABLE void goForward(int row);
     Q_INVOKABLE void reload(int row);
+    // webframe.open-external : l'adresse courante du cadre (celle de la page montrée, sinon l'adresse saisie
+    // si la page n'a pas chargé) s'ouvre dans le navigateur du système, sans confirmation. Faux, sans rien
+    // ouvrir, si le cadre n'a pas d'adresse http(s) ; faux avec `externalOpenFailed` si le système refuse.
+    Q_INVOKABLE QUrl externalUrl(int row) const; // vide : rien à ouvrir (commande grisée)
+    Q_INVOKABLE bool openExternally(int row);
+    using Opener = std::function<bool(const QUrl&)>;
+    void setOpener(Opener opener)
+    {
+        m_opener = std::move(opener);
+    } // tests ; défaut : QDesktopServices::openUrl
     // Gardes coupées : état de la vue (adresse, historique du moteur, titre, chargement) rapporté au modèle.
     // Gardes allumées : ignoré.
     Q_INVOKABLE void reportView(int row, const QUrl& url, bool canBack, bool canForward, const QString& title,
@@ -190,6 +201,7 @@ signals:
     // Gardes coupées : précédent, suivant ou recharger, à exécuter par la vue (`action` : back, forward,
     // reload).
     void viewCommand(int row, const QString& action);
+    void externalOpenFailed(const QString& message);
 
 private:
     struct Row
@@ -271,6 +283,8 @@ private:
     QMetaObject::Connection m_profileConnection;
     int m_pendingRow = -1;
     Grabber m_grabber;
+    Opener m_opener;
+    QUrl externalUrlOf(const Row& row) const;
     QByteArray m_lastCapture; // empreinte de la dernière capture ; vide : aucune
     QNetworkAccessManager* m_network = nullptr;
     QHash<QNetworkReply*, Pending> m_replies;

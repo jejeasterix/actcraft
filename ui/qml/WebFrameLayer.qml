@@ -46,6 +46,18 @@ Item {
         document: frameLayer.pageArea ? frameLayer.pageArea.documentController : null
     }
 
+    // L'état grisé de « Ouvrir dans le navigateur » suit l'adresse du cadre visé ; un refus du système est dit
+    // par la bannière de l'insertion.
+    Connections {
+        target: appWebFrames
+        function onDataChanged() { frameLayer.refreshOpenExternal() }
+        function onCountChanged() { frameLayer.refreshOpenExternal() }
+        function onExternalOpenFailed(message) {
+            if (frameLayer.insertion)
+                frameLayer.insertion.failed(message)
+        }
+    }
+
     // La boîte du cadre (Main.qml) recouvre la page comme les autres : relayée à la fenêtre par PageArea
     // (popupOpened/popupClosed vers Main.openPopups), pour que le stylet ne dessine pas derrière et que Échap
     // ne soit plus global tant qu'elle est ouverte.
@@ -81,6 +93,16 @@ Item {
     }
     function rowOf(arg) {
         return (typeof arg === "number" && arg >= 0 && arg < count) ? arg : targetRow
+    }
+    // « Ouvrir dans le navigateur » : grisée tant qu'aucun cadre n'a d'adresse http(s) ; le bouton de chaque
+    // cadre est grisé de son côté, et la commande n'ouvre rien pour un cadre sans adresse.
+    function refreshOpenExternal() {
+        if (!commands)
+            return
+        let any = false
+        for (let i = 0; i < count && !any; ++i)
+            any = appWebFrames.externalUrl(i).toString() !== ""
+        commands.setEnabled("webframe.open-external", any)
     }
     function frameRect(b) {
         if (!view)
@@ -209,6 +231,10 @@ Item {
         commands.setHandler("webframe.back", function (arg) { appWebFrames.goBack(frameLayer.rowOf(arg)) })
         commands.setHandler("webframe.forward", function (arg) { appWebFrames.goForward(frameLayer.rowOf(arg)) })
         commands.setHandler("webframe.reload", function (arg) { appWebFrames.reload(frameLayer.rowOf(arg)) })
+        commands.setHandler("webframe.open-external", function (arg) {
+            appWebFrames.openExternally(frameLayer.rowOf(arg))
+        })
+        frameLayer.refreshOpenExternal()
         commands.setHandler("webframe.snapshot", function (arg) {
             frameLayer.takeSnapshot(arg)
         })
@@ -260,6 +286,7 @@ Item {
             required property bool canGoBack
             required property bool canGoForward
             required property int serial
+            required property url externalUrl
 
             // Glisser de la poignée : aperçu sans étape ; l'étape part au relâché.
             property point resizeBy: Qt.point(0, 0)
@@ -440,6 +467,15 @@ Item {
                         text: "↻"
                         height: parent.height
                         onClicked: if (frameLayer.commands) frameLayer.commands.trigger("webframe.reload", frame.index)
+                    }
+                    ToolButton {
+                        text: "↗"
+                        height: parent.height
+                        enabled: frame.externalUrl.toString() !== ""
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Ouvrir dans le navigateur")
+                        Accessible.name: qsTr("Ouvrir dans le navigateur")
+                        onClicked: if (frameLayer.commands) frameLayer.commands.trigger("webframe.open-external", frame.index)
                     }
                     ToolButton {
                         text: qsTr("Image fixe")

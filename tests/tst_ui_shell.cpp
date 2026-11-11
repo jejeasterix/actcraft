@@ -1046,16 +1046,27 @@ private slots:
         QVERIFY(start(s));
         auto* commands = s.window->findChild<ui::Commands*>();
         QVERIFY(commands);
-        for (const char* id : {"tool.reveal-ink",      "browser.actions",
-                               "action.apply",         "action.remove",
-                               "action.pick-target",   "link.file",
-                               "link.website",         "page.history-back",
-                               "page.history-forward", "media.sound-controller",
-                               "record.sound",         "record.pause",
-                               "record.stop",          "record.cancel",
-                               "insert.web-frame",     "webframe.back",
-                               "webframe.forward",     "webframe.reload",
-                               "webframe.snapshot",    "webframe.unblock",
+        for (const char* id : {"tool.reveal-ink",
+                               "browser.actions",
+                               "action.apply",
+                               "action.remove",
+                               "action.pick-target",
+                               "link.file",
+                               "link.website",
+                               "page.history-back",
+                               "page.history-forward",
+                               "media.sound-controller",
+                               "record.sound",
+                               "record.pause",
+                               "record.stop",
+                               "record.cancel",
+                               "insert.web-frame",
+                               "webframe.back",
+                               "webframe.forward",
+                               "webframe.reload",
+                               "webframe.snapshot",
+                               "webframe.unblock",
+                               "webframe.open-external",
                                "file.publish"}) {
             QVERIFY2(commands->registry().hasHandler(QString::fromLatin1(id)), id);
         }
