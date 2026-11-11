@@ -1,0 +1,260 @@
+name: CI ciblée
+
+# Rejoue seulement les tests nommés, sur le runner de la CI (PC pour Windows, Mac mini pour macOS), avec le même Qt,
+# le même preset et le même environnement que le job build de ci.yml. Sert à savoir en 15 min environ si un test rouge
+# est réparé, au lieu d'attendre la suite complète (81 min de tests sur le PC, run 42434070554).
+# Lancement (doc : docs/ci-ciblee.md) :
+#   gh workflow run ci-ciblee.yml --repo jejeasterix/actcraft --ref main -f tests='^tst_bench_' [-f plateforme=macos] [-f ref=<branche|SHA>]
+# Contrat avec l'outillage (ci-ciblee.cjs) : nom de fichier ci-ciblee.yml ; entrées tests, plateforme, ref ; artefact
+# journaux-tests (scripts/ci/journaux-tests.cmake) toujours téléversé en cas d'échec.
+# Le fichier de workflow vient de --ref (main suffit) ; le code testé vient de l'entrée ref.
+# Pas de repli sur un exécuteur GitHub : la parité avec la CI passe par le même runner, et ses minutes sont payantes.
+# Cache de compilation : celui de la CI, sur le même runner (arbre build/ gardé sur le PC, ccache sur le Mac) ; Qt est
+# installé sur le runner. sccache n'apporterait rien de plus et changerait les options de MSVC (/Z7 au lieu de /Zi).
+on:
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: "Motif ctest -R (obligatoire), ex. ^tst_bench_verdict$"
+        type: string
+        required: true
+      plateforme:
+        description: "Runner de la CI à utiliser"
+        type: choice
+        options: [windows, macos]
+        default: windows
+      ref:
+        description: "Branche ou SHA à tester (vide : la ref du lancement)"
+        type: string
+        default: ""
+
+concurrency:
+  group: ci-ciblee-${{ inputs.plateforme }}-${{ inputs.ref || github.ref }}-${{ inputs.tests }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  QT_VERSION: "6.12.0"
+
+jobs:
+  tests:
+    name: tests ciblés (${{ inputs.plateforme }})
+    runs-on: ${{ inputs.plateforme == 'macos' && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || fromJSON('["self-hosted", "Windows", "X64", "actcraft"]') }}
+    # Le temps d'attente du runner (occupé par la CI) ne compte pas dans ce délai. Attente de mémoire du Mac (15 min au
+    # plus) + compilation + tests (25 min au plus, délai de l'étape) : l'upload des journaux garde de la marge.
+    # Windows (PC), 220 min = 50 + 170 : garde du PC (O177) : l'attente de l'autre runner compte dans ce délai (hook de début de job), 2 h 30 au plus, plus 15 min de mémoire basse ; délai = 170 min + durée du job.
+    timeout-minutes: ${{ inputs.plateforme == 'macos' && 50 || 220 }}
+    steps:
+      # Dossier des journaux créé avant tout : un échec de garde, de checkout, de configuration ou de compilation
+      # téléverse quand même l'artefact journaux-tests (contrat avec ci-ciblee.cjs), avec au moins ce contexte.
+      - name: Contexte des journaux (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          MOTIF: ${{ inputs.tests }}
+          REF: ${{ inputs.ref || github.ref }}
+          JOURNAUX: ${{ runner.temp }}/journaux-tests
+        run: |
+          New-Item -ItemType Directory -Force $env:JOURNAUX | Out-Null
+          "tests=$env:MOTIF`nref=$env:REF`nrunner=$env:RUNNER_NAME`nrun=$env:GITHUB_RUN_ID" | Set-Content "$env:JOURNAUX/contexte.txt"
+
+      - name: Contexte des journaux (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          MOTIF: ${{ inputs.tests }}
+          REF: ${{ inputs.ref || github.ref }}
+          JOURNAUX: ${{ runner.temp }}/journaux-tests
+        run: |
+          mkdir -p "$JOURNAUX"
+          printf 'tests=%s\nref=%s\nrunner=%s\nrun=%s\n' "$MOTIF" "$REF" "$RUNNER_NAME" "$GITHUB_RUN_ID" > "$JOURNAUX/contexte.txt"
+
+      # Étapes suivantes reprises du job build de ci.yml, à garder alignées avec lui.
+      # Runner auto-hébergé : dépôt privé seulement, et pas de job lourd sous 3 Go de mémoire disponible (le Mac porte
+      # aussi les sessions Claude). La garde qui fait foi est côté Mac, hors de portée d'une PR :
+      # ~/actions-runner-actcraft/garde-job.sh (ACTIONS_RUNNER_HOOK_JOB_STARTED). Celle-ci la double.
+      - name: Gardes du runner auto-hébergé (visibilité, mémoire)
+        if: runner.environment != 'github-hosted' && runner.os == 'macOS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          visibilite=$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility)
+          if [ "$visibilite" != "private" ]; then
+            echo "::error::Dépôt $visibilite : runner auto-hébergé interdit. Arrêter et désenregistrer le runner du Mac (~/actions-runner-actcraft)."
+            exit 1
+          fi
+          dispo_go() {
+            # Part libre selon macOS (mémoire compressible comprise), en Go entiers.
+            memory_pressure | awk -v t="$(sysctl -n hw.memsize)" '/free percentage/ {sub("%","",$NF); printf "%d", $NF*t/100/1073741824}'
+          }
+          for i in $(seq 1 30); do
+            go=$(dispo_go)
+            if ! [ "$go" -ge 0 ] 2>/dev/null; then echo "::error::Mémoire disponible illisible (memory_pressure)"; exit 1; fi
+            if [ "$go" -ge 3 ]; then echo "Mémoire disponible : $go Go"; exit 0; fi
+            echo "Mémoire disponible : $go Go (< 3 Go), nouvel essai dans 30 s ($i/30)"
+            sleep 30
+          done
+          echo "::error::Moins de 3 Go de mémoire disponible sur le Mac depuis 15 min : build macOS abandonné, à relancer."
+          exit 1
+
+      # PC : la garde qui fait foi (dépôt privé, 2 Go libres) est C:\actions-runner-actcraft\garde-job.ps1
+      # (ACTIONS_RUNNER_HOOK_JOB_STARTED), hors de portée d'une PR. Celle-ci double la visibilité.
+      - name: Garde du runner auto-hébergé Windows (visibilité)
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $visibilite = (gh api "repos/$env:GITHUB_REPOSITORY" --jq .visibility).Trim()
+          if ($LASTEXITCODE -ne 0 -or $visibilite -ne 'private') {
+            "::error::Dépôt '$visibilite' : runner auto-hébergé interdit. Arrêter la tâche Claude-Runner-Actcraft et désenregistrer le runner (C:\actions-runner-actcraft)."
+            exit 1
+          }
+
+      # Runner du PC : l'arbre build/ reste d'un run à l'autre (compilation incrémentale de Ninja) ; tout autre fichier
+      # non suivi est retiré, comme le ferait le nettoyage par défaut.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' || runner.os != 'Windows' }}
+
+      - name: Nettoyer la copie de travail, sauf build/ (runner Windows)
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        run: git clean -ffdx -e /build/
+
+      # Script de collecte pris dans le commit du workflow, pas dans la ref testée : une ref antérieure à ce workflow
+      # (bissection, branche non rebasée) garde ses journaux. Après le nettoyage de la copie, qui l'effacerait
+      # (run 42461100476).
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          path: _ci-ciblee-outils
+          sparse-checkout: scripts/ci
+
+      # Mac mini : Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une fois dans le cache du
+      # runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à l'autre.
+      - name: Qt, Ninja et ccache du Mac
+        if: runner.environment != 'github-hosted' && runner.os == 'macOS'
+        shell: bash
+        run: |
+          cache="$HOME/actions-runner-actcraft/_cache"
+          mkdir -p "$cache"
+          brew_qt=/opt/homebrew/opt/qt
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1) || true
+          if [ "$version" = "$QT_VERSION" ]; then
+            qt_dir="$brew_qt"
+          else
+            echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
+            qt_dir="$cache/Qt/$QT_VERSION/macos"
+            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant.
+            if [ ! -f "$cache/Qt/$QT_VERSION/.complet" ]; then
+              rm -rf "$cache/Qt/$QT_VERSION"
+              python3 -m venv "$cache/venv-aqt"
+              "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtimageformats qtpdf --outputdir "$cache/Qt"
+              touch "$cache/Qt/$QT_VERSION/.complet"
+            fi
+          fi
+          command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
+          echo "Qt : $qt_dir ($version)"
+          echo "ACTCRAFT_QT_DIR=$qt_dir" >> "$GITHUB_ENV"
+          echo "$qt_dir/bin" >> "$GITHUB_PATH"
+          # 4 compilations à la fois : le Mac (8 Go) garde de la mémoire pour les sessions pendant le build.
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=4" >> "$GITHUB_ENV"
+          if command -v ccache >/dev/null; then
+            echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+            # Pas de CCACHE_BASEDIR : il rend __FILE__ relatif et casse QFINDTESTDATA (tst_modules, tst_ui_preferences).
+            # Le dossier de travail du runner est fixe, les chemins absolus suffisent au cache.
+            echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
+          fi
+
+      # PC : Qt installé une fois dans C:\Qt par aqtinstall (même commit que la CI, mêmes modules et plus).
+      - name: Qt du PC
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $qt = "C:\Qt\$env:QT_VERSION\msvc2022_64"
+          foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf') {
+            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 ...)"; exit 1 }
+          }
+          "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
+          "$qt\bin" >> $env:GITHUB_PATH
+          # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.
+          "CMAKE_BUILD_PARALLEL_LEVEL=6" >> $env:GITHUB_ENV
+          # 4 tests à la fois : en série, les tests d'interface prennent plus de 90 min sur les cœurs lents du PC
+          # (Core Ultra 5 125U, run 42268652493). Chacun tourne hors écran, avec réglages et ressources dans des
+          # dossiers jetables ; les plus gros (banc, captures) montent à ~270 Mo privés, d'où 4 et non 6.
+          "CTEST_PARALLEL_LEVEL=4" >> $env:GITHUB_ENV
+          # Micro du PC à 64 % de la durée (L8-PC-CI) : tst_media_soundrecorder saute ses cas « micro » ici seulement.
+          "ACTCRAFT_CI_SANS_MICRO=1" >> $env:GITHUB_ENV
+
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        if: runner.os == 'Windows'
+
+      # Ninja vient des Build Tools de Visual Studio (composant CMake), mis dans le PATH par msvc-dev-cmd.
+      - name: Outils du PC (Ninja, CMake, MSVC)
+        if: runner.environment != 'github-hosted' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($outil in 'ninja', 'cmake', 'cl') {
+            $chemin = (Get-Command $outil -ErrorAction SilentlyContinue).Source
+            if (-not $chemin) { "::error::$outil absent du PATH après msvc-dev-cmd (Build Tools 2022, composant CMake)"; exit 1 }
+            "$outil : $chemin"
+          }
+          ninja --version
+          cmake --version | Select-Object -First 1
+
+      # Fin des étapes reprises de ci.yml.
+
+      # Runner du PC : --fresh refait le cache CMake (Qt, compilateur, options) à chaque run ; Ninja ne recompile que
+      # les fichiers changés ou dont la ligne de commande a changé.
+      - name: Configurer
+        run: cmake --preset debug ${{ runner.os == 'Windows' && '--fresh' || '' }}
+
+      - name: Compiler
+        run: cmake --build --preset debug
+
+      # Le motif passe par l'environnement, jamais dans le script : il ne peut rien injecter. Une étape par shell.
+      - id: tester_windows
+        name: Tester (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 25
+        shell: pwsh
+        env:
+          MOTIF: ${{ inputs.tests }}
+          JOURNAUX: ${{ runner.temp }}/journaux-tests
+        run: |
+          if (-not $env:MOTIF) { '::error::Entrée tests vide : elle lancerait toute la suite.'; exit 1 }
+          # Arbre build/ gardé d'un run à l'autre : un LastTestsFailed.log d'un ancien run ferait relancer ses tests.
+          cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
+          cmake -E rm -rf build/debug/journaux-tests
+          ctest --preset debug --output-on-failure -R $env:MOTIF --output-log "$env:JOURNAUX/ctest-sortie.txt" --output-junit "$env:JOURNAUX/ctest-junit.xml"
+
+      - id: tester_macos
+        name: Tester (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 25
+        shell: bash
+        env:
+          MOTIF: ${{ inputs.tests }}
+          JOURNAUX: ${{ runner.temp }}/journaux-tests
+        run: |
+          if [ -z "$MOTIF" ]; then echo '::error::Entrée tests vide : elle lancerait toute la suite.'; exit 1; fi
+          cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
+          ctest --preset debug --output-on-failure -R "$MOTIF" --output-log "$JOURNAUX/ctest-sortie.txt" --output-junit "$JOURNAUX/ctest-junit.xml"
+
+      - name: Journaux des tests rouges
+        if: failure() && (steps.tester_windows.outcome == 'failure' || steps.tester_macos.outcome == 'failure')
+        run: cmake -DBUILD_DIR=build/debug "-DOUT_DIR=${{ runner.temp }}/journaux-tests" -P _ci-ciblee-outils/scripts/ci/journaux-tests.cmake
+
+      - name: Téléverser les journaux
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: journaux-tests
+          path: ${{ runner.temp }}/journaux-tests
+          if-no-files-found: warn
+          retention-days: 14

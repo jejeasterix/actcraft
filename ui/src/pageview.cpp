@@ -31,6 +31,9 @@ namespace actcraft::ui {
 
 namespace {
 
+// Stylets en cours et points appuyés suivis par la vue : capacité réservée à la construction.
+constexpr std::size_t kReservedContacts = 4;
+
 input::Point2 toPoint2(QPointF p)
 {
     return {p.x(), p.y()};
@@ -194,6 +197,8 @@ PageView::PageView(QQuickItem* parent) : QQuickItem(parent), m_dispatch(std::mak
 {
     m_toolContacts.reserve(8); // L11-T5 : aucune allocation au fil des contacts
     // D11-7 : appui long d'un doigt ; un seul minuteur, armé à l'appui, jamais par échantillon.
+    m_stylusesDrawing.reserve(kReservedContacts);
+    m_lastPressedIds.reserve(kReservedContacts);
     m_holdTimer.setSingleShot(true);
     m_holdTimer.setInterval(kTouchHoldMs);
     connect(&m_holdTimer, &QTimer::timeout, this, [this] {
@@ -1202,7 +1207,7 @@ void PageView::touchEvent(QTouchEvent* event)
         m_lastPressedIds.clear();
         for (const QEventPoint& point : points) {
             if (point.state() == QEventPoint::State::Pressed) {
-                m_lastPressedIds.append(point.id());
+                m_lastPressedIds.push_back(point.id());
             }
         }
         m_lastPressTaken = taken;
@@ -1216,7 +1221,7 @@ bool PageView::isSecondDelivery(const QTouchEvent& event) const
     if (event.timestamp() != m_lastPressEventTime) {
         return false;
     }
-    qsizetype pressed = 0;
+    std::size_t pressed = 0;
     for (const QEventPoint& point : event.points()) {
         if (point.state() != QEventPoint::State::Pressed) {
             continue;
@@ -1610,7 +1615,7 @@ void PageView::setStylusDrawing(std::uint64_t device, bool drawing)
 {
     const auto found = std::find(m_stylusesDrawing.cbegin(), m_stylusesDrawing.cend(), device);
     if (drawing && found == m_stylusesDrawing.cend()) {
-        m_stylusesDrawing.append(device);
+        m_stylusesDrawing.push_back(device);
     } else if (!drawing && found != m_stylusesDrawing.cend()) {
         m_stylusesDrawing.erase(found);
     }

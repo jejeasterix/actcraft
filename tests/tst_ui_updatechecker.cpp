@@ -180,7 +180,8 @@ void TstUiUpdatechecker::semverComparison()
     QVERIFY(!UpdateChecker::isNewer(u"1.0.0", u"1.0.1"));
     QVERIFY(!UpdateChecker::isNewer(u"zzz", u"1.0.0"));
     QVERIFY(!UpdateChecker::isNewer(u"1.0.0", u"zzz"));
-    QVERIFY(!UpdateChecker::isNewer(u"", u"1.0.0"));
+    // Vide : QStringView() et non u"", dont la longueur calculée laisse du code inaccessible (C4702, MSVC).
+    QVERIFY(!UpdateChecker::isNewer(QStringView(), u"1.0.0"));
     QVERIFY(!UpdateChecker::isNewer(u"2.0", u"1.0.0"));
     QVERIFY(!UpdateChecker::isNewer(u"2.0.0-rc1", u"1.0.0"));
     QVERIFY(!UpdateChecker::isNewer(u"2..0", u"1.0.0"));

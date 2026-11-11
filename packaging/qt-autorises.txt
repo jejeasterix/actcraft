@@ -97,6 +97,12 @@ Qt6QuickVectorImage
 Qt6QuickVectorImageGenerator
 Qt6QuickVectorImageHelpers
 Qt6Sql
+# Stubs de Qt Multimedia (APK Android) : bibliothèques livrées dans <Qt>/android_arm64_v8a/lib, liées à Qt6Core,
+# à la place des bibliothèques crypto et ssl d'OpenSSL qu'attend FFmpeg ; aucun OpenSSL n'est livré. Licence celle du module Multimedia, vérifiée dans
+# <Qt>/android_arm64_v8a/sbom/qtmultimedia-6.12.0.spdx (paquet Multimedia) : « LicenseRef-Qt-Commercial OR
+# LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only ».
+Qt6FFmpegStub-crypto
+Qt6FFmpegStub-ssl
 # Qt WebEngine (cadre web, PC et Mac, décision 0217 du coffre) : chargé au premier cadre, sans lien à l'application.
 # Licence vérifiée dans l'en-tête qquickwebengineprofile.h (ligne SPDX) : « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR
 # GPL-2.0-only OR GPL-3.0-only », la même que QuickControls2Basic. Dépendances relevées par otool -L de QtWebEngineCore :

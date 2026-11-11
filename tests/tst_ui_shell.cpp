@@ -27,6 +27,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QRegularExpression>
+#include <QScopeGuard>
 #include <QSettings>
 #include <QStringList>
 #include <QTabletEvent>
@@ -1716,6 +1717,10 @@ private slots:
         const QColor palette(hex.captured(1));
         const QColor veiled(palette.red() / 2, palette.green() / 2, palette.blue() / 2);
 
+        // Android est toujours en interface tactile (LayoutMetrics::touchUi) : même mise en page ici.
+        QSettings().setValue(QStringLiteral("workstation/touch-ui"), true);
+        const auto touchUiOff =
+            qScopeGuard([] { QSettings().remove(QStringLiteral("workstation/touch-ui")); });
         Shell s;
         QVERIFY(start(s, true));
         s.window->resize(largeur / densite, hauteur / densite - barre);
@@ -1751,7 +1756,7 @@ private slots:
             QTRY_VERIFY2(near(pixel(largeur - 3, y), palette, 16),
                          qPrintable(QStringLiteral("palette absente au bord droit, y = %1").arg(y)));
         }
-        QVERIFY2(near(pixel(psInt(largeur * 0.765), psInt(hauteur * 0.87)), QColor(255, 255, 255), 12),
+        QVERIFY2(near(pixel(psInt(largeur * 0.755), psInt(hauteur * 0.87)), QColor(255, 255, 255), 12),
                  "page");
         QVERIFY2(near(pixel(largeur - 192, psInt(hauteur * 0.72)), palette, 16), "fond de palette");
         const int swatchX = largeur - swatch.captured(1).toInt();

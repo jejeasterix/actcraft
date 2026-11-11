@@ -56,6 +56,18 @@ Ecarter-Anr
 $processus = Install-ActCraftApk -Apk $Apk -Paquet $paquet
 Write-Output "processus : $processus"
 
+# Le processus vivant ne dit pas que l'accueil est affiché : sur une machine chargée, le chargement dure plus que les
+# 10 s d'Install-ActCraftApk (cause probable, non prouvée, du rouge du run 42764427092). Attente bornée à 120 s du premier
+# point de contrôle ; le contrôle reste celui, inchangé, qui suit la capture définitive.
+$voile = @($fondPalette | ForEach-Object { [int][math]::Floor($_ / 2) })
+$limiteAccueil = (Get-Date).AddSeconds(120)
+do {
+    $attente = Capture 'accueil'
+    $dimensions = ("$(& $python -I scripts/lire-pixel.py $attente --taille)".Trim()).Split(' ')
+    if (Proche (Pixel $attente ([int]$dimensions[0] - 3) ([int]([int]$dimensions[1] * 0.25))) $voile 16) { break }
+    Start-Sleep -Seconds 3
+} while ((Get-Date) -lt $limiteAccueil)
+
 # Journal : l'application ne doit avoir ni plantage fatal ni SecurityException (permissions retirées, L1-T17).
 $journal = Join-Path $Sortie 'logcat.txt'
 Adb 60 logcat -d -v threadtime | Set-Content -Path $journal
@@ -78,7 +90,6 @@ if ($largeur -ne 2560 -or $hauteur -ne 1600) { Echec "écran $largeur × $hauteu
 # comme un utilisateur, d'un toucher sur le voile à gauche de la carte (880 points de large, centrée) ; les contrôles
 # suivants restent ceux d'avant l'accueil. tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) lit
 # `$accueil` et rejoue ce toucher hors écran.
-$voile = @($fondPalette | ForEach-Object { [int][math]::Floor($_ / 2) })
 foreach ($f in 0.25, 0.5, 0.75) {
     $y = [int]($hauteur * $f)
     $lu = Pixel $ecranAccueil ($largeur - 3) $y
@@ -86,15 +97,49 @@ foreach ($f in 0.25, 0.5, 0.75) {
 }
 Write-Output 'accueil : ouvert au démarrage'
 $accueil = @{ X = [int]($largeur * 0.08); Y = [int]($hauteur * 0.5) }
-$null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
-if ($LASTEXITCODE -ne 0) { Echec 'toucher de l''accueil refusé' }
-Start-Sleep -Seconds 2
-$avant = Capture 'avant'
-foreach ($f in 0.25, 0.5, 0.75) {
-    $y = [int]($hauteur * $f)
-    $lu = Pixel $avant ($largeur - 3) $y
-    if (-not (Proche $lu $fondPalette 16)) { Echec "palette absente au bord droit, y = $y (lu $($lu -join ' '), attendu $($fondPalette -join ' '))" }
-}
+# Une boîte « Application Not Responding » d'une autre application (le lanceur du système, sous la charge du démarrage
+# de l'émulateur) peut prendre le toucher : vue au journal de l'essai rouge rejoué sur l'émulateur du Mac le
+# 2026-11-11 (« Application Not Responding: com.google.android.apps.nexuslauncher »), comme aux runs 42829974229,
+# 42835158658 et 42981911851. Elle est écartée juste avant le toucher. Si elle tient le focus juste après, le toucher
+# n'a pas atteint ActCraft : elle est écartée, et le toucher n'est rejoué que si l'accueil est encore affiché, deux
+# fois au plus. Une boîte ANR d'ActCraft, ou un accueil resté ouvert sans boîte du système, reste un échec.
+$anrActCraft = "Application Not Responding: $([regex]::Escape($paquet))"
+$touchers = 0
+do {
+    # Une boîte ANR d'ActCraft n'est jamais écartée ici : c'est un défaut de l'application.
+    $focus = "$(Adb 30 shell dumpsys window | Select-String 'mCurrentFocus')".Trim()
+    if ($focus -match $anrActCraft) { Echec "boîte ANR d'ActCraft avant le toucher de l'accueil ($focus)" }
+    Ecarter-Anr
+    $null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
+    if ($LASTEXITCODE -ne 0) { Echec 'toucher de l''accueil refusé' }
+    $touchers++
+    $focus = "$(Adb 30 shell dumpsys window | Select-String 'mCurrentFocus')".Trim()
+    if ($focus -match $anrActCraft) { Echec "boîte ANR d'ActCraft après le toucher de l'accueil ($focus)" }
+    $pris = ($focus -match 'Application Not Responding') -and ($focus -notmatch [regex]::Escape($paquet))
+    if ($pris) {
+        Write-Output "accueil : toucher pris par une boîte du système ($focus)"
+        $reprise = Capture 'accueil-reprise'
+        $pris = Proche (Pixel $reprise ($largeur - 3) ([int]($hauteur * 0.25))) $voile 16
+    }
+} while ($pris -and $touchers -lt 3)
+# Sous charge, l'accueil peut rester affiché plus de 2 s après le toucher (cause probable, non prouvée, du rouge du run
+# 42829974229). Attente bornée à 60 s, nouvelle capture toutes les 2 s, sans nouveau toucher : il masquerait un défaut
+# (seule la boîte ANR d'une autre application, ci-dessus, justifie de rejouer le toucher).
+$limitePalette = (Get-Date).AddSeconds(60)
+do {
+    Start-Sleep -Seconds 2
+    $avant = Capture 'avant'
+    $defautPalette = $null
+    foreach ($f in 0.25, 0.5, 0.75) {
+        $y = [int]($hauteur * $f)
+        $lu = Pixel $avant ($largeur - 3) $y
+        if (-not (Proche $lu $fondPalette 16)) {
+            $defautPalette = "palette absente au bord droit, y = $y (lu $($lu -join ' '), attendu $($fondPalette -join ' '))"
+            break
+        }
+    }
+} while ($defautPalette -and (Get-Date) -lt $limitePalette)
+if ($defautPalette) { Echec $defautPalette }
 Write-Output 'palette : visible au bord droit'
 
 # Rectangles entiers : un rendu défectueux (émulateur à GPU logiciel SwiftShader, voir docs/verifications) ne dessine
@@ -105,10 +150,14 @@ Write-Output 'palette : visible au bord droit'
 # « pages » (48, page.history-back et page.history-forward, L8-T2) : +124 points au total, 0,415 H = 664 px à la
 # densité 320 (2 px par point). Même place dans la pastille quelle
 # que soit la barre d'état ; tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) le rejoue hors écran.
+# Coin de page : 0,755 L, 23 px en dedans du bord droit relevé le 2026-11-11 (page de x = 347 à 1956, y = 208 à 1415,
+# zoom 79 %) ; 0,765 L, posé au ras du bord, tombait 2 px dehors, sur le bureau, après la mise en page du lot 11.
+# Pastille, depuis le lot 11 : Android est toujours en interface tactile (LayoutMetrics::touchUi, L11-T10 : cibles de
+# 48 dp, palette élargie) ; relevée sur l'émulateur le 2026-11-11 de x = 2322 à 2357, y = 702 à 737 ; point au centre.
 $coins = @(
-    @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.765); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
+    @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.755); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
     @{ Nom = 'fond de palette, bas-gauche'; X = $largeur - 192; Y = [int]($hauteur * 0.72); Attendu = $fondPalette; Tol = 16 },
-    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.415); Attendu = @(229, 57, 53); Tol = 40 }
+    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 220; Y = [int]($hauteur * 0.45); Attendu = @(229, 57, 53); Tol = 40 }
 )
 foreach ($coin in $coins) {
     $lu = Pixel $avant $coin.X $coin.Y
@@ -126,11 +175,16 @@ $blanc = Pixel $avant $xm $y
 if (-not (Proche $blanc @(255, 255, 255) 12)) { Echec "page non blanche avant le trait (lu $($blanc -join ' '))" }
 $null = Adb 30 shell input swipe $x0 $y $x1 $y 600
 if ($LASTEXITCODE -ne 0) { Echec 'glissement du doigt refusé' }
-Start-Sleep -Seconds 2
-$apres = Capture 'apres'
-$trait = Pixel $apres $xm $y
+# Même attente bornée que pour la palette : sous charge, le trait peut s'afficher plus de 2 s après le glissement.
+$limiteTrait = (Get-Date).AddSeconds(60)
+do {
+    Start-Sleep -Seconds 2
+    $apres = Capture 'apres'
+    $trait = Pixel $apres $xm $y
+    $traitVu = $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100
+} while (-not $traitVu -and (Get-Date) -lt $limiteTrait)
 Write-Output "trait : lu $($trait -join ' ')"
-if (-not ($trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100)) { Echec 'trait absent après le glissement' }
+if (-not $traitVu) { Echec 'trait absent après le glissement' }
 if ("$(Adb 30 shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus a redémarré ou s''est arrêté' }
 } catch {
     # Refus du module commun : sa raison telle quelle (mêmes messages qu'avant l'extraction) ; le reste est imprévu,

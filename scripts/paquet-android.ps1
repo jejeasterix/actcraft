@@ -139,7 +139,9 @@ try {
         if (-not $signataire) { throw 'signature : aucun certificat de signataire' }
         Write-Output "$a : signature = $($signataire.Matches[0].Groups[1].Value)"
 
-        & "$PSScriptRoot/verifier-licences.ps1" -Apk $final
+        # Greffons comparés au Qt de cette ABI (le défaut du contrôle est le Qt arm64).
+        $qtAbi = if ($a -eq 'arm64-v8a') { $env:ACTCRAFT_QT_ANDROID_ARM64_DIR } else { $env:ACTCRAFT_QT_ANDROID_X86_64_DIR }
+        & "$PSScriptRoot/verifier-licences.ps1" -Apk $final -QtDir $qtAbi
         if ($LASTEXITCODE -ne 0) { throw 'licences en échec' }
         Write-Output "APK : $final"
         $enControle = $null

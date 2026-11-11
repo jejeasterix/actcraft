@@ -15,7 +15,6 @@
 #include <QPointer>
 #include <QQuickItem>
 #include <QTimer>
-#include <QVarLengthArray>
 #include <QtQml/qqmlregistration.h>
 
 #include <array>
@@ -461,18 +460,20 @@ public:
 private:
     void updateSecondUserArea();
     // Stylets dont le contact, commencé sur la vue, est en cours (Sample::deviceId ; 0 : sans identifiant) :
-    // chacun suivi à part, l'appui d'un autre ne le coupe pas. Quelques stylets : aucune allocation.
+    // chacun suivi à part, l'appui d'un autre ne le coupe pas. Réservé à la construction : aucune allocation
+    // pour quelques stylets. std::vector et non QVarLengthArray : sa croissance (qalloc.h) déclenche C4702
+    // sous MSVC /W4 /WX.
     bool stylusDrawing(std::uint64_t device) const;
     void setStylusDrawing(std::uint64_t device, bool drawing);
-    QVarLengthArray<std::uint64_t, 4> m_stylusesDrawing;
+    std::vector<std::uint64_t> m_stylusesDrawing;
     std::optional<QRectF> m_secondUserViewArea;
     std::uint64_t m_lastFirstStylus = 0;               // L11-C6
     input::UserId m_lastPressUser = input::kFirstUser; // L11-C24
     // Horodatage du dernier événement de toucher à appuis : Qt Quick livre deux fois [A relâché, B appuyé]
     // à la vue ; la seconde livraison n'a aucun effet (L11-C1).
     quint64 m_lastPressEventTime = 0;
-    QVarLengthArray<int, 4> m_lastPressedIds; // points appuyés de cet événement
-    bool m_lastPressTaken = false;            // ce que la première livraison a pris
+    std::vector<int> m_lastPressedIds; // points appuyés de cet événement (réservé)
+    bool m_lastPressTaken = false;     // ce que la première livraison a pris
     bool isSecondDelivery(const QTouchEvent& event) const;
 };
 

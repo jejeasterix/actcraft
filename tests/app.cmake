@@ -12,6 +12,9 @@ if(ACTCRAFT_PWSH)
     file(MAKE_DIRECTORY ${_licences}/autorise ${_licences}/refuse)
     file(WRITE ${_licences}/autorise/Qt6Core.dll "")
     file(WRITE ${_licences}/autorise/Qt6Quick.dll "")
+    # Stubs de Qt Multimedia (APK) : nom de module à trait d'union.
+    file(WRITE ${_licences}/autorise/libQt6FFmpegStub-crypto_arm64-v8a.so "")
+    file(WRITE ${_licences}/autorise/libQt6FFmpegStub-ssl_arm64-v8a.so "")
     file(WRITE ${_licences}/refuse/Qt6Core.dll "")
     file(WRITE ${_licences}/refuse/Qt6Charts.dll "")
     add_test(NAME tst_licences_ok
