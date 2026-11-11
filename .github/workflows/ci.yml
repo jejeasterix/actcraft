@@ -262,7 +262,8 @@ jobs:
       # Journaux des tests rouges téléversés en cas d'échec (artefact journaux-tests-<plateforme>, docs/ci-ciblee.md).
       - id: tester
         name: Tester
-        timeout-minutes: 120
+        # Windows : 119 min 5 s de tests au run 42932734568 (abec431d, 337 tests), au ras des 120 min : 150 min.
+        timeout-minutes: ${{ matrix.os == 'windows-latest' && 150 || 120 }}
         run: |
           cmake -E make_directory "${{ runner.temp }}/journaux-tests"
           cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log

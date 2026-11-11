@@ -103,10 +103,32 @@ bool controlEnabled(const QQuickItem* item)
     return true;
 }
 
-QRect pixelRect(const QQuickItem* item, const QImage& image, qreal dpr)
+// Zone où un Text dessine ses lignes. QQuickText::boundingRect() aligne le texte dans toute la largeur et
+// toute la hauteur de l'élément, sans ses marges ; le dessin les ajoute (updatePaintNode, Qt 6.12). Pour un
+// CheckLabel (leftPadding = indicateur + espacement), la boîte tombait sur l'indicateur : point coché #E8EAED
+// relevé comme fond de « En couleur » sous Windows (run 42932734568).
+QRectF drawnTextRect(const QQuickItem* item)
 {
-    const QRectF scene = item->mapRectToScene(item->boundingRect());
-    return QRectF(scene.topLeft() * dpr, scene.size() * dpr).toAlignedRect().intersected(image.rect());
+    QRectF rect = item->boundingRect();
+    if (!item->inherits("QQuickText")) {
+        return rect;
+    }
+    const qreal left = item->property("leftPadding").toReal();
+    const qreal right = item->property("rightPadding").toReal();
+    const qreal top = item->property("topPadding").toReal();
+    const qreal bottom = item->property("bottomPadding").toReal();
+    const qreal freeWidth = item->width() - left - right - rect.width();
+    const qreal freeHeight = item->height() - top - bottom - rect.height();
+    const int hAlign = item->property("effectiveHorizontalAlignment").toInt();
+    const int vAlign = item->property("verticalAlignment").toInt();
+    const qreal x = left + ((hAlign & Qt::AlignRight)     ? freeWidth
+                            : (hAlign & Qt::AlignHCenter) ? freeWidth / 2
+                                                          : 0);
+    const qreal y = top + ((vAlign & Qt::AlignBottom)    ? freeHeight
+                           : (vAlign & Qt::AlignVCenter) ? freeHeight / 2
+                                                         : 0);
+    rect.moveTopLeft(QPointF(x, y));
+    return rect;
 }
 
 // Tout texte visible et actif sous `root` : couleur du texte contre le fond relevé sur l'image rendue.
@@ -119,7 +141,9 @@ void collectTexts(QQuickItem* item, const QImage& image, qreal dpr, QStringList&
     const bool text =
         item->inherits("QQuickText") || item->inherits("QQuickTextEdit") || item->inherits("QQuickTextInput");
     if (text && controlEnabled(item) && !item->property("text").toString().isEmpty()) {
-        const QRect zone = pixelRect(item, image, dpr);
+        const QRectF scene = item->mapRectToScene(drawnTextRect(item));
+        const QRect zone =
+            QRectF(scene.topLeft() * dpr, scene.size() * dpr).toAlignedRect().intersected(image.rect());
         if (zone.width() > 2 && zone.height() > 2) {
             const QColor bg = wcag::dominantColor(image, zone);
             const QColor fg = over(colorProperty(item, "color"), bg, effectiveOpacity(item));
@@ -226,11 +250,14 @@ void collectFocusable(QQuickItem* item, QList<QQuickItem*>& out)
     }
 }
 
-// Zone d'un élément sur l'image, élargie de `margin` points de chaque côté (place de l'anneau de focus).
+// Zone d'un élément sur l'image, élargie de `margin` points de chaque côté (place de l'anneau de focus). Le
+// rectangle de l'élément, pas boundingRect() : celui d'un TextInput n'entoure que son texte et son curseur,
+// sans ses marges, et laissait hors de la zone l'anneau du champ (SpinBox, 29 pixels sous Windows, run
+// 42932734568).
 QRect pixelZone(const QQuickItem* item, qreal dpr, qreal margin)
 {
-    const QRectF scene =
-        item->mapRectToScene(item->boundingRect()).adjusted(-margin, -margin, margin, margin);
+    const QRectF scene = item->mapRectToScene(QRectF(0, 0, item->width(), item->height()))
+                             .adjusted(-margin, -margin, margin, margin);
     return QRectF(scene.topLeft() * dpr, scene.size() * dpr).toAlignedRect();
 }
 

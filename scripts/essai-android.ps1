@@ -126,10 +126,14 @@ Write-Output 'palette : visible au bord droit'
 # « pages » (48, page.history-back et page.history-forward, L8-T2) : +124 points au total, 0,415 H = 664 px à la
 # densité 320 (2 px par point). Même place dans la pastille quelle
 # que soit la barre d'état ; tests/tst_ui_shell.cpp (s3StartupDashboardClosedByTheScriptTap) le rejoue hors écran.
+# Coin de page : 0,755 L, 23 px en dedans du bord droit relevé le 2026-11-11 (page de x = 347 à 1956, y = 208 à 1415,
+# zoom 79 %) ; 0,765 L, posé au ras du bord, tombait 2 px dehors, sur le bureau, après la mise en page du lot 11.
+# Pastille, depuis le lot 11 : Android est toujours en interface tactile (LayoutMetrics::touchUi, L11-T10 : cibles de
+# 48 dp, palette élargie) ; relevée sur l'émulateur le 2026-11-11 de x = 2322 à 2357, y = 702 à 737 ; point au centre.
 $coins = @(
-    @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.765); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
+    @{ Nom = 'page, coin bas-droit'; X = [int]($largeur * 0.755); Y = [int]($hauteur * 0.87); Attendu = @(255, 255, 255); Tol = 12 },
     @{ Nom = 'fond de palette, bas-gauche'; X = $largeur - 192; Y = [int]($hauteur * 0.72); Attendu = $fondPalette; Tol = 16 },
-    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 178; Y = [int]($hauteur * 0.415); Attendu = @(229, 57, 53); Tol = 40 }
+    @{ Nom = 'pastille rouge, coin bas-droit'; X = $largeur - 220; Y = [int]($hauteur * 0.45); Attendu = @(229, 57, 53); Tol = 40 }
 )
 foreach ($coin in $coins) {
     $lu = Pixel $avant $coin.X $coin.Y
