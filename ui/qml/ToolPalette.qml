@@ -159,18 +159,20 @@ Rectangle {
                     }
                 }
             }
-        }
-    }
 
-    // Lot 6 : barre de raccourcis, troisième colonne (masquée jusqu'à L6-T9).
-    ShortcutBar {
-        objectName: "shortcutBar"
-        visible: !(paletteRoot.profile && (paletteRoot.profile.shortcutsHidden || paletteRoot.profile.paletteCollapsed))
-        commands: paletteRoot.commands
-        documentController: paletteRoot.documentController
-        tools: paletteRoot.tools
-        view: paletteRoot.view
-        profile: paletteRoot.profile
+            // Lot 6 : barre de raccourcis (F-140 à F-142), après les groupes : sans place à elle, elle se posait sur
+            // le premier bouton de la palette dès qu'elle en avait un (launcher.edit sous Windows).
+            ShortcutBar {
+                objectName: "shortcutBar"
+                Layout.alignment: Qt.AlignTop | Qt.AlignLeft
+                visible: !(paletteRoot.profile && (paletteRoot.profile.shortcutsHidden || paletteRoot.profile.paletteCollapsed))
+                commands: paletteRoot.commands
+                documentController: paletteRoot.documentController
+                tools: paletteRoot.tools
+                view: paletteRoot.view
+                profile: paletteRoot.profile
+            }
+        }
     }
 
     // Lot 3 : corbeille sous la palette (« Afficher la corbeille » la masque).
