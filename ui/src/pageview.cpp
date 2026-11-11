@@ -683,6 +683,11 @@ std::optional<input::Sample> PageView::sampleFor(const QEvent& event, QPointF vi
         m_pointerPosition = viewPos;
         emit pointerPositionChanged();
     }
+    // Le doigt émet ici ; la souris et le stylet émettent avant d'arriver (mousePressEvent, eventFilter).
+    // Tous passent par emitPressedUnlessCovered : un appui sur une couverture ne reprend pas le focus.
+    if (event.type() == QEvent::TouchBegin) {
+        emitPressedUnlessCovered(viewPos);
+    }
     if (!m_pipeline) {
         return std::nullopt;
     }
@@ -927,6 +932,7 @@ void PageView::mousePressEvent(QMouseEvent* event)
             return;
         }
         event->accept();
+        emitPressedUnlessCovered(event->position()); // chaque appui sur la vue, pas seulement ceux d'un outil
         selectForContextMenu(m_tools.data(), m_transform.viewToPage(event->position()), zoom());
         emit contextMenuRequested(event->position());
         return;
@@ -935,6 +941,7 @@ void PageView::mousePressEvent(QMouseEvent* event)
         event->ignore();
         return;
     }
+    emitPressedUnlessCovered(event->position());
     event->setAccepted(handlePointer(*event, event->position()));
 }
 
@@ -1048,6 +1055,7 @@ bool PageView::eventFilter(QObject* watched, QEvent* event)
         bool taken = false;
         if (type == QEvent::TabletPress) {
             if (canStartStroke(viewPos) && acceptsDevice(tablet->pointingDevice())) {
+                emitPressedUnlessCovered(viewPos);
                 // Un seul trait à la fois : si un doigt écrit, la politique du routeur le fait passer à
                 // Ignore (endToolContacts) et handlePointer termine son trait ; un appui couvert (Cover) ne
                 // le termine pas.
@@ -1075,6 +1083,13 @@ bool PageView::canStartStroke(QPointF viewPos) const
 {
     // isEnabled : le stylet passe par le filtre de la fenêtre et contournerait « enabled: false ».
     return !m_inputBlocked && isVisible() && isEnabled() && contains(viewPos);
+}
+
+void PageView::emitPressedUnlessCovered(QPointF viewPos)
+{
+    if (!coveredAt(viewPos)) {
+        emit pointerPressed(viewPos);
+    }
 }
 
 bool PageView::coveredAt(QPointF viewPos) const

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "actcraft/ui/profilecontroller.h"
 #include "actcraft/ui/webpolicy.h"
 
 #include <QAbstractListModel>
@@ -15,21 +16,17 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 
-// Moteur web construit : vrai quand actcraft_ui est lié à Qt WebView (option
-// ACTCRAFT_WEBFRAME du CMakeLists.txt racine ; la cible Qt6::WebView pose
-// QT_WEBVIEW_LIB chez tous ceux qui la lient).
+// Moteur web construit : posé par ui/CMakeLists.txt (public) quand ACTCRAFT_WEBFRAME est ON.
 #ifndef ACTCRAFT_WEBFRAME
-#ifdef QT_WEBVIEW_LIB
-#define ACTCRAFT_WEBFRAME 1
-#else
 #define ACTCRAFT_WEBFRAME 0
-#endif
 #endif
 
 class QNetworkAccessManager;
 class QNetworkReply;
 class QQuickItem;
+class QTemporaryDir;
 
 namespace actcraft::ui {
 
@@ -37,31 +34,27 @@ class DocumentController;
 
 // Cadres web de la page courante (S27, F-302), vus par WebFrameLayer.qml.
 //
-// Chaque requête du cadre passe par WebContentPolicy::decide (L8-T29), jamais
-// par une règle posée une fois dans le QML de la vue : Qt WebView 6.12 n'offre
-// ni filtre de requêtes ni décision de navigation (seuls `loadingChanged` et
-// `urlChanged`, après coup, sous WKWebView comme sous WebView2), donc la vue ne
-// reçoit jamais d'adresse à charger. Ce modèle lit lui-même la page après
-// `decide`, suit les redirections une à une (chacune décidée), puis réécrit le
-// HTML avant de le donner à la vue (`content`, chargé par `loadHtml`) : chaque
-// sous-ressource est décidée, celles qui ne passent pas sont neutralisées, une
-// règle de sécurité du contenu (CSP) n'autorise que les adresses passées, et
-// les liens deviennent des renvois internes
-// (`#actcraft-link-<n>`) que la vue rend par `followLink`, décidés à leur tour.
+// Gardes allumées (`guardsEnabled`, réglage de profil `tools/web-frame-guards`) : chaque requête du cadre
+// passe par WebContentPolicy::decide (L8-T29), jamais par une règle posée une fois dans le QML de la vue. Ce
+// modèle lit lui-même la page après `decide`, suit les redirections une à une (chacune décidée), puis réécrit
+// le HTML avant de le donner à la vue (`content`) : chaque sous-ressource est décidée, celles qui ne passent
+// pas sont neutralisées, une règle de sécurité du contenu (CSP) n'autorise que les adresses passées, et les
+// liens deviennent des renvois internes (`#actcraft-link-<n>`) que la vue rend par `followLink`, décidés à
+// leur tour. La vue est Qt WebEngine (PC, Mac) ou Qt WebView (Android) selon `engineKind`.
 //
 // Lecture d'un fichier, décodage d'une réponse et réécriture se font hors du fil de l'interface (BRIEF
 // § 4.1), sur QThreadPool::globalInstance(), avec une copie figée de la politique ; le contenu arrive par la
 // boucle d'événements (`serial` change), il est abandonné si le cadre est parti ou a changé de contenu
 // entre-temps.
 //
-// Risque résiduel accepté (Qt WebView 6.12, vérifié le 2026-11-06 sur les en-têtes installés) : la vue n'a
-// que quatre réglages (LocalStorageEnabled, JavaScriptEnabled, AllowFileAccess,
-// LocalContentCanAccessFileUrls) et aucune décision de navigation ; `urlChanged` et `loadingChanged` arrivent
-// quand la requête est partie, et `stop()` n'arrête que la suite. Une navigation que le moteur prendrait de
-// lui-même atteindrait donc le réseau une fois, sans la CSP. Elle est bornée par la réécriture : sans
-// JavaScript, seuls un lien (devenu renvoi interne), un formulaire (action retirée, `form-action 'none'`) ou
-// une balise meta (toutes retirées, la CSP ne couvrant pas `refresh`) en lancent une, et aucune de ces formes
-// ne sort de prepareHtml.
+// Risque résiduel accepté, pour la vue système d'Android (Qt WebView 6.12, vérifié le 2026-11-06 sur les
+// en-têtes installés) : elle n'a que quatre réglages (LocalStorageEnabled, JavaScriptEnabled,
+// AllowFileAccess, LocalContentCanAccessFileUrls) et aucune décision de navigation ; `urlChanged` et
+// `loadingChanged` arrivent quand la requête est partie, et `stop()` n'arrête que la suite. Une navigation
+// que le moteur prendrait de lui-même atteindrait donc le réseau une fois, sans la CSP. Elle est bornée par
+// la réécriture : sans JavaScript, seuls un lien (devenu renvoi interne), un formulaire (action retirée,
+// `form-action 'none'`) ou une balise meta (toutes retirées, la CSP ne couvrant pas `refresh`) en lancent
+// une, et aucune de ces formes ne sort de prepareHtml.
 class WebFrameItems : public QAbstractListModel
 {
     Q_OBJECT
@@ -72,7 +65,9 @@ class WebFrameItems : public QAbstractListModel
     Q_PROPERTY(int blockedCount READ blockedCount NOTIFY countChanged)
     Q_PROPERTY(bool unblockPending READ unblockPending NOTIFY unblockPendingChanged)
     Q_PROPERTY(QString documentKey READ documentKey NOTIFY documentKeyChanged)
-    Q_PROPERTY(bool engineBuilt READ engineBuilt CONSTANT)
+    Q_PROPERTY(QString engineKind READ engineKind CONSTANT)
+    Q_PROPERTY(bool guardsEnabled READ guardsEnabled WRITE setGuardsEnabled NOTIFY guardsEnabledChanged)
+    Q_PROPERTY(actcraft::ui::ProfileController* profile READ profile WRITE setProfile NOTIFY profileChanged)
 
 public:
     enum Role
@@ -90,7 +85,9 @@ public:
         TitleRole,   // titre du repère
         CanGoBackRole,
         CanGoForwardRole,
-        SerialRole // change à chaque contenu neuf : la vue recharge
+        SerialRole,     // change à chaque contenu neuf : la vue recharge
+        DirectUrlRole,  // adresse donnée telle quelle à la vue (gardes coupées)
+        ContentFileRole // HTML au-delà de la limite de loadHtml : fichier du modèle
     };
     Q_ENUM(Role)
 
@@ -105,7 +102,13 @@ public:
     int blockedCount() const noexcept;
     bool unblockPending() const noexcept { return m_pendingRow >= 0; }
     QString documentKey() const { return m_key; }
-    static bool engineBuilt() noexcept { return ACTCRAFT_WEBFRAME != 0; }
+    static QString engineKind();
+    // Interrupteur des gardes (clé de profil `tools/web-frame-guards`, faux par défaut) : relu au départ et à
+    // chaque `profileChanged` du profil posé.
+    bool guardsEnabled() const noexcept { return m_guardsEnabled; }
+    void setGuardsEnabled(bool enabled);
+    ProfileController* profile() const noexcept;
+    void setProfile(ProfileController* profile);
     // Conversions du HTML enregistré (std::string) en QString faites par rebuild(), depuis le début du
     // processus (fil de l'interface seulement) : la mesure que lisent les tests.
     static std::uint64_t htmlConversionCount() noexcept;
@@ -125,18 +128,30 @@ public:
     Q_INVOKABLE void requestUnblock(int row);
     Q_INVOKABLE void answer(bool confirmed);
     // Adresse prise par la vue (urlChanged, chargement commencé) : un renvoi
-    // interne est suivi après décision ; toute adresse autre que about:blank (le
-    // contenu donné par loadHtml sans base) et ses fragments, même celle de la
-    // page affichée, est une navigation du moteur, rendue au modèle (vrai : la
-    // vue s'arrête).
+    // interne est suivi après décision ; toute adresse autre que about:blank ou
+    // data: (le contenu donné par loadHtml sans base), le fichier de `contentFile`
+    // et leurs fragments, même celle de la page affichée, est une navigation du
+    // moteur, rendue au modèle (vrai : la vue s'arrête). Gardes coupées : faux, la
+    // vue navigue seule.
     Q_INVOKABLE bool followLink(int row, const QUrl& viewUrl);
     Q_INVOKABLE void goBack(int row);
     Q_INVOKABLE void goForward(int row);
     Q_INVOKABLE void reload(int row);
+    // Gardes coupées : état de la vue (adresse, historique du moteur, titre, chargement) rapporté au modèle.
+    // Gardes allumées : ignoré.
+    Q_INVOKABLE void reportView(int row, const QUrl& url, bool canBack, bool canForward, const QString& title,
+                                bool loading);
     // webframe.snapshot : image de la zone du cadre dans la fenêtre (la vue
     // native échappe à grabToImage), posée sur la page en une étape. Faux sans
     // moyen de capture ou si la capture est vide.
     Q_INVOKABLE bool snapshot(int row);
+    // Image obtenue hors du modèle (grabToImage de la vue, n° 18) : posée en une étape sur la zone du cadre.
+    // Faux si `row` est invalide ou l'image nulle.
+    Q_INVOKABLE bool insertSnapshot(int row, const QImage& image);
+    // Deux captures successives identiques : la vue a fini de peindre (WebFrameLayer.qml). Le modèle garde
+    // l'empreinte de la précédente, pas l'image (une image gardée côté QML devient invalide ; une image
+    // pleine page resterait en mémoire). `first` : début d'une série.
+    Q_INVOKABLE bool sameAsPreviousCapture(const QImage& image, bool first);
     // Capture par la fenêtre de `pageView` (ui::PageView, pageToScene) : posée
     // par WebFrameLayer.qml.
     Q_INVOKABLE void useWindowCapture(QQuickItem* pageView);
@@ -145,6 +160,11 @@ public:
     void setGrabber(Grabber grabber) { m_grabber = std::move(grabber); }
 
     const WebContentPolicy& policy() const noexcept { return m_policy; }
+    // Même réponse que pour une requête du cadre : sert au téléchargement d'une image déposée (T10).
+    WebContentPolicy::Verdict decideAddress(const QUrl& url) const { return decide(url); }
+
+    // Dossier des fichiers de HTML lourd ; les tests y mettent un dossier inutilisable (disque plein).
+    void setHeavyDirectory(const QString& path) { m_heavyOverride = path; }
 
     // Réécriture du HTML avant chargement : `decide` répond pour chaque adresse
     // (résolue sur `base`). Sans état partagé : sûre sur un autre fil si `decide` l'est.
@@ -165,6 +185,11 @@ signals:
     void countChanged();
     void unblockPendingChanged();
     void documentKeyChanged();
+    void guardsEnabledChanged();
+    void profileChanged();
+    // Gardes coupées : précédent, suivant ou recharger, à exécuter par la vue (`action` : back, forward,
+    // reload).
+    void viewCommand(int row, const QString& action);
 
 private:
     struct Row
@@ -178,8 +203,14 @@ private:
         bool loading = false;
         QString content;
         QUrl baseUrl;
+        QUrl directUrl;
+        QUrl contentFile;
         QVector<QUrl> links;
         QUrl pendingUrl; // adresse bloquée, lue au déblocage
+        QUrl viewUrl;    // état rapporté par la vue (reportView), gardes coupées
+        QString viewTitle;
+        bool viewCanBack = false;
+        bool viewCanForward = false;
         QVector<QUrl> history;
         int historyIndex = -1;
         int serial = 0;
@@ -191,6 +222,7 @@ private:
 
     void rebuild();
     void documentReplaced();
+    void fileChanged();
     void prepareRow(Row& row);
     void navigate(Row& row, const QUrl& url, bool pushHistory);
     void fetch(Row& row, const QUrl& url, int redirects);
@@ -198,9 +230,16 @@ private:
     void showContent(Row& row, const QString& html, const QUrl& base);
     // `source` (lecture, décodage) et réécriture sur un fil secondaire ; résultat rendu par finishContent.
     void prepareContent(Row& row, std::function<QString()> source, const QUrl& base);
-    void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared);
+    void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared,
+                       const QUrl& heavy, bool failed);
+    void showDirect(Row& row);
+    void finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed);
+    void releaseContentFile(Row& row);
+    void dropShown(Row& row); // contenu affiché abandonné : fichier lourd, adresse directe, liens
+    QString heavyDir();
     int rowOf(std::uint64_t id) const;
     void rowChanged(int row);
+    void readGuards();
     WebContentPolicy::Verdict decide(const QUrl& url) const;
 
     struct Pending
@@ -214,6 +253,9 @@ private:
     QMetaObject::Connection m_connections[5];
     WebContentPolicy m_policy;
     QString m_key;
+    QUrl m_resourceBase; // dossier du document ouvert, base d'un HTML saisi (gardes coupées)
+    std::unique_ptr<QTemporaryDir> m_heavy;
+    QString m_heavyOverride;
     std::uint64_t m_generation = 0;
     std::uint64_t m_keys = 0;
     std::uint64_t m_tickets = 0;
@@ -224,8 +266,12 @@ private:
     // en insère une avant elle. 0 : aucun cadre.
     std::uint64_t m_pageKey = 0;
     QVector<Row> m_rows;
+    bool m_guardsEnabled = false;
+    QPointer<ProfileController> m_profile;
+    QMetaObject::Connection m_profileConnection;
     int m_pendingRow = -1;
     Grabber m_grabber;
+    QByteArray m_lastCapture; // empreinte de la dernière capture ; vide : aucune
     QNetworkAccessManager* m_network = nullptr;
     QHash<QNetworkReply*, Pending> m_replies;
 };

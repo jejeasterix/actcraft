@@ -8,6 +8,7 @@
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/pageview.h>
+#include <actcraft/ui/profilecontroller.h>
 
 #include <QColor>
 #include <QElapsedTimer>
@@ -261,6 +262,44 @@ private slots:
     // alpha demandée avant sa création native. Le format explicite (setFormat, demandé par 7b) double
     // setColor(Qt::transparent), qui demande déjà ce canal : retirer setFormat est un mutant équivalent ;
     // seule la vue à l'écran en D3D11 prouve la transparence. Mutant : drapeau « toujours devant » retiré.
+    // E13 : la couche de l'annotation du bureau suit le même réglage.
+    void desktopLayerFollowsTheSetting()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        auto* profile =
+            main.window()->findChild<actcraft::ui::ProfileController*>(QStringLiteral("appProfile"));
+        QVERIFY(profile);
+        QQuickItem* layer =
+            presentationharness::findItem(desktop->window()->contentItem(), QStringLiteral("webFrameLayer"));
+        QVERIFY(layer);
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        QVERIFY(frames);
+        QCOMPARE(frames->property("guardsEnabled").toBool(), false);
+        profile->setSetting(QStringLiteral("tools"), QStringLiteral("web-frame-guards"), true);
+        QTRY_COMPARE(frames->property("guardsEnabled").toBool(), true);
+        profile->setSetting(QStringLiteral("tools"), QStringLiteral("web-frame-guards"), false);
+    }
+
+    // E13 : la seconde PageArea n'accepte aucun dépôt (`appInsertion` vise `appDocument`, cadrage n° 19).
+    void desktopDropAreaStaysOff()
+    {
+        MainWindow main;
+        QVERIFY(main.window());
+        DesktopController* desktop = desktopOf(main);
+        QVERIFY(desktop);
+        QVERIFY(main.run(QStringLiteral("desktop.annotate")));
+        QVERIFY(waitDesktopReady(desktop));
+        QQuickItem* area = presentationharness::findItem(desktop->window()->contentItem(),
+                                                         QStringLiteral("webFrameDropArea"));
+        QVERIFY(area);
+        QVERIFY(!area->isEnabled());
+    }
+
     void annotationWindowIsTransparentAndAbove()
     {
         MainWindow main;

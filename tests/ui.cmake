@@ -297,6 +297,7 @@ actcraft_add_test(tst_ui_pageinput
     SOURCES tst_ui_pageinput.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_include_directories(tst_ui_pageinput PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_compile_definitions(tst_ui_pageinput PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 actcraft_add_test(tst_ui_touchmode
     SOURCES tst_ui_touchmode.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
@@ -370,3 +371,26 @@ actcraft_add_test(tst_ui_helppages
     SOURCES tst_ui_helppages.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 
+# Cadre web (chantier cadre-web-webengine) : la couche sans moteur, puis le vrai moteur, seul à la fois (mémoire).
+actcraft_add_test(tst_ui_webframelayer
+    SOURCES tst_ui_webframelayer.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_webframelayer PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_compile_definitions(tst_ui_webframelayer PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+if(ACTCRAFT_WEBFRAME AND NOT ANDROID)
+    actcraft_add_test(tst_ui_webengine
+        SOURCES tst_ui_webengine.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+        LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+    target_include_directories(tst_ui_webengine PRIVATE ${PROJECT_SOURCE_DIR}/app)
+    target_compile_definitions(tst_ui_webengine PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    set_tests_properties(tst_ui_webengine tst_ui_webframe PROPERTIES RUN_SERIAL TRUE TIMEOUT 300)
+endif()
+
+actcraft_add_test(tst_ui_webimagefetch
+    SOURCES tst_ui_webimagefetch.cpp
+    LIBS ActCraft::ui)
+
+actcraft_add_test(tst_ui_webdrop
+    SOURCES tst_ui_webdrop.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_webdrop PRIVATE ${PROJECT_SOURCE_DIR}/app)

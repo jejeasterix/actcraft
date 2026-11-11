@@ -2,19 +2,23 @@ import QtQuick
 import QtQuick.Controls.Basic
 import ActCraft.Ui
 
-// Cadres web de la page (S27, F-302) : une vue Qt WebView par cadre visible, posée sur son repère, avec sa
+// Cadres web de la page (S27, F-302) : une vue par cadre visible, chargée par un Loader, posée sur son repère, avec sa
 // barre (précédent, suivant, recharger, image fixe) et sa poignée (une étape au relâché).
 //
-// La vue ne reçoit jamais d'adresse : elle charge le HTML que WebFrameItems a lu et réécrit après la décision
-// de la politique (L8-T29), par loadHtml ; une navigation qu'elle prendrait d'elle-même est rendue au modèle
-// et arrêtée. JavaScript, accès aux fichiers et stockage local coupés. Hors de la scène que le cache
-// photographie : miniatures, exports et page fixe montrent le repère neutre de paintPage. La vue native passe
-// au-dessus de tout le QML : elle est masquée tant qu'une boîte de la fenêtre est ouverte.
+// Gardes allumées : la vue ne reçoit jamais d'adresse, elle charge le HTML que WebFrameItems a lu et réécrit
+// après la décision de la politique (L8-T29) ; une navigation qu'elle prendrait d'elle-même est rendue au
+// modèle et arrêtée. JavaScript, accès aux fichiers et stockage local coupés. Hors de la scène que le cache
+// photographie : miniatures, exports et page fixe montrent le repère neutre de paintPage. Sur Android, la vue
+// native passe au-dessus de tout le QML : une boîte ouverte la masque. Sur PC et Mac, c'est un élément de la scène,
+// couvert par la couverture ci-dessous, et elle reste visible sous une fenêtre surgissante.
 Item {
     id: frameLayer
     objectName: "webFrameLayer"
     anchors.fill: parent
     property var commands: null
+    property var profile: null
+    property var insertion: null // appInsertion ; null : aucun dépôt possible (annotation du bureau)
+    property var editing: null   // appEditing : ses collages suivent la politique
 
     // Zone de page qui porte la couche ; la vue de page s'atteint par pageArea.view (plan 8a, l. 248).
     readonly property Item pageArea: findArea()
@@ -25,7 +29,12 @@ Item {
     property int currentRow: -1
     readonly property int targetRow: currentRow >= 0 && currentRow < count ? currentRow : (count > 0 ? 0 : -1)
     property var dialog: null
-    // Vue native au-dessus de tout le QML : masquée tant qu'une boîte de la fenêtre est ouverte, la
+    // Composant de la vue : celui du moteur construit ; un test en pose un autre avant le premier cadre.
+    property url viewSource: appWebFrames.engineKind === "engine" ? Qt.resolvedUrl("WebFrameEngineView.qml")
+                           : appWebFrames.engineKind === "system" ? Qt.resolvedUrl("WebFrameSystemView.qml") : ""
+    property int loadedViews: 0   // vues dont une page a fini de charger (lu par les tests et le banc)
+    property int snapshotCount: 0 // images fixes terminées
+    // Vue masquée tant qu'une boîte de la fenêtre est ouverte (la vue native d'Android passe au-dessus de tout le QML), la
     // nôtre (ci-dessous, relayée) ou toute autre (menus compris : Main.openPopups, via PageArea.inputBlocked).
     readonly property bool covered: confirm.opened || (dialog !== null && dialog.opened) ||
                                     (pageArea !== null && pageArea.inputBlocked)
@@ -33,6 +42,7 @@ Item {
     WebFrameItems {
         id: appWebFrames
         objectName: "appWebFrames"
+        profile: frameLayer.profile
         document: frameLayer.pageArea ? frameLayer.pageArea.documentController : null
     }
 
@@ -91,12 +101,101 @@ Item {
             view.removeInputCover(item)
     }
 
-    onViewChanged: if (view) appWebFrames.useWindowCapture(view)
+    // Image fixe du cadre (n° 18). Vue du moteur : grabToImage, répété jusqu'à deux images identiques, car
+    // pageLoaded précède la peinture du texte. Vue native (Android) : capture par la fenêtre.
+    property var pendingSnapshot: null
+    function takeSnapshot(arg) {
+        const row = rowOf(arg)
+        const delegate = row >= 0 ? frames.itemAt(row) : null
+        const webView = delegate ? delegate.webView : null
+        if (webView && !webView.overlaysScene) {
+            if (pendingSnapshot) {
+                finishSnapshot(false)
+                return
+            }
+            pendingSnapshot = { row: row, web: webView, first: true, tries: 20 }
+            snapshotStep()
+            return
+        }
+        finishSnapshot(appWebFrames.snapshot(row))
+    }
+    function snapshotStep() {
+        const job = pendingSnapshot
+        job.web.capture(function (image) {
+            if (pendingSnapshot !== job)
+                return
+            if (!image) {
+                pendingSnapshot = null
+                finishSnapshot(false)
+            } else if ((appWebFrames.sameAsPreviousCapture(image, job.first)) || --job.tries <= 0) {
+                pendingSnapshot = null
+                finishSnapshot(appWebFrames.insertSnapshot(job.row, image))
+            } else {
+                job.first = false
+                snapshotTimer.restart()
+            }
+        })
+    }
+    // La vue d'un cadre disparaît (autre document, page changée) : l'image fixe qui l'attendait est abandonnée, sinon
+    // elle resterait en suspens et refuserait toutes les suivantes.
+    function cancelSnapshotOf(webView) {
+        if (pendingSnapshot && webView && pendingSnapshot.web === webView) {
+            pendingSnapshot = null
+            finishSnapshot(false)
+        }
+    }
+    function finishSnapshot(ok) {
+        console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
+        snapshotCount += 1
+    }
+    // edit.copy (n° 37) : vrai si une vue web au focus a pris la copie.
+    function copyFromFocusedView() {
+        for (let i = 0; i < frames.count; ++i) {
+            const delegate = frames.itemAt(i)
+            const webView = delegate ? delegate.webView : null
+            if (webView && webView.viewFocused) {
+                webView.copySelection()
+                return true
+            }
+        }
+        return false
+    }
+    // Un appui sur la page, hors des cadres, reprend le focus à la vue web : sans cela viewFocused resterait vrai et
+    // Ctrl+C copierait la sélection du cadre au lieu des objets (n° 37).
+    Connections {
+        target: frameLayer.view
+        ignoreUnknownSignals: true
+        function onPointerPressed(viewPos) {
+            let focused = false
+            const here = frameLayer.mapFromItem(frameLayer.view, viewPos)
+            for (let i = 0; i < frames.count; ++i) {
+                const delegate = frames.itemAt(i)
+                const webView = delegate ? delegate.webView : null
+                if (webView && webView.viewFocused)
+                    focused = true
+                if (delegate && delegate.contains(delegate.mapFromItem(frameLayer, here)))
+                    return
+            }
+            if (focused)
+                frameLayer.forceActiveFocus()
+        }
+    }
+    Timer {
+        id: snapshotTimer
+        interval: 100
+        onTriggered: if (frameLayer.pendingSnapshot) frameLayer.snapshotStep()
+    }
+
+    onViewChanged: if (view && Qt.platform.os === "android") appWebFrames.useWindowCapture(view)
 
     Component.onCompleted: {
         dialog = findDialog()
-        if (view)
+        if (view && Qt.platform.os === "android")
             appWebFrames.useWindowCapture(view)
+        if (insertion)
+            insertion.webFrames = appWebFrames
+        if (editing)
+            editing.webFrames = appWebFrames
         if (!commands)
             return
         // Argument (scénarios) : { html, address } crée le cadre sans la boîte.
@@ -111,8 +210,7 @@ Item {
         commands.setHandler("webframe.forward", function (arg) { appWebFrames.goForward(frameLayer.rowOf(arg)) })
         commands.setHandler("webframe.reload", function (arg) { appWebFrames.reload(frameLayer.rowOf(arg)) })
         commands.setHandler("webframe.snapshot", function (arg) {
-            const ok = appWebFrames.snapshot(frameLayer.rowOf(arg))
-            console.info("ACTCRAFT IMAGE DU CADRE " + (ok ? "OK" : "ECHEC"))
+            frameLayer.takeSnapshot(arg)
         })
         // Déblocage : confirmation, puis cette page de ce document seulement.
         commands.setHandler("webframe.unblock", function (arg) {
@@ -122,8 +220,31 @@ Item {
         })
     }
 
+    // Dépôt sur la page, hors des vues (n° 19) : texte, URL, image, fichier du système (E4). Inactif sans `commands`
+    // (seconde PageArea : `appInsertion` viserait le mauvais document) et sous Android.
+    DropArea {
+        id: pageDrop
+        objectName: "webFrameDropArea"
+        anchors.fill: parent
+        enabled: frameLayer.commands !== null && frameLayer.insertion !== null && Qt.platform.os !== "android"
+        onEntered: function (drag) { drag.accepted = drag.hasUrls || drag.hasText }
+        onDropped: function (drop) {
+            if (!frameLayer.view || !frameLayer.insertion)
+                return
+            const scene = pageDrop.mapToItem(null, drop.x, drop.y)
+            const point = frameLayer.view.sceneToPage(Qt.point(scene.x, scene.y))
+            const ok = frameLayer.insertion.acceptWebDrop(drop.hasUrls ? drop.urls : [],
+                                                          drop.hasText ? drop.text : "",
+                                                          drop.hasHtml ? drop.html : "", point)
+            if (ok)
+                drop.accept(Qt.CopyAction)
+        }
+    }
+
     Repeater {
+        id: frames
         model: appWebFrames
+        onItemRemoved: function (index, item) { frameLayer.cancelSnapshotOf(item.webView) }
         delegate: Item {
             id: frame
             required property int index
@@ -133,6 +254,8 @@ Item {
             required property bool loading
             required property string content
             required property url baseUrl
+            required property url directUrl
+            required property url contentFile
             required property string title
             required property bool canGoBack
             required property bool canGoForward
@@ -141,7 +264,8 @@ Item {
             // Glisser de la poignée : aperçu sans étape ; l'étape part au relâché.
             property point resizeBy: Qt.point(0, 0)
             readonly property rect box: frameLayer.frameRect(bounds)
-            readonly property bool showsView: !blocked && !refused && content.length > 0
+            readonly property bool showsView: !blocked && !refused && (content.length > 0 || directUrl.toString().length > 0)
+            readonly property var webView: viewHost.webView
             x: box.x
             y: box.y
             width: Math.max(24, box.width + resizeBy.x)
@@ -149,55 +273,104 @@ Item {
 
             Item {
                 id: viewHost
+                objectName: "webFrameViewHost"
                 anchors.fill: parent
                 clip: true
-                visible: frame.showsView && !frameLayer.covered
-                property var web: null
-                // Magasin de cookies du moteur : commun à toutes les vues et gardé d'une session à l'autre ;
-                // vidé avant le premier contenu de chaque document et à la destruction de la vue (H8-13 :
-                // rien ne passe d'un document à un autre ; deleteAllCookies, Qt WebView 6.3+).
-                property string cookiesFor: ""
-                Component.onDestruction: if (web) web.deleteAllCookies()
-                function show() {
-                    if (!frame.showsView || !appWebFrames.engineBuilt)
-                        return
-                    if (!web) {
-                        try {
-                            web = Qt.createQmlObject("import QtQuick\nimport QtWebView\nWebView {\n"
-                                                     + " anchors.fill: parent\n"
-                                                     + " settings.javaScriptEnabled: false\n"
-                                                     + " settings.allowFileAccess: false\n"
-                                                     + " settings.localContentCanAccessFileUrls: false\n"
-                                                     + " settings.localStorageEnabled: false\n}",
-                                                     viewHost, "WebFrameView")
-                        } catch (e) {
-                            console.warn("Cadre web : vue indisponible (" + e + ")")
-                            return
+                visible: frame.showsView && !(frameLayer.covered && loader.item !== null && loader.item.overlaysScene)
+                property bool reported: false
+                // Vue déclarée couverture d'entrée (n° 17) : sans cela le filtre de PageView prend le stylet.
+                property var covering: null
+                Component.onDestruction: if (covering) frameLayer.uncover(covering)
+                // Réglage pour lequel la vue a été créée. Un autre document : le modèle est remis à zéro (rebuild), le
+                // délégué et sa vue sont recréés, donc un profil neuf par document (H8-13).
+                property bool madeGuards: false
+                readonly property var webView: loader.status === Loader.Ready ? loader.item : null
+
+                Loader {
+                    id: loader
+                    objectName: "webFrameLoader"
+                    anchors.fill: parent
+                    asynchronous: true // import QtWebEngine lu à la première vue (DA2)
+                    onStatusChanged: {
+                        if (status === Loader.Ready) {
+                            if (!item.overlaysScene) {
+                                viewHost.covering = item
+                                frameLayer.cover(item)
+                            }
+                            viewHost.deliver()
+                        } else if (status === Loader.Error) {
+                            console.warn("Cadre web : vue indisponible (" + source + ")")
+                        } else if (status === Loader.Null && viewHost.covering) {
+                            frameLayer.uncover(viewHost.covering)
+                            viewHost.covering = null
                         }
-                        // Toute adresse prise par la vue repasse par le modèle (renvoi interne ou navigation
-                        // du moteur) ; s'il la prend en charge, la vue s'arrête. Arrêt après coup : la requête
-                        // est déjà partie (Qt WebView 6.12 n'offre ni réglage ni décision de navigation) ; ce
-                        // risque résiduel est borné par la réécriture (aucune balise meta, aucun lien direct,
-                        // aucune action de formulaire), voir l'en-tête de webframeitem.h.
-                        web.urlChanged.connect(function () {
-                            if (appWebFrames.followLink(frame.index, web.url))
-                                web.stop()
-                        })
-                        web.loadingChanged.connect(function (request) {
-                            if (request.status === 0 && appWebFrames.followLink(frame.index, request.url))
-                                web.stop()
-                        })
                     }
-                    if (cookiesFor !== appWebFrames.documentKey) {
-                        web.deleteAllCookies()
-                        cookiesFor = appWebFrames.documentKey
+                }
+                Connections {
+                    target: loader.item
+                    ignoreUnknownSignals: true
+                    function onNavigationTaken(pageUrl) {
+                        // Toute adresse prise par la vue repasse par le modèle ; s'il la prend en charge, la vue s'arrête.
+                        if (appWebFrames.followLink(frame.index, pageUrl))
+                            loader.item.stop()
                     }
-                    // Sans base : le document est about:blank, ses adresses sont déjà absolues ; toute
-                    // navigation du moteur repasse par followLink et s'arrête.
-                    web.loadHtml(frame.content, "")
+                    function onPageLoaded() {
+                        if (viewHost.reported)
+                            return
+                        viewHost.reported = true
+                        frameLayer.loadedViews += 1
+                        console.info("ACTCRAFT CADRE WEB CHARGE")
+                    }
+                    function onViewReported(pageUrl, canBack, canForward, pageTitle, pageLoading) {
+                        appWebFrames.reportView(frame.index, pageUrl, canBack, canForward, pageTitle, pageLoading)
+                    }
+                }
+                function deliver() {
+                    if (loader.status !== Loader.Ready || !frame.showsView)
+                        return
+                    const view = loader.item
+                    view.html = frame.content
+                    view.baseUrl = frame.baseUrl
+                    view.directUrl = frame.directUrl
+                    view.contentFile = frame.contentFile
+                    view.serial = frame.serial
+                    view.load()
+                }
+                function show() {
+                    const guards = appWebFrames.guardsEnabled
+                    // Profil et JavaScript ne se changent pas à chaud (n° 10, 33) ; avant le test de showsView : une
+                    // vue active ne survit pas, cachée, au passage d'un cadre au repère de blocage.
+                    if (loader.status !== Loader.Null && madeGuards !== guards) {
+                        frameLayer.cancelSnapshotOf(loader.item) // le délégué reste : onItemRemoved ne part pas
+                        loader.source = ""
+                    }
+                    if (!frame.showsView || frameLayer.viewSource.toString() === "")
+                        return
+                    if (loader.status === Loader.Null) {
+                        madeGuards = guards
+                        reported = false
+                        loader.setSource(frameLayer.viewSource, { guardsEnabled: guards })
+                        return
+                    }
+                    deliver()
                 }
             }
-            onSerialChanged: viewHost.show()
+            Connections {
+                target: appWebFrames
+                function onViewCommand(row, action) {
+                    if (row !== frame.index || !viewHost.webView)
+                        return
+                    if (action === "back")
+                        viewHost.webView.goBack()
+                    else if (action === "forward")
+                        viewHost.webView.goForward()
+                    else if (action === "reload")
+                        viewHost.webView.reload()
+                }
+            }
+            // Reporté : dataChanged sans rôles notifie les rôles un à un, dans un ordre non garanti ; quand `serial`
+            // change, `content` peut être encore l'ancien (Loader jamais lancé, ou contenu périmé livré à la vue).
+            onSerialChanged: Qt.callLater(viewHost.show)
             Component.onCompleted: viewHost.show()
 
             // Repère de blocage : contenu distant d'un document reçu, page non débloquée.
@@ -278,6 +451,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Math.max(0, bar.width - x - 4)
                         elide: Text.ElideRight
+                        color: "#5A606B"
                         text: frame.loading ? qsTr("Chargement…") : frame.title
                     }
                 }
@@ -329,10 +503,13 @@ Item {
         modal: true
         title: qsTr("Débloquer le contenu distant")
         standardButtons: Dialog.Yes | Dialog.No
+        width: 380 + leftPadding + rightPadding
         Label {
-            width: 380
+            width: confirm.availableWidth
             wrapMode: Text.Wrap
-            text: qsTr("Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.")
+            text: appWebFrames.guardsEnabled
+                  ? qsTr("Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.")
+                  : qsTr("Le cadre web chargera le contenu distant de cette page, pour ce document seulement.")
         }
         onAccepted: appWebFrames.answer(true)
         onRejected: appWebFrames.answer(false)

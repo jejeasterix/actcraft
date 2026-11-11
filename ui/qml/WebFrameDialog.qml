@@ -90,10 +90,13 @@ Item {
                 }
             }
             Label {
+                objectName: "webFrameDialogNote"
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 opacity: 0.7
-                text: qsTr("JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu'à ce que vous débloquiez sa page.")
+                text: root.frames && root.frames.guardsEnabled
+                      ? qsTr("JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu'à ce que vous débloquiez sa page.")
+                      : qsTr("Le contenu du cadre s'exécute tel quel : JavaScript actif, aucune adresse filtrée.")
             }
         }
     }

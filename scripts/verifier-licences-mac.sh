@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Licences d'un ActCraft.app déployé (décision 34 ; amendement 3 du plan du lot 11). Chaque framework Qt
 # (QtCore.framework → Qt6Core) est dans packaging/qt-autorises.txt ; chaque autre bibliothèque de Contents/Frameworks a
-# sa ligne « <motif glob> <expression SPDX> » dans packaging/autres-autorises.txt ; aucune sous GPL seule, aucun
-# Qt WebEngine. Les greffons
+# sa ligne « <motif glob> <expression SPDX> » dans packaging/autres-autorises.txt ; aucune sous GPL seule. Les greffons
 # (Contents/PlugIns) suivent leur module et ne sont pas comptés ; leurs dépendances sont dans Contents/Frameworks.
 # Usage : scripts/verifier-licences-mac.sh <ActCraft.app>
 # Dernière ligne et code : « LICENCES OK » (0) ou « LICENCES EN ECHEC : <noms> » (1).
@@ -47,10 +46,6 @@ for fw in "$app"/Contents/Frameworks/*.framework; do
   [ -d "$fw" ] || continue
   nom="$(basename "$fw" .framework)"
   case "$nom" in
-    QtWebEngine*)
-      # Jamais Qt WebEngine (qt-autorises.txt, lot 8) : arrêt, quelle que soit la liste.
-      refuses="$refuses $nom.framework(WebEngine)"
-      ;;
     Qt*)
       module="Qt6${nom#Qt}"
       modules="$modules $module"
@@ -71,7 +66,6 @@ echo "Modules Qt :$modules"
 for lib in "$app"/Contents/Frameworks/*.dylib; do
   [ -f "$lib" ] || continue
   nom="$(basename "$lib")"
-  case "$nom" in *WebEngine*) refuses="$refuses $nom(WebEngine)"; continue ;; esac
   licence="$(licence_de "$nom")" || { refuses="$refuses $nom"; continue; }
   sans_gpl_seule "$licence" || refuses="$refuses $nom(GPL)"
   echo "  $nom : $licence"

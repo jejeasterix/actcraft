@@ -83,8 +83,14 @@ Tous sous `LGPL-3.0-only`, liés dynamiquement.
 - `Qt6MultimediaQuick` : lecteur multimédia de l'interface.
 - `Qt6FFmpegStub-crypto` : bibliothèque de substitution de Qt Multimedia (Android), à la place de la bibliothèque `crypto` d'OpenSSL qu'attend FFmpeg. ActCraft ne livre pas OpenSSL.
 - `Qt6FFmpegStub-ssl` : bibliothèque de substitution de Qt Multimedia (Android), à la place de la bibliothèque `ssl` d'OpenSSL qu'attend FFmpeg.
-- `Qt6WebView` : cadre web intégré, par le moteur web du système.
-- `Qt6WebViewQuick` : cadre web de l'interface.
+- `Qt6WebView` : cadre web intégré sous Android, par le moteur web du système.
+- `Qt6WebViewQuick` : cadre web de l'interface sous Android.
+- `Qt6WebEngineCore` : moteur Chromium du cadre web (PC et Mac), chargé au premier cadre.
+- `Qt6WebEngineQuick` : vue web de l'interface (PC et Mac).
+- `Qt6WebEngineQuickDelegatesQml` : éléments d'interface du moteur web.
+- `Qt6WebChannel` : canal entre le moteur web et l'application, tiré par Qt WebEngine.
+- `Qt6WebChannelQuick` : même canal en QML, tiré par Qt WebEngine.
+- `Qt6Positioning` : géolocalisation, tirée par Qt WebEngine (les demandes des pages sont refusées).
 - `Qt6DBus` : bus de messages D-Bus, tiré par QtGui de Homebrew (paquet macOS).
 - `Qt6PdfQuick` : affichage PDF en QML, copié avec le module QML de Qt PDF (paquet macOS).
 - `Qt6QmlDesignSupport` : aides de Qt Design Studio, copiées avec le dossier QtQml (paquet macOS).
@@ -195,7 +201,7 @@ plateforme, certains ne sont pas présents dans le paquet (Qt peut aussi s'appuy
 
 ## Qt PDF et PDFium
 
-L'import PDF passe par le module Qt PDF (`Qt6Pdf`, `LGPL-3.0-only`, lié dynamiquement ; jamais Qt WebEngine). Qt
+L'import PDF passe par le module Qt PDF (`Qt6Pdf`, `LGPL-3.0-only`, lié dynamiquement). Qt
 PDF embarque **PDFium**, le moteur PDF du projet Chromium (https://pdfium.googlesource.com/pdfium/), et les
 bibliothèques qu'il utilise. Composants relevés dans la page « Licenses Used in Qt » (section Qt PDF) et dans le
 binaire de Qt PDF (symboles de Little CMS et d'OpenJPEG), recopiés en nos mots ; les lignes de copyright et la
@@ -218,6 +224,14 @@ liste exacte sont à relever au PC dans le fichier `qt_attribution.json` de Qt P
 - Qt PDF, Anti-Grain Geometry (AGG) : licence et copyright à relever au PC (`qt_attribution.json` de Qt PDF ; la
   nomenclature de Qt PDF disponible sur le Mac ne déclare aucun composant).
 
+## Qt WebEngine et Chromium
+
+Le cadre web sur PC et Mac passe par le module Qt WebEngine (`LGPL-3.0-only`, lié dynamiquement au moment du premier cadre), qui embarque **Chromium** (https://www.chromium.org/) et ses bibliothèques. Liste exacte : fichier `sbom.spdx.json` de la version de Qt WebEngine utilisée. Le paquet macOS livre le texte de la licence de Chromium dans `Contents/Resources/LICENSE.Chromium`.
+
+- Chromium : Licence SPDX : `BSD-3-Clause`. Copyright 2015 The Chromium Authors.
+
+Certains codecs vidéo (H.264, AAC) dépendent de la provenance de Qt WebEngine ; leur redistribution est une décision prise avant toute publication. Les brevets sur ces codecs relèvent des utilisateurs et des distributeurs.
+
 ## Qt Multimedia, FFmpeg et Qt WebView
 
 Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré, à partir du lot 8.
@@ -236,8 +250,8 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   code source exact des bibliothèques FFmpeg livrées est publié à côté des paquets de chaque version d'ActCraft (page
   de la version sur GitHub). Sous macOS, le Qt de Homebrew s'appuie sur les composants du système (AVFoundation) et
   n'embarque pas FFmpeg.
-- **Moteur du cadre web** : Windows, composant WebView2 de Microsoft, installé sur le poste, non livré avec
-  ActCraft ; macOS et Android, navigateur du système. ActCraft ne livre **pas** Qt WebEngine (Chromium).
+- **Moteur du cadre web** : PC et Mac, Qt WebEngine (Chromium), livré avec ActCraft (voir « Qt WebEngine et
+  Chromium ») ; Android, navigateur du système.
 - Les brevets sur certains codecs vidéo relèvent des utilisateurs et des distributeurs, non de la licence du logiciel.
 
 ## Bibliothèques non Qt livrées
@@ -310,7 +324,7 @@ LGPL 2.1 ou ultérieure.
 
 Une entrée par ligne « Paquet macOS » de `packaging/autres-autorises.txt` : bibliothèques de Homebrew dont dépend Qt,
 copiées par macdeployqt dans `ActCraft.app/Contents/Frameworks`. `scripts/verifier-licences-mac.sh` refuse un bundle
-qui contient une bibliothèque sans ligne correspondante, une bibliothèque sous GPL seule ou Qt WebEngine. Quand
+qui contient une bibliothèque sans ligne correspondante, une bibliothèque sous GPL seule. Quand
 l'expression offre un choix, ActCraft retient la licence qui n'est pas la GPL. Versions de Homebrew du 2026-11-08.
 
 - `libb2.*.dylib` (macOS) : libb2, formule `libb2`, BLAKE2 (fonction de hachage), tirée par QtCore ; version 0.98.1, https://blake2.net/. Licence SPDX : `CC0-1.0`. Copyright : Samuel Neves et les auteurs de BLAKE2, dédié au domaine public (CC0).

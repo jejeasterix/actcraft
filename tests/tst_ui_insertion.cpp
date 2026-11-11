@@ -1,3 +1,5 @@
+#include "support/testserver.h"
+
 #include <actcraft/core/document.h>
 #include <actcraft/core/model.h>
 #include <actcraft/core/pageedits.h>
@@ -6,13 +8,16 @@
 #include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/insertion.h>
 #include <actcraft/ui/mediainsert.h>
+#include <actcraft/ui/webframeitem.h>
 
+#include <QBuffer>
 #include <QFile>
 #include <QImage>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QUrl>
+#include <QVariantList>
 
 #include <memory>
 #include <string>
@@ -40,6 +45,28 @@ template <typename T> const T* lastAs(const ui::DocumentController& controller)
 {
     const auto& objects = firstPage(controller).objects;
     return objects.empty() ? nullptr : std::get_if<T>(&core::body(objects.back()));
+}
+
+QByteArray pngBytes(int width, int height)
+{
+    QImage image(width, height, QImage::Format_RGB32);
+    image.fill(Qt::blue);
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    return bytes;
+}
+
+QByteArray jpegBytes(int width, int height)
+{
+    QImage image(width, height, QImage::Format_RGB32);
+    image.fill(Qt::blue);
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "JPEG");
+    return bytes;
 }
 
 } // namespace
@@ -370,6 +397,469 @@ private slots:
         controller.redo();
         QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
         QVERIFY(controller.document().resource(lastAs<core::ImageObject>(controller)->resource) != nullptr);
+    }
+
+    // S1, S2 : image http(s) téléchargée, extension lue dans les octets (le type annoncé ment), une étape.
+    void webDropDownloadsAnImage()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/image-sans-extension"), pngBytes(120, 60)); // annoncé text/html
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/image-sans-extension"))}, {}, {},
+                                        {300, 200}));
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        const auto* image = lastAs<core::ImageObject>(controller);
+        QVERIFY(image != nullptr);
+        QCOMPARE(image->bounds.center().x, 300.0);
+        QCOMPARE(controller.document().resource(image->resource)->extension, std::string("png"));
+        QVERIFY(insertion.lastDecodeOffMainThread());
+        controller.undo();
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+        QVERIFY(!controller.canUndo());
+    }
+
+    // n° 24 : le format vient des octets, quel que soit le nom de l'adresse. Il se lit avant le décodage :
+    // QImageReader::format() peut être vide une fois l'image lue (cas du GIF).
+    void webDropReadsTheFormatFromTheBytes_data()
+    {
+        QTest::addColumn<QByteArray>("bytes");
+        QTest::addColumn<std::string>("extension");
+        // GIF de 1 × 1 : Qt n'écrit pas ce format.
+        QTest::newRow("gif") << QByteArray::fromBase64(
+                                    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+                             << std::string("gif");
+        QTest::newRow("jpeg") << jpegBytes(16, 16) << std::string("jpg");
+    }
+
+    void webDropReadsTheFormatFromTheBytes()
+    {
+        QFETCH(QByteArray, bytes);
+        QFETCH(std::string, extension);
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/fausse.png"), bytes);
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/fausse.png"))}, {}, {}, {100, 100}));
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        const auto* image = lastAs<core::ImageObject>(controller);
+        QVERIFY(image != nullptr);
+        QCOMPARE(controller.document().resource(image->resource)->extension, extension);
+    }
+
+    void webDropOfLocalFileUsesTheFilePath()
+    {
+        QTemporaryDir dir;
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({QUrl::fromLocalFile(writePng(dir, "t.png", 40, 40))}, {}, {},
+                                        {100, 100}));
+        QTRY_COMPARE(inserted.count(), 1);
+        QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
+    }
+
+    void webDropOfDataUrlDecodesInPlace()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        const QUrl url(QStringLiteral("data:image/png;base64,") +
+                       QString::fromLatin1(pngBytes(10, 10).toBase64()));
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {50, 50}));
+        QTRY_COMPARE(inserted.count(), 1);
+        QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
+    }
+
+    void webDropOfNonImageDataUrlFails()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({QUrl(QStringLiteral("data:text/plain;base64,aGVsbG8="))}, {}, {},
+                                        {1, 1}));
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(failed.first().first().toString(), QStringLiteral("Adresse non prise en charge"));
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    void webDropOfPercentEncodedDataUrlDecodes()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        const QUrl url =
+            QUrl::fromEncoded(QByteArray("data:image/png,") + pngBytes(10, 10).toPercentEncoding());
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {50, 50}));
+        QTRY_COMPARE(inserted.count(), 1);
+        QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
+    }
+
+    // Revue T23 : la ressource insérée porte les octets décodés, pas le texte codé de l'adresse.
+    void webDropOfDataUrlInsertsTheDecodedBytes_data()
+    {
+        QTest::addColumn<bool>("base64");
+        QTest::newRow("base64") << true;
+        QTest::newRow("pourcent") << false;
+    }
+
+    void webDropOfDataUrlInsertsTheDecodedBytes()
+    {
+        QFETCH(bool, base64);
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        const QByteArray png = pngBytes(10, 10);
+        const QUrl url = base64 ? QUrl::fromEncoded(QByteArray("data:image/png;base64,") + png.toBase64())
+                                : QUrl::fromEncoded(QByteArray("data:image/png,") + png.toPercentEncoding());
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {50, 50}));
+        QTRY_COMPARE(inserted.count(), 1);
+        const auto* image = lastAs<core::ImageObject>(controller);
+        QVERIFY(image != nullptr);
+        const auto* resource = controller.document().resource(image->resource);
+        QVERIFY(resource != nullptr);
+        QCOMPARE(resource->data, png);
+    }
+
+    // Au-delà de la borne : le message des 25 Mo, pas « Adresse non prise en charge ».
+    void webDropOfOversizedDataUrlReportsTheSize()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        const QByteArray big(static_cast<qsizetype>(26) * 1024 * 1024, 'a');
+        const QUrl url = QUrl::fromEncoded(QByteArray("data:image/png;base64,") + big.toBase64());
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {1, 1}));
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(failed.first().first().toString().contains(QStringLiteral("25 Mo")));
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    // La taille est bornée avant le décodage : un contenu énorme est refusé sans être décodé (ici, des
+    // octets hors alphabet, qui donneraient un résultat vide une fois décodés).
+    void webDropOfHugeDataUrlIsRefusedBeforeDecoding()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        const QUrl url = QUrl::fromEncoded(QByteArray("data:image/png;base64,") +
+                                           QByteArray(static_cast<qsizetype>(40) * 1024 * 1024, '*'));
+        QVERIFY(insertion.acceptWebDrop({url}, {}, {}, {1, 1}));
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(failed.first().first().toString().contains(QStringLiteral("25 Mo")));
+    }
+
+    // Cadrage n° 26 : un lien mailto: ou ftp: déposé garde son texte.
+    void webDropOfOtherSchemeFallsBackToText_data()
+    {
+        QTest::addColumn<QString>("address");
+        QTest::newRow("mailto") << QStringLiteral("mailto:a@b.c");
+        QTest::newRow("ftp") << QStringLiteral("ftp://a.example/x");
+    }
+
+    void webDropOfOtherSchemeFallsBackToText()
+    {
+        QFETCH(QString, address);
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({QUrl(address)}, QStringLiteral("Contact"), {}, {100, 100}));
+        QTRY_COMPARE(inserted.count(), 1);
+        const auto* text = lastAs<core::Text>(controller);
+        QVERIFY(text != nullptr);
+        QVERIFY(text->html.find("Contact") != std::string::npos);
+    }
+
+    void webDropOfBlobFails()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({QUrl(QStringLiteral("blob:https://x/abc"))}, {}, {}, {1, 1}));
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    // E9 : page qui n'est pas une image → objet texte, à la même place, après la réponse.
+    void webDropOfNonImageFallsBackToText()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/page"), "<p>pas une image</p>");
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/page"))},
+                                        QStringLiteral("Titre du lien"), {}, {200, 150}));
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        const auto* text = lastAs<core::Text>(controller);
+        QVERIFY(text != nullptr);
+        QVERIFY(text->html.find("Titre du lien") != std::string::npos);
+        QCOMPARE(text->bounds.x, 200.0);
+    }
+
+    // S2, H14 : réseau en échec : bandeau, aucun objet.
+    void webDropOnMissingPageFails()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/absent"))}, QStringLiteral("x"), {},
+                                        {1, 1}));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 10000);
+        QVERIFY(!insertion.isBusy());
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    // S2, n° 25 : plus de 25 Mo : message, document inchangé.
+    void webDropOfOversizeFails()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/gros.png"), QByteArray(int(ui::WebImageFetch::kMaxBytes) + 1024, 'x'));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/gros.png"))}, QStringLiteral("x"), {},
+                                        {1, 1}));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 30000);
+        QVERIFY(failed.at(0).at(0).toString().contains(QStringLiteral("25 Mo")));
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    // S2, n° 27 : changer d'onglet pendant le téléchargement.
+    void downloadNeverLandsInAnotherTab()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.hold(QStringLiteral("/lente"));
+        server.page(QStringLiteral("/lente"), pngBytes(20, 20));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::DocumentTabs tabs;
+        tabs.setDocument(&controller);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/lente"))}, {}, {}, {10, 10}));
+        QTRY_COMPARE(server.requests(), 1);
+        tabs.newTab();
+        server.release();
+        QTRY_VERIFY_WITH_TIMEOUT(!insertion.isBusy(), 10000);
+        QCOMPARE(inserted.count(), 0);
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(firstPage(controller).objects.empty());
+        tabs.activate(0);
+        QVERIFY(firstPage(controller).objects.empty());
+    }
+
+    // n° 27 : dans le même onglet, l'image va sur la page du dépôt. Une origine prise à l'arrivée, dans
+    // start(), la verserait sur la page affichée à ce moment : la génération n'a pas changé.
+    void downloadStaysOnItsOriginPage()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.hold(QStringLiteral("/lente"));
+        server.page(QStringLiteral("/lente"), pngBytes(20, 20));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/lente"))}, {}, {}, {10, 10}));
+        QTRY_COMPARE(server.requests(), 1);
+        controller.nextPage();
+        QCOMPARE(controller.currentIndex(), 1);
+        server.release();
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t(1));
+        QVERIFY(controller.document().page(1).objects.empty());
+    }
+
+    // E9, n° 27 : le texte de repli suit la même origine ; currentIndex() à l'arrivée le verserait ailleurs.
+    void textFallbackStaysOnItsOriginPage()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.hold(QStringLiteral("/lente"));
+        server.page(QStringLiteral("/lente"), "<p>pas une image</p>");
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/lente"))},
+                                        QStringLiteral("Titre du lien"), {}, {10, 10}));
+        QTRY_COMPARE(server.requests(), 1);
+        controller.nextPage();
+        QCOMPARE(controller.currentIndex(), 1);
+        server.release();
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        QCOMPARE(controller.document().page(0).objects.size(), std::size_t(1));
+        QVERIFY(lastAs<core::Text>(controller) != nullptr);
+        QVERIFY(controller.document().page(1).objects.empty());
+    }
+
+    // E9, n° 27 : page d'origine retirée pendant le téléchargement : le texte n'est versé sur aucune autre
+    // page.
+    void textFallbackIsDroppedWhenItsPageDisappears()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.hold(QStringLiteral("/lente"));
+        server.page(QStringLiteral("/lente"), "<p>pas une image</p>");
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        controller.nextPage();
+        controller.pageBack(); // page 1 affichée, page 2 derrière
+        QCOMPARE(controller.currentIndex(), 0);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/lente"))},
+                                        QStringLiteral("Titre du lien"), {}, {10, 10}));
+        QTRY_COMPARE(server.requests(), 1);
+        controller.execute(std::make_unique<core::RemovePagesCommand>(std::vector<std::size_t>{0}));
+        QCOMPARE(controller.document().pageCount(), std::size_t(1));
+        server.release();
+        QTRY_VERIFY_WITH_TIMEOUT(!insertion.isBusy(), 10000);
+        QCOMPARE(inserted.count(), 0);
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(controller.document().page(0).objects.empty());
+    }
+
+    // n° 28 : Ctrl+Z pendant le téléchargement agit sur l'étape précédente ; l'image arrive quand même.
+    void undoDuringDownloadKeepsTheDownload()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.hold(QStringLiteral("/lente"));
+        server.page(QStringLiteral("/lente"), pngBytes(20, 20));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QVERIFY(insertion.acceptDrop({}, QStringLiteral("avant"), {1, 1}));
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/lente"))}, {}, {}, {10, 10}));
+        QTRY_COMPARE(server.requests(), 1);
+        controller.undo();
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+        server.release();
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
+    }
+
+    // n° 25 : gardes allumées, une adresse non saisie est refusée sans requête.
+    void guardsRefuseAWebDrop()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/i"), pngBytes(10, 10));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::WebFrameItems frames;
+        frames.setGuardsEnabled(true);
+        frames.setDocument(&controller);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        insertion.setWebFrames(&frames);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/i"))}, {}, {}, {1, 1}));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
+        QCOMPARE(server.requests(), 0);
+    }
+
+    // Pendant positif : gardes allumées, origine saisie (autorisée) : l'image est téléchargée.
+    void guardsLetAnAllowedOriginThrough()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/i"), pngBytes(10, 10));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::WebFrameItems frames;
+        frames.setGuardsEnabled(true);
+        frames.setDocument(&controller);
+        QVERIFY(frames.insertFrame({}, server.url(QStringLiteral("/page")).toString()));
+        QCOMPARE(frames.decideAddress(server.url(QStringLiteral("/i"))), ui::WebContentPolicy::Verdict::Load);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        insertion.setWebFrames(&frames);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/i"))}, {}, {}, {1, 1}));
+        QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
+        QCOMPARE(failed.count(), 0);
+    }
+
+    // Review Focus 4 (n° 20) : le fichier temporaire du moteur a disparu : message, document intact.
+    void vanishedDropFileFails()
+    {
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptWebDrop(
+            {QUrl::fromLocalFile(QStringLiteral("/chemin/inexistant/glisse.png"))}, {}, {}, {10, 10}));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
+    }
+
+    // Seul acceptWebDrop télécharge : acceptDrop et insertImage refusent toujours http(s), sans requête.
+    void fileEntryPointsStillRefuseHttp()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/i.png"), pngBytes(10, 10));
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QVERIFY(insertion.acceptDrop({server.url(QStringLiteral("/i.png"))}, {}, {10, 10}));
+        QTRY_COMPARE(failed.count(), 1);
+        insertion.insertImage(server.url(QStringLiteral("/i.png")));
+        QTRY_COMPARE(failed.count(), 2);
+        QCOMPARE(server.requests(), 0);
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
     }
 };
 
