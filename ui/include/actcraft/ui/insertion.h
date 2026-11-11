@@ -12,13 +12,14 @@
 #include <QQmlEngine>
 #include <QString>
 #include <QStringList>
-#include <QTemporaryDir>
 #include <QUrl>
 #include <QVariantList>
 
 #include <memory>
 #include <optional>
 #include <vector>
+
+class QTemporaryDir;
 
 namespace actcraft::ui {
 
@@ -83,16 +84,18 @@ private:
     void placeDownloadedVideo(const QByteArray& data, const QString& extension, const QUrl& url,
                               QPointF center, std::shared_ptr<InsertionOrigin> origin);
     void releaseVideoFiles();
+    void abandonDownload(InsertionOrigin& origin, const QString& message);
     bool insertDataUrl(const QUrl& url, QPointF center);
     void placeText(const QString& text, QPointF point, std::size_t page);
     WebImageFetch::Decide webDecider() const;
     QPointer<WebFrameItems> m_webFrames;
     DocumentController* m_document = nullptr;
     int m_pending = 0;
-    void routeMedia(const QUrl& url, std::optional<QPointF> center);
+    void routeMedia(const QUrl& url, std::optional<QPointF> center, bool afterWaiting = false);
     QPointer<MediaInsert> m_mediaInsert;
     QPointer<DocumentPortal> m_portal;
-    int m_forwarded = 0; // médias confiés à MediaInsert dont le signal final n'est pas encore revenu
+    int m_forwardedAfterWait = 0; // parmi eux, ceux d'un téléchargement : l'appelant ne sélectionne pas
+    int m_forwarded = 0;          // médias confiés à MediaInsert dont le signal final n'est pas encore revenu
     std::unique_ptr<QTemporaryDir> m_videoDir; // vidéos téléchargées, le temps que MediaInsert les range
     QStringList m_videoFiles;
     int m_videoCount = 0;

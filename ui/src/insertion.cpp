@@ -14,6 +14,7 @@
 #include <QFutureWatcher>
 #include <QImageReader>
 #include <QPointer>
+#include <QTemporaryDir>
 #include <QTextDocument>
 #include <QThread>
 #include <QtConcurrent>
@@ -415,13 +416,21 @@ void Insertion::setMediaInsert(MediaInsert* insert)
         connect(insert, &MediaInsert::inserted, this, [this](int count) {
             if (m_forwarded > 0) {
                 --m_forwarded;
+                const bool waited = m_forwardedAfterWait > 0;
+                if (waited)
+                    --m_forwardedAfterWait;
                 releaseVideoFiles();
+                m_lastSelects =
+                    !waited; // après une attente réseau : ni outil changé, ni sélection (insertion.h)
                 emit inserted(count);
+                m_lastSelects = true;
             }
         });
         connect(insert, &MediaInsert::failed, this, [this](QString message) {
             if (m_forwarded > 0) {
                 --m_forwarded;
+                if (m_forwardedAfterWait > 0)
+                    --m_forwardedAfterWait;
                 releaseVideoFiles();
                 emit failed(std::move(message));
             }
@@ -437,7 +446,7 @@ void Insertion::setPortal(DocumentPortal* portal)
         m_mediaInsert->setPortal(portal);
 }
 
-void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center)
+void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center, bool afterWaiting)
 {
     if (!m_mediaInsert) {
         auto* own = new MediaInsert(this);
@@ -447,6 +456,8 @@ void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center)
         setMediaInsert(own);
     }
     ++m_forwarded;
+    if (afterWaiting)
+        ++m_forwardedAfterWait;
     if (center)
         m_mediaInsert->insertFileAt(url, *center);
     else
@@ -543,14 +554,18 @@ void Insertion::startDownload(const QUrl& url, const QString& fallback, QPointF 
             [this, fetch, url, fallback, center, origin, kind](const QByteArray& data, const QString& error) {
                 fetch->deleteLater();
                 if (!error.isEmpty()) {
-                    releaseOrigin(*origin);
-                    if (--m_pending == 0)
-                        emit busyChanged();
-                    emit failed(error);
+                    abandonDownload(*origin, error);
                     return;
                 }
-                // Vidéo : reconnue par l'extension de l'adresse (kind) ou par le type de la réponse.
+                // Vidéo : reconnue par l'extension de l'adresse (kind) ou par le type de la réponse. Un lien
+                // « .mp4 » qui répond par une page (connexion exigée, par exemple) n'est pas une vidéo.
                 const QString mimeExtension = videoExtensionForMimeType(fetch->contentType());
+                if (kind == WebImageFetch::Kind::Video &&
+                    fetch->contentType().startsWith(QLatin1String("text/"))) {
+                    abandonDownload(*origin,
+                                    tr("Vidéo indisponible : l'adresse renvoie une page, pas une vidéo."));
+                    return;
+                }
                 if (kind == WebImageFetch::Kind::Video || !mimeExtension.isEmpty()) {
                     const QString suffix = QFileInfo(url.path()).suffix().toLower();
                     placeDownloadedVideo(data, isVideoExtension(suffix) ? suffix : mimeExtension, url, center,
@@ -570,6 +585,7 @@ void Insertion::startDownload(const QUrl& url, const QString& fallback, QPointF 
                 start(std::move(jobs), origin); // compte sa propre attente : pas de clignotement de `busy`
                 if (--m_pending == 0)
                     emit busyChanged();
+                releaseVideoFiles();
             });
     fetch->start(url, webDecider(), kind);
 }
@@ -583,10 +599,7 @@ void Insertion::placeDownloadedVideo(const QByteArray& data, const QString& exte
     if (!m_videoDir)
         m_videoDir = std::make_unique<QTemporaryDir>();
     if (!m_videoDir->isValid()) {
-        releaseOrigin(*origin);
-        if (--m_pending == 0)
-            emit busyChanged();
-        emit failed(tr("Vidéo indisponible : le dossier temporaire est inutilisable."));
+        abandonDownload(*origin, tr("Vidéo indisponible : le dossier temporaire est inutilisable."));
         return;
     }
     QString base;
@@ -600,10 +613,7 @@ void Insertion::placeDownloadedVideo(const QByteArray& data, const QString& exte
     // l'objet.
     const QString folder = m_videoDir->filePath(QString::number(++m_videoCount));
     if (!QDir().mkpath(folder)) {
-        releaseOrigin(*origin);
-        if (--m_pending == 0)
-            emit busyChanged();
-        emit failed(tr("Vidéo indisponible : le dossier temporaire est inutilisable."));
+        abandonDownload(*origin, tr("Vidéo indisponible : le dossier temporaire est inutilisable."));
         return;
     }
     const QString path = QDir(folder).filePath(QStringLiteral("%1.%2").arg(base.left(80), extension));
@@ -622,7 +632,7 @@ void Insertion::placeDownloadedVideo(const QByteArray& data, const QString& exte
             error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
         if (error.isEmpty()) {
             m_videoFiles.append(path);
-            routeMedia(QUrl::fromLocalFile(path), center);
+            routeMedia(QUrl::fromLocalFile(path), center, true);
         } else {
             QFile::remove(path);
         }
@@ -636,6 +646,16 @@ void Insertion::placeDownloadedVideo(const QByteArray& data, const QString& exte
         QFile file(path);
         return file.open(QIODevice::WriteOnly) && file.write(data) == data.size();
     }));
+}
+
+// Téléchargement qui n'aboutit pas : l'attente prend fin, le message est dit, la page n'a pas bougé.
+void Insertion::abandonDownload(InsertionOrigin& origin, const QString& message)
+{
+    releaseOrigin(origin);
+    if (--m_pending == 0)
+        emit busyChanged();
+    releaseVideoFiles();
+    emit failed(message);
 }
 
 // Plus rien en route : les vidéos téléchargées sont dans le document, ou refusées.

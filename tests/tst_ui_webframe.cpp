@@ -166,6 +166,8 @@ private slots:
     void openExternallyHandsTheAddressToTheOpener();
     void openExternallyDoesNothingWithoutAWebAddress();
     void openExternallyReportsAFailure();
+    void externalUrlWithGuardsOnIsTheTypedAddress();
+    void externalUrlDropsTheCredentials();
 };
 
 namespace {
@@ -1778,6 +1780,24 @@ void TstUiWebFrame::openExternallyReportsAFailure()
     QVERIFY(!f.frames.openExternally(0));
     QCOMPARE(failed.count(), 1);
     QVERIFY(failed.at(0).at(0).toString().contains(QStringLiteral("navigateur")));
+}
+
+void TstUiWebFrame::externalUrlWithGuardsOnIsTheTypedAddress()
+{
+    Fixture
+        f; // gardes allumées : la vue ne rapporte rien, l'adresse saisie sert tant que la page n'a pas chargé
+    QVERIFY(f.frames.insertFrame({}, QStringLiteral("https://exemple.invalide/saisie")));
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ExternalUrlRole).toUrl(),
+             QUrl(QStringLiteral("https://exemple.invalide/saisie")));
+    QCOMPARE(f.frames.externalUrl(0), QUrl(QStringLiteral("https://exemple.invalide/saisie")));
+    QVERIFY(f.frames.externalUrl(3).isEmpty());
+}
+
+void TstUiWebFrame::externalUrlDropsTheCredentials()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame({}, QStringLiteral("https://moi:secret@exemple.invalide/saisie")));
+    QCOMPARE(f.frames.externalUrl(0), QUrl(QStringLiteral("https://exemple.invalide/saisie")));
 }
 
 int main(int argc, char** argv)

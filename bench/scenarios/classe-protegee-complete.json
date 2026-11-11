@@ -1,7 +1,7 @@
 {
   "format": "actcraft-scenario/1",
   "name": "classe-protegee-complete",
-  "description": "S19 rejoué sur toutes les commandes des lots 1 à 11 (L11-T26). Le compte des commandes grisées par le verrou est exact : K = commandes de commands.json déclarées verrouillables et disponibles sur la plateforme (245 sous Windows, 238 sous macOS, 237 sous Linux), une étape par plateforme ; une distribution Linux absente des listes skipOn jouerait aussi les étapes de Windows et de macOS. Mot de passe d'essai créé en deux saisies ; mauvais mot de passe refusé ; verrou et compte gardés à la relance ; bon mot de passe accepté. Chaque saisie est suivie d'une attente (calcul hors du fil principal).",
+  "description": "S19 rejoué sur toutes les commandes des lots 1 à 11 (L11-T26). Le compte des commandes grisées par le verrou est exact : K = commandes de commands.json déclarées verrouillables et disponibles sur la plateforme (245 sous Windows, 239 sous macOS, 238 sous Linux), une étape par plateforme ; une distribution Linux absente des listes skipOn jouerait aussi les étapes de Windows et de macOS. Mot de passe d'essai créé en deux saisies ; mauvais mot de passe refusé ; verrou et compte gardés à la relance ; bon mot de passe accepté. Chaque saisie est suivie d'une attente (calcul hors du fil principal).",
   "steps": [
     { "waitReady": true },
     { "expect": "appClassroom.hasPassword", "value": false },

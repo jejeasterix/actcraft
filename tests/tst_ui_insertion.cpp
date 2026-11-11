@@ -633,13 +633,18 @@ private slots:
     {
         TestServer server;
         QVERIFY(server.listening());
-        server.page(QStringLiteral("/clip.mp4"),
-                    "pas-vraiment-du-h264"); // annoncé text/html : l'extension suffit
+        // Le type annoncé peut être générique : l'extension de l'adresse suffit.
+        server.rawResponse(QStringLiteral("/clip.mp4"),
+                           "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\n"
+                           "Content-Length: 20\r\nConnection: close\r\n\r\npas-vraiment-du-h264");
         ui::DocumentController controller;
         controller.newDocument(1024, 768);
         ui::Insertion insertion;
         insertion.setDocument(&controller);
         QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QList<bool> selects; // lu pendant le signal : il redevient vrai juste après
+        connect(&insertion, &ui::Insertion::inserted, this,
+                [&] { selects.append(insertion.lastInsertionSelects()); });
         QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/clip.mp4"))}, {}, {}, {300, 200}));
         QTRY_COMPARE_WITH_TIMEOUT(inserted.count(), 1, 10000);
         const auto* media = lastAs<core::Media>(controller);
@@ -653,9 +658,32 @@ private slots:
         QCOMPARE(resource->data, QByteArray("pas-vraiment-du-h264"));
         QVERIFY(controller.document().resource(media->placeholder) != nullptr);
         QVERIFY(!insertion.isBusy());
+        // Posée après une attente réseau : l'appelant ne change pas d'outil et ne sélectionne rien.
+        QCOMPARE(selects, QList<bool>{false});
         controller.undo();
         QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
         QVERIFY(!controller.canUndo());
+    }
+
+    // Un lien « .mp4 » qui répond par une page (connexion exigée) n'est pas une vidéo : message, rien de
+    // posé.
+    void webDropOfAVideoLinkAnsweringAPageFails()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/cours.mp4"), "<html>Connexion</html>"); // annoncé text/html
+        ui::DocumentController controller;
+        controller.newDocument(1024, 768);
+        ui::Insertion insertion;
+        insertion.setDocument(&controller);
+        QSignalSpy failed(&insertion, &ui::Insertion::failed);
+        QSignalSpy inserted(&insertion, &ui::Insertion::inserted);
+        QVERIFY(insertion.acceptWebDrop({server.url(QStringLiteral("/cours.mp4"))}, {}, {}, {1, 1}));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 10000);
+        QVERIFY(failed.at(0).at(0).toString().contains(QStringLiteral("Vidéo")));
+        QCOMPARE(inserted.count(), 0);
+        QVERIFY(!insertion.isBusy());
+        QCOMPARE(firstPage(controller).objects.size(), std::size_t{0});
     }
 
     void webDropOfAVideoByItsMimeType()
@@ -681,7 +709,9 @@ private slots:
     {
         TestServer server;
         QVERIFY(server.listening());
-        server.page(QStringLiteral("/v/film.m4v?x=1"), "m4v!");
+        server.rawResponse(QStringLiteral("/v/film.m4v?x=1"),
+                           "HTTP/1.1 200 OK\r\nContent-Type: video/x-m4v\r\nContent-Length: 4\r\n"
+                           "Connection: close\r\n\r\nm4v!");
         ui::DocumentController controller;
         controller.newDocument(1024, 768);
         ui::Insertion insertion;
@@ -721,7 +751,9 @@ private slots:
     {
         TestServer server;
         QVERIFY(server.listening());
-        server.page(QStringLiteral("/lente.mp4"), "mp4");
+        server.rawResponse(QStringLiteral("/lente.mp4"),
+                           "HTTP/1.1 200 OK\r\nContent-Type: video/mp4\r\nContent-Length: 3\r\n"
+                           "Connection: close\r\n\r\nmp4");
         server.hold(QStringLiteral("/lente.mp4"));
         ui::DocumentController controller;
         controller.newDocument(1024, 768);
