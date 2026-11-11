@@ -105,6 +105,20 @@ const std::vector<std::pair<const char*, const char*>> kTable = {
     {"tool.reveal-ink", "Ctrl+Shift+M"},
     {"link.file", "Ctrl+L"},
     {"record.sound", "Ctrl+Shift+R"},
+    // L11-T23-PC : touches de F-950 à F-952 relevées au PC, pour les commandes qui existent. Sans commande :
+    // F3, F8, Ctrl+U, Ctrl+Maj+Q. Ctrl+Q et Ctrl+Maj+S restent à quitter et à enregistrer sous (usage du
+    // système), pas à la question et aux formes.
+    {"users.dual", "F4"},
+    {"browser.properties", "F9"},
+    {"browser.actions", "F10"},
+    {"help.website", "F12"},
+    {"profile.edit", "Ctrl+J"},
+    {"arrange.back", "Ctrl+Shift+B"},
+    {"tool.camera-screen", "Ctrl+Shift+D"},
+    {"arrange.front", "Ctrl+Shift+F"},
+    {"browser.notes", "Ctrl+Shift+N"},
+    {"arrange.forward", "Ctrl+Shift+V"},
+    {"arrange.backward", "Ctrl+Shift+W"},
 };
 
 // Écrit en français dans la page d'aide : « Maj », « Échap », « Suppr ».
