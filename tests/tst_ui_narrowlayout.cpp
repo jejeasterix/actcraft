@@ -315,33 +315,42 @@ void TstUiNarrowlayout::wideLayoutUnchanged()
                     .arg(std::lround(palette->width()))
                     .arg(std::lround(palette->height())));
     // Positions relevées avant la tâche (fenêtre 1280 x 800, sans touch-ui).
-    const QStringList expected = {QStringLiteral("palette 1168,72 112x728"),
-                                  QStringLiteral("button-menu.main 1176,80 44x44"),
-                                  QStringLiteral("button-menu.tools 1224,80 44x44"),
-                                  QStringLiteral("button-profile.choose 1176,128 44x44"),
-                                  QStringLiteral("button-mode.design 1224,128 44x44"),
-                                  QStringLiteral("button-page.previous 1176,189 44x44"),
-                                  QStringLiteral("button-page.next 1224,189 44x44"),
-                                  QStringLiteral("button-page.history-back 1176,237 44x44"),
-                                  QStringLiteral("button-page.history-forward 1224,237 44x44"),
-                                  QStringLiteral("button-tool.select 1176,536 44x44"),
-                                  QStringLiteral("button-tool.pen 1224,536 44x44"),
-                                  QStringLiteral("button-tool.highlighter 1176,584 44x44"),
-                                  QStringLiteral("button-tool.reveal-ink 1224,584 44x44"),
-                                  QStringLiteral("button-tool.eraser 1176,632 44x44"),
-                                  QStringLiteral("button-edit.undo 1176,693 44x44"),
-                                  QStringLiteral("button-edit.redo 1224,693 44x44"),
-                                  QStringLiteral("button-edit.delete 1176,741 44x44"),
-                                  QStringLiteral("button-present.curtain 1176,802 44x44"),
-                                  QStringLiteral("button-present.spotlight-circle 1224,802 44x44"),
-                                  QStringLiteral("button-view.page-zoom 1176,850 44x44"),
-                                  QStringLiteral("button-math.ruler 1224,850 44x44"),
-                                  QStringLiteral("button-tool.clock 1176,898 44x44"),
-                                  QStringLiteral("button-tool.shape 1176,959 44x44"),
-                                  QStringLiteral("button-tool.text 1224,959 44x44"),
-                                  QStringLiteral("button-tool.fill 1176,1007 44x44"),
-                                  QStringLiteral("button-tool.connector 1224,1007 44x44"),
-                                  QStringLiteral("trashCan 1168,740 112x60")};
+    QStringList expected = {QStringLiteral("palette 1168,72 112x728"),
+                            QStringLiteral("button-menu.main 1176,80 44x44"),
+                            QStringLiteral("button-menu.tools 1224,80 44x44"),
+                            QStringLiteral("button-profile.choose 1176,128 44x44"),
+                            QStringLiteral("button-mode.design 1224,128 44x44"),
+                            QStringLiteral("button-page.previous 1176,189 44x44"),
+                            QStringLiteral("button-page.next 1224,189 44x44"),
+                            QStringLiteral("button-page.history-back 1176,237 44x44"),
+                            QStringLiteral("button-page.history-forward 1224,237 44x44"),
+                            QStringLiteral("button-tool.select 1176,536 44x44"),
+                            QStringLiteral("button-tool.pen 1224,536 44x44"),
+                            QStringLiteral("button-tool.highlighter 1176,584 44x44"),
+                            QStringLiteral("button-tool.reveal-ink 1224,584 44x44"),
+                            QStringLiteral("button-tool.eraser 1176,632 44x44"),
+                            QStringLiteral("button-edit.undo 1176,693 44x44"),
+                            QStringLiteral("button-edit.redo 1224,693 44x44"),
+                            QStringLiteral("button-edit.delete 1176,741 44x44"),
+                            QStringLiteral("button-present.curtain 1176,802 44x44"),
+                            QStringLiteral("button-present.spotlight-circle 1224,802 44x44"),
+                            QStringLiteral("button-view.page-zoom 1176,850 44x44"),
+                            QStringLiteral("button-math.ruler 1224,850 44x44"),
+                            QStringLiteral("button-tool.clock 1176,898 44x44"),
+                            QStringLiteral("button-tool.shape 1176,959 44x44"),
+                            QStringLiteral("button-tool.text 1224,959 44x44"),
+                            QStringLiteral("button-tool.fill 1176,1007 44x44"),
+                            QStringLiteral("button-tool.connector 1224,1007 44x44"),
+                            QStringLiteral("trashCan 1168,740 112x60")};
+    // launcher.edit n'existe que sous Windows : son bouton suit les groupes, en dernière rangée (E3).
+    QObject* commands = palette->property("commands").value<QObject*>();
+    QVERIFY(commands);
+    bool editAvailable = false;
+    QVERIFY(QMetaObject::invokeMethod(commands, "isAvailable", Q_RETURN_ARG(bool, editAvailable),
+                                      Q_ARG(QString, QStringLiteral("launcher.edit"))));
+    if (editAvailable) {
+        expected.insert(expected.size() - 1, QStringLiteral("launcherEditButton 1176,1068 44x44"));
+    }
     if (got != expected) {
         qDebug().noquote() << "RELEVE" << got.join(QStringLiteral("\nRELEVE "));
     }
@@ -404,7 +413,11 @@ void TstUiNarrowlayout::paletteFitsShortWindow()
                               Qt::NoModifier, Qt::NoScrollPhase, false);
             wheel.setTimestamp(static_cast<ulong>(1000 * (i + 1)));
             QCoreApplication::sendEvent(s.window, &wheel);
+            // Cran par cran : un cran reçu pendant le défilement du précédent le relance depuis la position
+            // atteinte. En debug MSVC, 20 ms n'en laissaient passer que quelques pixels (40 crans : 265 px au
+            // lieu de 72 px par cran, run 42932734568).
             QTest::qWait(20);
+            QTRY_VERIFY(!flick->property("moving").toBool());
         }
         QTRY_VERIFY(inView());
     }

@@ -159,18 +159,22 @@ Rectangle {
                     }
                 }
             }
-        }
-    }
 
-    // Lot 6 : barre de raccourcis, troisième colonne (masquée jusqu'à L6-T9).
-    ShortcutBar {
-        objectName: "shortcutBar"
-        visible: !(paletteRoot.profile && (paletteRoot.profile.shortcutsHidden || paletteRoot.profile.paletteCollapsed))
-        commands: paletteRoot.commands
-        documentController: paletteRoot.documentController
-        tools: paletteRoot.tools
-        view: paletteRoot.view
-        profile: paletteRoot.profile
+            // Lot 6 : barre de raccourcis, dernière rangée des groupes (dernière colonne si la palette est
+            // horizontale) : elle défile avec eux. Sans bouton à montrer, elle ne prend aucune place.
+            ShortcutBar {
+                id: shortcuts
+                objectName: "shortcutBar"
+                visible: shortcuts.hasContent
+                         && !(paletteRoot.profile && (paletteRoot.profile.shortcutsHidden || paletteRoot.profile.paletteCollapsed))
+                Layout.alignment: Qt.AlignTop | Qt.AlignLeft
+                commands: paletteRoot.commands
+                documentController: paletteRoot.documentController
+                tools: paletteRoot.tools
+                view: paletteRoot.view
+                profile: paletteRoot.profile
+            }
+        }
     }
 
     // Lot 3 : corbeille sous la palette (« Afficher la corbeille » la masque).

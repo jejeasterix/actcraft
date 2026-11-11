@@ -20,6 +20,9 @@ Item {
     readonly property string runId: "launcher.run"
     // E3 : bouton d'édition en bas, absent si la palette est réduite ou la barre masquée.
     readonly property bool editVisible: root.profile ? !(root.profile.paletteCollapsed || root.profile.shortcutsHidden) : true
+    readonly property bool editShown: root.editVisible && root.commands.isAvailable(root.editId)
+    // Au moins un bouton à montrer : sans lui, la palette ne réserve aucune place à la barre.
+    readonly property bool hasContent: root.hasButtons || root.launcherCount > 0 || root.editShown
     implicitWidth: column.implicitWidth
     implicitHeight: column.implicitHeight
 
@@ -59,7 +62,7 @@ Item {
             objectName: "launcherEditButton"
             commands: root.commands
             commandId: root.editId
-            visible: root.editVisible && root.commands.isAvailable(root.editId)
+            visible: root.editShown
         }
     }
 

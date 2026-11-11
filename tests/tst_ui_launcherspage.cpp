@@ -332,6 +332,44 @@ private slots:
         s.profile->setProperty("paletteCollapsed", true);
         QVERIFY(!edit->property("visible").toBool());
     }
+
+    // E3 : le bouton d'édition a sa place dans la palette, sous ses groupes : il défile avec eux et ne couvre
+    // aucun autre bouton (run 42932734568 : posé à l'origine de la palette, par-dessus menu.main).
+    void editButtonHasItsOwnPlace()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        s.window->resize(1280, 800);
+        QTRY_COMPARE(s.window->size(), QSize(1280, 800));
+        auto* palette = qobject_cast<QQuickItem*>(named(s, "toolPalette"));
+        auto* flick = qobject_cast<QQuickItem*>(named(s, "paletteFlick"));
+        QVERIFY(palette && flick);
+        auto* edit = findItem(palette, QStringLiteral("launcherEditButton"));
+        QVERIFY(edit);
+        QObject* commands = edit->property("commands").value<QObject*>();
+        QVERIFY(commands);
+        bool available = false;
+        QVERIFY(QMetaObject::invokeMethod(commands, "isAvailable", Q_RETURN_ARG(bool, available),
+                                          Q_ARG(QString, QStringLiteral("launcher.edit"))));
+        QCOMPARE(edit->isVisible(), available);
+        if (!available)
+            QSKIP("launcher.edit n'existe que sous Windows : aucun bouton à placer");
+        auto* content = flick->property("contentItem").value<QQuickItem*>();
+        QVERIFY(content && content->isAncestorOf(edit));
+        const QRectF mine = edit->mapRectToScene(QRectF(0, 0, edit->width(), edit->height()));
+        QList<QQuickItem*> pending{palette};
+        int others = 0;
+        while (!pending.isEmpty()) {
+            QQuickItem* it = pending.takeLast();
+            pending << it->childItems();
+            if (it == edit || !it->isVisible() || !it->property("commandId").isValid())
+                continue;
+            ++others;
+            const QRectF theirs = it->mapRectToScene(QRectF(0, 0, it->width(), it->height()));
+            QVERIFY2(!mine.intersects(theirs), qPrintable(it->objectName()));
+        }
+        QVERIFY(others > 10);
+    }
 };
 
 QTEST_MAIN(TstUiLauncherspage)
