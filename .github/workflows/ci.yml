@@ -191,13 +191,14 @@ jobs:
           else
             echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
             qt_dir="$cache/Qt/$QT_VERSION/macos"
-            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant.
-            if [ ! -f "$cache/Qt/$QT_VERSION/.complet" ]; then
+            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant. Son nom porte
+            # les modules WebEngine : un cache posé sans eux est refait.
+            if [ ! -f "$cache/Qt/$QT_VERSION/.complet-webengine" ]; then
               rm -rf "$cache/Qt/$QT_VERSION"
               python3 -m venv "$cache/venv-aqt"
               "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
               "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf qtwebengine qtwebchannel qtpositioning --outputdir "$cache/Qt"
-              touch "$cache/Qt/$QT_VERSION/.complet"
+              touch "$cache/Qt/$QT_VERSION/.complet-webengine"
             fi
           fi
           command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
