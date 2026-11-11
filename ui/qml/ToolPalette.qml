@@ -165,8 +165,8 @@ Rectangle {
             ShortcutBar {
                 id: shortcuts
                 objectName: "shortcutBar"
-                visible: shortcuts.hasContent
-                         && !(paletteRoot.profile && (paletteRoot.profile.shortcutsHidden || paletteRoot.profile.paletteCollapsed))
+                visible: shortcuts.hasContent && shortcuts.editVisible
+                horizontal: paletteRoot.horizontal
                 Layout.alignment: Qt.AlignTop | Qt.AlignLeft
                 commands: paletteRoot.commands
                 documentController: paletteRoot.documentController

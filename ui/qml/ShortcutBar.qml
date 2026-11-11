@@ -12,6 +12,7 @@ Item {
     property PageView view: null
     property var profile: null
     property var preferences: null
+    property bool horizontal: false
     readonly property alias model: appShortcuts
     readonly property bool hasButtons: appShortcuts.buttons.length > 0
     readonly property alias launchers: launchers
@@ -43,9 +44,13 @@ Item {
         profile: root.profile
     }
 
-    Column {
+    // Une colonne, ou une rangée comme les groupes de la palette quand elle est horizontale (ancrée en haut ou
+    // en bas : une seule rangée de boutons tient dans sa hauteur).
+    Grid {
         id: column
         spacing: Theme.espace1
+        columns: root.horizontal ? -1 : 1
+        rows: root.horizontal ? 1 : -1
         Repeater {
             model: appShortcuts.buttons
             delegate: Loader {
