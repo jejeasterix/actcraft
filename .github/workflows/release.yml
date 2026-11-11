@@ -304,6 +304,11 @@ jobs:
           "Espace libre : {0:N1} Go" -f $libre
           cmake --preset release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Lecteur et cadre web livrés : une configuration qui les a perdus (module Qt refusé par find_package, par exemple
+          # une version de Qt WebEngine différente de qtbase) arrête la release, comme paquet-mac.sh sur le Mac.
+          foreach ($option in 'ACTCRAFT_MEDIA', 'ACTCRAFT_WEBFRAME') {
+            if (-not (Select-String -LiteralPath build/release/CMakeCache.txt -Pattern "^$option`:BOOL=ON$" -Quiet)) { "::error::$option n'est pas ON dans build/release/CMakeCache.txt (Qt Multimedia ou Qt WebEngine refusé)"; exit 1 }
+          }
           cmake --build --preset release --target actcraft
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -326,15 +331,6 @@ jobs:
           if ($presentes) { "::error::ActCraft déjà installé dans le profil du runner ($($presentes -join ', ')) : essai S1 refusé, il le désinstallerait."; exit 1 }
           pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -HorsEcran | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/s1.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
-
-      # Informatif : le cadre web exige une vraie fenêtre, que le runner (service) n'a pas sûrement. La preuve H.264 de
-      # la release se joue sur le PC, en session ouverte : pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -H264.
-      - name: Essai H.264 dans un cadre web (informatif)
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -H264 | Tee-Object -FilePath "$env:RUNNER_TEMP/h264.txt"
-          if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/h264.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
 
       - name: Somme SHA-256
         shell: pwsh
@@ -381,6 +377,13 @@ jobs:
           [ -x "$brew_qt/bin/macdeployqt" ] || { echo "::error::macdeployqt absent de $brew_qt"; exit 1; }
           brew_we="$(brew --prefix qtwebengine 2>/dev/null)"
           [ -d "$brew_we/lib/QtWebEngineCore.framework" ] || { echo "::error::formule qtwebengine absente du Mac (brew install qtwebengine)"; exit 1; }
+          # Version nommée par THIRD_PARTY_NOTICES.md (provenance de Qt WebEngine) : une mise à jour de la formule exige
+          # d'abord la mise à jour de l'avis et de cette ligne.
+          version_we="$(brew list --versions qtwebengine | awk '{ print $2 }')"
+          case "$version_we" in
+            6.11.2 | 6.11.2_*) ;;
+            *) echo "::error::qtwebengine $version_we de Homebrew : l'avis nomme 6.11.2 (THIRD_PARTY_NOTICES.md)"; exit 1 ;;
+          esac
           command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
           echo "Qt de Homebrew $version : $brew_qt ; Qt WebEngine : $brew_we"
           echo "QTWEBENGINE_PRI=$brew_we/share/qt/mkspecs/modules/qt_lib_webenginecore_private.pri" >> "$GITHUB_ENV"

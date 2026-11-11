@@ -930,8 +930,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
-    "mtime": 1794419971.1357946,
-    "ast_hash": "12ff3d82f648fde00740ed6e27ae69c6",
+    "mtime": 1794421912.0674903,
+    "ast_hash": "c625e0fa069b5c663594c900a64b9d84",
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "THIRD_PARTY_NOTICES.md": {
-    "mtime": 1794419730.6191707,
-    "ast_hash": "e0b326c0736451e9f6170d89e47c3aec",
+    "mtime": 1794421912.0678074,
+    "ast_hash": "fb1cff6dde5eb3c7d879083d489eb27f",
     "semantic_hash": ""
   },
   "docs/design/2026-10-14-direction-visuelle.md": {
@@ -5885,13 +5885,13 @@
     "semantic_hash": ""
   },
   "scripts/qtwebengine-h264.ps1": {
-    "mtime": 1794419947.4850962,
-    "ast_hash": "258b9035d8199ca45454d95af1b04919",
+    "mtime": 1794421937.8543377,
+    "ast_hash": "25bd39de6b9988d013d8f2bf25e457d7",
     "semantic_hash": ""
   },
   "docs/etudes/2026-11-11-h264-webengine.md": {
-    "mtime": 1794421299.6403527,
-    "ast_hash": "9bc5782255b302251d34149cac4a81d5",
+    "mtime": 1794421923.38129,
+    "ast_hash": "1936b7e8c96a6d86c7e2205eab77245f",
     "semantic_hash": ""
   },
   "tests/data/media/essai-h264.html": {

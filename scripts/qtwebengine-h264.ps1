@@ -30,6 +30,12 @@ try {
     # Chemins courts : Chromium dépasse vite 260 caractères sous un dossier profond.
     if ($Travail.Length -gt 12) { throw "dossier de travail trop long ($Travail) : 12 caractères au plus, par exemple C:\qw" }
     if (-not (Test-Path (Join-Path $QtSource 'lib/cmake/Qt6/Qt6Config.cmake'))) { throw "Qt officiel absent : $QtSource" }
+    # La copie est effacée puis refaite : jamais le Qt de ci.yml, ni un dossier qui le contient ou qu'il contient.
+    $source = [System.IO.Path]::GetFullPath($QtSource).TrimEnd('\') + '\'
+    $copie = [System.IO.Path]::GetFullPath($Cible).TrimEnd('\') + '\'
+    if ($copie.StartsWith($source, [StringComparison]::OrdinalIgnoreCase) -or $source.StartsWith($copie, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "cible $Cible confondue avec le Qt officiel $QtSource"
+    }
 
     . "$PSScriptRoot/dev-env.ps1"
     $manque = [System.Collections.Generic.List[string]]::new()
@@ -83,16 +89,19 @@ try {
     }
 
     $construction = Join-Path $Travail 'b'
+    # NINJAFLAGS borne la construction de Chromium (ninja lancé par CMake) ; il est posé avant la configuration, qui
+    # peut le relever. Changer -Taches après coup : supprimer $Travail\b\CMakeCache.txt (les objets restent).
+    $env:NINJAFLAGS = "-j$Taches"
     if (-not (Test-Path (Join-Path $construction 'build.ninja'))) {
         & cmake -S $sources -B $construction -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_PREFIX_PATH=$Cible" `
             "-DCMAKE_INSTALL_PREFIX=$Cible" -DFEATURE_webengine_proprietary_codecs=ON -DFEATURE_webengine_jumbo_build=OFF `
             -DFEATURE_qtpdf_build=OFF -DFEATURE_qtwebengine_widgets_build=OFF
         if ($LASTEXITCODE -ne 0) { throw 'configuration CMake de Qt WebEngine en échec' }
     }
-    # NINJAFLAGS borne la construction de Chromium (ninja lancé par CMake), --parallel celle de Qt autour.
-    $env:NINJAFLAGS = "-j$Taches"
     & cmake --build $construction --parallel $Taches
-    if ($LASTEXITCODE -ne 0) { throw "construction de Qt WebEngine en échec (reprendre : même commande ; -Taches $([Math]::Max(1, $Taches / 2)) si mémoire)" }
+    if ($LASTEXITCODE -ne 0) {
+        throw "construction de Qt WebEngine en échec (reprendre : même commande ; manque de mémoire : supprimer $construction\CMakeCache.txt et -Taches $([Math]::Max(1, [int]($Taches / 2))))"
+    }
     & cmake --install $construction
     if ($LASTEXITCODE -ne 0) { throw 'installation de Qt WebEngine en échec' }
 
@@ -101,10 +110,24 @@ try {
     if (-not $actives -or $actives.Line -notmatch '(^|\s)webengine-proprietary-codecs(\s|$)') {
         throw "Qt WebEngine installé sans codecs propriétaires ($pri)"
     }
-    foreach ($fichier in 'bin/Qt6WebEngineCore.dll', 'bin/QtWebEngineProcess.exe', 'resources/qtwebengine_resources.pak',
-        'translations/qtwebengine_locales/en-US.pak') {
+    foreach ($fichier in 'resources/qtwebengine_resources.pak', 'translations/qtwebengine_locales/en-US.pak') {
         if (-not (Test-Path (Join-Path $Cible $fichier))) { throw "$fichier absent de $Cible après installation" }
     }
+    # La copie avait déjà le Qt WebEngine officiel : les binaires du moteur doivent différer de ceux de $QtSource.
+    foreach ($fichier in 'bin/Qt6WebEngineCore.dll', 'bin/Qt6WebEngineQuick.dll', 'bin/QtWebEngineProcess.exe') {
+        $chemin = Join-Path $Cible $fichier
+        if (-not (Test-Path $chemin)) { throw "$fichier absent de $Cible après installation" }
+        $officiel = Join-Path $QtSource $fichier
+        if ((Test-Path $officiel) -and (Get-FileHash $chemin).Hash -eq (Get-FileHash $officiel).Hash) {
+            throw "$fichier identique à celui du Qt officiel : Qt WebEngine non remplacé par l'installation"
+        }
+    }
+    # find_package(Qt6 6.12 … WebEngineQuick) d'ActCraft exige que le module annonce la version de qtbase (vrai chez
+    # Homebrew : Qt WebEngine 6.11.2 sur qtbase 6.12.0 annonce 6.12.0).
+    $versionCmake = Join-Path $Cible 'lib/cmake/Qt6WebEngineQuick/Qt6WebEngineQuickConfigVersionImpl.cmake'
+    $annoncee = (Select-String -LiteralPath $versionCmake -Pattern '^set\(PACKAGE_VERSION "([0-9.]+)"\)' -ErrorAction SilentlyContinue).Matches.Groups[1].Value
+    $versionQt = Split-Path (Split-Path $QtSource -Parent) -Leaf
+    if ($annoncee -ne $versionQt) { throw "Qt WebEngine annonce la version « $annoncee », pas $versionQt : find_package d'ActCraft le refuserait" }
     $duree = (Get-Date) - $debut
     Set-Content -LiteralPath (Join-Path $Cible '.actcraft-h264') -Encoding utf8 -Value @(
         "qtwebengine=$versionWebEngine", "sha256=$somme", "qt=$QtSource", "taches=$Taches",

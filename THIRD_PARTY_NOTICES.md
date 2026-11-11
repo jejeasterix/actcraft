@@ -232,8 +232,8 @@ Le cadre web sur PC et Mac passe par le module Qt WebEngine (`LGPL-3.0-only`, li
 
 Provenance de Qt WebEngine, construit avec les codecs propriétaires (option `webengine-proprietary-codecs`) :
 
-- macOS : formule `qtwebengine` 6.11.2 de Homebrew (sources publiées par Qt, `qtwebengine-everywhere-src-6.11.2.tar.xz`, options et correctifs de la formule), sur Qt 6.12.0 de Homebrew.
-- Windows : Qt WebEngine 6.11.3, construit pour ActCraft sans modification depuis les sources publiées par Qt (`qtwebengine-everywhere-src-6.11.3.tar.xz`, https://download.qt.io/official_releases/qt/6.11/6.11.3/submodules/), sur le Qt officiel 6.12.0. Options de construction : `scripts/qtwebengine-h264.ps1` du dépôt d'ActCraft.
+- macOS : formule `qtwebengine` 6.11.2 de Homebrew (sources publiées par Qt, `qtwebengine-everywhere-src-6.11.2.tar.xz`, avec les options et les correctifs de la formule), sur Qt 6.12.0 de Homebrew (formule `qtbase` et ses correctifs). **Code source** : les formules de Homebrew utilisées (`qtbase.rb`, `qtwebengine.rb`) et leurs correctifs sont publiés à côté des paquets de chaque version d'ActCraft (page de la version sur GitHub) ; elles viennent du dépôt https://github.com/Homebrew/homebrew-core.
+- Windows : Qt WebEngine 6.11.3, construit pour ActCraft sans modification depuis les sources publiées par Qt (`qtwebengine-everywhere-src-6.11.3.zip`, https://download.qt.io/official_releases/qt/6.11/6.11.3/submodules/), sur le Qt officiel 6.12.0. Options de construction : `scripts/qtwebengine-h264.ps1` du dépôt d'ActCraft.
 
 ### Brevets des codecs H.264 et AAC
 
