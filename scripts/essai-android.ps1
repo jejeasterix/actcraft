@@ -103,13 +103,18 @@ $accueil = @{ X = [int]($largeur * 0.08); Y = [int]($hauteur * 0.5) }
 # 42835158658 et 42981911851. Elle est écartée juste avant le toucher. Si elle tient le focus juste après, le toucher
 # n'a pas atteint ActCraft : elle est écartée, et le toucher n'est rejoué que si l'accueil est encore affiché, deux
 # fois au plus. Une boîte ANR d'ActCraft, ou un accueil resté ouvert sans boîte du système, reste un échec.
+$anrActCraft = "Application Not Responding: $([regex]::Escape($paquet))"
 $touchers = 0
 do {
+    # Une boîte ANR d'ActCraft n'est jamais écartée ici : c'est un défaut de l'application.
+    $focus = "$(Adb 30 shell dumpsys window | Select-String 'mCurrentFocus')".Trim()
+    if ($focus -match $anrActCraft) { Echec "boîte ANR d'ActCraft avant le toucher de l'accueil ($focus)" }
     Ecarter-Anr
     $null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
     if ($LASTEXITCODE -ne 0) { Echec 'toucher de l''accueil refusé' }
     $touchers++
     $focus = "$(Adb 30 shell dumpsys window | Select-String 'mCurrentFocus')".Trim()
+    if ($focus -match $anrActCraft) { Echec "boîte ANR d'ActCraft après le toucher de l'accueil ($focus)" }
     $pris = ($focus -match 'Application Not Responding') -and ($focus -notmatch [regex]::Escape($paquet))
     if ($pris) {
         Write-Output "accueil : toucher pris par une boîte du système ($focus)"
@@ -118,7 +123,8 @@ do {
     }
 } while ($pris -and $touchers -lt 3)
 # Sous charge, l'accueil peut rester affiché plus de 2 s après le toucher (cause probable, non prouvée, du rouge du run
-# 42829974229). Attente bornée à 60 s, nouvelle capture toutes les 2 s, sans second toucher : il masquerait un défaut.
+# 42829974229). Attente bornée à 60 s, nouvelle capture toutes les 2 s, sans nouveau toucher : il masquerait un défaut
+# (seule la boîte ANR d'une autre application, ci-dessus, justifie de rejouer le toucher).
 $limitePalette = (Get-Date).AddSeconds(60)
 do {
     Start-Sleep -Seconds 2
