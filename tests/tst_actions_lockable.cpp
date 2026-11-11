@@ -177,7 +177,9 @@ private slots:
                                  QStringLiteral("page.history-back"), QStringLiteral("page.history-forward"),
                                  QStringLiteral("media.sound-controller"), QStringLiteral("record.stop"),
                                  QStringLiteral("record.cancel"), QStringLiteral("webframe.back"),
-                                 QStringLiteral("webframe.forward"), QStringLiteral("webframe.reload")};
+                                 QStringLiteral("webframe.forward"), QStringLiteral("webframe.reload"),
+                                 // Lot 11 (L11-T1) : la copie de reprise s'abandonne même sous verrou.
+                                 QStringLiteral("recovery.discard")};
         QCOMPARE(idsWhere(QStringLiteral("lockable"), false), free);
 
         const QSet<QString> restrictable{QStringLiteral("edit.copy"),

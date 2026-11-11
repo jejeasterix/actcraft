@@ -56,6 +56,56 @@ Item {
     property Pages pages: null
     clip: true
 
+    // D11-11 : clavier logiciel. Pendant l'édition d'un texte, la zone remonte de `appliedShift` pour que le cadre du
+    // texte reste au-dessus du clavier ; elle revient à 0 quand le clavier se masque ou que le texte se ferme. La
+    // vue garde son défilement (il est borné à la page : une page entière tient sans marge à défiler).
+    readonly property real appliedShift: area.textEditing && area.textEditing.active ? keyboardInset.shift : 0
+    transform: Translate { y: -area.appliedShift }
+
+    KeyboardInset {
+        id: keyboardInset
+        objectName: "keyboardInset"
+        keyboardRect: Qt.inputMethod.keyboardRectangle
+    }
+    // Le cadre du texte en coordonnées de fenêtre, hors décalage appliqué (sinon la mesure se mordrait la queue).
+    function refreshCaret() {
+        if (!area.textEditing || !area.textEditing.active) {
+            keyboardInset.caretRect = Qt.rect(0, 0, 0, 0)
+            return
+        }
+        // Le rectangle du curseur (celui du TextEdit de l'éditeur, en coordonnées de fenêtre) ; à défaut, le cadre.
+        const edit = textEditorItem.cursorItem
+        if (edit && edit.visible) {
+            // mapToItem(null) tient compte du zoom du TextEdit et du décalage appliqué à la zone : on le retire.
+            const r = edit.cursorRectangle
+            const a = edit.mapToItem(null, r.x, r.y)
+            const b = edit.mapToItem(null, r.x + r.width, r.y + r.height)
+            keyboardInset.caretRect = Qt.rect(a.x, a.y + area.appliedShift, Math.max(1, b.x - a.x), b.y - a.y)
+            return
+        }
+        const f = area.textEditing.frame
+        const topLeft = view.pageToScene(Qt.point(f.x, f.y))
+        const bottomRight = view.pageToScene(Qt.point(f.x + f.width, f.y + f.height))
+        keyboardInset.caretRect = Qt.rect(topLeft.x, topLeft.y + area.appliedShift, bottomRight.x - topLeft.x,
+                                          bottomRight.y - topLeft.y)
+    }
+    Connections {
+        target: area.textEditing
+        function onActiveChanged() { area.refreshCaret() }
+        function onFrameChanged() { area.refreshCaret() }
+    }
+    Connections {
+        target: textEditorItem.cursorItem
+        function onCursorRectangleChanged() { area.refreshCaret() }
+    }
+    Connections {
+        target: view
+        function onZoomChanged() { area.refreshCaret() }
+        function onPanChanged() { area.refreshCaret() }
+        function onWidthChanged() { area.refreshCaret() }
+        function onHeightChanged() { area.refreshCaret() }
+    }
+
     PageView {
         id: view
         objectName: "pageView"
@@ -210,8 +260,21 @@ Item {
         view: view
         visible: area.tools !== null
     }
+    // L11-C10 (F) : cadre du second utilisateur (mode à deux), à sa couleur, sans poignées.
+    SelectionOverlay {
+        id: secondSelectionOverlayItem
+        objectName: "secondSelectionOverlay"
+        anchors.fill: parent
+        tools: area.tools
+        view: view
+        frame: area.tools ? area.tools.secondSelectionFrame : ({})
+        handlesOn: false
+        contour: "#b03a2e"
+        visible: area.tools !== null && secondSelectionOverlayItem.framed
+    }
     // Lot 4 : éditeur de texte (talon), à côté de la sélection.
     TextEditor {
+        id: textEditorItem
         objectName: "textEditor"
         anchors.fill: parent
         editing: area.textEditing

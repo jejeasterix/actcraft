@@ -27,11 +27,11 @@ Window {
     palette.text: Theme.texte
     palette.button: Theme.surface
     palette.buttonText: Theme.texte
-    palette.brightText: Theme.texte
+    palette.brightText: Theme.texteSurActive
     palette.light: Theme.surfaceSurvol
     palette.midlight: Theme.surfaceSurvol
     palette.mid: Theme.surfaceSurvol
-    palette.dark: Theme.contour
+    palette.dark: Theme.surfaceActive // remplissage d'un bouton coché (L11-T24) ; son libellé : brightText
     palette.highlight: Theme.surfaceActive
     palette.highlightedText: Theme.texteSurActive
     palette.link: Theme.surfaceActive
@@ -48,6 +48,8 @@ Window {
     property bool generatedPage: false
     // Dossier des profils de l'utilisateur ; vide : <AppConfigLocation>/profiles (StartupOptions::profileRoot).
     property string profileRoot: ""
+    // Dossier de la copie de reprise ; vide : <AppDataLocation>/reprise (StartupOptions::recoveryDir, L11-T13).
+    property string recoveryDir: ""
     // Accueil au démarrage : posée à vrai par app/main.cpp seulement (StartupOptions::showDashboard) ; le joueur
     // de captures, le banc et les tests la laissent fausse.
     property bool showDashboard: false
@@ -109,6 +111,24 @@ Window {
         onPageAboutToChange: pageArea.view.finishStroke()
     }
 
+    // Lot 11 (L11-T3) : contrôleurs du lot, posés une fois ; chaque tâche suivante y ajoute son comportement.
+    TouchModeController { id: appTouchMode; objectName: "appTouchMode"; commands: appCommands; preferences: appPreferences; view: pageArea.view }
+    DualMode { id: appDualMode; objectName: "appDualMode"; commands: appCommands; view: pageArea.view; tools: appTools; touchMode: appTouchMode }
+    LayoutMetrics { id: appLayout; objectName: "appLayout"; windowWidth: root.width; windowHeight: root.height; preferences: appPreferences }
+    // L11-T10 (D11-5, D11-6) : les tailles du jeu de jetons suivent la mise en page (48 dp au doigt, jamais moins de
+    // 44 ; palette élargie d'une colonne de barre de défilement).
+    Binding { target: Theme; property: "tailleBouton"; value: appLayout.targetSize }
+    Binding { target: Theme; property: "hauteurBarre"; value: appLayout.targetSize }
+    Binding { target: Theme; property: "espaceCible"; value: appLayout.spacing }
+    Binding { target: Theme; property: "touchUi"; value: appLayout.touchUi }
+    Binding {
+        target: Theme; property: "largeurPalette"
+        value: appLayout.touchUi ? 2 * appLayout.targetSize + appLayout.spacing + 3 * Theme.espace2 : 112
+    }
+    LifecycleKeeper { id: appLifecycle; objectName: "appLifecycle"; document: appDocument; view: pageArea.view; tabs: appTabs; recoveryDir: root.recoveryDir }
+    DocumentPortal { id: appPortal; objectName: "appPortal" }
+    UpdateChecker { id: appUpdates; objectName: "appUpdates"; preferences: appPreferences }
+
     // Lot 4 : réglages de la page, miniatures, pages et édition de texte (types C++ de L4-T1).
     PageSettings {
         id: appPageSettings
@@ -159,6 +179,7 @@ Window {
     MediaInsert {
         id: appMediaInsert
         objectName: "appMediaInsert"
+        portal: appPortal
         commands: appCommands
         document: appDocument
     }
@@ -167,6 +188,7 @@ Window {
         id: appInsertion
         objectName: "appInsertion"
         document: appDocument
+        portal: appPortal
         mediaInsert: appMediaInsert // les médias déposés ou choisis passent par lui (action, espace réservé, verrou)
     }
     DocumentTabs {
@@ -180,6 +202,7 @@ Window {
         id: appExchange
         objectName: "appExchange"
         document: appDocument
+        portal: appPortal
         tabs: appTabs
     }
     PrintController {
@@ -235,6 +258,10 @@ Window {
     // Pilotage sans souris (actcraft-captures, tests) : même chemin que les boutons.
     function runCommand(id, argument) {
         return appCommands.trigger(id, argument)
+    }
+    // L11-T9 : même chemin pour un utilisateur (étape command à champ "user" ; 0 : le premier).
+    function runCommandAs(id, argument, user) {
+        return appCommands.trigger(id, argument, user)
     }
 
     function setFullScreen(on) {
@@ -299,7 +326,11 @@ Window {
         commands: appCommands
         documentController: appDocument
         view: pageArea.view
+        touchModeSource: appTouchMode
         notesVisible: browserPanel.hasNotes
+        compact: appLayout.compact // L11-C2 : menus réunis derrière le bouton « … » de la barre
+        mainMenuOpened: mainMenu.opened
+        onOverflowRequested: anchorItem => mainMenu.popup(anchorItem, 0, anchorItem.height)
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -325,6 +356,15 @@ Window {
         anchors.bottom: appTabs.position === "bottom" ? documentTabBar.top : parent.bottom
         spacing: 0
 
+        // Lot 11 : deuxième palette du mode à deux utilisateurs, au bord gauche (L11-T9).
+        SecondPalette {
+            id: secondPalette
+            Layout.fillHeight: true
+            Layout.preferredWidth: secondPalette.implicitWidth
+            visible: appDualMode.active
+            commands: appCommands
+        }
+
         // Lot 4 : panneau des navigateurs (ancre réglée par L4-T19), à gauche de la zone de page.
         BrowserPanel {
             id: browserPanel
@@ -339,6 +379,9 @@ Window {
             preferences: appPreferences
             actionModel: appActionBrowser
             broadcast: appBroadcast // L8-T32 : les notes de la page sont du contenu protégé (H8-16)
+            drawerHost: drawerLayer // L11-T10 : tiroir en fenêtre étroite
+            drawerMode: appLayout.narrow
+            stacker: appLayout
             onPopupOpened: root.popupOpened()
             onPopupClosed: root.popupClosed()
         }
@@ -396,6 +439,7 @@ Window {
             view: pageArea.view
             profile: appProfile
             preferences: appPreferences
+            narrowMode: appLayout.narrow // L11-T10 : repliée en un bouton
 
             ToolPalette {
                 id: toolPalette
@@ -408,6 +452,91 @@ Window {
                 preferences: appPreferences
             }
         }
+    }
+
+    // L11-T10 : couche du tiroir des navigateurs, sur la région de la page. Le fond (objectName drawerScrim) capte l'appui
+    // hors du tiroir et le referme ; il est couverture d'entrée de la page tant que le tiroir est ouvert.
+    Item {
+        id: drawerLayer
+        objectName: "drawerLayer"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: appTabs.position === "bottom" ? topBar.bottom : documentTabBar.bottom
+        anchors.bottom: appTabs.position === "bottom" ? documentTabBar.top : parent.bottom
+        visible: appLayout.narrow
+        z: 5
+        Rectangle {
+            anchors.fill: parent
+            color: "#59000000"
+            visible: browserPanel.visible
+        }
+        MouseArea {
+            id: drawerScrim
+            objectName: "drawerScrim"
+            anchors.fill: parent
+            enabled: browserPanel.visible
+            onClicked: browserPanel.visible = false
+        }
+    }
+    // Bouton du tiroir (fenêtre étroite, tiroir fermé) : coin haut gauche de la page.
+    CommandButton {
+        id: browsersButton
+        commands: appCommands
+        commandId: "view.browsers"
+        visible: appLayout.narrow && !browserPanel.visible
+        x: Theme.espace2
+        y: (appTabs.position === "bottom" ? topBar.y + topBar.height : documentTabBar.y + documentTabBar.height) + Theme.espace2
+        z: 6
+    }
+    // Le fond du tiroir n'est couverture d'entrée de la page que tiroir ouvert (fermé, le stylet doit passer).
+    Connections {
+        target: browserPanel
+        function onVisibleChanged() {
+            if (browserPanel.visible && appLayout.narrow)
+                pageArea.view.addInputCover(drawerScrim)
+            else
+                pageArea.view.removeInputCover(drawerScrim)
+        }
+    }
+
+    // Lot 11 : emplacements du bandeau de reprise, du menu au doigt et de la boîte des mises à jour (talons).
+    RecoveryBanner {
+        id: recoveryBanner
+        commands: appCommands
+        lifecycle: appLifecycle
+        parent: pageArea
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Theme.espace2
+        z: 11
+    }
+    UpdateBanner {
+        id: updateBanner
+        updates: appUpdates
+        found: updateDialog.startupFound
+        parent: pageArea
+        anchors.top: recoveryBanner.visible ? recoveryBanner.bottom : parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Theme.espace2
+        z: 11
+    }
+    FingerMenu {
+        id: fingerMenu
+        view: pageArea.view
+        tools: appTools
+        commands: appCommands
+        objectMenu: objectEditMenu
+        onPopupOpened: root.popupOpened()
+        onPopupClosed: root.popupClosed()
+    }
+    UpdateDialog {
+        id: updateDialog
+        commands: appCommands
+        updates: appUpdates
+        onOpened: root.popupOpened()
+        onClosed: root.popupClosed()
     }
 
     // Lot 4 : barres de texte sous la ligne supérieure, boîtes de la grille et du fond (talons).
@@ -465,6 +594,8 @@ Window {
         objectName: "fileExchangeActions"
         exchange: appExchange
         insertion: appInsertion
+        onImagePicked: (url) => root.insertImageAdmitted(url)
+        onPdfPicked: (url) => root.importPdfAdmitted(url)
         onPopupOpened: root.popupOpened()
         onPopupClosed: root.popupClosed()
     }
@@ -540,6 +671,7 @@ Window {
         tools: appTools
         // La couche des médias est posée par PageArea (pageOverlays, z 4) : elle reçoit ici son modèle et sa vue.
         Component.onCompleted: {
+            pageArea.view.addInputCover(browsersButton)
             for (const layer of pageArea.pageOverlays.children) {
                 if (layer.objectName === "mediaLayer") {
                     layer.view = pageArea.view
@@ -637,10 +769,13 @@ Window {
 
     FileActions {
         id: fileActions
+        objectName: "fileActions"
         document: appDocument
         tabs: appTabs
         textEditing: appText
         preferences: appPreferences // documents récents gardés (L6-T24)
+        portal: appPortal
+        onNotice: (message) => messageBanner.show(message)
         broadcast: appBroadcast // L8-T32 : « Enregistrer les modifications ? » refusé dans un document protégé
         commands: appCommands // L8-C7 : « Enregistrer » de Quitter passe par file.save, comme la croix d'un onglet
         onPopupOpened: root.popupOpened()
@@ -658,14 +793,20 @@ Window {
         if (!fileActions.quitting && fileActions.hasUnsavedTabs()) {
             close.accepted = false
             fileActions.quit()
+            return
         }
+        // Fermeture acceptée (tout est enregistré, ou « Ne pas enregistrer » choisi) : la copie de reprise n'a
+        // plus d'objet et n'est pas rouverte au lancement suivant (L11-T13).
+        appLifecycle.discard()
     }
 
     // Avertissements de lecture et erreurs : en haut de la page, sans bloquer, refermables.
     MessageBanner {
         id: messageBanner
         parent: pageArea
-        anchors.top: parent.top
+        // Sous les bandeaux de reprise et de mise à jour quand ils sont visibles : le message et son « Fermer »
+        // restent lisibles.
+        anchors.top: updateBanner.visible ? updateBanner.bottom : (recoveryBanner.visible ? recoveryBanner.bottom : parent.top)
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: Theme.espace2
@@ -698,6 +839,39 @@ Window {
         target: appMediaInsert
         function onFailed(message) { messageBanner.show(message) }
     }
+    // D11-9 : un document refusé par le portail n'est pas lu ; le message donne son nom, jamais son URL.
+    Connections {
+        target: appPortal
+        function onRefused(name) {
+            messageBanner.show(qsTr("« %1 » n'est plus accessible : l'accès au document est perdu ou le fournisseur ne répond pas.").arg(name))
+        }
+    }
+    // Permissions prêtées pour une lecture unique (image, PDF) : rendues quand plus aucune lecture ne court.
+    function returnLentPermissions() {
+        if (!appInsertion.busy && !appExchange.busy && !appMediaInsert.busy)
+            appPortal.returnLent()
+    }
+    Connections {
+        target: appInsertion
+        function onBusyChanged() { root.returnLentPermissions() }
+    }
+    Connections {
+        target: appExchange
+        function onBusyChanged() { root.returnLentPermissions() }
+    }
+    Connections {
+        target: appMediaInsert
+        function onBusyChanged() { root.returnLentPermissions() }
+    }
+    // Admission d'un fichier choisi, puis lecture ; un refus rend les permissions prêtées si plus rien ne lit.
+    function admitThen(url, read) {
+        if (appPortal.admit(url))
+            read(url)
+        else
+            root.returnLentPermissions()
+    }
+    function insertImageAdmitted(url) { root.admitThen(url, function(u) { appInsertion.insertImage(u) }) }
+    function importPdfAdmitted(url) { root.admitThen(url, function(u) { appExchange.importPdf(u) }) }
     // Échanges de fichiers (L5-T25) : l'échec et la fin arrivent à la bannière.
     Connections {
         target: appExchange
@@ -904,17 +1078,21 @@ Window {
         appCommands.setHandler("view.zoom", function (percent) { pageArea.view.zoom = percent / 100 })
         appCommands.setHandler("page.next", function () { appDocument.nextPage() })
         appCommands.setHandler("page.previous", function () { appDocument.pageBack() })
-        appCommands.setHandler("tool.pen", function () { appTools.activate("pen") })
+        appCommands.setHandler("tool.pen", function (argument, user) { appTools.activateFor("pen", user) })
         // La vue n'a plus de couleur propre : appTools la tient à jour (inkColor, inkWidth).
-        appCommands.setHandler("pen.color", function (color) { appTools.setColor(color) })
-        appCommands.setHandler("pen.width", function (width) { appTools.setWidth(width) })
+        appCommands.setHandler("pen.color", function (color, user) { appTools.setColor(color, user) })
+        appCommands.setHandler("pen.width", function (width, user) { appTools.setWidth(width, user) })
         // Échap (M9) : abandon du geste en cours ; au repos, outil Sélectionner. Jamais livré à l'outil.
-        appCommands.setHandler("tool.select", function () {
+        appCommands.setHandler("tool.select", function (argument, user) {
+            if (user) { // L11-T9 : le second utilisateur n'a pas d'Échap ; son outil seul change
+                appTools.activateFor("select", user)
+                return
+            }
             appTools.cancelGesture()
             appTools.activate("select")
         })
-        appCommands.setHandler("tool.highlighter", function () { appTools.activate("highlighter") })
-        appCommands.setHandler("tool.eraser", function () { appTools.activate("eraser") })
+        appCommands.setHandler("tool.highlighter", function (argument, user) { appTools.activateFor("highlighter", user) })
+        appCommands.setHandler("tool.eraser", function (argument, user) { appTools.activateFor("eraser", user) })
         appCommands.setHandler("edit.undo", function () { appDocument.undo() })
         appCommands.setHandler("edit.redo", function () { appDocument.redo() })
         appCommands.setHandler("edit.delete", function () { appTools.deleteSelection() })
@@ -939,13 +1117,13 @@ Window {
         appCommands.setHandler("help.about", function () { aboutDialog.open() })
         appCommands.setHandler("help.website", function () { Qt.openUrlExternally(AppInfo.projectUrl) })
         // Lot 4 : formes, texte, navigateurs, pages, grille (une ligne vers sa cible chacune).
-        appCommands.setHandler("tool.shape", function () { appTools.activate("shape") })
+        appCommands.setHandler("tool.shape", function (argument, user) { appTools.activateFor("shape", user) })
         appCommands.setHandler("shape.choose", function (preset) { appTools.chooseShape(preset) })
         appCommands.setHandler("shape.filled", function () { appTools.setShapeFilled(!appTools.shapeFilled) })
         appCommands.setHandler("shape.fill-color", function (color) { appTools.setShapeFillColor(color) })
         appCommands.setHandler("shape.draw-from-center", function () { appTools.setShapeFromCenter(!appTools.shapeFromCenter) })
-        appCommands.setHandler("tool.text", function () { appTools.activate("text") })
-        appCommands.setHandler("tool.text-vertical", function () { appTools.activate("text-vertical") })
+        appCommands.setHandler("tool.text", function (argument, user) { appTools.activateFor("text", user) })
+        appCommands.setHandler("tool.text-vertical", function (argument, user) { appTools.activateFor("text-vertical", user) })
         appCommands.setHandler("text.edit-at", function (arg) {
             const at = root.editAtArgument(arg)
             if (at === null)
@@ -1011,8 +1189,8 @@ Window {
         appCommands.setHandler("object.menu", function () { objectEditMenu.popupAtSelection() })
         // L5-T17 : l'argument de l'outil (style, forme) est passé par les outils eux-mêmes.
         appCommands.setHandler("object.shape-points", function () { appTools.activate("select-points") })
-        appCommands.setHandler("tool.fill", function () { appTools.activate("fill") })
-        appCommands.setHandler("tool.connector", function () { appTools.activate("connector") })
+        appCommands.setHandler("tool.fill", function (argument, user) { appTools.activateFor("fill", user) })
+        appCommands.setHandler("tool.connector", function (argument, user) { appTools.activateFor("connector", user) })
         appCommands.setHandler("pen.shape", function (shape) {
             if (root.hasArgument(shape))
                 appTools.activate("pen-shape", shape)
@@ -1031,7 +1209,7 @@ Window {
         appCommands.setHandler("view.pen-modifiers", function () { penModifierBar.visible = !penModifierBar.visible })
         appCommands.setChecked("view.pen-modifiers", penModifierBar.visible)
         appCommands.setHandler("insert.image", root.argumentOrDialog(
-            function (arg) { appInsertion.insertImage(appDocument.urlFromArgument(arg)) },
+            function (arg) { root.insertImageAdmitted(appDocument.urlFromArgument(arg)) },
             function () { fileExchangeActions.chooseImage() }))
         appCommands.setHandler("insert.media", root.argumentOrDialog(
             function (url) { appMediaInsert.insertFile(url) }, function () { fileExchangeActions.chooseMedia() }))
@@ -1052,7 +1230,7 @@ Window {
         appCommands.setHandler("export.pdf", root.argumentOrDialog(
             function (url) { appExchange.exportPdf(url) }, function () { fileExchangeActions.chooseExportPdf() }))
         appCommands.setHandler("file.import-pdf", root.argumentOrDialog(
-            function (url) { appExchange.importPdf(url) }, function () { fileExchangeActions.chooseImportPdf() }))
+            function (url) { root.importPdfAdmitted(url) }, function () { fileExchangeActions.chooseImportPdf() }))
         appCommands.setHandler("file.import-powerpoint-images", root.argumentOrDialog(
             function (url) { appExchange.importPowerpointImages(url) }, function () { fileExchangeActions.chooseImportPowerpoint() }))
         appCommands.setHandler("file.print", function () {

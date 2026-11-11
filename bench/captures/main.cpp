@@ -4,6 +4,7 @@
 #include <actcraft/bench/simulatedrecorders.h>
 #include <actcraft/bench/testroots.h>
 #include <actcraft/bench/uiscenario.h>
+#include <actcraft/ui/language.h>
 #include <actcraft/ui/webframeitem.h> // ACTCRAFT_WEBFRAME
 
 #include <QDir>
@@ -100,7 +101,8 @@ private:
 // Captures et scénarios d'interface (DA8). Dernière ligne et code : SCENARIO OK (0), SCENARIO EN ECHEC (1),
 // SCENARIO INVALIDE (2 : arguments, fichier, interface).
 //   actcraft-captures --scenario <fichier.json> [--rendu auto|d3d11|logiciel] [--sortie <dossier>]
-//                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]… [--retard-images <ms>]
+//                     [--taille LxH|plein-ecran] [--lire objet.propriété=valeur]… [--traduction <fichier.qm>]
+//                     [--retard-images <ms>]
 int main(int argc, char* argv[])
 {
     // DA8 : dialogues Qt Quick non natifs forcés (un dialogue natif ne reçoit pas d'événements postés).
@@ -183,7 +185,10 @@ int main(int argc, char* argv[])
     // `<sortie>` est propre au scénario et au rendu ; l'étape `restart` ne vide rien.
     const QDir outputDir(output);
     const QString profilesDir = outputDir.filePath(QStringLiteral("profils"));
+    // Copie de reprise (L11-T13) : vidée au lancement, gardée à l'étape `restart` (la reprise s'y relit).
+    const QString recoveryDir = outputDir.filePath(QStringLiteral("reprise"));
     QDir(profilesDir).removeRecursively();
+    QDir(recoveryDir).removeRecursively();
     QStandardPaths::setTestModeEnabled(true);
     // Racines « Mes ressources » et partagées d'essai sous `<sortie>`, vidées à chaque lancement (le mode
     // test ne déplace pas DocumentsLocation : jamais le vrai Documents/ActCraft/Ressources du poste).
@@ -191,6 +196,13 @@ int main(int argc, char* argv[])
     QGuiApplication::setOrganizationName(QStringLiteral("ActCraft"));
     StartupOptions startup = parseStartupOptions(args); // --sans-cache compris
     startup.profileRoot = profilesDir;
+    startup.recoveryDir = recoveryDir;
+
+    // Pseudo-langue de contrôle (L11-T19) : traduction installée AVANT le chargement de l'interface.
+    const QString translation = valueAfter(args, QStringLiteral("--traduction"));
+    if (!translation.isEmpty() && !actcraft::ui::Language::installFile(app, translation)) {
+        return invalid(QStringLiteral("--traduction : fichier illisible : %1").arg(translation));
+    }
 
     std::unique_ptr<SlowNetworkFactory> slowImages; // avant le moteur, donc détruit après lui
     const QString delay = valueAfter(args, QStringLiteral("--retard-images"));

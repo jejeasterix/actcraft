@@ -36,8 +36,15 @@ ToolButton {
         color: button.onAccent ? Theme.surfaceActive : button.hovered ? Theme.surfaceSurvol : Theme.surface
     }
 
+    // L11-C24 (F-303) : un outil de maths appartient à qui touche sa commande. Lu à l'appui : un autre utilisateur
+    // peut appuyer ailleurs avant le relâché. Les autres commandes restent au premier utilisateur.
+    property int pressedBy: 0
+    onPressed: pressedBy = commands.pressUser()
+
     onClicked: {
-        if (button.argument === undefined)
+        if (commandId.startsWith("math."))
+            commands.trigger(commandId, button.argument, button.pressedBy)
+        else if (button.argument === undefined)
             commands.trigger(commandId)
         else
             commands.trigger(commandId, button.argument)

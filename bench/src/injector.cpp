@@ -4,8 +4,10 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QMouseEvent>
 #include <QTabletEvent>
 #include <QTimer>
+#include <QTouchEvent>
 #include <QWheelEvent>
 #include <QWindow>
 
@@ -212,6 +214,132 @@ bool Injector::pinch(QPointF center, double from, double to, int steps, const Fi
         sink(GesturePhase::Move, fingers(from + (to - from) * (k / static_cast<double>(steps))));
     }
     sink(GesturePhase::Release, fingers(to));
+    return true;
+}
+
+const QPointingDevice* Injector::parallelDevice(int number, const QString& kind)
+{
+    for (const auto& entry : m_parallelDevices) {
+        if (entry.first.first == number && entry.first.second == kind) {
+            return entry.second.get();
+        }
+    }
+    const qint64 systemId = kParallelSystemIdBase + number;
+    const QString name = QStringLiteral("actcraft-bench-%1-%2").arg(kind).arg(number);
+    std::unique_ptr<QPointingDevice> device;
+    if (kind == QLatin1String("stylus")) {
+        device = std::make_unique<QPointingDevice>(
+            name, systemId, QInputDevice::DeviceType::Stylus, QPointingDevice::PointerType::Pen,
+            QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3, QString(),
+            QPointingDeviceUniqueId::fromNumericId(number));
+    } else if (kind == QLatin1String("mouse")) {
+        device = std::make_unique<QPointingDevice>(name, systemId, QInputDevice::DeviceType::Mouse,
+                                                   QPointingDevice::PointerType::Generic,
+                                                   QInputDevice::Capability::Position, 1, 3);
+    } else {
+        device = std::make_unique<QPointingDevice>(
+            name, systemId, QInputDevice::DeviceType::TouchScreen, QPointingDevice::PointerType::Finger,
+            QInputDevice::Capability::Position | QInputDevice::Capability::Area, 10, 0);
+    }
+    m_parallelDevices.emplace_back(std::make_pair(number, kind), std::move(device));
+    return m_parallelDevices.back().second.get();
+}
+
+void Injector::postContact(GesturePhase phase, const ParallelContact& contact, QPointF scene, double pressure)
+{
+    const QPointingDevice* device = parallelDevice(contact.device, contact.kind);
+    const QPointF global = m_target->mapToGlobal(scene);
+    QEvent* event = nullptr;
+    if (contact.kind == QLatin1String("stylus")) {
+        const QEvent::Type type = phase == GesturePhase::Press     ? QEvent::TabletPress
+                                  : phase == GesturePhase::Release ? QEvent::TabletRelease
+                                                                   : QEvent::TabletMove;
+        const Qt::MouseButton button = phase == GesturePhase::Move ? Qt::NoButton : Qt::LeftButton;
+        const Qt::MouseButtons buttons = phase == GesturePhase::Release ? Qt::NoButton : Qt::LeftButton;
+        event = new QTabletEvent(type, device, scene, global, pressure, 0, 0, 0, 0, 0, Qt::NoModifier, button,
+                                 buttons);
+    } else if (contact.kind == QLatin1String("mouse")) {
+        const QEvent::Type type = phase == GesturePhase::Press     ? QEvent::MouseButtonPress
+                                  : phase == GesturePhase::Release ? QEvent::MouseButtonRelease
+                                                                   : QEvent::MouseMove;
+        const Qt::MouseButton button = phase == GesturePhase::Move ? Qt::NoButton : Qt::LeftButton;
+        const Qt::MouseButtons buttons = phase == GesturePhase::Release ? Qt::NoButton : Qt::LeftButton;
+        event = new QMouseEvent(type, scene, scene, global, button, buttons, Qt::NoModifier,
+                                Qt::MouseEventNotSynthesized, device);
+    } else {
+        const QEvent::Type type = phase == GesturePhase::Press     ? QEvent::TouchBegin
+                                  : phase == GesturePhase::Release ? QEvent::TouchEnd
+                                                                   : QEvent::TouchUpdate;
+        const QEventPoint::State state = phase == GesturePhase::Press     ? QEventPoint::State::Pressed
+                                         : phase == GesturePhase::Release ? QEventPoint::State::Released
+                                                                          : QEventPoint::State::Updated;
+        event = new QTouchEvent(type, device, Qt::NoModifier,
+                                {QEventPoint(contact.device, state, scene, global)});
+    }
+    QCoreApplication::postEvent(m_target, event);
+    if (m_logging) {
+        const QLatin1Char letter(phase == GesturePhase::Press     ? 'P'
+                                 : phase == GesturePhase::Release ? 'R'
+                                                                  : 'M');
+        m_log << QStringLiteral("%1%2").arg(letter).arg(contact.device);
+    }
+}
+
+bool Injector::postParallel(const std::vector<ParallelContact>& contacts, double pressure, PointSpace space)
+{
+    if (contacts.empty()) {
+        return false;
+    }
+    std::size_t longest = 0;
+    for (std::size_t i = 0; i < contacts.size(); ++i) {
+        const ParallelContact& c = contacts[i];
+        const bool kindOk = c.kind == QLatin1String("stylus") || c.kind == QLatin1String("touch") ||
+                            c.kind == QLatin1String("mouse");
+        if (c.device < 1 || !kindOk || c.points.empty()) {
+            return false;
+        }
+        for (std::size_t j = 0; j < i; ++j) {
+            if (contacts[j].device == c.device) {
+                return false;
+            }
+        }
+        longest = std::max(longest, c.points.size());
+    }
+    for (const ParallelContact& c : contacts) {
+        postContact(GesturePhase::Press, c, scenePoint(c.points.front(), space), pressure);
+    }
+    for (std::size_t k = 1; k < longest; ++k) {
+        for (const ParallelContact& c : contacts) {
+            if (k < c.points.size()) {
+                postContact(GesturePhase::Move, c, scenePoint(c.points[k], space), pressure);
+            }
+        }
+    }
+    for (const ParallelContact& c : contacts) {
+        postContact(GesturePhase::Release, c, scenePoint(c.points.back(), space), pressure);
+    }
+    return true;
+}
+
+void Injector::setLogging(bool enabled)
+{
+    m_logging = enabled;
+    m_log.clear();
+}
+
+QStringList Injector::eventLog() const
+{
+    return m_log;
+}
+
+bool Injector::longPress(QPointF point, int holdMs, const FingerSink& sink, PointSpace space)
+{
+    if (holdMs < 0 || !sink) {
+        return false;
+    }
+    sink(GesturePhase::Press, {scenePoint(point, space)});
+    pauseMs(holdMs);
+    sink(GesturePhase::Release, {scenePoint(point, space)});
     return true;
 }
 

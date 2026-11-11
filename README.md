@@ -24,8 +24,59 @@ soutenu par Promethean.
 
 - **Windows 10 ou 11** : `ActCraft-<version>-setup.exe`, sans droits d'administrateur.
 - **Android 9 ou plus** : `ActCraft-<version>-arm64-v8a.apk`.
+- **macOS** (Mac à puce Apple) : `ActCraft-<version>-macos-arm64.dmg`, non signé.
 
 Les paquets seront publiés sur la page des [versions](https://github.com/jejeasterix/actcraft/releases) du dépôt.
+Les paquets de la prochaine version ne sont pas encore publiés.
+
+## Démarrer
+
+### Installer sous Windows
+
+Lancez `ActCraft-<version>-setup.exe`. L'installation se fait pour vous seul : aucun droit d'administrateur n'est
+demandé. Comme le programme n'est pas signé par un éditeur connu, Windows (SmartScreen) peut afficher « Windows a
+protégé votre ordinateur » : cliquez sur « Informations complémentaires », puis sur « Exécuter quand même ».
+
+### Installer sous Android
+
+Copiez `ActCraft-<version>-arm64-v8a.apk` sur la tablette et ouvrez-le. Android demande d'autoriser l'installation
+depuis cette source (le navigateur ou le gestionnaire de fichiers qui a ouvert le fichier) : acceptez, puis
+installez.
+
+### Installer sous macOS
+
+1. Ouvrez `ActCraft-<version>-macos-arm64.dmg` (Mac à puce Apple), puis glissez ActCraft dans le dossier
+   Applications.
+2. Le paquet n'est **pas signé** : ni certificat de développeur, ni notarisation par Apple. macOS le dit au premier
+   lancement.
+   - macOS 14 et avant : dans Applications, clic droit sur ActCraft, puis « Ouvrir », puis « Ouvrir ».
+   - macOS 15 et après : ouvrez ActCraft une fois (macOS le refuse), puis Réglages Système > Confidentialité et
+     sécurité > « Ouvrir quand même ».
+3. Pourquoi : macOS marque tout fichier téléchargé (attribut `com.apple.quarantine`) et refuse d'ouvrir une
+   application marquée qui n'a pas été notarisée par Apple. Cette marque se retire en une ligne, dans le Terminal :
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/ActCraft.app
+   ```
+
+   À faire seulement pour un paquet téléchargé depuis la page des versions de ce dépôt.
+
+### Premiers pas
+
+- **Écrire** : prenez le stylo dans la palette d'outils et écrivez sur la page, au stylet, à la souris ou au doigt.
+- **Page suivante** : le navigateur de pages (ou le menu Affichage) passe d'une page à l'autre.
+- **Enregistrer** : commande « Enregistrer » du menu Fichier. Le paperboard garde le format `.actcraft` ; les `.flipchart` s'ouvrent aussi.
+- **Aide** : la touche F1 ouvre l'aide, avec une page par outil et des procédures pas à pas.
+- **Modes du toucher** : sur une tablette, choisissez ce que fait le doigt (Gestion complète par défaut, ignorer, écrire,
+  sélectionner) par Affichage > Mode du toucher ; la paume posée sur l'écran n'écrit pas. En mode tactile, les
+  cibles à toucher font au moins 48 dp.
+- **Deux utilisateurs** : deux personnes travaillent ensemble sur la même page, chacune avec sa palette, son outil et
+  son trait. Ses réglages sont propres à chacune.
+- **Réglages** : Outils > Profils et réglages…, onglet Paramètres : la fenêtre regroupe la langue, les outils, le profil de commandes et les mises à jour.
+- **Reprise après interruption** : si l'application est coupée (batterie, appel, changement d'application),
+  elle reprend seule le travail là où il en était, sans perte, et un bandeau l'indique (vous pouvez supprimer la copie).
+- **Mises à jour** : la commande « Rechercher des mises à jour… » du menu d'aide. L'application peut aussi le faire au démarrage, si vous le
+  décidez dans les réglages ; rien n'est installé sans votre accord.
 
 ## Construire (Windows)
 

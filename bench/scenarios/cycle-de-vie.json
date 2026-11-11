@@ -1,0 +1,26 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "cycle-de-vie",
+  "description": "L11-T13 (D11-8) : trait rouge, mise en arrière-plan (événement d'état envoyé à l'application), copie de reprise écrite hors du fil principal sous <sortie>/reprise, relance : document repris, modifié, même empreinte, bandeau affiché, trait visible.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.pen"},
+    {"command": "pen.color", "argument": "#FF0000"},
+    {"stroke": [[200, 600], [600, 600]], "pressure": 0.5},
+    {"waitReady": true},
+    {"expect": "documentController.modified", "value": true},
+    {"remember": "documentController.fingerprint", "as": "avant"},
+    {"expect": "recoveryBanner.visible", "value": false},
+    {"appState": "suspended"},
+    {"waitFor": "appLifecycle.lastWriteOk", "value": true},
+    {"restart": true},
+    {"waitReady": true},
+    {"waitFor": "appLifecycle.recovered", "value": true},
+    {"waitReady": true},
+    {"expect": "recoveryBanner.visible", "value": true},
+    {"expect": "documentController.modified", "value": true},
+    {"expect": "documentController.fingerprint", "value": "${avant}"},
+    {"capture": "reprise"},
+    {"checkPixel": "trait-repris", "at": [400, 600], "color": "#FF0000", "tolerance": 60}
+  ]
+}

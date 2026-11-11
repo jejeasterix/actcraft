@@ -87,12 +87,33 @@ endif()
 # Hachage et mandataire du lot 6 (Qt6::Network).
 find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
 
+# Lot 11 (L11-T1) : sources réservées à l'origine (talons), remplies par les tâches nommées dans leurs marqueurs (plus aucun talon).
+set(ACTCRAFT_UI_LOT11_SOURCES
+    include/actcraft/ui/touchmode.h
+    src/touchmode.cpp
+    include/actcraft/ui/dualmode.h
+    src/dualmode.cpp
+    include/actcraft/ui/layoutmetrics.h
+    src/layoutmetrics.cpp
+    include/actcraft/ui/keyboardinset.h
+    src/keyboardinset.cpp
+    include/actcraft/ui/fingermenus.h
+    src/fingermenus.cpp
+    include/actcraft/ui/lifecycle.h
+    src/lifecycle.cpp
+    include/actcraft/ui/documentportal.h
+    src/documentportal.cpp
+    include/actcraft/ui/updatechecker.h
+    src/updatechecker.cpp
+)
+
 qt_add_qml_module(actcraft_ui
     URI ActCraft.Ui
     VERSION 1.0
     QML_FILES
         qml/Main.qml
         qml/Theme.qml
+        qml/FocusRing.qml
         qml/AboutDialog.qml
         qml/TopBar.qml
         qml/ToolPalette.qml
@@ -109,6 +130,12 @@ qt_add_qml_module(actcraft_ui
         qml/SaveChangesDialog.qml
         qml/PageSizeDialog.qml
         qml/MessageBanner.qml
+        qml/SecondPalette.qml
+        qml/TouchModeMenu.qml
+        qml/FingerMenu.qml
+        qml/RecoveryBanner.qml
+        qml/UpdateBanner.qml
+        qml/UpdateDialog.qml
         qml/SelectionOverlay.qml
         qml/ObjectBar.qml
         qml/TranslucencyPopup.qml
@@ -298,6 +325,10 @@ qt_add_qml_module(actcraft_ui
         icons/enregistrer-zone.svg
         icons/cadre-web.svg
         icons/diffuser.svg
+        icons/toucher.svg
+        icons/deux-utilisateurs.svg
+        icons/mises-a-jour.svg
+        icons/reprise.svg
     SOURCES
         include/actcraft/ui/viewtransform.h
         include/actcraft/ui/linkdialogs.h
@@ -338,6 +369,7 @@ qt_add_qml_module(actcraft_ui
         include/actcraft/ui/documentio.h
         src/documentio.cpp
         src/commands.cpp
+        src/commandlabels.cpp
         include/actcraft/ui/appinfo.h
         src/appinfo.cpp
         include/actcraft/ui/toolhost.h
@@ -363,7 +395,8 @@ qt_add_qml_module(actcraft_ui
         include/actcraft/ui/printcontroller.h
         src/printcontroller.cpp
         ${ACTCRAFT_UI_LOT7_SOURCES}
-        ${ACTCRAFT_UI_LOT6_SOURCES})
+        ${ACTCRAFT_UI_LOT6_SOURCES}
+        ${ACTCRAFT_UI_LOT11_SOURCES})
 
 # Le code d'enregistrement QML généré inclut les en-têtes par leur seul nom : d'où le dossier privé.
 # MSVC, C4702 (code inatteignable) dans les sources C++ que qmlcachegen produit : le code généré instancie
@@ -399,12 +432,18 @@ actcraft_set_warnings(actcraft_ui)
 # Version affichée par « À propos » (décision 31).
 target_compile_definitions(actcraft_ui PRIVATE ACTCRAFT_VERSION="${PROJECT_VERSION}")
 
-# Notices des composants tiers, affichées par « À propos » et livrées dans les paquets (décision 34).
+# Notices des composants tiers, affichées par « À propos » et livrées dans les paquets (décision 34), avec les
+# textes des licences qu'elles citent (:/actcraft/LICENSES/<id>.txt) : l'APK n'a pas d'autre copie (L11-T25).
 set_source_files_properties(${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md
     PROPERTIES QT_RESOURCE_ALIAS THIRD_PARTY_NOTICES.md)
+file(GLOB _actcraft_license_texts CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/LICENSES/*.txt)
+foreach(_text IN LISTS _actcraft_license_texts)
+    get_filename_component(_name ${_text} NAME)
+    set_source_files_properties(${_text} PROPERTIES QT_RESOURCE_ALIAS LICENSES/${_name})
+endforeach()
 qt_add_resources(actcraft_ui "ui_notices"
     PREFIX "/actcraft"
-    FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md)
+    FILES ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md ${_actcraft_license_texts})
 
 # Orthographe (D6-9) : dictionnaire français (Grammalecte, MPL 2.0), copié au premier usage dans un dossier lisible
 # par Hunspell (qui lit des chemins de fichiers).
@@ -419,7 +458,27 @@ qt_add_resources(actcraft_ui "ui_dictionaries"
 qt_add_resources(actcraft_ui "ui_lot6_data"
     PREFIX "/actcraft"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}
-    FILES help/index.html)
+    FILES help/index.html
+          help/pen.html help/select.html help/highlighter.html help/eraser.html help/shape.html
+          help/text.html help/text-vertical.html help/fill.html help/connector.html
+          help/reveal-ink.html
+          help/dice.html
+          help/calculator.html
+          help/clock.html
+          help/ticker.html
+          help/web-browser.html
+          help/shape-recognition.html
+          help/handwriting.html
+          help/camera-area.html
+          help/camera-polygon.html
+          help/camera-freehand.html
+          help/camera-window.html
+          help/camera-screen.html
+          help/keyboard.html
+          help/ruler.html help/set-square.html help/protractor.html help/compass.html help/xy-origin.html
+          help/curtain.html help/spotlight.html
+          help/raccourcis.html help/deux-utilisateurs.html help/modes-toucher.html help/reprise.html
+          help/mises-a-jour.html help/profils.html help/mot-de-passe-oublie.html)
 
 # Traductions (D6-11, L6-T36) : le .ts (produit par lupdate, cible update_translations) devient un .qm dans les
 # ressources, sous /actcraft/i18n. Français livré : traduction identité.

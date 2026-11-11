@@ -332,6 +332,87 @@ private slots:
         s.profile->setProperty("paletteCollapsed", true);
         QVERIFY(!edit->property("visible").toBool());
     }
+
+    // E3 : le bouton d'édition a sa place dans la palette, sous ses groupes : il défile avec eux et ne couvre
+    // aucun autre bouton (run 42932734568 : posé à l'origine de la palette, par-dessus menu.main).
+    void editButtonHasItsOwnPlace()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        s.window->resize(1280, 800);
+        QTRY_COMPARE(s.window->size(), QSize(1280, 800));
+        auto* palette = qobject_cast<QQuickItem*>(named(s, "toolPalette"));
+        auto* flick = qobject_cast<QQuickItem*>(named(s, "paletteFlick"));
+        QVERIFY(palette && flick);
+        auto* edit = findItem(palette, QStringLiteral("launcherEditButton"));
+        QVERIFY(edit);
+        QObject* commands = edit->property("commands").value<QObject*>();
+        QVERIFY(commands);
+        bool available = false;
+        QVERIFY(QMetaObject::invokeMethod(commands, "isAvailable", Q_RETURN_ARG(bool, available),
+                                          Q_ARG(QString, QStringLiteral("launcher.edit"))));
+        QCOMPARE(edit->isVisible(), available);
+        if (!available)
+            QSKIP("launcher.edit n'existe que sous Windows : aucun bouton à placer");
+        auto* content = flick->property("contentItem").value<QQuickItem*>();
+        QVERIFY(content && content->isAncestorOf(edit));
+        const QRectF mine = edit->mapRectToScene(QRectF(0, 0, edit->width(), edit->height()));
+        QList<QQuickItem*> pending{palette};
+        int others = 0;
+        while (!pending.isEmpty()) {
+            QQuickItem* it = pending.takeLast();
+            pending << it->childItems();
+            if (it == edit || !it->isVisible() || !it->property("commandId").isValid())
+                continue;
+            ++others;
+            const QRectF theirs = it->mapRectToScene(QRectF(0, 0, it->width(), it->height()));
+            QVERIFY2(!mine.intersects(theirs), qPrintable(it->objectName()));
+        }
+        QVERIFY(others > 10);
+    }
+
+    // Palette ancrée en haut (horizontale, deux rangées de boutons) : chaque bouton de la barre de raccourcis
+    // tient dans la hauteur de la palette ; la troisième entrée n'est pas coupée par le bord.
+    void shortcutBarFitsTheHorizontalPalette()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        s.window->resize(1280, 800);
+        QTRY_COMPARE(s.window->size(), QSize(1280, 800));
+        s.profile->setProperty("paletteDock", QStringLiteral("top"));
+        auto* bar = qobject_cast<QQuickItem*>(named(s, "shortcutBar"));
+        QObject* launchers = named(s, "barLaunchers");
+        auto* flick = qobject_cast<QQuickItem*>(named(s, "paletteFlick"));
+        QVERIFY(bar && launchers && flick);
+        for (int i = 0; i < 3; ++i) {
+            QString id;
+            QVERIFY(QMetaObject::invokeMethod(launchers, "add", Q_RETURN_ARG(QString, id),
+                                              Q_ARG(QString, QCoreApplication::applicationFilePath()),
+                                              Q_ARG(QStringList, QStringList()),
+                                              Q_ARG(QString, QStringLiteral("Programme %1").arg(i))));
+            QVERIFY(!id.isEmpty());
+        }
+        QTRY_COMPARE(bar->property("launcherCount").toInt(), 3);
+        QTRY_VERIFY(bar->isVisible());
+        QTest::qWait(100); // la grille se refait au tour suivant
+        int checked = 0;
+        QList<QQuickItem*> pending{bar};
+        while (!pending.isEmpty()) {
+            QQuickItem* it = pending.takeLast();
+            pending << it->childItems();
+            if (!it->isVisible() || !it->objectName().startsWith(QLatin1String("launcher")))
+                continue;
+            const QRectF r = it->mapRectToItem(flick, QRectF(0, 0, it->width(), it->height()));
+            QVERIFY2(r.top() >= -0.5 && r.bottom() <= flick->height() + 0.5,
+                     qPrintable(QStringLiteral("%1 : %2 à %3 pour %4")
+                                    .arg(it->objectName())
+                                    .arg(r.top())
+                                    .arg(r.bottom())
+                                    .arg(flick->height())));
+            ++checked;
+        }
+        QVERIFY(checked >= 3);
+    }
 };
 
 QTEST_MAIN(TstUiLauncherspage)

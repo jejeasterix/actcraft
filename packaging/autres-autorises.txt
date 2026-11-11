@@ -1,0 +1,72 @@
+# Bibliothèques NON Qt autorisées dans les paquets d'ActCraft (décision 34, L11-T25) : tout fichier *.dll hors Qt6*,
+# *.so hors libQt6* (et, pour le paquet macOS de L11-T29m, *.dylib hors frameworks Qt) doit répondre à un motif.
+# Format (amendement 3 du plan 11b) : « <motif glob> <expression SPDX> » ; le PREMIER blanc sépare les deux champs,
+# l'expression peut contenir des blancs (« FTL OR GPL-2.0-or-later ») ; ligne vide ou commençant par « # » ignorée.
+# Lu par scripts/verifier-licences.ps1 et scripts/verifier-licences-mac.sh. Chaque ligne a sa notice dans
+# THIRD_PARTY_NOTICES.md et chaque identifiant son texte sous LICENSES/<id>.txt (tests/tst_app_notices.cpp).
+# Ajouter une bibliothèque : relever sa licence à la source, écrire sa notice, puis la ligne ici.
+
+# Windows : bibliothèques d'exécution de Microsoft Visual C++ (copiées par scripts/paquet.ps1) et compilateurs de
+# shaders Direct3D du SDK Windows (déposés par windeployqt).
+vcruntime140*.dll LicenseRef-Microsoft-Redistributable
+msvcp140*.dll LicenseRef-Microsoft-Redistributable
+D3Dcompiler_47.dll LicenseRef-Microsoft-Redistributable
+dxcompiler.dll LicenseRef-Microsoft-Redistributable
+dxil.dll LicenseRef-Microsoft-Redistributable
+
+# FFmpeg, chargé par le greffon multimédia de Qt (Windows : avcodec-<n>.dll… ; Android : libavcodec….so).
+# verifier-licences.ps1 lit aussi la licence compilée dans chaque bibliothèque : « LGPL version 2.1 or later » exigée.
+avcodec*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+avformat*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+avutil*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+swresample*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+swscale*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+libavcodec*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+libavformat*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+libavutil*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+libswresample*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+libswscale*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+
+# Greffons de Qt (ils suivent la licence de leur module, LGPL-3.0-only) : Windows, dossiers de windeployqt
+# (platforms/qwindows.dll, imageformats/qjpeg.dll, qml/…/qtquick2plugin.dll, multimedia/ffmpegmediaplugin.dll…) ;
+# Android, noms d'androiddeployqt (libplugins_platforms_qtforandroid_arm64-v8a.so, libqml_QtQuick_…_arm64-v8a.so).
+# Le motif seul ne suffit pas : toute bibliothèque rangée sous LGPL-3.0-only doit venir de l'installation de Qt
+# (Windows : même chemin relatif sous $ACTCRAFT_QT_DIR/plugins ou $ACTCRAFT_QT_DIR/qml ; APK : même nom sous
+# plugins/ ou qml/ de $ACTCRAFT_QT_ANDROID_ARM64_DIR), sinon verifier-licences.ps1 la refuse.
+q*.dll LGPL-3.0-only
+*plugin.dll LGPL-3.0-only
+libplugins_*.so LGPL-3.0-only
+libqml_*.so LGPL-3.0-only
+
+# Android : bibliothèque C++ du NDK (libc++ de LLVM) et ActCraft lui-même (licence MIT, fichier LICENSE).
+libc++_shared.so Apache-2.0 WITH LLVM-exception
+libactcraft_*.so MIT
+
+# Paquet macOS (L11-T29m) : bibliothèques Homebrew copiées par macdeployqt (Contents/Frameworks), lues par
+# scripts/verifier-licences-mac.sh. Licence : champ « license » de la formule (brew info --json=v2), celle de la
+# bibliothèque seule quand la formule couvre aussi des outils (gettext, xz) ; versions relevées le 2026-11-08.
+libb2.*.dylib CC0-1.0
+libbrotli*.dylib MIT
+libcrypto.*.dylib Apache-2.0
+libssl.*.dylib Apache-2.0
+libdbus-1.*.dylib AFL-2.1 OR GPL-2.0-or-later
+libdouble-conversion.*.dylib BSD-3-Clause
+libfreetype.*.dylib FTL
+libglib-2.0.*.dylib LGPL-2.1-or-later
+libgio-2.0.*.dylib LGPL-2.1-or-later
+libgmodule-2.0.*.dylib LGPL-2.1-or-later
+libgobject-2.0.*.dylib LGPL-2.1-or-later
+libgthread-2.0.*.dylib LGPL-2.1-or-later
+libgraphite2.*.dylib MIT OR MPL-2.0 OR LGPL-2.1-or-later OR GPL-2.0-or-later
+libharfbuzz.*.dylib MIT
+libicu*.dylib Unicode-3.0
+libintl.*.dylib LGPL-2.1-or-later
+libjpeg.*.dylib IJG AND Zlib AND BSD-3-Clause
+liblzma.*.dylib 0BSD
+libmd4c.*.dylib MIT
+libpcre2-*.dylib BSD-3-Clause
+libpng16.*.dylib libpng-2.0
+libsharpyuv.*.dylib BSD-3-Clause
+libwebp*.dylib BSD-3-Clause
+libtiff.*.dylib libtiff
+libzstd.*.dylib BSD-3-Clause OR GPL-2.0-only

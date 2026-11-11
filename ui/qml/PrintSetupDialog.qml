@@ -23,6 +23,8 @@ Popup {
     signal popupClosed()
 
     modal: true
+    // La boîte prend le focus à l'ouverture : Tab parcourt ses contrôles, pas ceux de la fenêtre (L11-T24).
+    focus: true
     anchors.centerIn: Overlay.overlay
     width: 780
     height: 640
@@ -221,6 +223,11 @@ Popup {
                     objectName: "printButton"
                     text: qsTr("Imprimer")
                     highlighted: true
+                    // Focus clavier sur le bouton en surbrillance : l'anneau du style a la couleur du remplissage (L11-T24).
+                    FocusRing {
+                        visible: parent.visualFocus && parent.highlighted
+                        border.color: Theme.texteSurActive
+                    }
                     onClicked: {
                         // Avec ou sans QPrinter : les feuilles des réglages (imprimante, ou PDF ouvert).
                         if (dialog.printing.print(""))

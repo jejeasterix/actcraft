@@ -31,9 +31,12 @@ QtObject {
     readonly property int rayon: 6
     // Hauteur d'une cible tactile, sans marge : à 52, la page 1024 × 768 à 100 % sortait de la vue en 1280 × 720 et
     // les témoins du banc avec elle (tst_bench_verdict, benchTargetsAreVisibleInTheShell).
-    readonly property int hauteurBarre: 44
-    readonly property int largeurPalette: 112
-    readonly property int tailleBouton: 44      // cible tactile
+    // Modifiables : Main.qml les lie à LayoutMetrics (L11-T10, D11-5) ; 48 dp en interface tactile, jamais moins de 44.
+    property int hauteurBarre: 44
+    property int largeurPalette: 112
+    property int tailleBouton: 44      // cible tactile
+    property int espaceCible: 4        // écart entre deux boutons voisins (8 en interface tactile)
+    property bool touchUi: false       // interface tactile (Android, ou réglage « workstation/touch-ui »)
     // Modifiable : PaletteFrame.qml le lie au profil (F-034, 16 à 32).
     property int tailleIcone: 24
     readonly property int taillePastille: 20    // pastilles, préréglages d'épaisseur, poignée de la réglette

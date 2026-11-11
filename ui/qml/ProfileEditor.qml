@@ -32,6 +32,8 @@ Item {
         parent: Overlay.overlay
         anchors.centerIn: parent
         modal: true
+        // La boîte prend le focus à l'ouverture : Tab parcourt ses contrôles, pas ceux de la fenêtre (L11-T24).
+        focus: true
         padding: 12
         closePolicy: Popup.CloseOnEscape
         contentItem: ColumnLayout {
@@ -68,11 +70,31 @@ Item {
             TabBar {
                 id: tabs
                 objectName: "editorTabs"
+                // Le style Basic peint les onglets non choisis en palette.dark (l'accent, ici) : onglets locaux,
+                // le choisi garde le fond de la fenêtre, les autres la surface ; l'anneau de focus reste l'accent.
+                palette.dark: Theme.surface
+                palette.brightText: Theme.texte
                 Layout.fillWidth: true
-                TabButton { text: qsTr("Format") }
-                TabButton { text: qsTr("Commandes") }
-                TabButton { text: qsTr("Raccourcis vers des programmes") }
-                TabButton { text: qsTr("Paramètres") }
+                TabButton {
+                    text: qsTr("Format")
+                    // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
+                    FocusRing { visible: parent.visualFocus }
+                }
+                TabButton {
+                    text: qsTr("Commandes")
+                    // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
+                    FocusRing { visible: parent.visualFocus }
+                }
+                TabButton {
+                    text: qsTr("Raccourcis vers des programmes")
+                    // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
+                    FocusRing { visible: parent.visualFocus }
+                }
+                TabButton {
+                    text: qsTr("Paramètres")
+                    // Le style n'a pas d'anneau de focus pour un onglet (L11-T24).
+                    FocusRing { visible: parent.visualFocus }
+                }
             }
             StackLayout {
                 currentIndex: tabs.currentIndex

@@ -618,6 +618,42 @@ actcraft_add_lot8_capture(tst_captures_enregistreurs enregistreurs)
 actcraft_add_lot8_capture(tst_captures_cadre_web cadre-web)
 actcraft_add_lot8_capture(tst_captures_diffusion_protegee diffusion-protegee)
 
+# Lot 11 (L11-T1) : onze scénarios de captures, joués hors écran en rendu logiciel (même mécanisme qu'au lot 8, sans
+# talon : chaque scénario est rempli).
+# Arguments supplémentaires du joueur : ceux qui suivent le chemin du scénario (ex. --traduction, L11-T19).
+function(actcraft_add_lot11_capture name scenario)
+    set(file ${PROJECT_SOURCE_DIR}/bench/scenarios/${scenario}.json)
+    get_filename_component(_base ${scenario} NAME_WE)
+    add_test(NAME ${name}
+        COMMAND $<TARGET_FILE:actcraft-captures>
+            --scenario ${file}
+            --rendu logiciel --taille 1280x800 --sortie ${CMAKE_BINARY_DIR}/captures-${_base} ${ARGN})
+    set_tests_properties(${name} PROPERTIES
+        TIMEOUT 300
+        ENVIRONMENT "${_bench_env_offscreen}"
+        PASS_REGULAR_EXPRESSION "SCENARIO OK"
+        FAIL_REGULAR_EXPRESSION "ECART|SCENARIO EN ECHEC|SCENARIO INVALIDE")
+endfunction()
+actcraft_add_lot11_capture(tst_captures_modes_toucher modes-toucher)
+actcraft_add_lot11_capture(tst_captures_deux_utilisateurs deux-utilisateurs)
+actcraft_add_lot11_capture(tst_captures_tablette_etroite tablette-etroite)
+actcraft_add_lot11_capture(tst_captures_rotation_clavier rotation-clavier)
+actcraft_add_lot11_capture(tst_captures_au_doigt au-doigt)
+actcraft_add_lot11_capture(tst_captures_cycle_de_vie cycle-de-vie)
+actcraft_add_lot11_capture(tst_captures_aide_complete aide-complete)
+# Pseudo-langue de contrôle (L11-T19, activée par L11-T20) : traduction « ⟦source⟧ » produite par tests/ui.cmake.
+actcraft_add_lot11_capture(tst_captures_pseudo_langue controle/pseudo-langue --traduction ${ACTCRAFT_PSEUDO_QM})
+actcraft_add_lot11_capture(tst_captures_mises_a_jour mises-a-jour)
+# Réponse simulée : un fichier local, jamais le réseau (D11-13) ; la liste _bench_env_offscreen est gardée.
+set_tests_properties(tst_captures_mises_a_jour PROPERTIES
+    ENVIRONMENT "${_bench_env_offscreen};ACTCRAFT_UPDATES_URL=file:///${PROJECT_SOURCE_DIR}/tests/data/updates/newer.json")
+actcraft_add_lot11_capture(tst_captures_classe_protegee_complete classe-protegee-complete)
+actcraft_add_lot11_capture(tst_captures_profils_complets profils-complets)
+
+# Lot 11 (L11-T1) : test tst_bench_resultsdir, réservé à l'origine par un talon QSKIP, rempli par L11-T15 (plus de talon).
+actcraft_add_test(tst_bench_resultsdir
+    SOURCES tst_bench_resultsdir.cpp
+    LIBS ActCraft::benchui ActCraft::ui actcraft_uiplugin Qt6::Quick)
 # L7-T41 : chaque passe d'actcraft-captures a ses propres réglages. Deux passes à la suite dans un seul test (ordre
 # garanti, même sous -j) : la seconde lit les valeurs par défaut, pas le fondu écrit par la première. Scénarios sous
 # tests/data/ : ce ne sont pas des preuves visuelles, captures.ps1 ne les joue pas.

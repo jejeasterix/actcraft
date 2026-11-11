@@ -187,6 +187,20 @@ bool CommandRegistry::loadDeclarations(const QByteArray& json, QString& error)
             error = where + QStringLiteral(" : argument facultatif sans argument déclaré");
             return false;
         }
+        const QJsonValue values = o.value(QStringLiteral("values"));
+        if (!values.isUndefined()) {
+            if (info.argument != ArgumentKind::Text || !values.isArray() || values.toArray().isEmpty()) {
+                error = where + QStringLiteral(" : values demande un argument texte et une liste non vide");
+                return false;
+            }
+            for (const QJsonValue& v : values.toArray()) {
+                if (!v.isString() || v.toString().isEmpty()) {
+                    error = where + QStringLiteral(" : values ne contient que des textes non vides");
+                    return false;
+                }
+                info.argumentValues << v.toString();
+            }
+        }
         // Attributs facultatifs (L6-T3) ; absents, ils gardent le défaut sûr de CommandInfo.
         const auto readFlag = [&](const QString& key, bool& field) {
             const QJsonValue value = o.value(key);
@@ -201,7 +215,8 @@ bool CommandRegistry::loadDeclarations(const QByteArray& json, QString& error)
             return true;
         };
         if (!readFlag(QStringLiteral("lockable"), info.lockable) ||
-            !readFlag(QStringLiteral("restrictable"), info.restrictable)) {
+            !readFlag(QStringLiteral("restrictable"), info.restrictable) ||
+            !readFlag(QStringLiteral("opensDialog"), info.opensDialog)) {
             return false;
         }
         seen.insert(info.id);
@@ -325,6 +340,10 @@ bool CommandRegistry::trigger(const QString& id, const QVariant& argument, Platf
     // isEnabled() et non e->enabled : trigger() passe par la même porte du verrou que le grisage.
     if (!e || !isAvailable(id, platform) || !isEnabled(id) || !e->handler ||
         !(argumentIsValid(e->info.argument, argument) || (e->info.argumentOptional && !argument.isValid()))) {
+        return false;
+    }
+    if (argument.isValid() && !e->info.argumentValues.isEmpty() &&
+        !e->info.argumentValues.contains(argument.toString())) {
         return false;
     }
     const Handler handler = e->handler; // copie : le gestionnaire peut modifier le registre

@@ -1,0 +1,25 @@
+{
+  "format": "actcraft-scenario/1",
+  "name": "au-doigt",
+  "description": "D11-7 : un appui long d'un doigt sur un rectangle sélectionné ouvre le menu de l'objet (Échap le ferme) ; un appui long sur le bouton du stylo de la palette montre son libellé sans changer d'outil.",
+  "steps": [
+    {"waitReady": true},
+    {"command": "tool.shape"},
+    {"command": "shape.choose", "argument": "rectangle"},
+    {"pointer": [[600, 500], [700, 550], [800, 650]]},
+    {"waitReady": true},
+    {"expect": "documentController.shownObjectCount", "value": 1},
+    {"command": "tool.select"},
+    {"expect": "appTools.currentTool", "value": "select"},
+    {"expect": "fingerMenu.visible", "value": false},
+    {"longPress": [700, 575], "kind": "touch", "holdMs": 600},
+    {"expect": "fingerMenu.visible", "value": true},
+    {"capture": "menu-objet"},
+    {"key": "Esc"},
+    {"expect": "fingerMenu.visible", "value": false},
+    {"longPress": [1246, 558], "kind": "touch", "holdMs": 600, "space": "window"},
+    {"expect": "paletteLabel.visible", "value": true},
+    {"expect": "appTools.currentTool", "value": "select"},
+    {"capture": "libelle"}
+  ]
+}

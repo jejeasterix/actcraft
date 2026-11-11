@@ -1,4 +1,5 @@
 #include <actcraft/bench/fixtures.h>
+#include <actcraft/bench/injector.h>
 #include <actcraft/bench/uiscenario.h>
 #include <actcraft/formats/nativefile.h>
 #include <actcraft/ui/pageview.h>
@@ -9,6 +10,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QQmlApplicationEngine>
+#include <QQmlComponent>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QRegularExpression>
@@ -490,6 +492,29 @@ private slots:
         QVERIFY2(report.last().contains(QLatin1String("hors image")), qPrintable(report.last()));
     }
 
+    // checkPixel en repère fenêtre (L11-C15) : lit le pixel là où un trait posé en repère fenêtre est passé ;
+    // le même point lu en repère fenêtre, là où rien n'a été tracé, est un écart.
+    void checkPixelReadsInWindowSpace()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        const UiScenario s =
+            scenario("fenetre",
+                     "[{\"waitReady\":true},"
+                     " {\"stroke\":[[100,400],[300,400]],\"space\":\"window\",\"pressure\":1.0},"
+                     " {\"waitReady\":true},"
+                     " {\"checkPixel\":\"trait\",\"at\":[200,400],\"space\":\"window\",\"color\":\"#000000\","
+                     "\"tolerance\":60}]");
+        QStringList report;
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        const UiScenario blank =
+            scenario("fenetre-vide",
+                     "[{\"checkPixel\":\"rien\",\"at\":[200,100],\"space\":\"window\",\"color\":\"#000000\","
+                     "\"tolerance\":60}]");
+        QVERIFY(!f.player->play(blank, f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("PIXEL rien ECART")), qPrintable(report.last()));
+    }
+
     // Une étape en échec arrête le scénario ; l'index le dit.
     void stopsAtFirstFailingStep()
     {
@@ -844,6 +869,19 @@ private slots:
         QVERIFY(error.contains(QStringLiteral("skipReason")));
     }
 
+    void skipOnRecognisesTheLinuxFamily()
+    {
+        const QStringList family{QStringLiteral("linux"), QStringLiteral("windows")};
+        QVERIFY(skipOnMatches(family, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+        QVERIFY(skipOnMatches(family, QStringLiteral("unknown"), QStringLiteral("linux")));
+        QVERIFY(skipOnMatches(family, QStringLiteral("windows"), QStringLiteral("winnt")));
+        QVERIFY(!skipOnMatches(family, QStringLiteral("macos"), QStringLiteral("darwin")));
+        QVERIFY(
+            !skipOnMatches({QStringLiteral("windows")}, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+        QVERIFY(skipOnMatches({QStringLiteral("ubuntu")}, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+        QVERIFY(!skipOnMatches({}, QStringLiteral("ubuntu"), QStringLiteral("linux")));
+    }
+
     void skippedStepIsReportedAndNotPlayed()
     {
         UiScenario s;
@@ -1022,6 +1060,249 @@ private slots:
         QVERIFY(!parseUiScenario(R"({"format":"actcraft-scenario/1","name":"r","steps":[{"restart":false}]})",
                                  scenario, error));
         QVERIFY2(error.contains(QStringLiteral("restart")), qPrintable(error));
+    }
+
+    // ---- L11-T2 : étapes du lot (toucher, rotation, états, textes) ----
+
+    void parallelStepParsed()
+    {
+        const QByteArray json =
+            R"({"format":"actcraft-scenario/1","name":"p","steps":[{"parallel":[{"device":1,"kind":"stylus","points":[[10,10],[50,10]]},{"device":2,"kind":"touch","points":[[10,90],[50,90]]}],"pressure":0.7}]})";
+        UiScenario scenario;
+        QString error;
+        QVERIFY2(parseUiScenario(json, scenario, error), qPrintable(error));
+        QCOMPARE(scenario.steps.size(), std::size_t{1});
+        QVERIFY(scenario.steps[0].kind == UiStepKind::Parallel);
+        QCOMPARE(scenario.steps[0].contacts.size(), std::size_t{2});
+        QCOMPARE(scenario.steps[0].contacts[1].device, 2);
+        QCOMPARE(scenario.steps[0].contacts[0].kind, QStringLiteral("stylus"));
+        QCOMPARE(scenario.steps[0].contacts[1].points.size(), std::size_t{2});
+        QCOMPARE(scenario.steps[0].contacts[1].points[1], QPointF(50, 90));
+        QCOMPARE(scenario.steps[0].pressure, 0.7);
+        // Refus : liste vide, appareil en double ou non positif, sorte inconnue, contact sans point.
+        UiScenario bad;
+        QVERIFY(!parseSteps("{\"parallel\":[]}", bad, error));
+        QVERIFY(!parseSteps("{\"parallel\":[{\"device\":1,\"kind\":\"touch\",\"points\":[[1,1]]},"
+                            "{\"device\":1,\"kind\":\"touch\",\"points\":[[2,2]]}]}",
+                            bad, error));
+        QVERIFY(
+            !parseSteps("{\"parallel\":[{\"device\":0,\"kind\":\"touch\",\"points\":[[1,1]]}]}", bad, error));
+        QVERIFY(
+            !parseSteps("{\"parallel\":[{\"device\":1,\"kind\":\"pied\",\"points\":[[1,1]]}]}", bad, error));
+        QVERIFY(!parseSteps("{\"parallel\":[{\"device\":1,\"kind\":\"touch\",\"points\":[]}]}", bad, error));
+    }
+
+    void resizeStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"resize\": [800, 1280]}", s, error), qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::Resize);
+        QCOMPARE(s.steps[0].size, QSize(800, 1280));
+        QVERIFY(!parseSteps("{\"resize\": [0, 600]}", s, error));
+        QVERIFY(!parseSteps("{\"resize\": [800]}", s, error));
+    }
+
+    void appStateStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"appState\":\"suspended\"},{\"appState\":\"hidden\"},"
+                            "{\"appState\":\"inactive\"},{\"appState\":\"active\"}",
+                            s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{4});
+        QVERIFY(s.steps[0].kind == UiStepKind::AppState);
+        QCOMPARE(s.steps[0].appState, Qt::ApplicationSuspended);
+        QCOMPARE(s.steps[1].appState, Qt::ApplicationHidden);
+        QCOMPARE(s.steps[2].appState, Qt::ApplicationInactive);
+        QCOMPARE(s.steps[3].appState, Qt::ApplicationActive);
+        QVERIFY(!parseSteps("{\"appState\":\"zzz\"}", s, error));
+        QVERIFY(error.contains(QStringLiteral("zzz")));
+    }
+
+    void longPressStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"longPress\":[100,100],\"holdMs\":600},"
+                            "{\"longPress\":[5,6],\"kind\":\"mouse\",\"holdMs\":300,\"space\":\"window\"}",
+                            s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::LongPress);
+        QCOMPARE(s.steps[0].at, QPointF(100, 100));
+        QCOMPARE(s.steps[0].holdMs, 600);
+        QCOMPARE(s.steps[0].pointerKind, QStringLiteral("touch"));
+        QVERIFY(!s.steps[0].windowSpace);
+        QCOMPARE(s.steps[1].pointerKind, QStringLiteral("mouse"));
+        QVERIFY(s.steps[1].windowSpace);
+        QVERIFY(!parseSteps("{\"longPress\":[1,1],\"kind\":\"pied\"}", s, error));
+        QVERIFY(!parseSteps("{\"longPress\":[1,1],\"holdMs\":-1}", s, error));
+        QVERIFY(!parseSteps("{\"longPress\":[1]}", s, error));
+    }
+
+    void visibleTextsStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(
+            parseSteps("{\"visibleTexts\":\"pseudo\"},"
+                       "{\"visibleTexts\":\"pseudo\",\"marks\":[\"<\",\">\"],\"ignore\":[\"pageIndicator\"]}",
+                       s, error),
+            qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::VisibleTexts);
+        QCOMPARE(s.steps[0].markOpen, QStringLiteral("⟦"));
+        QCOMPARE(s.steps[0].markClose, QStringLiteral("⟧"));
+        QVERIFY(s.steps[0].ignore.isEmpty());
+        QCOMPARE(s.steps[1].markOpen, QStringLiteral("<"));
+        QCOMPARE(s.steps[1].markClose, QStringLiteral(">"));
+        QCOMPARE(s.steps[1].ignore, QStringList{QStringLiteral("pageIndicator")});
+        QVERIFY(!parseSteps("{\"visibleTexts\":\"autre\"}", s, error));
+        QVERIFY(!parseSteps("{\"visibleTexts\":\"pseudo\",\"marks\":[\"<\"]}", s, error));
+    }
+
+    void expectChangedStepParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps("{\"expectChanged\":\"pageView.zoom\",\"from\":\"${z0}\"}", s, error),
+                 qPrintable(error));
+        QVERIFY(s.steps[0].kind == UiStepKind::ExpectChanged);
+        QCOMPARE(s.steps[0].target, QStringLiteral("pageView"));
+        QCOMPARE(s.steps[0].property, QStringLiteral("zoom"));
+        QCOMPARE(s.steps[0].value, QStringLiteral("${z0}"));
+        QVERIFY(!parseSteps("{\"expectChanged\":\"pageView.zoom\"}", s, error));
+        QVERIFY(!parseSteps("{\"expectChanged\":\"zoom\",\"from\":\"${z0}\"}", s, error));
+    }
+
+    // Deux appareils entrelacés : appuis, mouvements alternés, puis relâchés (journal de l'injecteur).
+    void parallelInterleavesTwoDevices()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        Injector injector(f.window, [](QPointF page) { return page; });
+        injector.setLogging(true);
+        const std::vector<ParallelContact> contacts{
+            {1, QStringLiteral("stylus"), {QPointF(10, 10), QPointF(50, 10), QPointF(90, 10)}},
+            {2, QStringLiteral("touch"), {QPointF(10, 90), QPointF(50, 90), QPointF(90, 90)}}};
+        QVERIFY(injector.postParallel(contacts, 0.5, PointSpace::Window));
+        const QStringList expected{QStringLiteral("P1"), QStringLiteral("P2"), QStringLiteral("M1"),
+                                   QStringLiteral("M2"), QStringLiteral("M1"), QStringLiteral("M2"),
+                                   QStringLiteral("R1"), QStringLiteral("R2")};
+        QCOMPARE(injector.eventLog(), expected);
+        QCoreApplication::processEvents();
+        // Un contact plus court n'émet plus de mouvement une fois ses points épuisés, puis se relâche avec
+        // les autres (le journal porte les phases, pas les positions).
+        injector.setLogging(true);
+        const std::vector<ParallelContact> uneven{
+            {1, QStringLiteral("stylus"), {QPointF(10, 10), QPointF(50, 10), QPointF(90, 10)}},
+            {2, QStringLiteral("touch"), {QPointF(10, 90)}}};
+        QVERIFY(injector.postParallel(uneven, 0.5, PointSpace::Window));
+        const QStringList expectedUneven{QStringLiteral("P1"), QStringLiteral("P2"), QStringLiteral("M1"),
+                                         QStringLiteral("M1"), QStringLiteral("R1"), QStringLiteral("R2")};
+        QCOMPARE(injector.eventLog(), expectedUneven);
+        QCoreApplication::processEvents();
+        // Contacts invalides refusés sans rien poster.
+        injector.setLogging(true);
+        QVERIFY(!injector.postParallel({}, 0.5, PointSpace::Window));
+        QVERIFY(
+            !injector.postParallel({{1, QStringLiteral("pied"), {QPointF(1, 1)}}}, 0.5, PointSpace::Window));
+        QVERIFY(injector.eventLog().isEmpty());
+    }
+
+    // Les six étapes jouent sur la vraie fenêtre ; chaque ligne n'est « OK » que si l'effet est observé.
+    void lotStepsPlayOnTheWindow()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        QStringList report;
+        const UiScenario s = scenario(
+            "lot", "[{\"waitReady\":true},"
+                   "{\"remember\":\"window.width\",\"as\":\"w0\"},"
+                   "{\"resize\":[640,480]},"
+                   "{\"expectChanged\":\"window.width\",\"from\":\"${w0}\"},"
+                   "{\"appState\":\"suspended\"},"
+                   "{\"longPress\":[100,100],\"holdMs\":30},"
+                   "{\"longPress\":[120,120],\"kind\":\"mouse\",\"holdMs\":30},"
+                   "{\"parallel\":[{\"device\":1,\"kind\":\"stylus\",\"points\":[[10,10],[50,10]]},"
+                   "{\"device\":2,\"kind\":\"touch\",\"points\":[[10,90],[50,90]]}],\"space\":\"window\"}]");
+        QVERIFY2(f.player->play(s, f.out.path(), report), qPrintable(report.join(QLatin1Char('\n'))));
+        const QString all = report.join(QLatin1Char('\n'));
+        QVERIFY2(all.contains(QLatin1String("TAILLE 640x480 OK")), qPrintable(all));
+        QVERIFY2(all.contains(QLatin1String("CHANGE window.width OK")), qPrintable(all));
+        QVERIFY2(all.contains(QLatin1String("ETAT suspended OK")), qPrintable(all));
+        QCOMPARE(all.count(QLatin1String("APPUI LONG OK")), 2);
+        QVERIFY2(all.contains(QLatin1String("PARALLELE 2 contacts OK")), qPrintable(all));
+        // Valeur inchangée : écart.
+        QVERIFY(!f.player->play(scenario("fixe", "[{\"remember\":\"window.width\",\"as\":\"w1\"},"
+                                                 "{\"expectChanged\":\"window.width\",\"from\":\"${w1}\"}]"),
+                                f.out.path(), report));
+        QVERIFY2(report.last().startsWith(QLatin1String("CHANGE window.width ECART")),
+                 qPrintable(report.last()));
+    }
+
+    // L'état de l'application part par la voie publique : un filtre posé sur l'application le reçoit.
+    void appStateReachesApplicationFilters()
+    {
+        struct Spy : QObject
+        {
+            QList<Qt::ApplicationState> states;
+            bool eventFilter(QObject*, QEvent* e) override
+            {
+                if (e->type() == QEvent::ApplicationStateChange) {
+                    states << static_cast<QApplicationStateChangeEvent*>(e)->applicationState();
+                }
+                return false;
+            }
+        } spy;
+        Fixture f;
+        QVERIFY(load(f));
+        QCoreApplication::instance()->installEventFilter(&spy);
+        QStringList report;
+        const bool ok = f.player->play(
+            scenario("etat", "[{\"appState\":\"hidden\"},{\"appState\":\"active\"}]"), f.out.path(), report);
+        QCoreApplication::instance()->removeEventFilter(&spy);
+        QVERIFY2(ok, qPrintable(report.join(QLatin1Char('\n'))));
+        QCOMPARE(spy.states, (QList<Qt::ApplicationState>{Qt::ApplicationHidden, Qt::ApplicationActive}));
+    }
+
+    // Textes visibles : un texte sans marques est un écart, sauf chiffres seuls, éléments ignorés,
+    // invisibles.
+    void visibleTextsReportsUnmarkedTexts()
+    {
+        Fixture f;
+        QVERIFY(load(f));
+        QQmlComponent component(&f.engine);
+        component.setData(R"(import QtQuick
+Item {
+    Text { objectName: "marque"; text: "⟦Bonjour⟧" }
+    Text { objectName: "nu"; text: "Bonjour" }
+    Text { objectName: "chiffres"; text: "12" }
+    Text { objectName: "indicateur"; text: "page" }
+    Text { objectName: "cache"; text: "caché"; visible: false }
+    Text { objectName: "vide"; text: "" }
+})",
+                          QUrl());
+        auto* holder = qobject_cast<QQuickItem*>(component.create());
+        QVERIFY2(holder, qPrintable(component.errorString()));
+        holder->setParentItem(f.window->contentItem());
+        QStringList report;
+        QVERIFY(
+            !f.player->play(scenario("textes", "[{\"visibleTexts\":\"pseudo\",\"ignore\":[\"indicateur\"]}]"),
+                            f.out.path(), report));
+        const QString all = report.join(QLatin1Char('\n'));
+        QVERIFY2(all.contains(QStringLiteral("TEXTE ECART nu \"Bonjour\"")), qPrintable(all));
+        QVERIFY2(all.contains(QLatin1String("TEXTES EN ECART 1")), qPrintable(all));
+        QVERIFY2(!all.contains(QLatin1String("chiffres")) && !all.contains(QLatin1String("indicateur")) &&
+                     !all.contains(QLatin1String("cache")),
+                 qPrintable(all));
+        // Sans le texte nu : OK.
+        holder->childItems().at(1)->setProperty("text", QStringLiteral("⟦Salut⟧"));
+        QVERIFY2(
+            f.player->play(scenario("textes2", "[{\"visibleTexts\":\"pseudo\",\"ignore\":[\"indicateur\"]}]"),
+                           f.out.path(), report),
+            qPrintable(report.join(QLatin1Char('\n'))));
+        QVERIFY2(report.last().startsWith(QLatin1String("TEXTES OK ")), qPrintable(report.last()));
     }
 
     void stepKindRanksFrozen()
@@ -1691,6 +1972,25 @@ private slots:
         const qint64 elapsed = clock.elapsed();
         QCOMPARE(report.at(0), QStringLiteral("BOUCLE sonde démarrée (aucune image rendue en 1000 ms)"));
         QVERIFY2(elapsed >= 1000 && elapsed < 5000, qPrintable(QString::number(elapsed)));
+    }
+
+    // L11-T9 : champ "user" de l'étape command (Commands::trigger(id, argument, user)) ; 0 par défaut ;
+    // entier positif seulement.
+    void commandStepCarriesTheUser()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseSteps(
+                     R"({"command": "tool.pen", "user": 1}, {"command": "pen.color", "argument": "#1E88E5"})",
+                     s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t(2));
+        QCOMPARE(s.steps[0].kind, UiStepKind::Command);
+        QCOMPARE(s.steps[0].user, 1);
+        QCOMPARE(s.steps[1].user, 0);
+        QVERIFY(!parseSteps(R"({"command": "tool.pen", "user": -1})", s, error));
+        QVERIFY(!parseSteps(R"({"command": "tool.pen", "user": 1.5})", s, error));
+        QVERIFY(!parseSteps(R"({"command": "tool.pen", "user": "1"})", s, error));
     }
 };
 

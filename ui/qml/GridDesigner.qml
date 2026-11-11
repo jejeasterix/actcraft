@@ -181,6 +181,11 @@ Popup {
                         // Pas à bascule : un second clic sur le niveau courant ne le décoche pas.
                         highlighted: designer.level === index
                         onClicked: designer.level = index
+                        // Focus clavier sur le bouton en surbrillance : l'anneau du style a la couleur du remplissage (L11-T24).
+                        FocusRing {
+                            visible: parent.visualFocus && parent.highlighted
+                            border.color: Theme.texteSurActive
+                        }
                     }
                 }
                 Item { Layout.fillWidth: true }

@@ -2,6 +2,8 @@
 
 #include <QFile>
 
+#include <utility>
+
 namespace actcraft::ui {
 
 namespace {
@@ -17,14 +19,27 @@ bool pageExists(const QUrl& url)
 {
     return url.scheme() == QLatin1String("qrc") && QFile::exists(resourcePath(url));
 }
+
+// Page d'aide d'une commande d'outil : « tool.x » -> « x » ; les commandes de maths ne gardent que leur nom ;
+// les commandes voisines du rideau et du projecteur partagent une page.
+QString pageName(QString id)
+{
+    if (id.startsWith(QLatin1String("tool.")) || id.startsWith(QLatin1String("math.")))
+        return id.mid(5);
+    if (id.startsWith(QLatin1String("present.curtain")))
+        return QStringLiteral("curtain");
+    if (id.startsWith(QLatin1String("present.spotlight")))
+        return QStringLiteral("spotlight");
+    return id;
+}
+
 } // namespace
 
 HelpViewer::HelpViewer(QObject* parent) : QObject(parent) {}
 
 void HelpViewer::openFor(QString toolId)
 {
-    if (toolId.startsWith(QLatin1String("tool.")))
-        toolId.remove(0, 5);
+    toolId = pageName(std::move(toolId));
     // Un identifiant d'outil ne contient ni séparateur ni point : pas d'échappement hors du dossier d'aide.
     const bool plain =
         !toolId.isEmpty() && !toolId.contains(QLatin1Char('/')) && !toolId.contains(QLatin1Char('.'));

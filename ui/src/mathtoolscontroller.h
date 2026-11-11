@@ -15,6 +15,7 @@
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
+#include <array>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -32,7 +33,9 @@ namespace actcraft::ui {
 // DocumentInsertions::insertObject, une étape d'annulation à elle seule ; jamais par le stylo ni par le
 // filtre. Compas « marquer le centre » : de même, la croix du centre (un core::Line) suit le trait guidé par
 // la mine, par insertObject, sur la couche du trait. Par fenêtre, pas par page : les outils restent en
-// changeant de page. Coordonnées de page.
+// changeant de page. Coordonnées de page. Mode à deux utilisateurs (H11-O13, L11-C23) : un outil appartient à
+// qui l'a ouvert et ne guide que son trait ; mode à un utilisateur : tout outil ouvert guide le seul
+// utilisateur.
 class MathToolsController : public QObject
 {
     Q_OBJECT
@@ -93,18 +96,20 @@ public:
     // document, sans page, ou si la page porte déjà cette origine.
     Q_INVOKABLE bool moveOrigin(QPointF point);
 
+    // Les open… prennent l'utilisateur qui ouvre (le `user` du gestionnaire (argument, user) des commandes
+    // math.*), à qui l'outil appartiendra ; hors du mode à deux, le seul utilisateur.
     // Règle au centre de la page (longueur 600, largeur 80, angle 0 ; une suivante décalée de 24) ; son
     // index.
-    Q_INVOKABLE int openRuler();
+    Q_INVOKABLE int openRuler(int user = input::kFirstUser);
     // Équerre au centre de la page (côté 300, angle 0 : côtés de l'angle droit vers +x et +y) ; son index.
-    Q_INVOKABLE int openSetSquare();
+    Q_INVOKABLE int openSetSquare(int user = input::kFirstUser);
     // Rapporteur centré sur la page (rayon 200, angle 0) ; forme et style d'arc du dernier choix (QSettings
     // mathtools/protractor ; défaut : complet, arc seul) ; son index.
-    Q_INVOKABLE int openProtractor();
+    Q_INVOKABLE int openProtractor(int user = input::kFirstUser);
     // Compas : pointe à gauche du centre de la page, mine à droite (rayon 5 cm, bras de 250, angle 0) ;
     // réglages du dernier choix (QSettings mathtools/compass ; défaut : non réfléchi, angle et rayon
     // affichés, centre non marqué) ; son index.
-    Q_INVOKABLE int openCompass();
+    Q_INVOKABLE int openCompass(int user = input::kFirstUser);
     // Ferme l'outil : les traits déjà versés restent (ils sont au document, l'outil n'en possède aucun).
     Q_INVOKABLE void close(int index);
     // Règle : centre, longueur, largeur, angle. Équerre : `center` est le sommet de l'angle droit, `length`
@@ -141,6 +146,10 @@ public:
     // Point d'accroche sous `pagePoint` (cercle du survol) : {snapped, x, y, tool} ; tool : index de l'outil
     // dont le guide saisirait le stylo (-1 sans accroche). Aucun changement d'état.
     Q_INVOKABLE QVariantMap snapAt(QPointF pagePoint) const;
+
+    // Filtre posé sur la vue (PageView::setSampleFilter) : l'échantillon, posé sur le bord qui le guide le
+    // cas échéant. sample.user dit à qui est le trait. Public pour les essais à deux utilisateurs.
+    input::Sample guide(const input::Sample& sample);
 
 signals:
     void viewChanged();
@@ -183,7 +192,8 @@ private:
     struct Entry
     {
         QString command; // identifiant de la commande qui l'ouvre (UserState::setOpenMathTools)
-        std::unique_ptr<features::Ruler> ruler; // exactement l'un des quatre
+        input::UserId owner = input::kFirstUser; // qui l'a ouvert : seul son trait est guidé en mode à deux
+        std::unique_ptr<features::Ruler> ruler;  // exactement l'un des quatre
         std::unique_ptr<features::SetSquare> square;
         std::unique_ptr<ArcGuide> protractor;
         std::unique_ptr<CompassGuide> compass; // pointe, rayon, angle et miroir : dans features::Compass
@@ -222,7 +232,21 @@ private:
         std::size_t page = 0;
     };
 
+    // Tous les outils d'un utilisateur et la seule mine de ses compas (la gomme) : un jeu de guides par
+    // utilisateur en mode à deux, parce que GuideSet retient le guide saisi d'un seul trait à la fois.
+    struct UserGuides
+    {
+        features::GuideSet all;
+        features::GuideSet compass;
+    };
+
     bool valid(int index) const noexcept;
+    bool dualUsers() const noexcept;
+    // L'identifiant tel que ToolHost le range : le second seulement en mode à deux (ToolHost::user).
+    input::UserId resolveUser(int user) const;
+    // L'outil répond au trait de `user` : le sien en mode à deux, tout outil sinon.
+    bool guidesUser(const Entry& entry, input::UserId user) const noexcept;
+    UserGuides& userGuides(input::UserId user) noexcept;
     QSizeF pageSize() const;
     int add(Entry entry, const QString& kind);
     void updateFilter();
@@ -236,10 +260,9 @@ private:
         None
     };
     GuidedBy guidedBy(input::UserId user) const;
-    input::Sample guide(const input::Sample& sample);
-    // Rapporteur ou compas qui tient le trait (saisi à l'appui), sinon nul.
-    Entry* seizedProtractor() noexcept;
-    Entry* seizedCompass() noexcept;
+    // Rapporteur ou compas qui tient le trait de `user` (saisi à l'appui), sinon nul.
+    Entry* seizedProtractor(input::UserId user) noexcept;
+    Entry* seizedCompass(input::UserId user) noexcept;
     Entry* compassEntry(int index) noexcept; // compas de l'index, sinon nul
     // poursInk : l'outil verse un trait (stylo, marqueur) ; la gomme n'arme aucune croix.
     void followCompass(Entry& entry, input::Phase phase, bool poursInk);
@@ -264,8 +287,10 @@ private:
     QMetaObject::Connection m_zoomConnection;
     bool m_filterInstalled = false;
     std::vector<Entry> m_tools;
+    // Tous les outils : ce que suit le seul utilisateur (mode à un), et l'aperçu d'accroche.
     features::GuideSet m_guides;
-    features::GuideSet m_compassGuides; // la mine des compas seule : ce que suit la gomme
+    features::GuideSet m_compassGuides;     // la mine des compas seule : ce que suit la gomme
+    std::array<UserGuides, 2> m_userGuides; // mode à deux, par utilisateur
     int m_revision = 0;
     bool m_originVisible = false;
     QPointF m_origin;

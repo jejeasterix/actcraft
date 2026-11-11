@@ -11,6 +11,7 @@
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
 #include <vector>
 
 namespace actcraft::ui {
@@ -35,7 +36,9 @@ class Commands : public QObject
     Q_PROPERTY(int revision READ revision NOTIFY stateChanged)
     // Verrou de classe (D6-7), en lecture seule : seul ClassroomLock le pose et le lève (setLocked, C++).
     Q_PROPERTY(bool locked READ isLocked NOTIFY stateChanged)
-    // Commandes disponibles grisées par le verrou (0 hors du verrou), lue par les scénarios.
+    // Commandes verrouillables disponibles sur la plateforme, grisées par le verrou (0 hors du verrou), lue
+    // par les scénarios. Une commande cachée (setHidden) compte : elle reste grisée, et K ne dépend que des
+    // données (L11-T26).
     Q_PROPERTY(int lockedCount READ lockedCount NOTIFY stateChanged)
 
 public:
@@ -68,6 +71,17 @@ public:
     const actions::CommandRegistry& registry() const noexcept;
 
     Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument = QVariant());
+    // L11-T9 (F-303, M7) : déclenchement pour un utilisateur (0 : le premier). L'ancienne signature vaut 0
+    // hors de tout déclenchement, et l'utilisateur du déclenchement en cours quand elle est appelée par son
+    // gestionnaire (L11-C6 : une commande relancée pour le second reste la sienne). Une commande qui ouvre
+    // une boîte (CommandInfo::opensDialog) est refusée à tout autre : faux, aucun effet,
+    // refusedForSecondUser(id). Le gestionnaire JavaScript reçoit (argument, user) ; un gestionnaire C++,
+    // l'argument seul.
+    Q_INVOKABLE bool trigger(const QString& id, const QVariant& argument, int user);
+    // L11-C24 (F-303) : utilisateur de l'appui en cours (0 hors du mode à deux), lu par un bouton à son appui
+    // pour le repasser à trigger au clic. La source est posée par DualMode.
+    Q_INVOKABLE int pressUser() const;
+    void setPressUserSource(std::function<int()> source);
     Q_INVOKABLE void setHandler(const QString& id, const QJSValue& handler);
     // Gestionnaire C++ (L6-T5 : `profile.activate`, posé par ProfileController), gardé à travers reload() et
     // prioritaire sur un gestionnaire JavaScript ; un gestionnaire vide le retire.
@@ -77,6 +91,8 @@ public:
     // montre aucun) : émet mainWindowNeeded. Commande sans ce drapeau : refusée, avertissement.
     Q_INVOKABLE void requestMainWindow(const QString& id);
     Q_INVOKABLE QString label(const QString& id) const;
+    // Libellé de menu ou de sous-menu lu dans la disposition, traduit (contexte « commandes », L11-T20).
+    Q_INVOKABLE QString translated(const QString& text) const;
     // « qrc:/qt/qml/ActCraft/Ui/icons/<icône>.svg », ou vide.
     Q_INVOKABLE QString iconUrl(const QString& id) const;
     Q_INVOKABLE QString shortcut(const QString& id) const;
@@ -114,6 +130,8 @@ signals:
     // Refus de la diffusion protégée : essai d'une commande restreinte par trigger (menu, raccourci), ou
     // geste hors trigger signalé par reportRestrictionRefusal (action d'objet, ressources, onglets).
     void refusedByRestriction(const QString& id);
+    // L11-T9 : commande à boîte essayée par le second utilisateur, refusée par trigger.
+    void refusedForSecondUser(const QString& id);
     // Juste avant qu'une commande « mainWindow » (CommandInfo::opensInMainWindow) montre son panneau, quel
     // que soit le chemin (menu, palette, raccourci, roue, trigger direct), par requestMainWindow : la
     // fenêtre principale doit être rendue.
@@ -135,6 +153,8 @@ private:
     QHash<QString, actions::CommandRegistry::Handler> m_nativeHandlers;
     // Gestionnaire en cours : le registre qui le porte n'est ni remplacé ni modifié avant son retour.
     int m_triggerDepth = 0;
+    int m_triggerUser = 0; // utilisateur du déclenchement en cours, passé au gestionnaire JavaScript
+    std::function<int()> m_pressUserSource; // L11-C24
     bool m_reloadPending = false;
     int m_revision = 0;
 };

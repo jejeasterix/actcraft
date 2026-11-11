@@ -34,6 +34,7 @@ actcraft_add_test(tst_ui_shell
     SOURCES tst_ui_shell.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_include_directories(tst_ui_shell PRIVATE ${PROJECT_SOURCE_DIR}/app)
+target_compile_definitions(tst_ui_shell PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 actcraft_add_test(tst_ui_police
     SOURCES tst_ui_police.cpp
@@ -221,6 +222,23 @@ actcraft_add_test(tst_ui_help
 actcraft_add_test(tst_ui_language
     SOURCES tst_ui_language.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_compile_definitions(tst_ui_language PRIVATE ACTCRAFT_LABELS_SRC="${PROJECT_SOURCE_DIR}")
+
+# Pseudo-langue de contrôle (L11-T19, D11-14) : `build/<preset>/i18n/actcraft_xx.qm`, produite au build des tests
+# seulement (scripts/pseudo-langue.py puis lrelease) ; jamais dans les ressources ni dans les paquets.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(ACTCRAFT_PSEUDO_TS ${CMAKE_BINARY_DIR}/i18n/actcraft_xx.ts)
+set(ACTCRAFT_PSEUDO_QM ${CMAKE_BINARY_DIR}/i18n/actcraft_xx.qm)
+set(ACTCRAFT_FR_TS ${PROJECT_SOURCE_DIR}/ui/i18n/actcraft_fr.ts)
+add_custom_command(
+    OUTPUT ${ACTCRAFT_PSEUDO_QM}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/i18n
+    COMMAND ${Python3_EXECUTABLE} -I ${PROJECT_SOURCE_DIR}/scripts/pseudo-langue.py
+            ${ACTCRAFT_FR_TS} ${ACTCRAFT_PSEUDO_TS}
+    COMMAND $<TARGET_FILE:Qt6::lrelease> ${ACTCRAFT_PSEUDO_TS} -qm ${ACTCRAFT_PSEUDO_QM}
+    DEPENDS ${ACTCRAFT_FR_TS} ${PROJECT_SOURCE_DIR}/scripts/pseudo-langue.py
+    VERBATIM)
+add_custom_target(actcraft_pseudolocale DEPENDS ${ACTCRAFT_PSEUDO_QM})
 
 # Programme d'essai des raccourcis vers des programmes (L6-T29).
 add_executable(launcher_probe launcher_probe.cpp)
@@ -273,3 +291,82 @@ actcraft_add_test(tst_ui_broadcast
     SOURCES tst_ui_broadcast.cpp
     LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
 target_compile_definitions(tst_ui_webpolicy PRIVATE ACTCRAFT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
+# Lot 11 (L11-T1) : tests réservés à l'origine par des talons QSKIP, remplis par les tâches nommées (plus aucun talon).
+actcraft_add_test(tst_ui_pageinput
+    SOURCES tst_ui_pageinput.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_pageinput PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_touchmode
+    SOURCES tst_ui_touchmode.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_touchmode PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_secondpalette
+    SOURCES tst_ui_secondpalette.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_secondpalette PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_narrowlayout
+    SOURCES tst_ui_narrowlayout.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_narrowlayout PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_orientation
+    SOURCES tst_ui_orientation.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_orientation PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_fingermenus
+    SOURCES tst_ui_fingermenus.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_fingermenus PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_lifecycle
+    SOURCES tst_ui_lifecycle.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_lifecycle PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_updatechecker
+    SOURCES tst_ui_updatechecker.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_updatechecker PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_shortcuts
+    SOURCES tst_ui_shortcuts.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_shortcuts PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_accessibility
+    SOURCES tst_ui_accessibility.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_accessibility PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_lockall
+    SOURCES tst_ui_lockall.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_lockall PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_profilesall
+    SOURCES tst_ui_profilesall.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+target_include_directories(tst_ui_profilesall PRIVATE ${PROJECT_SOURCE_DIR}/app)
+
+actcraft_add_test(tst_ui_documentportal
+    SOURCES tst_ui_documentportal.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+
+actcraft_add_test(tst_ui_pseudolocale
+    SOURCES tst_ui_pseudolocale.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+add_dependencies(tst_ui_pseudolocale actcraft_pseudolocale)
+target_compile_definitions(tst_ui_pseudolocale PRIVATE
+    ACTCRAFT_PSEUDO_TS="${ACTCRAFT_PSEUDO_TS}"
+    ACTCRAFT_PSEUDO_QM="${ACTCRAFT_PSEUDO_QM}"
+    ACTCRAFT_FR_TS="${ACTCRAFT_FR_TS}")
+
+actcraft_add_test(tst_ui_helppages
+    SOURCES tst_ui_helppages.cpp
+    LIBS Qt6::Quick ActCraft::ui actcraft_uiplugin)
+

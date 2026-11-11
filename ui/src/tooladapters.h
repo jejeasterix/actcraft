@@ -22,6 +22,11 @@ namespace actcraft::ui {
 
 class Commands;
 
+// L11-C7 : `follower` se pose juste au-dessus de `leader`, son frère dans l'arbre visuel, aux mêmes
+// coordonnées et à la même taille, qu'il suit ensuite ; il meurt avec lui (enfant QObject). Encre et couche
+// soulevée du second utilisateur : un trait vif et un soulèvement par élément.
+void stackAbove(QQuickItem& leader, QQuickItem& follower);
+
 // Le cadre de sélection tel que QML le lit (visible, corners, handles, bar, rubberBand, handlesVisible).
 // commands peut être nul : la barre n'a alors pas d'icônes.
 QVariantMap selectionFrameMap(const tools::SelectionView& view, Commands* commands);
@@ -35,7 +40,8 @@ class PageView;
 class DocumentEditorAdapter final : public tools::DocumentEditor
 {
 public:
-    explicit DocumentEditorAdapter(DocumentController& controller);
+    // `owner` : l'utilisateur dont les outils soulèvent (L11-C7, E) ; son dépôt laisse ceux de l'autre.
+    explicit DocumentEditorAdapter(DocumentController& controller, int owner = 0);
     ~DocumentEditorAdapter() override;
     const core::Page& page() const override;
     std::size_t pageIndex() const override;
@@ -51,6 +57,7 @@ public:
 private:
     DocumentController& m_controller;
     QPointer<DocumentController> m_alive; // le contrôleur peut mourir avant l'adaptateur
+    int m_owner = 0;
     int m_observer = 0;
     std::uint64_t m_revision = 0;
 };
@@ -102,14 +109,18 @@ private:
     TrashHover m_hover;
 };
 
+// L11-C10 (J3) : une commande lancée par un outil part au nom de son utilisateur (Commands::trigger avec
+// l'utilisateur) ; celles qu'un gestionnaire relance le restent, et une commande à boîte du second est
+// refusée.
 class CommandSinkAdapter final : public tools::CommandSink
 {
 public:
-    explicit CommandSinkAdapter(Commands* commands);
+    CommandSinkAdapter(Commands* commands, input::UserId user);
     bool trigger(const QString& id, const QVariant& argument) override;
 
 private:
     QPointer<Commands> m_commands;
+    input::UserId m_user;
 };
 
 // Contexte des outils d'un utilisateur et ses outils (une instance par outil, créée à la première demande).

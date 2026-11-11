@@ -124,6 +124,11 @@ Popup {
                 text: qsTr("Couleur")
                 highlighted: dialog.kind === "color"
                 onClicked: dialog.chooseKind("color")
+                // Focus clavier sur le bouton en surbrillance : l'anneau du style a la couleur du remplissage (L11-T24).
+                FocusRing {
+                    visible: parent.visualFocus && parent.highlighted
+                    border.color: Theme.texteSurActive
+                }
             }
             Button {
                 objectName: "backgroundKindGradient"
@@ -132,6 +137,11 @@ Popup {
                 text: qsTr("Dégradé")
                 highlighted: dialog.kind === "gradient"
                 onClicked: dialog.chooseKind("gradient")
+                // Focus clavier sur le bouton en surbrillance : l'anneau du style a la couleur du remplissage (L11-T24).
+                FocusRing {
+                    visible: parent.visualFocus && parent.highlighted
+                    border.color: Theme.texteSurActive
+                }
             }
             Button {
                 objectName: "backgroundVertical"

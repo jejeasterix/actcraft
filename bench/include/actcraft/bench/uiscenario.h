@@ -70,6 +70,21 @@ enum class UiStepKind : std::uint8_t
     FileCheck, // {"file": "<chemin>", "pdfPages": 3} ou {"file": "<chemin>", "imageSize": [1024, 768]}
     // Ajoutée par L6-T18 (S9), à la fin.
     Restart, // {"restart": true} — quitter et relancer : mêmes dossiers de réglages et de profils
+    // Ajoutées par L11-T2, à la fin, dans cet ordre.
+    Parallel,  // {"parallel": [{"device": 1, "kind": "stylus", "points": [[x, y], …]}, …], "pressure": 0.5}
+    Resize,    // {"resize": [largeur, hauteur]} — taille logique de la fenêtre (rotation simulée)
+    AppState,  // {"appState": "suspended"|"hidden"|"inactive"|"active"} — QApplicationStateChangeEvent
+    LongPress, // {"longPress": [x, y], "kind": "touch"|"mouse", "holdMs": 600, "space": "page"}
+    VisibleTexts,  // {"visibleTexts": "pseudo", "marks": ["⟦", "⟧"], "ignore": ["pageIndicator"]}
+    ExpectChanged, // {"expectChanged": "objet.propriété", "from": "${nom}"} — différent de la valeur retenue
+};
+
+// Un contact de l'étape « parallel » : numéro d'appareil (≥ 1), sorte (stylus, touch, mouse), points.
+struct UiContact
+{
+    int device = 0;
+    QString kind;
+    std::vector<QPointF> points;
 };
 
 struct UiStep
@@ -77,6 +92,7 @@ struct UiStep
     UiStepKind kind = UiStepKind::Wait;
     QString command;
     QVariant argument; // invalide : commande sans argument
+    int user = 0;      // étape command : utilisateur qui la déclenche (L11-T9 ; 0 : le premier)
     std::vector<QPointF> points;
     double pressure = 0.5;
     QString key;
@@ -115,6 +131,16 @@ struct UiStep
     // plateformes (QSysInfo::productType) ; la ligne « SAUTE … » écrit le motif.
     QStringList skipOn;
     QString skipReason;
+    // Ajoutés par L11-T2. Resize : `size`. AppState : `appState`. LongPress : point dans `at`, durée dans
+    // `holdMs`, sorte dans `pointerKind`. VisibleTexts : marques et éléments ignorés. ExpectChanged : valeur
+    // retenue dans `value`. `contacts` (Parallel) en dernier.
+    QSize size;
+    Qt::ApplicationState appState = Qt::ApplicationActive;
+    QString pointerKind = QStringLiteral("touch");
+    QString markOpen = QStringLiteral("⟦");
+    QString markClose = QStringLiteral("⟧");
+    QStringList ignore;
+    std::vector<UiContact> contacts;
 };
 
 struct UiScenario
@@ -126,6 +152,10 @@ struct UiScenario
 
 // Fichier « actcraft-scenario/1 » ; tout ou rien, `error` nomme l'étape fautive (« étape 3 : … »).
 bool parseUiScenario(const QByteArray& json, UiScenario& out, QString& error);
+
+// L11-C12 : vrai si `skipOn` nomme exactement `productType`, ou la famille « linux » quand `kernelType` vaut
+// « linux » (une liste de distributions ne suit pas l'évolution des noms).
+bool skipOnMatches(const QStringList& skipOn, const QString& productType, const QString& kernelType);
 // « objet.propriété=valeur » (premier point, premier signe =) → étape Expect ; faux si une partie manque.
 bool parseReadSpec(const QString& text, UiStep& out);
 // Valeur d'une propriété en texte : booléen « true »/« false », réel sans zéros inutiles, couleur
@@ -203,6 +233,12 @@ private:
     bool pointer(const UiStep& step, QStringList& report);
     bool tap(const UiStep& step, QStringList& report);
     bool doubleClick(const UiStep& step, QStringList& report);
+    bool parallel(const UiStep& step, QStringList& report);
+    bool resize(const UiStep& step, QStringList& report);
+    bool appState(const UiStep& step, QStringList& report);
+    bool longPress(const UiStep& step, QStringList& report);
+    bool visibleTexts(const UiStep& step, QStringList& report);
+    bool expectChanged(const UiStep& step, QStringList& report);
     bool typeText(const UiStep& step, QStringList& report);
     Injector& gestures(); // injecteur des gestes directs, créé à la première étape qui en a besoin
     bool fixture(const UiStep& step, QStringList& report);

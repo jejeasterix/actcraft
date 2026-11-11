@@ -2,6 +2,7 @@
 #include <actcraft/core/actionedits.h>
 #include <actcraft/ui/actionbrowser.h>
 
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -134,8 +135,8 @@ QVariant ActionBrowserModel::data(const QModelIndex& index, int role) const
     switch (role) {
     case IdRole:
         return row.info->id;
-    case LabelRole:
-        return row.info->label;
+    case LabelRole: // L11-C11 (L) : extrait par ui/src/commandlabels.cpp
+        return QCoreApplication::translate("actions-objet", row.info->label.toUtf8().constData());
     case IconRole:
         return row.info->icon;
     case ExistingRole:
@@ -559,7 +560,7 @@ void ActionBrowserModel::dropVanishedTarget()
 void ActionBrowserModel::onSelectionChanged()
 {
     if (m_picking && m_tools) {
-        const std::vector<core::ObjectId>& selection = m_tools->user().selection();
+        const std::vector<core::ObjectId> selection = m_tools->usableSelection();
         // Un clic sur un objet : il devient la cible. Une sélection vide (clic hors objet) ou republiée à
         // l'identique ne choisit rien.
         // Ctrl ou Maj+clic ajoute en fin : la cible est le premier identifiant absent de la sélection d'avant
@@ -638,7 +639,7 @@ std::vector<core::ObjectId> ActionBrowserModel::selectedOnPage() const
     }
     const core::Page& page =
         m_document->document().page(static_cast<std::size_t>(m_document->currentIndex()));
-    for (const core::ObjectId id : m_tools->user().selection()) {
+    for (const core::ObjectId id : m_tools->usableSelection()) {
         const bool onPage =
             std::any_of(page.objects.begin(), page.objects.end(),
                         [id](const core::PageObject& object) { return object.common.id == id; });

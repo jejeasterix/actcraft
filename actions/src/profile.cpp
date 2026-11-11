@@ -247,4 +247,15 @@ bool profileFromJson(const QByteArray& json, Profile& profile, QString& error)
     return true;
 }
 
+QStringList layoutForPlatform(const Profile& profile, const CommandRegistry& registry, Platform platform)
+{
+    QStringList out;
+    for (const QString& id : profile.pinned) {
+        if (!out.contains(id) && registry.isAvailable(id, platform)) {
+            out.append(id);
+        }
+    }
+    return out;
+}
+
 } // namespace actcraft::actions

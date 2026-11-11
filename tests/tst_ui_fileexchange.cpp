@@ -5,16 +5,23 @@
 #include <actcraft/export/pdfexport.h>
 #include <actcraft/export/pdfimport.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/documentportal.h>
 #include <actcraft/ui/documenttabs.h>
 #include <actcraft/ui/fileexchange.h>
+#include <actcraft/ui/insertion.h>
+#include <actcraft/ui/mediainsert.h>
+#include <actcraft/ui/preferences.h>
+#include <actcraft/ui/recentdocuments.h>
 
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QSet>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -26,6 +33,31 @@ Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 using namespace actcraft;
 
 namespace {
+
+// Permissions du système (L11-C3), tenues en mémoire : `held` dit lesquelles sont valides.
+class FakeBackend final : public ui::PermissionBackend
+{
+public:
+    bool take(const QUrl& url) override
+    {
+        held.insert(url.toString());
+        return true;
+    }
+    bool holds(const QUrl& url) const override { return held.contains(url.toString()); }
+    bool reachable(const QUrl&) const override { return true; }
+    QString displayName(const QUrl& url) const override { return names.value(url.toString()); }
+    void release(const QUrl& url) override
+    {
+        released << url.toString();
+        held.remove(url.toString());
+    }
+
+    QSet<QString> held;
+    QHash<QString, QString> names;
+    QStringList released;
+};
+
+const QUrl kDownload(QStringLiteral("content://com.android.providers.downloads.documents/document/13"));
 
 core::Stroke redStroke()
 {
@@ -377,6 +409,107 @@ private slots:
         s.exchange->exportPdf(QUrl::fromLocalFile(dir.filePath(QStringLiteral("fichier/sortie.pdf"))));
         QTRY_VERIFY_WITH_TIMEOUT(failed.count() == 1 && !s.exchange->isBusy(), 15000);
         QVERIFY(failed.first().first().toString().contains(QStringLiteral("Export PDF impossible")));
+    }
+
+    // L11-C3 (D11-9) : insérer une image et importer un PDF passent par le portail ; refus, rien n'est lu.
+    void imageAndPdfCommandsGoThroughThePortal()
+    {
+        FakeBackend backend;
+        Shell s;
+        QVERIFY(s.start());
+        auto* portal = s.window->findChild<ui::DocumentPortal*>(QStringLiteral("appPortal"));
+        auto* insertion = s.window->findChild<ui::Insertion*>(QStringLiteral("appInsertion"));
+        QVERIFY(portal && insertion);
+        portal->setBackend(&backend);
+        backend.names.insert(kDownload.toString(), QStringLiteral("photo.png"));
+        QSignalSpy refused(portal, &ui::DocumentPortal::refused);
+        QSignalSpy failed(insertion, &ui::Insertion::failed);
+        QSignalSpy busy(insertion, &ui::Insertion::busyChanged);
+        QVERIFY(s.run(QStringLiteral("insert.image"), kDownload)); // permission absente
+        QCOMPARE(refused.count(), 1);
+        QCOMPARE(refused.at(0).at(0).toString(), QStringLiteral("photo.png"));
+        QTest::qWait(100);
+        QCOMPARE(busy.count(), 0); // aucune lecture n'a démarré
+        QCOMPARE(failed.count(), 0);
+        if (exporting::pdfImportAvailable()) {
+            QSignalSpy pdfBusy(s.exchange, &ui::FileExchange::busyChanged);
+            QVERIFY(s.run(QStringLiteral("file.import-pdf"), kDownload));
+            QCOMPARE(refused.count(), 2);
+            QTest::qWait(100);
+            QCOMPARE(pdfBusy.count(), 0);
+        }
+    }
+
+    // La permission que le sélecteur a gardée pour une lecture unique est rendue quand la lecture finit.
+    void lentPermissionIsReturnedAfterTheImport()
+    {
+        FakeBackend backend;
+        Shell s;
+        QVERIFY(s.start());
+        auto* portal = s.window->findChild<ui::DocumentPortal*>(QStringLiteral("appPortal"));
+        QVERIFY(portal);
+        portal->setBackend(&backend);
+        backend.held.insert(kDownload.toString());
+        QVERIFY(s.run(QStringLiteral("insert.image"), kDownload)); // lecture impossible ici : l'échec compte
+        QTRY_COMPARE_WITH_TIMEOUT(backend.released, QStringList{kDownload.toString()}, 15000);
+        if (exporting::pdfImportAvailable()) {
+            backend.released.clear();
+            backend.held.insert(kDownload.toString());
+            QVERIFY(s.run(QStringLiteral("file.import-pdf"), kDownload));
+            QTRY_COMPARE_WITH_TIMEOUT(backend.released, QStringList{kDownload.toString()}, 15000);
+        }
+        // Le dialogue de Qt passe par la même garde.
+        backend.held.clear();
+        QSignalSpy refused(portal, &ui::DocumentPortal::refused);
+        QObject* dialog = s.window->findChild<QObject*>(QStringLiteral("insertImageDialog"));
+        QVERIFY(dialog);
+        dialog->setProperty("selectedFile", kDownload);
+        QVERIFY(QMetaObject::invokeMethod(dialog, "accepted"));
+        QCOMPARE(refused.count(), 1);
+    }
+
+    // L11-C3 : une entrée récente dont la permission est perdue laisse un message visible.
+    void staleRecentShowsAMessage()
+    {
+        FakeBackend backend;
+        Shell s;
+        QVERIFY(s.start());
+        auto* portal = s.window->findChild<ui::DocumentPortal*>(QStringLiteral("appPortal"));
+        auto* recents = s.window->findChild<ui::RecentDocuments*>(QStringLiteral("appRecents"));
+        QVERIFY(portal && recents);
+        portal->setBackend(&backend);
+        backend.names.insert(kDownload.toString(), QStringLiteral("cours.actcraft"));
+        recents->note(kDownload);
+        backend.held.clear(); // le système a repris la permission
+        recents->refresh();
+        QObject* banner = s.window->findChild<QObject*>(QStringLiteral("messageBanner"));
+        QObject* text = s.window->findChild<QObject*>(QStringLiteral("messageText"));
+        QVERIFY(banner && text);
+        QTRY_VERIFY(banner->property("visible").toBool());
+        QVERIFY(text->property("text").toString().contains(QStringLiteral("cours.actcraft")));
+    }
+
+    // L11-C3 : le nom d'un content:// vient du fournisseur, jamais du dernier segment du chemin (« 13 »).
+    void contentUrlNameComesFromTheProvider()
+    {
+        FakeBackend backend;
+        Shell s;
+        QVERIFY(s.start());
+        auto* portal = s.window->findChild<ui::DocumentPortal*>(QStringLiteral("appPortal"));
+        auto* media = s.window->findChild<ui::MediaInsert*>(QStringLiteral("appMediaInsert"));
+        auto* insertion = s.window->findChild<ui::Insertion*>(QStringLiteral("appInsertion"));
+        QVERIFY(portal && media && insertion);
+        portal->setBackend(&backend);
+        backend.names.insert(kDownload.toString(), QStringLiteral("notes.xyz"));
+        QSignalSpy failed(media, &ui::MediaInsert::failed);
+        QVERIFY(s.run(QStringLiteral("insert.media"), kDownload));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 15000);
+        QVERIFY(failed.at(0).at(0).toString().contains(QStringLiteral("notes.xyz")));
+        // Déposé : le suffixe du nom donné (.mp3) route vers les médias, pas celui du chemin.
+        backend.names.insert(kDownload.toString(), QStringLiteral("clip.mp3"));
+        QSignalSpy busy(media, &ui::MediaInsert::busyChanged);
+        QVERIFY(insertion->acceptDrop(QVariantList{QVariant(kDownload)}, QString(), QPointF(10, 10)));
+        QVERIFY(busy.count() > 0);
     }
 };
 

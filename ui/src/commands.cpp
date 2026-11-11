@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 
 #include <algorithm>
+#include <utility>
 
 namespace actcraft::ui {
 
@@ -131,7 +132,7 @@ void Commands::bindHandler(const QString& id)
         if (!handler.isCallable() || !engine) {
             return;
         }
-        const QJSValue result = handler.call({engine->toScriptValue(argument)});
+        const QJSValue result = handler.call({engine->toScriptValue(argument), QJSValue(m_triggerUser)});
         if (result.isError()) {
             qWarning("ActCraft : commande %s : %s", qPrintable(id), qPrintable(result.toString()));
         }
@@ -316,12 +317,29 @@ const actions::CommandRegistry& Commands::registry() const noexcept
 
 bool Commands::trigger(const QString& id, const QVariant& argument)
 {
+    return trigger(id, argument, m_triggerUser); // L11-C6 : imbriqué, l'utilisateur en cours ; sinon 0
+}
+
+bool Commands::trigger(const QString& id, const QVariant& argument, int user)
+{
+    if (user != 0) {
+        const actions::CommandInfo* info = m_registry.find(id);
+        if (info && info->opensDialog) {
+            emit refusedForSecondUser(id); // F-303 : seul le premier utilisateur ouvre une boîte
+            return false;
+        }
+    }
     bool done = false;
     {
         // Profondeur rendue même si le gestionnaire lève une exception : sinon tout reload() serait différé
-        // à jamais.
+        // à jamais. L'utilisateur d'un déclenchement imbriqué est rendu au retour.
         ++m_triggerDepth;
-        const auto leave = qScopeGuard([this] { --m_triggerDepth; });
+        const int outerUser = m_triggerUser;
+        m_triggerUser = user;
+        const auto leave = qScopeGuard([this, outerUser] {
+            --m_triggerDepth;
+            m_triggerUser = outerUser;
+        });
         done = m_registry.trigger(id, argument, m_platform);
     }
     if (m_triggerDepth == 0 && m_reloadPending) {
@@ -333,6 +351,16 @@ bool Commands::trigger(const QString& id, const QVariant& argument)
     }
     emit triggered(id, argument);
     return true;
+}
+
+int Commands::pressUser() const
+{
+    return m_pressUserSource ? m_pressUserSource() : 0;
+}
+
+void Commands::setPressUserSource(std::function<int()> source)
+{
+    m_pressUserSource = std::move(source);
 }
 
 void Commands::setHandler(const QString& id, const QJSValue& handler)
@@ -479,9 +507,12 @@ int Commands::lockedCount() const
     if (!m_registry.isLocked()) {
         return 0;
     }
+    // L11-T26 : disponibilité de la plateforme seule. Une commande cachée faute de convertisseur
+    // (setHidden) reste grisée par le verrou : la compter garde K fonction des seules données, quel que
+    // soit le poste.
     int count = 0;
     for (const QString& id : m_registry.ids()) {
-        if (isAvailable(id) && m_registry.find(id)->lockable) {
+        if (m_registry.isAvailable(id, m_platform) && m_registry.find(id)->lockable) {
             ++count;
         }
     }

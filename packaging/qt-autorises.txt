@@ -75,3 +75,31 @@ Qt6Multimedia
 Qt6MultimediaQuick
 Qt6WebView
 Qt6WebViewQuick
+# Paquet macOS (L11-T29m) : modules que macdeployqt copie avec les dossiers d'import QtQuick/ et QtQml/ (styles macOS,
+# iOS et natif de Qt Quick Controls, particules, images vectorielles, stockage local et Qt Sql qu'il tire, modèle XML,
+# aides de conception) et Qt DBus, que tire QtGui de Homebrew. Licence vérifiée dans la ligne SPDX des en-têtes de Qt
+# 6.12.0 Homebrew ($(brew --prefix qt)/lib/<Framework>.framework/Headers/), et pour QtPdfQuick (en-têtes sans ligne
+# SPDX) dans le SBOM de qtwebengine 6.11.2 Homebrew (paquet PdfQuick) : « LicenseRef-Qt-Commercial OR LGPL-3.0-only
+# OR GPL-2.0-only OR GPL-3.0-only », la même que QuickControls2Basic ; liés dynamiquement.
+Qt6DBus
+Qt6PdfQuick
+Qt6QmlDesignSupport
+Qt6QmlLocalStorage
+Qt6QmlXmlListModel
+Qt6QuickControls2IOS
+Qt6QuickControls2IOSStyleImpl
+Qt6QuickControls2Macos
+Qt6QuickControls2MacOSStyleImpl
+Qt6QuickControls2Native
+Qt6QuickParticles
+Qt6QuickShapesDesignHelpers
+Qt6QuickVectorImage
+Qt6QuickVectorImageGenerator
+Qt6QuickVectorImageHelpers
+Qt6Sql
+# Stubs de Qt Multimedia (APK Android) : bibliothèques livrées dans <Qt>/android_arm64_v8a/lib, liées à Qt6Core,
+# à la place des bibliothèques crypto et ssl d'OpenSSL qu'attend FFmpeg ; aucun OpenSSL n'est livré. Licence celle du module Multimedia, vérifiée dans
+# <Qt>/android_arm64_v8a/sbom/qtmultimedia-6.12.0.spdx (paquet Multimedia) : « LicenseRef-Qt-Commercial OR
+# LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only ».
+Qt6FFmpegStub-crypto
+Qt6FFmpegStub-ssl

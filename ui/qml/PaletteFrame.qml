@@ -27,12 +27,18 @@ Item {
     property PageView view: null
     property var profile: null
     property var preferences: null
+    // L11-T10 (D11-6) : fenêtre étroite (posé par Main.qml), la palette ancrée à droite se replie en un bouton ;
+    // le bouton la déplie par-dessus la page (couverture d'entrée), un second appui la replie.
+    property bool narrowMode: false
+    property bool narrowOpen: false
 
     readonly property string dock: root.profile ? root.profile.paletteDock : "right"
     readonly property bool pinned: root.profile ? root.profile.palettePinned : true
     readonly property bool collapsed: root.profile ? root.profile.paletteCollapsed : false
     readonly property bool floating: root.dock === "floating"
     readonly property bool horizontal: root.dock === "top" || root.dock === "bottom"
+    readonly property bool buttonOnly: root.narrowMode && root.dock === "right"
+    readonly property real toggleSlot: Theme.tailleBouton + Theme.espace2
     // Repli au retrait du pointeur (désépinglée et ancrée) ; délai de D7.
     property bool folded: false
     property bool dragging: false
@@ -41,7 +47,8 @@ Item {
     readonly property int foldStrip: 8
     readonly property int titleHeight: 28
     // Place réservée dans la ligne : toute la largeur ancrée à droite et épinglée, la marge si elle est repliable.
-    readonly property real slotWidth: root.dock !== "right" ? 0 : root.pinned ? Theme.largeurPalette : root.foldStrip
+    readonly property real slotWidth: root.dock !== "right" ? 0 : root.buttonOnly ? root.toggleSlot
+        : root.pinned ? Theme.largeurPalette : root.foldStrip
 
     readonly property Item region: root.parent
     readonly property real regionW: root.region ? root.region.width : 0
@@ -58,7 +65,7 @@ Item {
     }
     readonly property real floatX: root.profile ? root.profile.paletteFloat.x - (root.region ? root.region.x : 0) : 0
     readonly property real floatY: root.profile ? root.profile.paletteFloat.y - (root.region ? root.region.y : 0) : 0
-    readonly property real homeX: root.dock === "right" ? root.regionW - root.panelW
+    readonly property real homeX: root.dock === "right" ? root.regionW - root.panelW - (root.buttonOnly ? root.toggleSlot : 0)
         : root.floating ? Math.max(0, Math.min(root.floatX, root.regionW - root.panelW)) : 0
     readonly property real homeY: root.dock === "bottom" ? root.regionH - root.panelH
         : root.floating ? Math.max(0, Math.min(root.floatY, root.regionH - root.panelH)) : 0
@@ -101,7 +108,7 @@ Item {
     }
 
     // Repli : attendre le délai dès que le pointeur quitte le panneau, déplier dès qu'il y revient.
-    readonly property bool autoFold: !root.pinned && !root.floating && !root.dragging
+    readonly property bool autoFold: !root.pinned && !root.floating && !root.dragging && !root.buttonOnly
     function setFolded(value) {
         if (root.folded === value)
             return
@@ -169,6 +176,31 @@ Item {
         onTriggered: root.animateX = false
     }
 
+    // Bouton de repli de la fenêtre étroite : la palette tient en ce seul bouton, en haut de sa place.
+    ToolButton {
+        id: toggle
+        objectName: "paletteToggle"
+        visible: root.buttonOnly
+        x: Theme.espace1
+        y: Theme.espace2
+        width: Theme.tailleBouton
+        height: Theme.tailleBouton
+        checkable: false
+        checked: root.narrowOpen
+        focusPolicy: Qt.NoFocus
+        display: AbstractButton.IconOnly
+        icon.source: root.commands ? root.commands.iconUrl("menu.main") : ""
+        icon.width: Theme.tailleIcone
+        icon.height: Theme.tailleIcone
+        icon.color: root.narrowOpen ? Theme.texteSurActive : Theme.texte
+        Accessible.name: qsTr("Palette d'outils")
+        background: Rectangle {
+            radius: Theme.rayon
+            color: root.narrowOpen ? Theme.surfaceActive : toggle.hovered ? Theme.surfaceSurvol : Theme.surface
+        }
+        onClicked: root.narrowOpen = !root.narrowOpen
+    }
+
     Item {
         id: panel
         objectName: "palettePanel"
@@ -176,6 +208,7 @@ Item {
         y: root.dragging ? root.dragRY - root.y : root.homeY + root.shiftY - root.y
         width: root.panelW
         height: root.panelH
+        visible: !root.buttonOnly || root.narrowOpen
         // Seuls x et opacity s'animent (règle 4 de fluidité) ; jamais pendant un glissement.
         Behavior on x {
             enabled: root.animateX && !root.dragging
@@ -236,6 +269,7 @@ Item {
             BarButton {
                 id: optionsButton
                 objectName: "paletteOptions"
+                Accessible.name: qsTr("Options de la palette")
                 x: Theme.espace1
                 icon.source: root.commands ? root.commands.iconUrl("palette.float") : ""
                 onClicked: optionsMenu.popup(optionsButton, 0, optionsButton.height)
@@ -248,6 +282,7 @@ Item {
             BarButton {
                 id: pinButton
                 objectName: "palettePinButton"
+                Accessible.name: root.commands ? root.commands.label(root.idPin) : ""
                 anchors.right: parent.right
                 anchors.rightMargin: Theme.espace1
                 checkable: false
@@ -259,6 +294,7 @@ Item {
             BarButton {
                 id: collapseButton
                 objectName: "paletteCollapseButton"
+                Accessible.name: root.commands ? root.commands.label(root.idCollapse) : ""
                 anchors.right: pinButton.left
                 anchors.rightMargin: Theme.espace1
                 icon.source: root.commands ? root.commands.iconUrl(root.idCollapse) : ""
@@ -284,8 +320,10 @@ Item {
     }
 
     Component.onCompleted: {
-        if (root.view)
+        if (root.view) {
             root.view.addInputCover(panel)
+            root.view.addInputCover(toggle)
+        }
         root.commands.setHandler("palette.dock-left", function () { root.setDock("left") })
         root.commands.setHandler("palette.dock-right", function () { root.setDock("right") })
         root.commands.setHandler("palette.dock-top", function () { root.setDock("top") })

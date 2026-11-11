@@ -22,7 +22,17 @@ MenuItem {
     onToggled: checked = Qt.binding(function () {
         return !entry.isSeparator && commands && commands.revision >= 0 && commands.isChecked(entry.commandId)
     })
-    onTriggered: if (!isSeparator && commands) commands.trigger(commandId)
+    // L11-C24 (F-303) : comme CommandButton, un outil de maths appartient à qui touche l'entrée (lu à l'appui).
+    property int pressedBy: 0
+    onPressed: if (commands) pressedBy = commands.pressUser()
+    onTriggered: {
+        if (isSeparator || !commands)
+            return
+        if (commandId.startsWith("math."))
+            commands.trigger(commandId, undefined, pressedBy)
+        else
+            commands.trigger(commandId)
+    }
     background: ItemHighlight {
         control: entry
     }
@@ -54,6 +64,7 @@ MenuItem {
                 color: entry.enabled ? Theme.texte : Theme.texteDesactive
             }
             Label {
+                objectName: "commandShortcut"
                 text: entry.isSeparator || !commands ? "" : commands.shortcut(entry.commandId)
                 font.pixelSize: Theme.taillePolice
                 color: entry.enabled ? Theme.texteDiscret : Theme.texteDesactive

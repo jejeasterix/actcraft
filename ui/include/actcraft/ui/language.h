@@ -33,6 +33,9 @@ public:
     static QString effective(const Preferences& preferences);
     // Installe le traducteur de la langue choisie sur `app` ; faux si aucun `.qm` n'a pu être chargé.
     static bool install(QCoreApplication& app, Preferences& preferences);
+    // Installe le traducteur du fichier `.qm` donné (essais seulement : la pseudo-langue de contrôle,
+    // L11-T19) ; faux si le fichier n'a pas pu être chargé. Rien n'est livré pour ce chemin.
+    static bool installFile(QCoreApplication& app, const QString& qmPath);
 
     Preferences* preferences() const;
     void setPreferences(Preferences* preferences);

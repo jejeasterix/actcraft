@@ -29,6 +29,21 @@ struct BenchOptions
     std::vector<ScenarioPlan> plans;
 };
 
+// Plateforme du dossier des résultats (L11-T15) : fonction pure, testable sans Android.
+enum class Platform
+{
+    Desktop,
+    Android
+};
+// Android : `base` = dossier propre externe de l'application (lisible par `adb pull` sans `run-as`),
+// résultats dans
+// `<base>/bench-results`. Ailleurs : `base` = dossier de l'exécutable, résultats dans
+// `<base>/resultats-banc`.
+QString resultsDirFor(Platform platform, const QString& base);
+// Android passe les options en une seule chaîne (`applicationArguments`) : « prog "--a 1 --b 2" » devient
+// « prog --a 1 --b 2 ». Des arguments déjà séparés sont rendus tels quels.
+QStringList expandSingleStringArguments(const QStringList& args);
+
 bool parseBenchOptions(const QStringList& args, BenchOptions& out, QString& error);
 // `output` se terminant par .json : ce fichier ; sinon `output` (ou `defaultDir`) + fileName.
 QString resolveOutputPath(const BenchOptions& options, const QString& defaultDir, const QString& fileName);

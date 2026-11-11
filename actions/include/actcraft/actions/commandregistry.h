@@ -53,10 +53,16 @@ struct CommandInfo
     // Vrai : la commande se déclenche aussi sans argument (QVariant invalide) — dialogue au lieu d'une URL
     // (décision 22). Un argument présent doit rester valide.
     bool argumentOptional = false;
+    // Argument texte à valeurs fixes (clé « values » du fichier) : trigger() refuse toute autre valeur.
+    // Vide = toute valeur de la forme convient.
+    QStringList argumentValues{};
     // Amendement 1, § 1 : le mode classe protégé peut la griser (F-298) ; une diffusion protégée peut
     // l'interdire (F-680, lot 8). Défaut sûr : verrouillable, non restreignable.
     bool lockable = true;
     bool restrictable = false;
+    // L11-T9 (F-303) : la commande ouvre une boîte (Dialog, Popup modale, sélecteur de fichier) ; le second
+    // utilisateur du mode à deux ne la déclenche pas (ui::Commands::trigger). Absente : faux.
+    bool opensDialog = false;
     // Vrai (« mainWindow » : true) : la commande montre un panneau de la fenêtre principale (posé dans
     // presentation.layer : horloge, dés, calculatrice, message défilant, effets de page, éditeur d'équation).
     // Son gestionnaire la demande juste avant de montrer le panneau, et seulement s'il le montre

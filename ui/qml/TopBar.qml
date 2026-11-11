@@ -12,11 +12,23 @@ Rectangle {
     required property DocumentController documentController
     required property PageView view
     property bool notesVisible: false
+    property QtObject touchModeSource: null // TouchModeController (mode coché, ouverture du menu)
+    // Fenêtre compacte (< 600 dp) : les menus s'effacent derrière un bouton « … » qui ouvre le menu principal.
+    property bool compact: false
+    property bool mainMenuOpened: false
+    signal overflowRequested(Item anchorItem)
     signal popupOpened()
     signal popupClosed()
 
     implicitHeight: Theme.hauteurBarre
     color: Theme.barre
+
+    // Lot 11 : sous-menu « Mode du toucher » du menu Affichage (L11-T6).
+    TouchModeMenu {
+        id: touchModeMenu
+        commands: bar.commands
+        source: bar.touchModeSource
+    }
 
     // Tout ce que la barre contient fait la hauteur de la barre, celle d'une cible tactile (Theme.hauteurBarre =
     // Theme.tailleBouton) : le bouton plein écran et le zoom n'en débordent plus (L1-C5).
@@ -26,6 +38,30 @@ Rectangle {
         anchors.rightMargin: Theme.espace2
         spacing: Theme.espace1
 
+        ToolButton {
+            id: topOverflow
+            objectName: "topOverflow"
+            visible: bar.compact
+            Layout.fillHeight: true
+            Layout.preferredWidth: Theme.tailleBouton
+            focusPolicy: Qt.NoFocus
+            text: "…"
+            font.pixelSize: Theme.taillePoliceTitre
+            Accessible.name: qsTr("Menus")
+            contentItem: Label {
+                text: topOverflow.text
+                font: topOverflow.font
+                color: bar.mainMenuOpened ? Theme.texteSurActive : Theme.texte
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+            background: Rectangle {
+                radius: Theme.rayon
+                color: bar.mainMenuOpened ? Theme.surfaceActive : topOverflow.hovered ? Theme.surfaceSurvol : "transparent"
+            }
+            onClicked: bar.overflowRequested(topOverflow)
+        }
+
         Repeater {
             model: bar.commands.menus
             delegate: ToolButton {
@@ -33,7 +69,8 @@ Rectangle {
                 required property var modelData
                 readonly property bool onAccent: menuButton.down || menu.opened
                 objectName: "menu-" + modelData.id
-                text: modelData.label
+                visible: !bar.compact
+                text: bar.commands.translated(modelData.label)
                 font.pixelSize: Theme.taillePolice
                 Layout.fillHeight: true
                 contentItem: Label {

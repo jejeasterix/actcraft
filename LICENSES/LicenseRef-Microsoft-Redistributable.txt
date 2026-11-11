@@ -1,0 +1,14 @@
+LicenseRef-Microsoft-Redistributable
+
+Ce fichier ne reproduit pas de conditions de licence : il indique où les lire. Les fichiers de Microsoft livrés avec
+ActCraft sous Windows (vcruntime140*.dll, msvcp140*.dll, D3Dcompiler_47.dll, dxcompiler.dll, dxil.dll) sont du
+« code redistribuable » que Microsoft permet de distribuer avec une application, aux conditions fixées par Microsoft :
+
+- bibliothèques d'exécution de Visual C++ : termes de licence de Microsoft Visual Studio 2022 (section
+  « Distributable Code »), https://visualstudio.microsoft.com/license-terms/ ; liste des fichiers redistribuables :
+  https://learn.microsoft.com/visualstudio/releases/2022/redistribution ;
+- compilateurs de shaders Direct3D (D3Dcompiler_47.dll, dxcompiler.dll, dxil.dll) : termes de licence du kit de
+  développement Windows (Windows SDK), https://developer.microsoft.com/windows/downloads/windows-sdk/ , et, pour le
+  compilateur DXC, https://github.com/microsoft/DirectXShaderCompiler .
+
+Ces fichiers restent la propriété de Microsoft Corporation.

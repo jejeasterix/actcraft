@@ -4,6 +4,30 @@ Les versions d'ActCraft, de la plus récente à la plus ancienne. Une section pa
 chaque lot (décision 31 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`) ; la section sert de notes
 à la release correspondante.
 
+## 1.0.0 — non publiée
+
+Toucher, deux utilisateurs, tablette, reprise, aide complète, mises à jour et accessibilité. Le numéro 1.0.0 est posé à
+la release ; les versions 0.6.0 à 0.9.0 ne sont pas toutes publiées : leurs nouveautés viennent avec celle-ci.
+
+- Toucher : le doigt a quatre modes (Gestion complète par défaut, ignorer, écrire, sélectionner), réglés par
+  Affichage > Mode du toucher ; par défaut, le doigt suit l'outil et deux doigts font le geste (déplacer, zoomer) ; la paume posée sur l'écran n'écrit pas, et les menus s'ouvrent au doigt. En mode
+  tactile, les cibles à toucher font au moins 48 dp.
+- Deux utilisateurs : deux personnes travaillent sur la même page, chacune avec sa palette, son outil, son trait, ses
+  réglages et son cadre de sélection ; un objet tenu par l'une n'est pas pris par l'autre.
+- Tablette : mise en page étroite, palette qui tient dans une fenêtre basse, rotation de l'écran, et fichiers ouverts
+  ou enregistrés par le sélecteur du système.
+- Reprise : si l'application est interrompue, elle reprend seule là où vous en étiez, sans perte, et un bandeau le dit (vous pouvez supprimer la copie).
+- Aide : une page par outil, des procédures pas à pas, un index complet et la liste des raccourcis clavier (F1).
+- Mises à jour : la commande « Rechercher des mises à jour… » dit si une version plus récente existe ; une case
+  permet de le faire au démarrage. Rien ne s'installe sans votre accord.
+- Accessibilité et langues : les textes visibles sont traduisibles, les profils de commandes (cinq) fonctionnent de
+  bout en bout, et les raccourcis clavier ne se déclenchent pas pendant la saisie d'un texte.
+- Paquet macOS (Mac à puce Apple), non signé : clic droit > Ouvrir au premier lancement ; le guide de démarrage du
+  `README.md` détaille les deux façons de l'ouvrir.
+- Depuis la 0.1.0 : de la page blanche et du stylo (0.1.0) jusqu'aux formes, au texte, aux pages et aux fichiers
+  (0.2.0 à 0.5.0), à l'édition des objets, à l'export et à l'impression (0.6.0), puis aux actions, aux médias et au
+  cadre web (0.9.0), la 1.0.0 rend le tout utilisable au doigt, à deux et sur tablette.
+
 ## 0.9.0 — non publiée
 
 Actions, conteneurs, liens, encre révélatrice, médias, enregistreurs, cadre web et diffusion protégée. Les versions 0.6.0

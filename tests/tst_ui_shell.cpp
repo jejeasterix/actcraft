@@ -23,6 +23,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QRegularExpression>
+#include <QScopeGuard>
 #include <QSettings>
 #include <QStringList>
 #include <QTabletEvent>
@@ -93,6 +94,11 @@ QQuickItem* findItem(QQuickItem* root, const QString& name)
 QQuickItem* item(Shell& s, const char* name)
 {
     return findItem(s.window->contentItem(), QString::fromLatin1(name));
+}
+
+QObject* find(Shell& s, const char* name)
+{
+    return s.window->findChild<QObject*>(QString::fromLatin1(name));
 }
 
 bool run(Shell& s, const QString& id, const QVariant& argument = QVariant())
@@ -366,6 +372,29 @@ private slots:
             QStringLiteral("tst-ui-shell-stylus"), 5170, QInputDevice::DeviceType::Stylus,
             QPointingDevice::PointerType::Pen,
             QInputDevice::Capability::Position | QInputDevice::Capability::Pressure, 1, 3);
+    }
+
+    // Lot 11 (L11-T3) : instances et emplacements posés une fois pour les tâches suivantes.
+    void lot11SlotsPresent()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        for (const char* name :
+             {"appTouchMode", "appDualMode", "appLayout", "appLifecycle", "appPortal", "appUpdates",
+              "secondPalette", "recoveryBanner", "fingerMenu", "touchModeMenu", "updateDialog"}) {
+            QVERIFY2(find(s, name) != nullptr, name);
+        }
+        QCOMPARE(find(s, "secondPalette")->property("visible").toBool(), false);
+    }
+
+    void lot11ControllersWired()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QVERIFY(find(s, "appTouchMode")->property("commands").value<QObject*>() != nullptr);
+        QVERIFY(find(s, "appTouchMode")->property("view").value<QObject*>() == find(s, "pageView"));
+        QVERIFY(find(s, "appDualMode")->property("view").value<QObject*>() == find(s, "pageView"));
+        QVERIFY(find(s, "appLifecycle")->property("document").value<QObject*>() != nullptr);
     }
 
     void shellShowsTopBarPaletteAndPage()
@@ -1664,6 +1693,10 @@ private slots:
         const QColor palette(hex.captured(1));
         const QColor veiled(palette.red() / 2, palette.green() / 2, palette.blue() / 2);
 
+        // Android est toujours en interface tactile (LayoutMetrics::touchUi) : même mise en page ici.
+        QSettings().setValue(QStringLiteral("workstation/touch-ui"), true);
+        const auto touchUiOff =
+            qScopeGuard([] { QSettings().remove(QStringLiteral("workstation/touch-ui")); });
         Shell s;
         QVERIFY(start(s, true));
         s.window->resize(largeur / densite, hauteur / densite - barre);
@@ -1699,7 +1732,7 @@ private slots:
             QTRY_VERIFY2(near(pixel(largeur - 3, y), palette, 16),
                          qPrintable(QStringLiteral("palette absente au bord droit, y = %1").arg(y)));
         }
-        QVERIFY2(near(pixel(psInt(largeur * 0.765), psInt(hauteur * 0.87)), QColor(255, 255, 255), 12),
+        QVERIFY2(near(pixel(psInt(largeur * 0.755), psInt(hauteur * 0.87)), QColor(255, 255, 255), 12),
                  "page");
         QVERIFY2(near(pixel(largeur - 192, psInt(hauteur * 0.72)), palette, 16), "fond de palette");
         const int swatchX = largeur - swatch.captured(1).toInt();
@@ -1794,6 +1827,130 @@ private slots:
             QObject* o = s.window->findChild<QObject*>(QString::fromLatin1(name));
             QVERIFY2(o, name);
             QVERIFY2(o->property("profile").value<QObject*>() == profile, name);
+        }
+    }
+
+    void lot11aStubsGone()
+    {
+        // Point d'étape 11a (L11-T16) : aucun talon des tâches de 11a ne reste. Le marqueur est construit ici
+        // pour que ce test ne se compte pas lui-même ; les fichiers de 11b gardent leur talon jusqu'à leur
+        // tâche.
+        const QString marker = QStringLiteral("Talon ") + QStringLiteral("L11");
+        const QStringList files = {
+            "input/include/actcraft/input/touchmodes.h",
+            "input/include/actcraft/input/twouserpolicy.h",
+            "input/src/touchmodes.cpp",
+            "input/src/twouserpolicy.cpp",
+            "tools/include/actcraft/tools/grabs.h",
+            "tools/src/grabs.cpp",
+            "ui/include/actcraft/ui/documentportal.h",
+            "ui/include/actcraft/ui/dualmode.h",
+            "ui/include/actcraft/ui/fingermenus.h",
+            "ui/include/actcraft/ui/keyboardinset.h",
+            "ui/include/actcraft/ui/layoutmetrics.h",
+            "ui/include/actcraft/ui/lifecycle.h",
+            "ui/include/actcraft/ui/touchmode.h",
+            "ui/src/documentportal.cpp",
+            "ui/src/dualmode.cpp",
+            "ui/src/fingermenus.cpp",
+            "ui/src/keyboardinset.cpp",
+            "ui/src/layoutmetrics.cpp",
+            "ui/src/lifecycle.cpp",
+            "ui/src/touchmode.cpp",
+            "tests/tst_bench_resultsdir.cpp",
+            "tests/tst_input_touchmodes.cpp",
+            "tests/tst_input_twousers.cpp",
+            "tests/tst_tools_twousers.cpp",
+            "tests/tst_ui_documentportal.cpp",
+            "tests/tst_ui_fingermenus.cpp",
+            "tests/tst_ui_lifecycle.cpp",
+            "tests/tst_ui_narrowlayout.cpp",
+            "tests/tst_ui_orientation.cpp",
+            "tests/tst_ui_pageinput.cpp",
+            "tests/tst_ui_secondpalette.cpp",
+            "tests/tst_ui_touchmode.cpp",
+            "bench/scenarios/au-doigt.json",
+            "bench/scenarios/cycle-de-vie.json",
+            "bench/scenarios/deux-utilisateurs.json",
+            "bench/scenarios/modes-toucher.json",
+            "bench/scenarios/rotation-clavier.json",
+            "bench/scenarios/tablette-etroite.json",
+        };
+        for (const QString& rel : files) {
+            QFile file(QStringLiteral(ACTCRAFT_SOURCE_DIR) + u'/' + rel);
+            QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(rel + QStringLiteral(" : illisible")));
+            QVERIFY2(!QString::fromUtf8(file.readAll()).contains(marker),
+                     qPrintable(rel + QStringLiteral(" : talon de 11a resté")));
+        }
+    }
+
+    void lot11StubsGone()
+    {
+        // Clôture du lot 11 (L11-T30) : aucun talon du lot ne reste, ni dans les sources de la liste R2, ni
+        // dans les 21 tests unitaires de R1, ni dans les 11 scénarios de R3. Le marqueur est construit ici
+        // pour que ce test ne se compte pas lui-même.
+        const QString marker = QStringLiteral("Talon ") + QStringLiteral("L11");
+        const QStringList files = {
+            "input/include/actcraft/input/touchmodes.h",
+            "input/include/actcraft/input/twouserpolicy.h",
+            "input/src/touchmodes.cpp",
+            "input/src/twouserpolicy.cpp",
+            "tools/include/actcraft/tools/grabs.h",
+            "tools/src/grabs.cpp",
+            "ui/include/actcraft/ui/documentportal.h",
+            "ui/include/actcraft/ui/dualmode.h",
+            "ui/include/actcraft/ui/fingermenus.h",
+            "ui/include/actcraft/ui/keyboardinset.h",
+            "ui/include/actcraft/ui/layoutmetrics.h",
+            "ui/include/actcraft/ui/lifecycle.h",
+            "ui/include/actcraft/ui/touchmode.h",
+            "ui/include/actcraft/ui/updatechecker.h",
+            "ui/src/documentportal.cpp",
+            "ui/src/dualmode.cpp",
+            "ui/src/fingermenus.cpp",
+            "ui/src/keyboardinset.cpp",
+            "ui/src/layoutmetrics.cpp",
+            "ui/src/lifecycle.cpp",
+            "ui/src/touchmode.cpp",
+            "ui/src/updatechecker.cpp",
+            "tests/tst_input_touchmodes.cpp",
+            "tests/tst_ui_pageinput.cpp",
+            "tests/tst_ui_touchmode.cpp",
+            "tests/tst_input_twousers.cpp",
+            "tests/tst_tools_twousers.cpp",
+            "tests/tst_ui_secondpalette.cpp",
+            "tests/tst_ui_narrowlayout.cpp",
+            "tests/tst_ui_orientation.cpp",
+            "tests/tst_ui_fingermenus.cpp",
+            "tests/tst_ui_lifecycle.cpp",
+            "tests/tst_ui_documentportal.cpp",
+            "tests/tst_bench_resultsdir.cpp",
+            "tests/tst_ui_pseudolocale.cpp",
+            "tests/tst_ui_updatechecker.cpp",
+            "tests/tst_ui_shortcuts.cpp",
+            "tests/tst_ui_accessibility.cpp",
+            "tests/tst_app_notices.cpp",
+            "tests/tst_ui_lockall.cpp",
+            "tests/tst_ui_profilesall.cpp",
+            "tests/tst_app_versioninfo.cpp",
+            "tests/tst_ui_helppages.cpp",
+            "bench/scenarios/modes-toucher.json",
+            "bench/scenarios/deux-utilisateurs.json",
+            "bench/scenarios/tablette-etroite.json",
+            "bench/scenarios/rotation-clavier.json",
+            "bench/scenarios/au-doigt.json",
+            "bench/scenarios/cycle-de-vie.json",
+            "bench/scenarios/aide-complete.json",
+            "bench/scenarios/mises-a-jour.json",
+            "bench/scenarios/classe-protegee-complete.json",
+            "bench/scenarios/profils-complets.json",
+            "bench/scenarios/controle/pseudo-langue.json",
+        };
+        for (const QString& rel : files) {
+            QFile file(QStringLiteral(ACTCRAFT_SOURCE_DIR) + u'/' + rel);
+            QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(rel + QStringLiteral(" : illisible")));
+            QVERIFY2(!QString::fromUtf8(file.readAll()).contains(marker),
+                     qPrintable(rel + QStringLiteral(" : talon du lot 11 resté")));
         }
     }
 

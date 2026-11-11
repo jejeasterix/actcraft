@@ -32,9 +32,9 @@ private slots:
     void currentToolPageOrIndex()
     {
         HelpViewer help;
-        help.openFor(QStringLiteral("tool.pen")); // aucune page d'outil au lot 6 : l'index
+        help.openFor(QStringLiteral("tool.inconnu")); // aucune page pour cet outil : l'index
         QCOMPARE(help.source(), kIndex);
-        help.openFor(QStringLiteral("pen"));
+        help.openFor(QStringLiteral("inconnu"));
         QCOMPARE(help.source(), kIndex);
         QVERIFY(!help.html().isEmpty());
     }
@@ -70,6 +70,21 @@ private slots:
         help.follow(QUrl(QStringLiteral("qrc:/actcraft/help/inexistante.html")));
         QCOMPARE(help.source(), before);
         QCOMPARE(external.count(), 0);
+    }
+
+    // L11-C14 : nom de la page montrée, sans dossier ni « .html » (convention de help.contents : « pen »).
+    void currentPageName()
+    {
+        HelpViewer help;
+        QVERIFY(help.currentPage().isEmpty());
+        QSignalSpy changed(&help, &HelpViewer::sourceChanged);
+        help.openFor(QStringLiteral("tool.pen"));
+        QCOMPARE(help.currentPage(), QStringLiteral("pen"));
+        QCOMPARE(changed.count(), 1);
+        help.openFor(QStringLiteral("deux-utilisateurs"));
+        QCOMPARE(help.currentPage(), QStringLiteral("deux-utilisateurs"));
+        help.openFor(QStringLiteral("inconnue"));
+        QCOMPARE(help.currentPage(), QStringLiteral("index"));
     }
 
     void textsAreOurs()

@@ -404,8 +404,11 @@ QSizeF MathToolsController::pageSize() const
 int MathToolsController::add(Entry entry, const QString& kind)
 {
     m_guides.add(entry.guide());
+    UserGuides& own = userGuides(entry.owner);
+    own.all.add(entry.guide());
     if (entry.compass) {
         m_compassGuides.add(entry.guide());
+        own.compass.add(entry.guide());
     }
     m_tools.push_back(std::move(entry));
     updateFilter();
@@ -416,12 +419,13 @@ int MathToolsController::add(Entry entry, const QString& kind)
     return count() - 1;
 }
 
-int MathToolsController::openRuler()
+int MathToolsController::openRuler(int user)
 {
     const QSizeF page = pageSize();
     const double offset = kNextOffset * static_cast<double>(m_tools.size());
     Entry entry;
     entry.command = QStringLiteral("math.ruler");
+    entry.owner = resolveUser(user);
     entry.ruler = std::make_unique<features::Ruler>();
     entry.ruler->setFrame(QPointF(page.width() / 2 + offset, page.height() / 2 + offset), kDefaultLength,
                           kDefaultThickness, 0);
@@ -435,12 +439,13 @@ int MathToolsController::openRuler()
     return add(std::move(entry), QStringLiteral("ruler"));
 }
 
-int MathToolsController::openSetSquare()
+int MathToolsController::openSetSquare(int user)
 {
     const QSizeF page = pageSize();
     const double offset = kNextOffset * static_cast<double>(m_tools.size());
     Entry entry;
     entry.command = QStringLiteral("math.set-square");
+    entry.owner = resolveUser(user);
     entry.square = std::make_unique<features::SetSquare>();
     // Le triangle occupe la boîte [sommet, sommet + côté] : centrée sur la page.
     entry.vertex = QPointF((page.width() - kDefaultSquareSide) / 2 + offset,
@@ -454,12 +459,13 @@ int MathToolsController::openSetSquare()
     return add(std::move(entry), QStringLiteral("setSquare"));
 }
 
-int MathToolsController::openProtractor()
+int MathToolsController::openProtractor(int user)
 {
     const QSizeF page = pageSize();
     const double offset = kNextOffset * static_cast<double>(m_tools.size());
     Entry entry;
     entry.command = QStringLiteral("math.protractor");
+    entry.owner = resolveUser(user);
     entry.protractor = std::make_unique<ArcGuide>();
     entry.vertex = QPointF(page.width() / 2 + offset, page.height() / 2 + offset);
     entry.side = kDefaultRadius;
@@ -475,12 +481,13 @@ int MathToolsController::openProtractor()
     return add(std::move(entry), QStringLiteral("protractor"));
 }
 
-int MathToolsController::openCompass()
+int MathToolsController::openCompass(int user)
 {
     const QSizeF page = pageSize();
     const double offset = kNextOffset * static_cast<double>(m_tools.size());
     Entry entry;
     entry.command = QStringLiteral("math.compass");
+    entry.owner = resolveUser(user);
     entry.compass = std::make_unique<CompassGuide>();
     entry.side = kDefaultLeg;
     features::Compass& compass = entry.compass->compass;
@@ -507,8 +514,11 @@ void MathToolsController::close(int index)
     // Retiré des guides avant d'être détruit : un trait guidé en cours finit libre, rien n'est effacé.
     auto it = m_tools.begin() + index;
     m_guides.remove(it->guide());
+    UserGuides& own = userGuides(it->owner);
+    own.all.remove(it->guide());
     if (it->compass) {
         m_compassGuides.remove(it->guide());
+        own.compass.remove(it->guide());
     }
     m_tools.erase(it);
     updateFilter();
@@ -725,7 +735,10 @@ QVariantMap MathToolsController::snapAt(QPointF pagePoint) const
     hover.x = pagePoint.x();
     hover.y = pagePoint.y();
     hover.phase = input::Phase::Move;
-    const auto snapped = m_guides.snapPreview(hover);
+    // Rien pendant un trait guidé (contrat de snapPreview) : en mode à deux, les jeux de chaque utilisateur
+    // tiennent les traits.
+    const bool inStroke = dualUsers() && (m_userGuides[0].all.guiding() || m_userGuides[1].all.guiding());
+    const auto snapped = inStroke ? std::nullopt : m_guides.snapPreview(hover);
     if (!snapped) {
         return QVariantMap{{QStringLiteral("snapped"), false}, {QStringLiteral("tool"), -1}};
     }
@@ -748,6 +761,27 @@ QVariantMap MathToolsController::snapAt(QPointF pagePoint) const
 bool MathToolsController::valid(int index) const noexcept
 {
     return index >= 0 && static_cast<std::size_t>(index) < m_tools.size();
+}
+
+bool MathToolsController::dualUsers() const noexcept
+{
+    return m_toolHost && m_toolHost->dualUsers();
+}
+
+input::UserId MathToolsController::resolveUser(int user) const
+{
+    return m_toolHost && user != input::kFirstUser ? m_toolHost->user(input::kSecondUser).id()
+                                                   : input::kFirstUser;
+}
+
+bool MathToolsController::guidesUser(const Entry& entry, input::UserId user) const noexcept
+{
+    return !dualUsers() || entry.owner == user;
+}
+
+MathToolsController::UserGuides& MathToolsController::userGuides(input::UserId user) noexcept
+{
+    return m_userGuides[user == input::kFirstUser ? 0 : 1];
 }
 
 void MathToolsController::updateFilter()
@@ -789,9 +823,13 @@ input::Sample MathToolsController::guide(const input::Sample& sample)
     if (scope == GuidedBy::None) {
         return sample;
     }
+    const input::UserId user = resolveUser(sample.user);
     if (sample.phase == input::Phase::Press) {
         m_pending.reset();
         for (Entry& entry : m_tools) {
+            if (!guidesUser(entry, user)) {
+                continue; // la prise en cours de l'autre utilisateur n'est pas touchée
+            }
             if (entry.protractor) {
                 entry.protractor->seized = false;
             }
@@ -800,13 +838,16 @@ input::Sample MathToolsController::guide(const input::Sample& sample)
             }
         }
     }
-    const input::Sample out =
-        scope == GuidedBy::Compass ? m_compassGuides.filter(sample) : m_guides.filter(sample);
-    if (Entry* const held = seizedCompass()) {
+    const bool dual = dualUsers();
+    UserGuides& own = userGuides(user);
+    features::GuideSet& guides =
+        scope == GuidedBy::Compass ? (dual ? own.compass : m_compassGuides) : (dual ? own.all : m_guides);
+    const input::Sample out = guides.filter(sample);
+    if (Entry* const held = seizedCompass(user)) {
         followCompass(*held, sample.phase, scope == GuidedBy::All);
         return out;
     }
-    Entry* const arc = seizedProtractor();
+    Entry* const arc = seizedProtractor(user);
     if (!arc) {
         return out;
     }
@@ -834,20 +875,20 @@ input::Sample MathToolsController::guide(const input::Sample& sample)
     return out;
 }
 
-MathToolsController::Entry* MathToolsController::seizedProtractor() noexcept
+MathToolsController::Entry* MathToolsController::seizedProtractor(input::UserId user) noexcept
 {
     for (Entry& entry : m_tools) {
-        if (entry.protractor && entry.protractor->seized) {
+        if (entry.protractor && entry.protractor->seized && guidesUser(entry, user)) {
             return &entry;
         }
     }
     return nullptr;
 }
 
-MathToolsController::Entry* MathToolsController::seizedCompass() noexcept
+MathToolsController::Entry* MathToolsController::seizedCompass(input::UserId user) noexcept
 {
     for (Entry& entry : m_tools) {
-        if (entry.compass && entry.compass->seized) {
+        if (entry.compass && entry.compass->seized && guidesUser(entry, user)) {
             return &entry;
         }
     }
@@ -962,8 +1003,13 @@ void MathToolsController::insertAddition(const PendingAddition& pending)
 
 void MathToolsController::syncTolerance()
 {
-    m_guides.setTolerance(guideBand());
-    m_compassGuides.setTolerance(guideBand());
+    const double band = guideBand();
+    m_guides.setTolerance(band);
+    m_compassGuides.setTolerance(band);
+    for (UserGuides& guides : m_userGuides) {
+        guides.all.setTolerance(band);
+        guides.compass.setTolerance(band);
+    }
     emit guideBandChanged();
 }
 
@@ -972,12 +1018,16 @@ void MathToolsController::storeOpenTools()
     if (!m_toolHost) {
         return;
     }
-    std::vector<QString> ids;
-    ids.reserve(m_tools.size());
+    std::vector<QString> first;
+    std::vector<QString> second;
+    first.reserve(m_tools.size());
     for (const Entry& entry : m_tools) {
-        ids.push_back(entry.command);
+        (entry.owner == input::kFirstUser ? first : second).push_back(entry.command);
     }
-    m_toolHost->user().setOpenMathTools(std::move(ids));
+    m_toolHost->user().setOpenMathTools(std::move(first));
+    if (m_toolHost->dualUsers()) {
+        m_toolHost->user(input::kSecondUser).setOpenMathTools(std::move(second));
+    }
 }
 
 bool MathToolsController::originVisible() const noexcept

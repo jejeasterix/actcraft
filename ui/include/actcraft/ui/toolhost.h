@@ -2,6 +2,7 @@
 
 #include <actcraft/input/routing.h>
 #include <actcraft/render/liftlayeritem.h> // types complets exigés par moc pour les propriétés
+#include <actcraft/tools/grabs.h>
 #include <actcraft/tools/userstate.h>
 #include <actcraft/ui/actionrunner.h>
 #include <actcraft/ui/commands.h>
@@ -52,6 +53,9 @@ class ToolHost : public QObject
     Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
     Q_PROPERTY(bool handlesVisible READ handlesVisible NOTIFY selectionChanged)
     Q_PROPERTY(QVariantMap selectionFrame READ selectionFrame NOTIFY selectionChanged)
+    // L11-C10 (F) : cadre du second utilisateur (mode à deux), même forme que selectionFrame ; masqué hors
+    // mode.
+    Q_PROPERTY(QVariantMap secondSelectionFrame READ secondSelectionFrame NOTIFY secondSelectionChanged)
     Q_PROPERTY(QRectF trashArea READ trashArea WRITE setTrashArea NOTIFY trashAreaChanged) // scène
     Q_PROPERTY(bool trashHover READ trashHover NOTIFY trashHoverChanged)
     // Vide : réglages de l'application ; tests : chemin d'un fichier .ini.
@@ -75,6 +79,8 @@ class ToolHost : public QObject
     // Lot 8 (L8-T16) : le DesignMode de l'application ; ses effets (restrictions, objets bloquants, actions)
     // sont lus par l'outil de sélection à chaque geste (tools::InteractionPolicy). nullptr : tout actif.
     Q_PROPERTY(QObject* designMode READ designMode WRITE setDesignMode NOTIFY designFlagsChanged)
+    // Lot 11 (L11-T7, D11-2) : mode à deux utilisateurs ; DualMode l'écrit (L11-T9).
+    Q_PROPERTY(bool dualUsers READ dualUsers WRITE setDualUsers NOTIFY dualUsersChanged)
 
 public:
     explicit ToolHost(QObject* parent = nullptr);
@@ -97,6 +103,7 @@ public:
     int connectorCapB() const noexcept;
     bool handlesVisible() const;
     QVariantMap selectionFrame() const;
+    QVariantMap secondSelectionFrame() const;
     QRectF trashArea() const noexcept;
     void setTrashArea(const QRectF& area);
     bool trashHover() const noexcept;
@@ -114,10 +121,20 @@ public:
     // (F-134).
     Q_INVOKABLE void setColor(const QColor& color);
     Q_INVOKABLE void setWidth(qreal width);
+    // L11-T9 (M7, n1) : outil, couleur et épaisseur d'un utilisateur, pour les gestionnaires (argument, user)
+    // de Main.qml. activateFor porte un nom distinct d'activate(toolId, argument) : en QML, activate("pen",
+    // 1) prendrait 1 pour l'argument de l'outil et changerait l'outil du premier utilisateur. Utilisateur 0,
+    // ou mode à deux éteint : activate(toolId), setColor(color), setWidth(width).
+    Q_INVOKABLE void activateFor(const QString& toolId, int user);
+    Q_INVOKABLE void setColor(const QColor& color, int user);
+    Q_INVOKABLE void setWidth(qreal width, int user);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();
     // H5-15 : active l'outil Sélection et sélectionne ces objets de la page affichée (ceux qui existent).
     void selectObjects(const std::vector<core::ObjectId>& ids);
+    // L11-C13 : objets désignés par l'appui long d'un doigt qui tient le sélecteur. Sélecteur imposé par le
+    // mode du toucher (D11-4) : l'outil courant ne change pas, le cadre est montré ; sinon selectObjects.
+    void selectObjectsForFinger(const std::vector<core::ObjectId>& ids);
     // Lot 8 (L8-T9) : sous l'outil de sélection, l'appui va d'abord à l'exécuteur, les déplacements tant
     // qu'il les prend, le relâché aussi ; sinon l'outil reçoit l'appui retenu puis les suivants (aucun
     // échantillon perdu). nullptr : l'outil reçoit tout.
@@ -127,7 +144,12 @@ public:
     Q_INVOKABLE void enlargeSelection();
     Q_INVOKABLE void reduceSelection();
     Q_INVOKABLE void setSelectionTranslucency(int value);
+    // Geste du premier utilisateur (Échap, changement de son outil ou de sa sélection).
     Q_INVOKABLE void cancelGesture();
+    // L11-C6 : gestes des deux utilisateurs (changement de page, zoom, défilement, rebranchement). L11-C13 :
+    // chacun se termine là où il était (Tool::cancel : le trait en cours est versé), celui du second comme
+    // celui du premier.
+    Q_INVOKABLE void cancelAllGestures();
     Q_INVOKABLE void setConnectorStyle(int style);         // L5-T17
     Q_INVOKABLE void setConnectorCaps(int capA, int capB); // L5-C18 : rangs 0 aucune, 1 rayon, 2 flèche
     // H5-33 (L5-C3) : le choix d'un style au panneau (connector.style) règle aussi les extrémités selon ses
@@ -141,7 +163,25 @@ public:
     // branchés. Pendant un appui sur un objet d'action sous la sélection (L8-T9) : la sélection précédée de
     // l'exécuteur.
     tools::Tool* activeTool(input::UserId user = input::kFirstUser) const;
-    tools::UserState& user(input::UserId id = input::kFirstUser); // un utilisateur jusqu'au lot 11 (D-S10)
+    // L11-C1 (D11-4) : outil imposé à un contact de doigt (modes pen et select), sans changer l'outil
+    // courant. Select : si la sélection est déjà l'outil courant, activeTool(user) (la porte de l'exécuteur
+    // quand un appui sur un objet d'action l'a armée, L8-T9) ; sinon l'outil Sélectionner (créé à la première
+    // demande). Pen et Current : nullptr ; la vue garde son stylo imposé, réglé à chaque appui sur les
+    // réglages « pen » de l'utilisateur (l'hôte n'a qu'un outil par identifiant, partagé avec l'outil
+    // courant).
+    tools::Tool* imposedTool(input::UserId user, input::FingerTool tool) const;
+    // État de l'utilisateur. Mode à deux utilisateurs allumé : tout id autre que kFirstUser rend le second
+    // état (identifiant kSecondUser) ; éteint : l'utilisateur 0, comme le socle (D-S10).
+    tools::UserState& user(input::UserId id = input::kFirstUser);
+    // L11-C10 (G, H11-13) : sélection de l'utilisateur sans les objets que l'autre tient (Grabs) ; c'est
+    // elle que lisent les panneaux et les commandes qui agissent sur la sélection (propriétés, édition,
+    // arbre des objets, barre de raccourcis, navigateur d'actions). La sélection brute reste dans
+    // user(id).selection().
+    std::vector<core::ObjectId> usableSelection(input::UserId id = input::kFirstUser);
+    bool dualUsers() const noexcept;
+    // Allumé, le second UserState est créé à la première fois (un état neuf commence au stylo, H11-16) puis
+    // gardé : éteindre puis rallumer rend le même état, avec son outil et ses réglages.
+    Q_INVOKABLE void setDualUsers(bool on);
     bool lockIgnored() const noexcept;
     void setLockIgnored(bool ignored); // republie la sélection (poignées d'un verrouillé)
     bool snapDisabled() const noexcept;
@@ -168,6 +208,7 @@ signals:
     void currentToolChanged();
     void settingsChanged();
     void selectionChanged();
+    void secondSelectionChanged();
     void trashAreaChanged();
     void trashHoverChanged();
     void settingsFileChanged();
@@ -176,15 +217,34 @@ signals:
     // L8-T16 : un dépôt accepté par un conteneur (F-577) ; `chime` : le son de confirmation est à jouer
     // (L8-T25).
     void containerAccepted(quint64 container, bool chime);
+    void dualUsersChanged();
 
 private:
+    // L11-C9 (I), L11-C13 : avant une modification annoncée du document (editAboutToApply : Annuler du
+    // premier, Effacer, Ouvrir…), le geste du premier s'interrompt (cancelGesture) et celui du second est
+    // abandonné (Tool::abandon) : versé, son trait serait une étape juste avant l'édition, qu'Annuler
+    // retirerait à la place de la dernière du premier.
+    void abandonGesturesBeforeEdit();
     // Adaptateurs et outils ; nullptr tant que contrôleur, vue (et son encre) et couche ne sont pas branchés.
     ToolAdapters* adapters() const;
     void discardAdapters() const; // jette les adaptateurs, l'outil occupé abandonnant d'abord son geste
     tools::Tool* toolFor(const QString& id) const;      // créé à la première demande
     tools::Tool* existingTool(const QString& id) const; // jamais créé
     tools::SelectTool* selectTool() const;              // l'outil Sélectionner, créé à la première demande
-    tools::InkSettings settingsOf(const QString& id) const; // réglages de l'utilisateur, ou ceux par défaut
+    void applySelection(const std::vector<core::ObjectId>& ids); // pose la sélection et rafraîchit le cadre
+    // L11-T9 : outils du second utilisateur (mode allumé), dans leurs propres adaptateurs (contexte de son
+    // UserState, surface d'encre et de sélection à lui) ; nullptr tant que le branchement manque.
+    bool isSecond(input::UserId user) const noexcept;
+    ToolAdapters* secondAdapters() const;
+    // L11-C7 (E) : couche soulevée du second, juste au-dessus de liftLayer, créée à la première demande.
+    render::LiftLayerItem* secondLiftLayer() const;
+    tools::Tool* secondToolFor(const QString& id) const;
+    tools::Tool* secondExistingTool(const QString& id) const;
+    void adopt(tools::Tool* tool) const; // registre des objets tenus posé sur un sélecteur neuf (L11-T8)
+    // Réglages de l'utilisateur (le premier, ou le second s'il existe et que user n'est pas kFirstUser), ou
+    // ceux par défaut ; lastInkOf : son dernier outil d'encre (L11-C9).
+    tools::InkSettings settingsOf(const QString& id, input::UserId user = input::kFirstUser) const;
+    const QString& lastInkOf(input::UserId user) const noexcept;
     // Réglages rangés chez l'utilisateur, écrits dans le fichier et rendus à la vue.
     void storeSettings(const QString& id, const tools::InkSettings& settings);
     void ensureSettings(); // QSettings → UserState (F-136), une fois par fichier
@@ -192,12 +252,13 @@ private:
     void applyToView(); // couleur (alpha du marqueur) et épaisseur rendues à PageView
     void syncToolCommands();
     void showSelection(const QVariantMap& frame, bool handlesVisible);
+    void showSecondSelection(const QVariantMap& frame);
     void setTrashHoverState(bool hover);
     void refreshSelection();
     void relayModifiers(int key, int modifiers);
     // L5-T17 : réglages gardés par outil (couleur du pot, style du connecteur, tracé choisi) rendus à
-    // l'outil.
-    void configureTool(tools::Tool* tool) const;
+    // l'outil ; L11-C9 : ceux de l'utilisateur à qui l'outil appartient.
+    void configureTool(tools::Tool* tool, input::UserId user = input::kFirstUser) const;
     void writeValue(const QString& key, const QVariant& value) const;
     QString shownInkTool() const;
     QString shownWidthTool() const;
@@ -213,11 +274,22 @@ private:
     QPointer<DocumentController> m_controller;
     QPointer<PageView> m_view;
     QPointer<render::LiftLayerItem> m_liftLayer;
+    mutable QPointer<render::LiftLayerItem> m_secondLiftLayer; // enfant QObject de m_liftLayer
     QRectF m_trashArea;
     bool m_trashHover = false;
     QString m_settingsFile;
     std::unique_ptr<tools::UserState> m_user;
+    std::unique_ptr<tools::UserState> m_secondUser; // L11-T7 : créé au premier allumage du mode
+    bool m_dualUsers = false;
+    // L11-T8, L11-T9 : objets tenus, un registre pour les deux utilisateurs, posé sur leurs sélecteurs ;
+    // déclaré avant les adaptateurs, donc détruit après les outils qui le regardent.
+    mutable tools::Grabs m_grabs;
     mutable std::unique_ptr<ToolAdapters> m_adapters;
+    mutable std::unique_ptr<ToolAdapters> m_secondAdapters; // L11-T9 : outils du second utilisateur
+    QString m_secondLastInk = QStringLiteral("pen");        // dernier outil d'encre du second utilisateur
+    // L11-T9 (rapport de L11-T6) : le doigt sélectionne par le sélecteur imposé alors que l'outil courant
+    // n'est pas Sélectionner ; son cadre est montré.
+    mutable bool m_fingerSelecting = false;
     QPointer<ActionRunner> m_actionRunner;
     mutable std::unique_ptr<ActionGate> m_gate; // refait quand l'outil de sélection change
     bool m_gateArmed = false;    // geste en cours armé par armGate : activeTool() rend la porte
@@ -226,6 +298,7 @@ private:
     std::unique_ptr<DesignModePolicy> m_policy; // posée sur l'outil de sélection à sa création
     QString m_lastInk = QStringLiteral("pen");  // dernier outil d'encre (L3-T0)
     QVariantMap m_selectionFrame;
+    QVariantMap m_secondSelectionFrame; // L11-C10 (F)
     bool m_handlesVisible = false;
     bool m_settingsLoaded = false;
     bool m_filtering = false;

@@ -20,6 +20,8 @@ target_compile_definitions(actcraft PRIVATE ACTCRAFT_VERSION="${PROJECT_VERSION}
 
 set_target_properties(actcraft PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER org.actcraft.ActCraft
+    # Nom affiché par macOS (barre des menus, Finder) ; le modèle Info.plist.in le lit (CFBundleName).
+    MACOSX_BUNDLE_BUNDLE_NAME ActCraft
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     # Modèle à nous : raison de l'accès au micro (enregistreur de son, F-293), sans quoi macOS le refuse.
@@ -27,9 +29,9 @@ set_target_properties(actcraft PROPERTIES
 
 # APK Android (décisions 28 et 31) : identifiant, nom affiché, version. versionCode = majeur × 10000 + mineur × 100
 # + correctif.
+include(ActCraftVersion)
+actcraft_version_code(ACTCRAFT_VERSION_CODE ${PROJECT_VERSION_MAJOR} ${PROJECT_VERSION_MINOR} ${PROJECT_VERSION_PATCH})
 if(ANDROID)
-    math(EXPR ACTCRAFT_VERSION_CODE
-        "${PROJECT_VERSION_MAJOR} * 10000 + ${PROJECT_VERSION_MINOR} * 100 + ${PROJECT_VERSION_PATCH}")
     set_target_properties(actcraft PROPERTIES
         QT_ANDROID_PACKAGE_NAME io.github.jejeasterix.actcraft
         QT_ANDROID_APP_NAME ActCraft

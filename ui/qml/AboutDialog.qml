@@ -31,6 +31,7 @@ Dialog {
         // Texte stylé, pas riche : seul le premier suit `linkColor` (la palette de la fenêtre, Theme.surfaceActive) ;
         // en texte riche le lien prenait le bleu par défaut de Qt, illisible sur le dialogue sombre (L1-C5).
         Label {
+            objectName: "projectLink"
             textFormat: Text.StyledText
             text: "<a href=\"%1\">%1</a>".arg(AppInfo.projectUrl)
             onLinkActivated: link => Qt.openUrlExternally(link)
@@ -40,12 +41,24 @@ Dialog {
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // Anneau de focus du champ (L11-T24) : le style n'en dessine pas pour un TextArea. Accent posé sur le
+            // dialogue sombre, autour du champ : sur le blanc du puits, il tomberait sous 3:1.
+            background: Rectangle {
+                anchors.fill: parent
+                anchors.margins: -3
+                visible: notices.activeFocus
+                color: "transparent"
+                radius: Theme.rayon + 3
+                border.width: 2
+                border.color: Theme.surfaceActive
+            }
             // Pouce lisible sur le puits blanc (le gris du style Basic y tombait sous 3:1 une fois appuyé).
             ScrollBar.vertical: ScrollBar {
                 objectName: "aboutScrollBar"
                 contentItem: ScrollThumb {}
             }
             TextArea {
+                id: notices
                 objectName: "aboutNotices"
                 readOnly: true
                 wrapMode: TextEdit.Wrap

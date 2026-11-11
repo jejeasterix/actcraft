@@ -65,10 +65,19 @@ try {
         $preset = if ($a -eq 'arm64-v8a') { 'android-arm64' } else { 'android-x86_64' }
         cmake --preset $preset
         if ($LASTEXITCODE -ne 0) { throw "configuration $preset en échec" }
-        cmake --build --preset $preset --target apk
+        # A24 (amendement 1, M13) : androiddeployqt lance Gradle ; sans démon, rien ne reste après « APK OK » et le
+        # script rend la main (rejeu figé 2 h 30 sinon).
+        # Complété, pas écrasé, et rendu tel quel après la construction.
+        $gradleOptsAvant = $env:GRADLE_OPTS
+        $env:GRADLE_OPTS = (@($env:GRADLE_OPTS, '-Dorg.gradle.daemon=false') | Where-Object { $_ }) -join ' '
+        try {
+            cmake --build --preset $preset --target apk
+        } finally {
+            $env:GRADLE_OPTS = $gradleOptsAvant
+        }
         if ($LASTEXITCODE -ne 0) { throw "construction $preset en échec" }
         $brut = Get-ChildItem -Recurse -Filter '*.apk' "build/$preset" |
-            Where-Object { $_.FullName -match 'outputs[\\/]apk' } | Sort-Object LastWriteTime | Select-Object -Last 1
+            Where-Object { $_.FullName -match 'outputs[\\/]apk' -and $_.Name -notmatch 'actcraft-bench' } | Sort-Object LastWriteTime | Select-Object -Last 1
         if (-not $brut) { throw "aucun APK produit sous build/$preset" }
 
         $aligne = Join-Path $sortie "ActCraft-$version-$a-aligne.apk"
@@ -130,7 +139,9 @@ try {
         if (-not $signataire) { throw 'signature : aucun certificat de signataire' }
         Write-Output "$a : signature = $($signataire.Matches[0].Groups[1].Value)"
 
-        & "$PSScriptRoot/verifier-licences.ps1" -Apk $final
+        # Greffons comparés au Qt de cette ABI (le défaut du contrôle est le Qt arm64).
+        $qtAbi = if ($a -eq 'arm64-v8a') { $env:ACTCRAFT_QT_ANDROID_ARM64_DIR } else { $env:ACTCRAFT_QT_ANDROID_X86_64_DIR }
+        & "$PSScriptRoot/verifier-licences.ps1" -Apk $final -QtDir $qtAbi
         if ($LASTEXITCODE -ne 0) { throw 'licences en échec' }
         Write-Output "APK : $final"
         $enControle = $null

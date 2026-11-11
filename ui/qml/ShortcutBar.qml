@@ -12,6 +12,7 @@ Item {
     property PageView view: null
     property var profile: null
     property var preferences: null
+    property bool horizontal: false
     readonly property alias model: appShortcuts
     readonly property bool hasButtons: appShortcuts.buttons.length > 0
     readonly property alias launchers: launchers
@@ -20,6 +21,9 @@ Item {
     readonly property string runId: "launcher.run"
     // E3 : bouton d'édition en bas, absent si la palette est réduite ou la barre masquée.
     readonly property bool editVisible: root.profile ? !(root.profile.paletteCollapsed || root.profile.shortcutsHidden) : true
+    readonly property bool editShown: root.editVisible && root.commands.isAvailable(root.editId)
+    // Au moins un bouton à montrer : sans lui, la palette ne réserve aucune place à la barre.
+    readonly property bool hasContent: root.hasButtons || root.launcherCount > 0 || root.editShown
     implicitWidth: column.implicitWidth
     implicitHeight: column.implicitHeight
 
@@ -40,9 +44,13 @@ Item {
         profile: root.profile
     }
 
-    Column {
+    // Une colonne, ou une rangée comme les groupes de la palette quand elle est horizontale (ancrée en haut ou
+    // en bas : une seule rangée de boutons tient dans sa hauteur).
+    Grid {
         id: column
         spacing: Theme.espace1
+        columns: root.horizontal ? -1 : 1
+        rows: root.horizontal ? 1 : -1
         Repeater {
             model: appShortcuts.buttons
             delegate: Loader {
@@ -59,7 +67,7 @@ Item {
             objectName: "launcherEditButton"
             commands: root.commands
             commandId: root.editId
-            visible: root.editVisible && root.commands.isAvailable(root.editId)
+            visible: root.editShown
         }
     }
 

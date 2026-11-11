@@ -5,6 +5,7 @@
 #include <actcraft/core/model.h>
 #include <actcraft/core/pageedits.h>
 #include <actcraft/input/sample.h>
+#include <actcraft/input/touchmodes.h>
 #include <actcraft/render/fixedpageitem.h>
 #include <actcraft/render/liftlayeritem.h>
 #include <actcraft/render/pagepainter.h>
@@ -19,6 +20,7 @@
 #include <actcraft/ui/toolhost.h>
 
 #include <QMouseEvent>
+#include <QPointingDevice>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -206,6 +208,7 @@ private slots:
     // Correctifs de la revue de L8-T9 : le geste réel, par l'outil actif de l'hôte.
     void gateClickRunsThroughActiveTool();
     void gateDragMovesWithoutRunning();
+    void gateFingerTapInSelectModeRuns();
     void groupWithoutActionDoesNotHide();
     void diagonalStrokeBlocksOnlyItsLine();
     void hoverFollowsTheStrokeLine();
@@ -641,8 +644,8 @@ void TstUiActionrunner::alignGroupAndSelectAllUseRegistry()
     QCOMPARE(refused.size(), 2);
 }
 
-// H8-7 : une commande déclarée sans gestionnaire sur la tête (lot 7 absent) est une action non prise en
-// charge.
+// Une commande déclarée dont ce montage n'enregistre aucun gestionnaire (le rideau est déclaré, mais rien ne
+// le tient ici) est une action non prise en charge.
 void TstUiActionrunner::commandWithoutHandlerIsUnsupported()
 {
     load(documentWith({action("command.present.curtain"), action("object.toggle-hidden", kLabel)}));
@@ -704,6 +707,33 @@ void TstUiActionrunner::gateClickRunsThroughActiveTool()
     QCoreApplication::processEvents();
     QVERIFY2(hidden(kLabel), "le clic exécute l'action");
     QCOMPARE(tools.selectionCount(), 0); // ni l'appui ni le relâché ne sont allés à la sélection
+    tools.setActionRunner(nullptr);
+}
+
+// L11-C1 (revue de C1, M1) : mode du toucher select, outil courant la sélection, appui au doigt sur un objet
+// d'action : l'outil imposé au doigt est l'outil actif, porte de l'exécuteur comprise (armée sur
+// TouchBegin) ; l'action part. Sous le sélecteur brut, l'appui sélectionnait l'objet.
+void TstUiActionrunner::gateFingerTapInSelectModeRuns()
+{
+    load(documentWith({action("object.toggle-hidden", kLabel)}));
+    ViewMount mount;
+    ui::ToolHost tools;
+    tools.setSettingsFile(m_dir.filePath(QStringLiteral("outils.ini")));
+    tools.setDocumentController(m_controllerOwner.get());
+    QVERIFY(mount.mount(*m_controllerOwner, tools));
+    tools.setActionRunner(m_runner.get());
+    tools.selectObjects({}); // l'outil de sélection
+    QCOMPARE(tools.currentTool(), QStringLiteral("select"));
+    mount.view->setRoutingPolicy(input::makeTouchPolicy(input::TouchMode::Select));
+    QPointingDevice* touch = QTest::createTouchDevice();
+    const QPoint at = windowPoint(*mount.view, kOnRound);
+    m_runner->setContactActive(true);
+    QTest::touchEvent(mount.window, touch).press(0, at);
+    QTest::touchEvent(mount.window, touch).release(0, at);
+    m_runner->setContactActive(false);
+    QCoreApplication::processEvents();
+    QVERIFY2(hidden(kLabel), "l'appui au doigt exécute l'action");
+    QCOMPARE(tools.selectionCount(), 0);
     tools.setActionRunner(nullptr);
 }
 

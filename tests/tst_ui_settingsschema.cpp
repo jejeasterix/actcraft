@@ -9,6 +9,7 @@
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
+#include <QQuickWindow>
 #include <QRegularExpression>
 #include <QSet>
 #include <QSettings>
@@ -480,6 +481,26 @@ private slots:
         QVERIFY(schema);
         QCOMPARE(schema->profile(), &f.profile);
         QCOMPARE(schema->preferences(), &f.preferences);
+    }
+
+    // L11-C12 : la case « au démarrage » est visible là où help.check-updates est disponible (Windows et
+    // macOS), pas seulement sous Windows.
+    void updateCheckBoxFollowsTheCommandPlatforms()
+    {
+        Fixture f;
+        QQmlEngine engine;
+        const std::unique_ptr<QObject> page = createSettingsPage(engine, f);
+        QVERIFY(page);
+        QQuickWindow window; // la visibilité effective suppose une fenêtre
+        qobject_cast<QQuickItem*>(page.get())->setParentItem(window.contentItem());
+        qobject_cast<QQuickItem*>(page.get())->setVisible(true); // une racine QML créée seule est cachée
+        page->setProperty("currentSection", QStringLiteral("network"));
+        QQuickItem* box =
+            findItem(qobject_cast<QQuickItem*>(page.get()), QStringLiteral("setting-updates-check-at-start"));
+        QVERIFY(box);
+        const bool expected = QSysInfo::productType() == QLatin1String("windows") ||
+                              QSysInfo::productType() == QLatin1String("macos");
+        QCOMPARE(box->isVisible(), expected);
     }
 
     // « Revenir à l'origine » (ProfileController::resetCurrent : store().reset puis activate du même

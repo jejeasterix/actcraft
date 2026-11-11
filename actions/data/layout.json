@@ -14,7 +14,7 @@
       { "submenu": "arrange", "label": "Organiser", "items": ["arrange.front", "arrange.back", "arrange.forward", "arrange.backward", "-", "arrange.layer-top", "arrange.layer-middle", "arrange.layer-bottom"] }] },
     { "id": "view", "label": "Affichage", "items": ["view.fullscreen", "-", "page.previous", "page.next", "-", "view.fit", "-", "view.page-zoom", "view.page-effects", "-", "view.trash", "-", "view.browsers", "view.page-extension", "-", "view.pen-modifiers", "view.tabs", "-", "view.dashboard",
       { "submenu": "palette", "label": "Palette", "items": ["palette.dock-left", "palette.dock-right", "palette.dock-top", "palette.dock-bottom", "palette.float", "-", "palette.collapse", "palette.collapse-full", "palette.pin"] },
-      "browser.objects", "browser.properties", "browser.notes", "browser.resources", "mode.design"] },
+      "browser.objects", "browser.properties", "browser.notes", "browser.resources", "mode.design", "-", "touch.mode", "users.dual"] },
     { "id": "insert", "label": "Insérer", "items": ["insert.date-time", "insert.equation", "-",
       { "submenu": "insert-page", "label": "Page", "items": ["page.insert-before", "page.insert-after"] },
       "-", "insert.image", "insert.media", "tool.connector",
@@ -28,7 +28,7 @@
       { "submenu": "recorders", "label": "Enregistreurs", "items": ["record.sound", "record.screen-full", "record.screen-area"] },
       "media.sound-controller",
       "-", "spell.check", "launcher.edit", "classroom.lock", "classroom.password", "-", "profile.edit"] },
-    { "id": "help", "label": "Aide", "items": ["help.contents", "help.website", "-", "help.about"] }
+    { "id": "help", "label": "Aide", "items": ["help.contents", "help.website", "help.check-updates", "-", "help.about"] }
   ],
   "palette": [
     { "group": "commandes", "items": ["menu.main", "menu.tools", "profile.choose", "mode.design"] },
