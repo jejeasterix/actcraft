@@ -10,8 +10,9 @@ name: Release
 #   utilisable qu'une fois le workflow sur main). Branche essai-ci/release-mac-<sujet> : même essai sans le job
 #   « windows », pour prouver les jobs du Mac quand le PC est pris.
 # Exécuteurs (O98, rapport d'O86) : runner auto-hébergé du Mac mini pour tous les jobs, sauf « windows » (runner du
-# PC, étapes de paquet-windows de ci.yml) et « android » en mode réel (ubuntu-latest : le cache d'outils du Mac est
-# réécrit par les jobs de PR, il ne reçoit pas la clé de signature). Aucun repli sur macos-latest ni windows-latest.
+# PC, étapes de paquet-windows de ci.yml), et sauf « secrets » et « android » en mode réel (ubuntu-latest) : ce sont
+# les deux seuls jobs qui lisent les secrets de signature, et le Mac, dont le cache d'outils et le runner sont réécrits
+# par les jobs de PR, ne les reçoit jamais. Aucun repli sur macos-latest ni windows-latest.
 # Qt officiel (aqtinstall), jamais celui de Homebrew : son Qt WebEngine a les codecs propriétaires (H.264), que la
 # release ne redistribue pas (décision de Jérôme). Chaque job de paquet le vérifie avant de construire.
 # Mode « essai » : tout est construit et essayé, l'APK est signé par une clé de débogage (non publiable) ; aucun
@@ -50,8 +51,9 @@ env:
 jobs:
   mode:
     runs-on: [self-hosted, macOS, ARM64, actcraft]
-    # Attente du runner du Mac comprise (il prend les jobs un par un).
-    timeout-minutes: 15
+    # Le hook de début de job du Mac (garde-job.sh) attend une place de compilation jusqu'à 45 min, dans la durée du
+    # job : délai = 45 min + durée propre du job.
+    timeout-minutes: 60
     outputs:
       mode: ${{ steps.mode.outputs.mode }}
       version: ${{ steps.mode.outputs.version }}
@@ -97,16 +99,12 @@ jobs:
     needs: mode
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
-    runs-on: [self-hosted, macOS, ARM64, actcraft]
-    timeout-minutes: 15
+    # ubuntu-latest, mode réel seulement (un job court par release) : il lit les secrets de signature, qui ne vont
+    # jamais sur le Mac mini (cache d'outils et runner réécrits par les jobs de PR), comme le job android réel.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: ./.github/actions/gardes-mac
-        with:
-          memoire-go: "0"
-
-      - uses: ./.github/actions/pwsh-mac
 
       - name: Secrets de signature
         shell: pwsh
@@ -151,7 +149,9 @@ jobs:
     needs: mode
     if: needs.mode.outputs.mode == 'essai'
     runs-on: [self-hosted, macOS, ARM64, actcraft]
-    timeout-minutes: 15
+    # Le hook de début de job du Mac (garde-job.sh) attend une place de compilation jusqu'à 45 min, dans la durée du
+    # job : délai = 45 min + durée propre du job.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -342,8 +342,9 @@ jobs:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     runs-on: [self-hosted, macOS, ARM64, actcraft]
-    # Premier run : Qt officiel téléchargé dans le cache du runner (Qt WebEngine compris), puis compilation Release.
-    timeout-minutes: 90
+    # 45 min d'attente possible au hook de début de job (place de compilation), puis premier run : Qt officiel
+    # téléchargé dans le cache du runner (Qt WebEngine compris), compilation Release, image disque.
+    timeout-minutes: 135
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -453,8 +454,9 @@ jobs:
     # Mode réel : ubuntu-latest (réserve de relecture d'O86 : le cache d'outils du Mac, réécrit par les jobs de PR, ne
     # reçoit pas la clé de signature). Mode essai : Mac mini, chaîne Android du cache du runner, comme ci.yml.
     runs-on: ${{ needs.mode.outputs.mode == 'reel' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
-    # Mac mini : attente de mémoire (15 min au plus) et premier run plus long (Qt pour Android dans le cache).
-    timeout-minutes: ${{ needs.mode.outputs.mode == 'reel' && 25 || 60 }}
+    # Mac mini : hook de début de job (45 min au plus), attente de mémoire (15 min au plus), premier run plus long (Qt
+    # pour Android dans le cache).
+    timeout-minutes: ${{ needs.mode.outputs.mode == 'reel' && 25 || 105 }}
     env:
       # Un démon Gradle resté vivant verrouille le dossier de construction (piège L1-T17).
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -574,8 +576,9 @@ jobs:
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
     runs-on: [self-hosted, macOS, ARM64, actcraft]
-    # Attente du runner du Mac comprise (il prend les jobs un par un).
-    timeout-minutes: 20
+    # Le hook de début de job du Mac (garde-job.sh) attend une place de compilation jusqu'à 45 min, dans la durée du
+    # job : délai = 45 min + durée propre du job.
+    timeout-minutes: 65
     permissions:
       contents: write
     steps:
@@ -638,9 +641,13 @@ jobs:
     needs: [mode, windows, android, macos, release]
     if: always() && needs.mode.outputs.mode == 'reel'
     runs-on: [self-hosted, macOS, ARM64, actcraft]
-    timeout-minutes: 15
+    # Le hook de début de job du Mac (garde-job.sh) attend une place de compilation jusqu'à 45 min, dans la durée du
+    # job : délai = 45 min + durée propre du job.
+    timeout-minutes: 60
+    # contents: read pour le checkout de l'action locale des gardes (dépôt privé).
     permissions:
       actions: write
+      contents: read
     steps:
       # Copie du dépôt pour l'action locale des gardes (dépôt privé) ; rien d'autre n'en est lu.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

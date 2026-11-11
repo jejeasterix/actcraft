@@ -82,9 +82,11 @@ rm -f "$clients_sql"
 
 # Qt WebEngine (cadrage DA4) : le greffon référence @rpath/QtWebEngine…, que macdeployqt ne résout pas chez Homebrew, et
 # le processus auxiliaire exige Helpers/ et Resources/ complets : frameworks copiés entiers, en-têtes retirés.
+# Repli sur la formule Homebrew seulement sans ACTCRAFT_QT_DIR : avec un Qt désigné (Qt officiel de release.yml), un
+# framework manquant arrête le paquet au lieu de prendre celui de Homebrew (Qt WebEngine à codecs propriétaires).
 copier_framework() { # <formule Homebrew> <nom du framework>
   local source="$qt/lib/$2.framework"
-  [ -d "$source" ] || source="$(brew --prefix "$1" 2>/dev/null)/lib/$2.framework"
+  [ -d "$source" ] || [ -n "${ACTCRAFT_QT_DIR:-}" ] || source="$(brew --prefix "$1" 2>/dev/null)/lib/$2.framework"
   [ -d "$source" ] || echec "$2.framework introuvable (ni $qt/lib, ni formule $1)"
   rm -rf "$app/Contents/Frameworks/$2.framework"
   # -H : chez Homebrew, $qt/lib/<nom>.framework est un lien ; c'est le framework qu'il faut copier.
@@ -130,10 +132,10 @@ for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/S
 done
 rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
 rm -rf "$app/Contents/PlugIns/webview" # Qt WebView : Android seulement (cadrage n° 8)
-# Greffon FFmpeg de Qt Multimedia (Qt officiel) : il embarque les bibliothèques de FFmpeg, décodeur H.264 compris, que la
-# release ne redistribue pas sur Mac (décision de Jérôme : release sans H.264). Le greffon darwin reste (AVFoundation,
-# codecs du système), comme avec Qt Homebrew, qui n'a que lui ; les bibliothèques de FFmpeg, plus référencées, partent
-# dans la boucle plus bas.
+# Greffon FFmpeg de Qt Multimedia (Qt officiel ; Qt Homebrew n'a que le greffon darwin) : il tire les bibliothèques de
+# FFmpeg, décodeur H.264 compris. Le paquet Mac n'en a jamais livré (THIRD_PARTY_NOTICES.md : FFmpeg sous Windows et
+# Android) et la release n'ajoute pas de H.264 (décision de Jérôme) : retiré. Le greffon darwin reste (AVFoundation,
+# codecs du système) ; les bibliothèques de FFmpeg, plus référencées, partent dans la boucle plus bas.
 rm -f "$app/Contents/PlugIns/multimedia/libffmpegmediaplugin.dylib"
 [ -f "$app/Contents/PlugIns/multimedia/libdarwinmediaplugin.dylib" ] ||
   echec "greffon multimédia darwin absent du bundle (PlugIns/multimedia)"
