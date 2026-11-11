@@ -841,30 +841,63 @@ private slots:
 
     // Chaque panneau du lot qui prend l'entrée est une couverture déclarée une fois ouvert : un trait au
     // stylet sous son corps ne verse rien, et le clic de souris sur chacun de ses boutons de palette ou de
-    // modèle ne laisse aucun point sur la page.
-    void everyInputPanelIsACover()
+    // modèle ne laisse aucun point sur la page. Une ligne par panneau ou surcouche : chacune ouvre sa fenêtre
+    // principale, et dix fenêtres d'une seule fonction passaient la limite de 300 s de QTest sur le PC
+    // (debug, environ 30 s par fenêtre ; 888 s pour tout tst_ui_presentation sur main, run 42845172884).
+    void everyInputPanelIsACover_data()
     {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<QString>("command");
+        QTest::addColumn<QString>("root");
+        QTest::addColumn<QPointF>("page");
         const PanelRoot panels[] = {{"tool.dice", "diceRoot"},
                                     {"tool.calculator", "calculatorRoot"},
                                     {"tool.clock", "clockRoot"},
                                     {"insert.equation", "equationRoot"},
                                     {"view.page-effects", "effectsRoot"}};
         for (const PanelRoot& entry : panels) {
+            QTest::newRow(entry.command) << QStringLiteral("panel") << QString::fromLatin1(entry.command)
+                                         << QString::fromLatin1(entry.root) << QPointF();
+        }
+        // Surcouches : la partie qui prend l'entrée, un trait au stylet n'y verse rien.
+        // Rideau fermé : couvre toute la page (CurtainOverlay.qml:8-10, L7-T3). Zoom de page : couvre toute
+        // la zone (PageZoomOverlay.qml:8-9, L7-T5). Spot : la partie masquée couvre, la zone éclairée laisse
+        // passer l'encre par conception (SpotlightOverlay.qml:9-12, L7-T4) : le coin de la page est masqué.
+        QTest::newRow("present.curtain")
+            << QStringLiteral("page") << QStringLiteral("present.curtain") << QString() << QPointF(500, 400);
+        QTest::newRow("view.page-zoom")
+            << QStringLiteral("page") << QStringLiteral("view.page-zoom") << QString() << QPointF(500, 400);
+        QTest::newRow("present.spotlight-circle")
+            << QStringLiteral("page") << QStringLiteral("present.spotlight-circle") << QString()
+            << QPointF(30, 30);
+        QTest::newRow("tool.ticker") << QStringLiteral("ticker") << QStringLiteral("tool.ticker") << QString()
+                                     << QPointF();
+        QTest::newRow("math.ruler") << QStringLiteral("ruler") << QStringLiteral("math.ruler") << QString()
+                                    << QPointF();
+    }
+
+    void everyInputPanelIsACover()
+    {
+        QFETCH(QString, kind);
+        QFETCH(QString, command);
+        QFETCH(QString, root);
+        QFETCH(QPointF, page);
+        if (kind == QLatin1String("panel")) {
             presentationharness::MainWindow main;
             QVERIFY(main.window() != nullptr);
-            QVERIFY2(main.run(QLatin1String(entry.command)), entry.command);
-            QQuickItem* panel = main.item(QLatin1String(entry.root));
-            QVERIFY2(panel != nullptr && panel->isVisible(), entry.root);
+            QVERIFY2(main.run(command), qPrintable(command));
+            QQuickItem* panel = main.item(root);
+            QVERIFY2(panel != nullptr && panel->isVisible(), qPrintable(root));
             QQuickItem* layer = main.item(QStringLiteral("presentationLayer"));
             // Tout le panneau dans la fenêtre : le coin haut gauche en (300, 10) de la couche.
             panel->setPosition(QPointF(300, 10));
-            QVERIFY2(layer->height() >= panel->y() + panel->height(), entry.root);
+            QVERIFY2(layer->height() >= panel->y() + panel->height(), qPrintable(root));
             QTest::qWait(50);
             const int before = main.pageObjectCount();
             const QPointF body = panel->mapToScene(QPointF(30, panel->height() - 20));
             presentationharness::strokeAt(main.window(), Pointer::Stylus, body, body + QPointF(60, 0));
             QTest::qWait(50);
-            QVERIFY2(main.pageObjectCount() == before, entry.root);
+            QVERIFY2(main.pageObjectCount() == before, qPrintable(root));
 
             // Les boutons, par leur nom (relus à chaque clic : un clic peut reconstruire la liste).
             QStringList names;
@@ -874,7 +907,7 @@ private slots:
                     names << item->objectName();
                 }
             }
-            QVERIFY2(!names.isEmpty(), entry.root);
+            QVERIFY2(!names.isEmpty(), qPrintable(root));
             for (const QString& name : std::as_const(names)) {
                 if (name == QLatin1String("floatingPanelClose") || name.endsWith(QLatin1String("OkButton")) ||
                     name == QLatin1String("calculatorPlaceButton")) {
@@ -888,8 +921,7 @@ private slots:
                 // Le bouton est dans les bornes du panneau (la vue teste la couverture sur ces bornes) ; un
                 // bouton qui en déborde laisse passer l'appui vers la page.
                 QVERIFY2(panel->contains(panel->mapFromScene(centre)),
-                         qPrintable(
-                             QStringLiteral("%1 : %2 hors du panneau").arg(QLatin1String(entry.root), name)));
+                         qPrintable(QStringLiteral("%1 : %2 hors du panneau").arg(root, name)));
                 // Avec un léger tremblement de main, comme un vrai clic.
                 QTest::mouseMove(main.window(), centre.toPoint());
                 QTest::mousePress(main.window(), Qt::LeftButton, Qt::NoModifier, centre.toPoint());
@@ -898,34 +930,23 @@ private slots:
                                     (centre + QPointF(2, 1)).toPoint());
                 QTest::qWait(30);
                 QVERIFY2(main.pageObjectCount() == before,
-                         qPrintable(QStringLiteral("%1 : %2").arg(QLatin1String(entry.root), name)));
+                         qPrintable(QStringLiteral("%1 : %2").arg(root, name)));
             }
+            return;
         }
-
-        // Surcouches : la partie qui prend l'entrée, un trait au stylet n'y verse rien.
-        // Rideau fermé : couvre toute la page (CurtainOverlay.qml:8-10, L7-T3). Zoom de page : couvre toute
-        // la zone (PageZoomOverlay.qml:8-9, L7-T5). Spot : la partie masquée couvre, la zone éclairée laisse
-        // passer l'encre par conception (SpotlightOverlay.qml:9-12, L7-T4) : le coin de la page est masqué.
-        const struct
-        {
-            const char* command;
-            QPointF page;
-        } pageOverlays[] = {{"present.curtain", {500, 400}},
-                            {"view.page-zoom", {500, 400}},
-                            {"present.spotlight-circle", {30, 30}}};
-        for (const auto& overlay : pageOverlays) {
+        if (kind == QLatin1String("page")) {
             presentationharness::MainWindow main;
             QVERIFY(main.window() != nullptr);
-            QVERIFY2(main.run(QLatin1String(overlay.command)), overlay.command);
+            QVERIFY2(main.run(command), qPrintable(command));
             QTest::qWait(50);
             const int before = main.pageObjectCount();
-            stylusStroke(main, overlay.page, overlay.page + QPointF(80, 0));
+            stylusStroke(main, page, page + QPointF(80, 0));
             QTest::qWait(50);
-            QVERIFY2(main.pageObjectCount() == before, overlay.command);
+            QVERIFY2(main.pageObjectCount() == before, qPrintable(command));
+            return;
         }
-
         // Message défilant : la bande (containmentMask de la racine, TickerOverlay.qml:9-12, L7-T18) couvre.
-        {
+        if (kind == QLatin1String("ticker")) {
             presentationharness::MainWindow main;
             QVERIFY(main.window() != nullptr);
             QVERIFY(main.run(QStringLiteral("tool.ticker")));
@@ -943,10 +964,11 @@ private slots:
             presentationharness::strokeAt(main.window(), Pointer::Stylus, probe, probe + QPointF(80, 0));
             QTest::qWait(50);
             QVERIFY(main.pageObjectCount() == before);
+            return;
         }
-
         // Outils de maths : la règle ne dessine aucune encre et le stylo la traverse par conception (guide du
         // trait, MathToolsLayer.qml:4-8, L7-T9) ; la partie qui prend l'entrée est sa zone de déplacement.
+        QCOMPARE(kind, QStringLiteral("ruler"));
         {
             presentationharness::MainWindow main;
             QVERIFY(main.window() != nullptr);
