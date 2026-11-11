@@ -35,8 +35,9 @@ on:
 
 # Un seul run à la fois par référence (un run en cours n'est pas annulé). Une release déjà présente pour le tag,
 # brouillon compris, arrête le job « release » (RELEASE EXISTE DEJA) : jamais de second brouillon.
-# Environnement GitHub « release » (tags v* seulement, secrets de signature) : référencé en mode réel seulement ; en
-# mode essai le nom est vide, aucun environnement n'est créé ni lu. Création au go : .claude/chantier.md.
+# Environnement GitHub « release » (tags v* seulement, secrets de signature) : référencé par « secrets » et « android »,
+# en mode réel seulement ; en mode essai le nom est vide, aucun environnement n'est créé ni lu. Création au go :
+# .claude/chantier.md.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -574,7 +575,8 @@ jobs:
   release:
     needs: [mode, secrets, windows, android, macos]
     if: needs.mode.outputs.mode == 'reel'
-    environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
+    # Sans environnement : ce job ne lit aucun secret de signature, et aucun ne doit atteindre le Mac mini. La règle de
+    # l'environnement « release » (tags v* seulement) est déjà tenue par le job « secrets », dont il dépend.
     runs-on: [self-hosted, macOS, ARM64, actcraft]
     # Le hook de début de job du Mac (garde-job.sh) attend une place de compilation jusqu'à 45 min, dans la durée du
     # job : délai = 45 min + durée propre du job.
