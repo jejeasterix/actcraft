@@ -7,7 +7,13 @@ name: Release
 #   SHA256SUMS.txt ; notes tirées de CHANGELOG.md ; BROUILLON de release, jamais publié par ce workflow.
 # - workflow_dispatch : « essai » ou « reel » (mêmes règles ; « reel » se lance sur le tag v<version>).
 # - Push d'une branche essai-ci/release-<sujet> : « essai », pour prouver le flux sans tag (workflow_dispatch n'est
-#   utilisable qu'une fois le workflow sur main).
+#   utilisable qu'une fois le workflow sur main). Branche essai-ci/release-mac-<sujet> : même essai sans le job
+#   « windows », pour prouver les jobs du Mac quand le PC est pris.
+# Exécuteurs (O98, rapport d'O86) : runner auto-hébergé du Mac mini pour tous les jobs, sauf « windows » (runner du
+# PC, étapes de paquet-windows de ci.yml) et « android » en mode réel (ubuntu-latest : le cache d'outils du Mac est
+# réécrit par les jobs de PR, il ne reçoit pas la clé de signature). Aucun repli sur macos-latest ni windows-latest.
+# Qt officiel (aqtinstall), jamais celui de Homebrew : son Qt WebEngine a les codecs propriétaires (H.264), que la
+# release ne redistribue pas (décision de Jérôme). Chaque job de paquet le vérifie avant de construire.
 # Mode « essai » : tout est construit et essayé, l'APK est signé par une clé de débogage (non publiable) ; aucun
 # secret lu, aucun artefact téléversé, aucune release. Un job y prouve que le mode réel, privé de secrets, échoue avec
 # son message. Le tag, sa poussée et la publication du brouillon relèvent du go écrit de Jérôme (action finale,
@@ -43,13 +49,22 @@ env:
 
 jobs:
   mode:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: [self-hosted, macOS, ARM64, actcraft]
+    # Attente du runner du Mac comprise (il prend les jobs un par un).
+    timeout-minutes: 15
     outputs:
       mode: ${{ steps.mode.outputs.mode }}
       version: ${{ steps.mode.outputs.version }}
+      windows: ${{ steps.mode.outputs.windows }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Gardes du Mac mini (dépôt privé) sans attente de mémoire : job léger. Puis PowerShell du cache du runner.
+      - uses: ./.github/actions/gardes-mac
+        with:
+          memoire-go: "0"
+
+      - uses: ./.github/actions/pwsh-mac
 
       # Contexte passé par l'environnement, jamais interpolé dans le script (un nom de branche peut contenir « ' »).
       - id: mode
@@ -70,19 +85,28 @@ jobs:
             Write-Output "Tag $env:NOM_REF différent de la version du projet (v$version) : arrêt."
             exit 1
           }
+          # Job « windows » sauté seulement en essai poussé sur essai-ci/release-mac-<sujet> ; toujours joué en réel.
+          $windows = if ($mode -eq 'essai' -and $env:TYPE_REF -eq 'branch' -and $env:NOM_REF -clike 'essai-ci/release-mac-*') { 'false' } else { 'true' }
           "mode=$mode" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
-          Write-Output "Mode $mode, version $version ($env:EVENEMENT, $env:TYPE_REF $env:NOM_REF)"
+          "windows=$windows" >> $env:GITHUB_OUTPUT
+          Write-Output "Mode $mode, version $version, job windows : $windows ($env:EVENEMENT, $env:TYPE_REF $env:NOM_REF)"
 
   # Mode réel : refus, avant toute construction, si un secret de signature manque (secret absent = variable vide).
   secrets:
     needs: mode
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: [self-hosted, macOS, ARM64, actcraft]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: ./.github/actions/gardes-mac
+        with:
+          memoire-go: "0"
+
+      - uses: ./.github/actions/pwsh-mac
 
       - name: Secrets de signature
         shell: pwsh
@@ -126,10 +150,16 @@ jobs:
   controle-mode-reel:
     needs: mode
     if: needs.mode.outputs.mode == 'essai'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: [self-hosted, macOS, ARM64, actcraft]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: ./.github/actions/gardes-mac
+        with:
+          memoire-go: "0"
+
+      - uses: ./.github/actions/pwsh-mac
 
       # Même script que le job « secrets », dans la forme qu'y prend un secret absent : variable définie et vide.
       # Contre-épreuve avec des valeurs factices : le contrôle laisse passer, il n'échoue donc pas toujours.
@@ -170,53 +200,123 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/notes.txt" -Tail 1) -cne 'NOTES OK : notes.md') { exit 1 }
           Get-Content notes.md
 
-  # S1 : installateur construit et essayé comme dans ci.yml (paquet-windows) ; téléversé en mode réel seulement.
+  # S1 : installateur construit et essayé sur le runner du PC, comme le job paquet-windows de ci.yml (O86) ; téléversé
+  # en mode réel seulement. Aucun repli sur windows-latest. Essai S1 hors écran (aucune fenêtre sur l'écran de
+  # Jérôme), refusé si ActCraft est déjà installé dans le profil (il le désinstallerait).
   windows:
     needs: [mode, secrets]
-    if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
-    runs-on: windows-latest
-    # 20 min ne suffisaient plus au lot 5 : construction de l'installateur coupée à 18 min, deux fois (v0.6.0).
-    timeout-minutes: 45
+    if: ${{ !cancelled() && needs.mode.result == 'success' && needs.mode.outputs.windows == 'true' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
+    runs-on: [self-hosted, Windows, X64, actcraft]
+    # Délai de paquet-windows : 260 min = 90 + 170 (garde du PC, O177 : l'attente de l'autre runner compte dans ce
+    # délai, 2 h 30 au plus, plus 15 min de mémoire basse).
+    timeout-minutes: 260
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: "3.12"
-
-      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 : même commit que ci.yml.
-      - name: Installer Ninja et aqtinstall
-        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-
-      - name: Installer Qt
-        shell: bash
+      # La garde qui fait foi est C:\actions-runner-actcraft\garde-job.ps1 (ACTIONS_RUNNER_HOOK_JOB_STARTED).
+      - name: Garde du runner auto-hébergé Windows (visibilité)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
-          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
-          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
-          echo "${dir%/}/bin" >> "$GITHUB_PATH"
+          $visibilite = (gh api "repos/$env:GITHUB_REPOSITORY" --jq .visibility).Trim()
+          if ($LASTEXITCODE -ne 0 -or $visibilite -ne 'private') {
+            "::error::Dépôt '$visibilite' : runner auto-hébergé interdit. Arrêter la tâche Claude-Runner-Actcraft et désenregistrer le runner (C:\actions-runner-actcraft)."
+            exit 1
+          }
+
+      # Même dossier de travail que les jobs de ci.yml : l'arbre build/ (dont build/release) reste d'un run à l'autre,
+      # tout autre fichier non suivi est retiré.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          clean: false
+
+      - name: Nettoyer la copie de travail, sauf build/
+        run: git clean -ffdx -e /build/
+
+      # Qt de C:\Qt (aqtinstall, Qt officiel), comme ci.yml, mais Qt WebEngine exigé : la release l'embarque. Son
+      # Qt WebEngine doit être sans codecs propriétaires (H.264), relevé dans les fonctions activées de son module.
+      - name: Qt du PC (Qt WebEngine sans H.264)
+        shell: pwsh
+        run: |
+          $qt = "C:\Qt\$env:QT_VERSION\msvc2022_64"
+          foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf', 'Qt6Multimedia', 'Qt6WebEngineQuick', 'Qt6WebChannel', 'Qt6Positioning') {
+            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning)"; exit 1 }
+          }
+          $pri = "$qt\mkspecs\modules\qt_lib_webenginecore_private.pri"
+          $actives = Select-String -LiteralPath $pri -Pattern '^QT\.webenginecore_private\.enabled_features\s*=' -ErrorAction SilentlyContinue
+          if (-not $actives) { "::error::fonctions de Qt WebEngine illisibles ($pri)"; exit 1 }
+          if ($actives.Line -match '(^|\s)webengine-proprietary-codecs(\s|$)') { "::error::Qt WebEngine de $qt avec codecs propriétaires (H.264) : refusé pour la release"; exit 1 }
+          "Qt WebEngine sans codecs propriétaires ($pri)"
+          "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
+          "$qt\bin" >> $env:GITHUB_PATH
+          # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.
+          "CMAKE_BUILD_PARALLEL_LEVEL=6" >> $env:GITHUB_ENV
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
-      - name: Installer Inno Setup
+      # Inno Setup déjà présent (candidats de paquet.ps1), sinon installé une fois dans le cache d'outils du runner
+      # (RUNNER_TOOL_CACHE), par utilisateur et portable, sans droits d'administrateur. Copie de ci.yml.
+      - name: Inno Setup du PC
         shell: pwsh
         run: |
-          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
-          if (-not (Test-Path $iscc)) { throw "ISCC.exe introuvable après installation" }
+          $candidats = @((Join-Path $env:LOCALAPPDATA 'Programs/Inno Setup 6/ISCC.exe'), (Join-Path $HOME '.tools/InnoSetup6/ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'), (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe'))
+          $iscc = $candidats | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            $dossier = Join-Path $env:RUNNER_TOOL_CACHE 'innosetup/6.7.3'
+            $iscc = Join-Path $dossier 'ISCC.exe'
+            if (-not (Test-Path $iscc)) {
+              $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+              Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $setup
+              $somme = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+              if ($somme -ne '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732') { throw "innosetup-6.7.3.exe : somme inattendue $somme" }
+              $p = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+                '/CURRENTUSER', '/PORTABLE=1', '/NOICONS', "/DIR=`"$dossier`"")
+              Remove-Item -Force $setup
+              if ($p.ExitCode -ne 0 -or -not (Test-Path $iscc)) { throw "installation d'Inno Setup en échec (code $($p.ExitCode))" }
+            }
+          }
+          "Inno Setup : $iscc"
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
-      - name: Construire l'installateur
+      # build/release est partagé avec les runs d'autres branches (ci.yml, preuves-windows.yml) : le cache CMake est
+      # retiré pour que les options de ce commit s'appliquent ; Ninja garde les objets compilés.
+      - name: Cache CMake de build/release retiré
+        shell: pwsh
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/CMakeCache.txt, build/release/CMakeFiles
+
+      # L'installateur ne livre que actcraft.exe : seule cette cible est compilée, et les binaires de test d'un run
+      # précédent sont retirés de build/release (disque plein du PC, run 42459120044).
+      - name: Compiler actcraft seul en release
+        timeout-minutes: 90
         shell: pwsh
         run: |
-          pwsh -NoProfile -File ./scripts/paquet.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/tests
+          Get-ChildItem -ErrorAction SilentlyContinue build/release -File -Filter 'tst_*' | Remove-Item -Force
+          $libre = (Get-PSDrive (Get-Location).Drive.Name).Free / 1GB
+          "Espace libre : {0:N1} Go" -f $libre
+          cmake --preset release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build --preset release --target actcraft
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # actcraft.exe vient de l'étape précédente (-SansConstruire). Verdict exigé sur la dernière ligne (contrôle des
+      # licences compris : paquet.ps1 appelle verifier-licences.ps1).
+      - name: Construire l'installateur
+        timeout-minutes: 90
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/paquet.ps1 -SansConstruire | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/paquet.txt" -Tail 1) -notmatch '^PAQUET OK : ') { exit 1 }
 
-      # S1 dans une vraie fenêtre, rendu D3D11 (WARP sur l'exécuteur sans GPU), comme ci.yml.
-      - name: Essai de l'installateur (S1)
+      - name: Essai de l'installateur (S1, hors écran)
         shell: pwsh
         run: |
-          pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -Rendu d3d11 | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
+          $traces = @((Join-Path ([Environment]::GetFolderPath('Programs')) 'ActCraft.lnk'),
+            'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{5F0C2E7A-3B4D-4C8E-9A61-ACC0C4AF7A10}_is1',
+            'HKCU:\Software\Classes\ActCraft.Document', 'HKCU:\Software\Classes\.actcraft')
+          $presentes = @($traces | Where-Object { Test-Path -LiteralPath $_ })
+          if ($presentes) { "::error::ActCraft déjà installé dans le profil du runner ($($presentes -join ', ')) : essai S1 refusé, il le désinstallerait."; exit 1 }
+          pwsh -NoProfile -File ./scripts/essai-installateur.ps1 -HorsEcran | Tee-Object -FilePath "$env:RUNNER_TEMP/s1.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/s1.txt" -Tail 1) -cne 'INSTALLATEUR OK') { exit 1 }
 
       - name: Somme SHA-256
@@ -236,94 +336,47 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret. Exécuteur choisi selon la visibilité du dépôt :
-  # privé → runner auto-hébergé du Mac mini, comme la valeur par défaut de l'entrée runner_macos de ci.yml
-  # (macos-latest y coûterait des minutes payantes) ; public → macos-latest (gratuit ; un runner auto-hébergé est exclu
-  # d'un dépôt public). Contrairement au job « build » de ci.yml, qui reste sur le Mac mini par défaut et ne passe sur
-  # macos-latest que par l'entrée runner_macos de workflow_dispatch, ce job n'a pas d'entrée : la visibilité décide.
-  # Aucun arrêt sur « public ». Image téléversée en mode réel seulement.
+  # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret, sur le runner du Mac mini (aucun repli sur
+  # macos-latest). Image téléversée en mode réel seulement.
   macos:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
-    runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || 'macos-latest' }}
-    timeout-minutes: 60
+    runs-on: [self-hosted, macOS, ARM64, actcraft]
+    # Premier run : Qt officiel téléchargé dans le cache du runner (Qt WebEngine compris), puis compilation Release.
+    timeout-minutes: 90
     steps:
-      # Mac mini : garde de mémoire de l'étape « Gardes du runner auto-hébergé (visibilité, mémoire) » du job build de ci.yml
-      # (sa garde de visibilité n'a plus d'objet ici : runs-on la tient).
-      - name: Garde du runner auto-hébergé (mémoire)
-        if: runner.environment != 'github-hosted'
-        run: |
-          dispo_go() {
-            # Part libre selon macOS (mémoire compressible comprise), en Go entiers.
-            memory_pressure | awk -v t="$(sysctl -n hw.memsize)" '/free percentage/ {sub("%","",$NF); printf "%d", $NF*t/100/1073741824}'
-          }
-          for i in $(seq 1 30); do
-            go=$(dispo_go)
-            if ! [ "$go" -ge 0 ] 2>/dev/null; then echo "::error::Mémoire disponible illisible (memory_pressure)"; exit 1; fi
-            if [ "$go" -ge 3 ]; then echo "Mémoire disponible : $go Go"; exit 0; fi
-            echo "Mémoire disponible : $go Go (< 3 Go), nouvel essai dans 30 s ($i/30)"
-            sleep 30
-          done
-          echo "::error::Moins de 3 Go de mémoire disponible sur le Mac depuis 15 min : build macOS abandonné, à relancer."
-          exit 1
-
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # macos-latest : Qt par aqtinstall, comme les étapes « Installer Ninja et aqtinstall » et « Installer Qt » du job build
-      # de ci.yml, avec Qt Multimedia et Qt WebView (requis).
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        if: runner.environment == 'github-hosted'
-        with:
-          python-version: "3.12"
+      # Dépôt privé, et 3 Go de mémoire disponible avant de compiler (le Mac porte aussi les sessions Claude).
+      - uses: ./.github/actions/gardes-mac
 
-      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) : version de développement,
-      # épinglée sur le commit vérifié par les runs du 2026-10-15 (même commit dans les trois jobs).
-      - name: Installer Ninja et aqtinstall
-        if: runner.environment == 'github-hosted'
-        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-
-      - name: Installer Qt
-        if: runner.environment == 'github-hosted'
-        shell: bash
-        run: |
-          python -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
-          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
-          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
-          echo "${dir%/}/bin" >> "$GITHUB_PATH"
-
-      # Mac mini : copie de l'étape « Qt, Ninja et ccache du Mac » du job build de ci.yml, sans « matrix » ; le repli aqt prend aussi qtmultimedia et qtwebview, sous
-      # un témoin qui nomme les modules. Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une
-      # fois dans le cache du runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à
-      # l'autre.
-      - name: Qt, Ninja et ccache du Mac
-        if: runner.environment != 'github-hosted' && runner.os == 'macOS'
+      # Qt officiel installé une fois dans le cache du runner (hors des worktrees des sessions), jamais celui de
+      # Homebrew (codecs propriétaires). Dossier propre à ce job et nommé par la liste des modules : un cache trouvé
+      # n'est jamais réinstallé, et le cache Qt/ de ci.yml (autres modules, autre témoin) ne l'efface pas. Une autre
+      # liste de modules prend un autre dossier ; les anciens dossiers sont retirés à l'installation. Témoin écrit en
+      # dernier : une installation interrompue est refaite au run suivant. ccache garde la compilation chaude.
+      - name: Qt officiel, Ninja et ccache du Mac
         shell: bash
         run: |
           cache="$HOME/actions-runner-actcraft/_cache"
-          mkdir -p "$cache"
-          brew_qt=/opt/homebrew/opt/qt
-          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1) || true
-          if [ "$version" = "$QT_VERSION" ]; then
-            qt_dir="$brew_qt"
+          modules="qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning"
+          base="$cache/Qt-officiel"
+          racine="$base/$QT_VERSION-$(echo "$modules" | tr ' ' '-')"
+          if [ -f "$racine/.complet" ]; then
+            echo "Qt $QT_VERSION officiel trouvé dans le cache : $racine"
           else
-            echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
-            qt_dir="$cache/Qt/$QT_VERSION/macos"
-            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant. Le cache est celui de
-            # l'étape « Qt, Ninja et ccache du Mac » de ci.yml, dont le témoin « .complet » ne garantit pas Qt Multimedia ni Qt WebView : ce job a son
-            # témoin, qui nomme les modules ; il pose aussi « .complet » (sur-ensemble des modules de ci.yml).
-            modules="qtshadertools qtimageformats qtpdf qtmultimedia qtwebview"
-            temoin="$cache/Qt/$QT_VERSION/.complet-$(echo "$modules" | tr ' ' '-')"
-            if [ ! -f "$temoin" ]; then
-              rm -rf "$cache/Qt/$QT_VERSION"
-              python3 -m venv "$cache/venv-aqt"
-              "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-              # shellcheck disable=SC2086 # $modules : un mot par module
-              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m $modules --outputdir "$cache/Qt"
-              touch "$cache/Qt/$QT_VERSION/.complet" "$temoin"
-            fi
+            rm -rf "$base"
+            mkdir -p "$racine"
+            python3 -m venv "$cache/venv-aqt"
+            "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+            # shellcheck disable=SC2086 # $modules : un mot par module
+            "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m $modules --outputdir "$racine"
+            touch "$racine/.complet"
           fi
+          qt_dir="$racine/$QT_VERSION/macos"
+          [ -x "$qt_dir/bin/macdeployqt" ] || { echo "::error::macdeployqt absent de $qt_dir"; exit 1; }
           command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
-          echo "Qt : $qt_dir ($version)"
+          echo "Qt : $qt_dir"
           echo "ACTCRAFT_QT_DIR=$qt_dir" >> "$GITHUB_ENV"
           echo "$qt_dir/bin" >> "$GITHUB_PATH"
           # 4 compilations à la fois : le Mac (8 Go) garde de la mémoire pour les sessions pendant le build.
@@ -331,18 +384,31 @@ jobs:
           if command -v ccache >/dev/null; then
             echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
             echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
-            # Pas de CCACHE_BASEDIR : il rend __FILE__ relatif et casse QFINDTESTDATA (tst_modules, tst_ui_preferences).
-            # Le dossier de travail du runner est fixe, les chemins absolus suffisent au cache.
             echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
           fi
 
-      # paquet-mac.sh refuse une construction où ACTCRAFT_MEDIA ou ACTCRAFT_WEBFRAME vaut OFF (module Qt manquant).
+      # Qt WebEngine sans codecs propriétaires (H.264) : relevé dans les fonctions activées de son module.
+      - name: Qt WebEngine sans H.264
+        shell: bash
+        run: |
+          pri="$ACTCRAFT_QT_DIR/mkspecs/modules/qt_lib_webenginecore_private.pri"
+          actives=$(grep -E '^QT\.webenginecore_private\.enabled_features[[:space:]]*=' "$pri") ||
+            { echo "::error::fonctions de Qt WebEngine illisibles ($pri)"; exit 1; }
+          if grep -qE '(^|[[:space:]])webengine-proprietary-codecs([[:space:]]|$)' <<<"$actives"; then
+            echo "::error::Qt WebEngine de $ACTCRAFT_QT_DIR avec codecs propriétaires (H.264) : refusé pour la release"
+            exit 1
+          fi
+          echo "Qt WebEngine sans codecs propriétaires ($pri)"
+
+      # paquet-mac.sh refuse une construction où ACTCRAFT_MEDIA ou ACTCRAFT_WEBFRAME vaut OFF (module Qt manquant), et
+      # appelle verifier-licences-mac.sh (LICENCES OK exigé).
       - name: Construire l'image disque
         shell: bash
         run: |
           if ./scripts/paquet-mac.sh > "$RUNNER_TEMP/paquet-mac.txt" 2>&1; then code=0; else code=$?; fi
           cat "$RUNNER_TEMP/paquet-mac.txt"
           if [ "$code" != 0 ] || ! tail -1 "$RUNNER_TEMP/paquet-mac.txt" | grep -q '^DMG OK : '; then exit 1; fi
+          grep -qx 'LICENCES OK' "$RUNNER_TEMP/paquet-mac.txt" || { echo "::error::LICENCES OK absent du journal de paquet-mac.sh"; exit 1; }
 
       # Bloquant : bundle, signature, qt.conf, otool, bibliothèques chargées à --version.
       - name: Essai de l'image disque
@@ -384,19 +450,30 @@ jobs:
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     # Mode réel seulement (secrets de signature) ; vide en mode essai : aucun environnement.
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Mode réel : ubuntu-latest (réserve de relecture d'O86 : le cache d'outils du Mac, réécrit par les jobs de PR, ne
+    # reçoit pas la clé de signature). Mode essai : Mac mini, chaîne Android du cache du runner, comme ci.yml.
+    runs-on: ${{ needs.mode.outputs.mode == 'reel' && 'ubuntu-latest' || fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') }}
+    # Mac mini : attente de mémoire (15 min au plus) et premier run plus long (Qt pour Android dans le cache).
+    timeout-minutes: ${{ needs.mode.outputs.mode == 'reel' && 25 || 60 }}
     env:
       # Un démon Gradle resté vivant verrouille le dossier de construction (piège L1-T17).
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      - uses: ./.github/actions/gardes-mac
+        if: runner.environment != 'github-hosted'
+
+      - uses: ./.github/actions/pwsh-mac
+        if: runner.environment != 'github-hosted'
+
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: runner.environment == 'github-hosted'
         with:
           python-version: "3.12"
 
-      # Qt 6.12 pour Android exige JDK 21 (VERIF jdk17, docs/verifications/2026-10-14-outillage-paquets.md).
+      # Qt 6.12 pour Android exige JDK 21 (VERIF jdk17, docs/verifications/2026-10-14-outillage-paquets.md). Sur le
+      # Mac, le JDK va dans le cache d'outils du runner.
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
@@ -406,24 +483,32 @@ jobs:
         run: cat packaging/android/versions.env >> "$GITHUB_ENV"
 
       - name: Installer Ninja et aqtinstall
+        if: runner.environment == 'github-hosted'
         run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
-      # Qt Android arm64-v8a seul ; ACTCRAFT_QT_ANDROID_X86_64_DIR désigne le même dossier pour que
-      # dev-env-android.ps1 ne s'arrête pas (le preset android-x86_64 n'est pas construit ici).
+      # Qt Android arm64-v8a seul, mêmes modules que le job android de ci.yml ; ACTCRAFT_QT_ANDROID_X86_64_DIR désigne
+      # le même dossier pour que dev-env-android.ps1 ne s'arrête pas (le preset android-x86_64 n'est pas construit ici).
       - name: Installer Qt (hôte et Android arm64-v8a)
+        if: runner.environment == 'github-hosted'
         run: |
-          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
-          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           echo "ACTCRAFT_QT_HOST_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_ARM64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_X86_64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
 
       - name: Installer le NDK, la plateforme et les build-tools
+        if: runner.environment == 'github-hosted'
         run: |
           sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$sdkmanager" --licenses > /dev/null
           "$sdkmanager" "ndk;$ANDROID_NDK_VERSION" "build-tools;$ANDROID_BUILD_TOOLS" "platforms;android-$ANDROID_PLATFORM"
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      # Mac mini, mode essai seulement : sans émulateur (la release n'essaie pas l'APK), ABI arm64-v8a seule.
+      - name: Chaîne Android du Mac (cache du runner)
+        if: runner.environment != 'github-hosted'
+        run: ./scripts/ci/outils-android-mac.sh arm64_v8a
 
       # Secrets lus en mode réel seulement (vides en mode essai). Clé et alias lus puis retirés de l'environnement de
       # l'étape avant tout lancement ; mots de passe transmis à paquet-android.ps1 par ses variables
@@ -488,12 +573,19 @@ jobs:
     needs: [mode, secrets, windows, android, macos]
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: [self-hosted, macOS, ARM64, actcraft]
+    # Attente du runner du Mac comprise (il prend les jobs un par un).
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: ./.github/actions/gardes-mac
+        with:
+          memoire-go: "0"
+
+      - uses: ./.github/actions/pwsh-mac
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -545,11 +637,18 @@ jobs:
   nettoyer:
     needs: [mode, windows, android, macos, release]
     if: always() && needs.mode.outputs.mode == 'reel'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: [self-hosted, macOS, ARM64, actcraft]
+    timeout-minutes: 15
     permissions:
       actions: write
     steps:
+      # Copie du dépôt pour l'action locale des gardes (dépôt privé) ; rien d'autre n'en est lu.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: ./.github/actions/gardes-mac
+        with:
+          memoire-go: "0"
+
       # bash explicite = « bash -eo pipefail » : un échec de la liste ou d'une suppression fait échouer l'étape. Fin
       # vérifiée : la liste relue doit être vide.
       - name: Supprimer les artefacts du run

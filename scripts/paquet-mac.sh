@@ -199,10 +199,14 @@ grep -q '^Plugins = PlugIns$' "$conf" && grep -q '^QmlImports = Resources/qml$' 
 cp LICENSE "$app/Contents/Resources/LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/"
 cp -R LICENSES "$app/Contents/Resources/LICENSES"
-# Texte de la licence de Chromium : celui de la formule ; Qt installé par aqt n'a pas de formule, la copie exacte du
-# dépôt (LICENSES/LICENSE.Chromium) le remplace.
-licence_chromium="$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium"
-[ -f "$licence_chromium" ] || licence_chromium="LICENSES/LICENSE.Chromium"
+# Texte de la licence de Chromium : celui de la formule quand Qt vient de Homebrew ; Qt installé par aqt n'a pas de
+# formule, la copie exacte du dépôt (LICENSES/LICENSE.Chromium) le remplace, même si Homebrew a aussi qtwebengine.
+licence_chromium="LICENSES/LICENSE.Chromium"
+brew_qt="$(brew --prefix qt 2>/dev/null)"
+if [ -n "$brew_qt" ] && [ "$qt" = "$brew_qt" ]; then
+  licence_brew="$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium"
+  [ -f "$licence_brew" ] && licence_chromium="$licence_brew"
+fi
 cp "$licence_chromium" "$app/Contents/Resources/LICENSE.Chromium" || echec "copie de LICENSE.Chromium"
 
 licences="$(scripts/verifier-licences-mac.sh "$app")"
