@@ -97,8 +97,26 @@ foreach ($f in 0.25, 0.5, 0.75) {
 }
 Write-Output 'accueil : ouvert au démarrage'
 $accueil = @{ X = [int]($largeur * 0.08); Y = [int]($hauteur * 0.5) }
-$null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
-if ($LASTEXITCODE -ne 0) { Echec 'toucher de l''accueil refusé' }
+# Une boîte « Application Not Responding » d'une autre application (le lanceur du système, sous la charge du démarrage
+# de l'émulateur) peut prendre le toucher : vue au journal de l'essai rouge rejoué sur l'émulateur du Mac le
+# 2026-11-11 (« Application Not Responding: com.google.android.apps.nexuslauncher »), comme aux runs 42829974229,
+# 42835158658 et 42981911851. Elle est écartée juste avant le toucher. Si elle tient le focus juste après, le toucher
+# n'a pas atteint ActCraft : elle est écartée, et le toucher n'est rejoué que si l'accueil est encore affiché, deux
+# fois au plus. Une boîte ANR d'ActCraft, ou un accueil resté ouvert sans boîte du système, reste un échec.
+$touchers = 0
+do {
+    Ecarter-Anr
+    $null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
+    if ($LASTEXITCODE -ne 0) { Echec 'toucher de l''accueil refusé' }
+    $touchers++
+    $focus = "$(Adb 30 shell dumpsys window | Select-String 'mCurrentFocus')".Trim()
+    $pris = ($focus -match 'Application Not Responding') -and ($focus -notmatch [regex]::Escape($paquet))
+    if ($pris) {
+        Write-Output "accueil : toucher pris par une boîte du système ($focus)"
+        $reprise = Capture 'accueil-reprise'
+        $pris = Proche (Pixel $reprise ($largeur - 3) ([int]($hauteur * 0.25))) $voile 16
+    }
+} while ($pris -and $touchers -lt 3)
 # Sous charge, l'accueil peut rester affiché plus de 2 s après le toucher (cause probable, non prouvée, du rouge du run
 # 42829974229). Attente bornée à 60 s, nouvelle capture toutes les 2 s, sans second toucher : il masquerait un défaut.
 $limitePalette = (Get-Date).AddSeconds(60)
