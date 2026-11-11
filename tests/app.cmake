@@ -25,23 +25,6 @@ if(ACTCRAFT_PWSH)
         COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
             -Dossier ${_licences}/refuse)
     set_tests_properties(tst_licences_refus PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES EN ECHEC : Qt6Charts")
-    # Qt WebEngine livré (codecs propriétaires) : l'avis sur les brevets H.264 et AAC est exigé dans le dossier.
-    file(MAKE_DIRECTORY ${_licences}/webengine-avis ${_licences}/webengine-sans-avis)
-    foreach(_cas webengine-avis webengine-sans-avis)
-        file(WRITE ${_licences}/${_cas}/Qt6Core.dll "")
-        file(WRITE ${_licences}/${_cas}/Qt6WebEngineCore.dll "")
-    endforeach()
-    file(COPY ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md DESTINATION ${_licences}/webengine-avis)
-    file(WRITE ${_licences}/webengine-sans-avis/THIRD_PARTY_NOTICES.md "# Avis\n")
-    add_test(NAME tst_licences_webengine_avis
-        COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
-            -Dossier ${_licences}/webengine-avis)
-    set_tests_properties(tst_licences_webengine_avis PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES OK")
-    add_test(NAME tst_licences_webengine_sans_avis
-        COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
-            -Dossier ${_licences}/webengine-sans-avis)
-    set_tests_properties(tst_licences_webengine_sans_avis PROPERTIES
-        PASS_REGULAR_EXPRESSION "LICENCES EN ECHEC : avis sur les brevets H.264 absent")
     # Garde : le dossier de construction lui-même ne contient aucune fixture refusée.
     add_test(NAME tst_licences_sans_fixture
         COMMAND ${ACTCRAFT_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/scripts/verifier-licences.ps1
@@ -52,7 +35,7 @@ if(ACTCRAFT_PWSH)
         FAIL_REGULAR_EXPRESSION "Qt6Charts" RUN_SERIAL TRUE)
 endif()
 
-# Même exigence pour un bundle macOS (verifier-licences-mac.sh) : avis présent, avis absent.
+# Avis sur les brevets H.264 et AAC exigé dans un bundle macOS qui livre Qt WebEngine (verifier-licences-mac.sh) : présent, absent.
 if(APPLE)
     set(_bundles ${CMAKE_BINARY_DIR}/../tests-fixtures/licences-mac)
     foreach(_cas avis sans-avis)

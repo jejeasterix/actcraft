@@ -26,6 +26,10 @@ soutenu par Promethean.
 - **Android 9 ou plus** : `ActCraft-<version>-arm64-v8a.apk`.
 - **macOS 27 ou plus récent** (Mac à puce Apple) : `ActCraft-<version>-macos-arm64.dmg`, non signé.
 
+Cadre web : sur macOS, il lit H.264 et AAC. Sous Windows, il ne les lit pas (le Qt officiel n'a pas ces codecs) : les
+pages qui n'offrent que H.264, comme Vimeo et Lumni, ne jouent pas, ouvrez-les dans le navigateur du système ; YouTube
+joue dans le cadre.
+
 Les paquets seront publiés sur la page des [versions](https://github.com/jejeasterix/actcraft/releases) du dépôt.
 Les paquets de la prochaine version ne sont pas encore publiés.
 

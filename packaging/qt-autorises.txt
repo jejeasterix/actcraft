@@ -107,11 +107,12 @@ Qt6FFmpegStub-ssl
 # Licence vérifiée dans l'en-tête qquickwebengineprofile.h (ligne SPDX) : « LicenseRef-Qt-Commercial OR LGPL-3.0-only OR
 # GPL-2.0-only OR GPL-3.0-only », la même que QuickControls2Basic. Dépendances relevées par otool -L de QtWebEngineCore :
 # QtCore, QtGui, QtOpenGL, QtQml, QtQuick, QtNetwork, QtWebChannel, QtPositioning et le système. Chromium : voir
-# THIRD_PARTY_NOTICES.md. Release (décision de Jérôme du 2026-11-11, docs/etudes/2026-11-11-h264-webengine.md) : Qt
-# WebEngine construit avec les codecs propriétaires (H.264, AAC), 6.11.2 de Homebrew sur le Mac, 6.11.3 construit sur le
-# PC ; même licence (ligne SPDX de qquickwebengineprofile.h, Qt WebEngine 6.11.2 Homebrew), mêmes modules. Un paquet qui
-# livre Qt6WebEngineCore doit porter l'avis « Brevets des codecs H.264 et AAC » de THIRD_PARTY_NOTICES.md :
-# verifier-licences.ps1 et verifier-licences-mac.sh le refusent sinon.
+# THIRD_PARTY_NOTICES.md. Release (décisions de Jérôme du 2026-11-11, docs/etudes/2026-11-11-h264-webengine.md) : sur le Mac,
+# Qt WebEngine 6.11.2 de Homebrew, construit avec les codecs propriétaires (H.264, AAC), même licence (ligne SPDX de
+# qquickwebengineprofile.h, Qt WebEngine 6.11.2 Homebrew), mêmes modules ; un bundle qui livre QtWebEngineCore doit
+# porter l'avis « Brevets des codecs H.264 et AAC » de THIRD_PARTY_NOTICES.md (verifier-licences-mac.sh le refuse
+# sinon). Sous Windows, Qt WebEngine du Qt officiel, sans H.264 : le cadre web ne lit pas Vimeo ni Lumni (à ouvrir
+# dans le navigateur du système).
 Qt6WebEngineCore
 Qt6WebEngineQuick
 Qt6WebEngineQuickDelegatesQml

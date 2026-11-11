@@ -13,10 +13,11 @@ name: Release
 # PC, étapes de paquet-windows de ci.yml), et sauf « secrets » et « android » en mode réel (ubuntu-latest) : ce sont
 # les deux seuls jobs qui lisent les secrets de signature, et le Mac, dont le cache d'outils et le runner sont réécrits
 # par les jobs de PR, ne les reçoit jamais. Aucun repli sur macos-latest ni windows-latest.
-# H.264 et AAC dans le cadre web (décision de Jérôme, 2026-11-11 : « inclus h264 directement sans demander de
-# contrats ») : chaque job de paquet du PC et du Mac exige un Qt WebEngine construit avec les codecs propriétaires
-# (docs/etudes/2026-11-11-h264-webengine.md). Mac : Qt de Homebrew, en lecture seule. Windows : Qt officiel copié dans
-# C:\Qt\<version>-h264, avec Qt WebEngine 6.11.3 construit sur le PC avec les codecs (scripts/qtwebengine-h264.ps1).
+# H.264 selon la plateforme (décisions de Jérôme, 2026-11-11) : le Mac exige un Qt WebEngine construit avec les codecs
+# propriétaires (Qt de Homebrew, en lecture seule ; docs/etudes/2026-11-11-h264-webengine.md). Windows : Qt officiel, dont
+# le Qt WebEngine n'a pas H.264 (Vimeo et Lumni ne jouent pas dans le cadre web, à ouvrir dans le navigateur du système) ;
+# il est exigé sans codecs propriétaires, aucune construction de Chromium (« Je ne veux pas d'une construction de 6 à
+# 10h »). FFmpeg de Qt Multimedia garde son décodeur H.264 sous Windows et Android.
 # Mode « essai » : tout est construit et essayé, l'APK est signé par une clé de débogage (non publiable) ; aucun
 # secret lu, aucun artefact téléversé, aucune release. Un job y prouve que le mode réel, privé de secrets, échoue avec
 # son message. Le tag, sa poussée et la publication du brouillon relèvent du go écrit de Jérôme (action finale,
@@ -235,24 +236,20 @@ jobs:
       - name: Nettoyer la copie de travail, sauf build/
         run: git clean -ffdx -e /build/
 
-      # Qt de la release : copie du Qt officiel de C:\Qt (celui de ci.yml, inchangé) où Qt WebEngine 6.11.3 a été construit
-      # avec les codecs propriétaires (H.264, AAC) par scripts/qtwebengine-h264.ps1, une fois, hors CI. Témoin de ce
-      # script et fonctions activées de Qt WebEngine exigés ; aucune construction de Chromium dans ce job.
-      - name: Qt du PC (Qt WebEngine avec H.264)
+      # Qt de C:\Qt (aqtinstall, Qt officiel), comme ci.yml, mais Qt WebEngine exigé : la release l'embarque. Son
+      # Qt WebEngine doit être sans codecs propriétaires (H.264), relevé dans les fonctions activées de son module.
+      - name: Qt du PC (Qt WebEngine sans H.264)
         shell: pwsh
         run: |
-          $qt = "C:\Qt\$env:QT_VERSION-h264\msvc2022_64"
-          $temoin = Join-Path $qt '.actcraft-h264'
-          if (-not (Test-Path $temoin)) { "::error::$temoin absent : construire Qt WebEngine avec H.264 sur le PC (pwsh -NoProfile -File ./scripts/qtwebengine-h264.ps1)"; exit 1 }
-          Get-Content $temoin
+          $qt = "C:\Qt\$env:QT_VERSION\msvc2022_64"
           foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf', 'Qt6Multimedia', 'Qt6WebEngineQuick', 'Qt6WebChannel', 'Qt6Positioning') {
-            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (copie du Qt officiel incomplète : relancer scripts/qtwebengine-h264.ps1)"; exit 1 }
+            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning)"; exit 1 }
           }
           $pri = "$qt\mkspecs\modules\qt_lib_webenginecore_private.pri"
           $actives = Select-String -LiteralPath $pri -Pattern '^QT\.webenginecore_private\.enabled_features\s*=' -ErrorAction SilentlyContinue
           if (-not $actives) { "::error::fonctions de Qt WebEngine illisibles ($pri)"; exit 1 }
-          if ($actives.Line -notmatch '(^|\s)webengine-proprietary-codecs(\s|$)') { "::error::Qt WebEngine de $qt sans codecs propriétaires (H.264) : refusé pour la release"; exit 1 }
-          "Qt WebEngine avec codecs propriétaires ($pri)"
+          if ($actives.Line -match '(^|\s)webengine-proprietary-codecs(\s|$)') { "::error::Qt WebEngine de $qt avec codecs propriétaires (H.264) : refusé pour la release"; exit 1 }
+          "Qt WebEngine sans codecs propriétaires ($pri)"
           "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
           "$qt\bin" >> $env:GITHUB_PATH
           # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.
@@ -286,8 +283,7 @@ jobs:
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
       # build/release est partagé avec les runs d'autres branches (ci.yml, preuves-windows.yml) : le cache CMake est
-      # retiré pour que les options de ce commit s'appliquent ; Ninja garde les objets compilés. Le Qt de la release
-      # (copie à codecs) diffère de celui de ci.yml : la première compilation après un run de ci.yml est complète.
+      # retiré pour que les options de ce commit s'appliquent ; Ninja garde les objets compilés.
       - name: Cache CMake de build/release retiré
         shell: pwsh
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build/release/CMakeCache.txt, build/release/CMakeFiles

@@ -5,8 +5,7 @@
 #   packaging/autres-autorises.txt, au format « <motif glob> <expression SPDX> » (amendement 3 du plan 11b) ;
 # - une bibliothèque rangée sous LGPL-3.0-only (greffon de Qt) doit venir de l'installation de Qt : même chemin
 #   relatif sous <Qt>/plugins ou <Qt>/qml (dossier), même nom sous <Qt>/plugins ou <Qt>/qml (APK, chemins perdus) ;
-# - une bibliothèque FFmpeg doit porter la licence compilée « LGPL version 2.1 or later » (ni GPL, ni « nonfree ») ;
-# - un dossier qui livre Qt6WebEngineCore doit avoir l'avis sur les brevets H.264 et AAC dans son THIRD_PARTY_NOTICES.md.
+# - une bibliothèque FFmpeg doit porter la licence compilée « LGPL version 2.1 or later » (ni GPL, ni « nonfree »).
 # Usage : pwsh -NoProfile -File ./scripts/verifier-licences.ps1 -Dossier <dossier> | -Apk <fichier.apk> [-QtDir <Qt>]
 #   <Qt> par défaut : $env:ACTCRAFT_QT_DIR (dossier), $env:ACTCRAFT_QT_ANDROID_ARM64_DIR (APK).
 # Dernière ligne : « LICENCES OK » (0) ou « LICENCES EN ECHEC : <noms> » (1).
@@ -137,16 +136,6 @@ foreach ($fichier in @($fichiers | Where-Object { $_.Nom -match '\.(?:dll|so)$' 
     $retenues.Add("$nomAffiche ($($trouvee.Licence))")
 }
 if ($retenues.Count -gt 0) { Write-Output "Autres bibliothèques : $($retenues -join ', ')" }
-
-# Qt WebEngine livré avec les codecs propriétaires (release, dossier de l'installateur) : l'avis sur les brevets H.264
-# et AAC doit être dans le THIRD_PARTY_NOTICES.md du dossier (packaging/qt-autorises.txt, fin du fichier).
-if ($Dossier -and $modules.Contains('Qt6WebEngineCore')) {
-    $avis = Join-Path $racine 'THIRD_PARTY_NOTICES.md'
-    if (-not (Test-Path -LiteralPath $avis) -or
-        -not (Select-String -LiteralPath $avis -Pattern '^### Brevets des codecs H\.264 et AAC$' -CaseSensitive -Quiet)) {
-        $refuses.Add('avis sur les brevets H.264 absent (THIRD_PARTY_NOTICES.md)')
-    }
-}
 
 if ($refuses.Count -gt 0) { Stop-Echec ($refuses -join ', ') }
 Write-Output 'LICENCES OK'

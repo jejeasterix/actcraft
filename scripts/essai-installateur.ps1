@@ -6,13 +6,10 @@
 # -HorsEcran : plateforme offscreen (greffon qoffscreen de Qt copié le temps du lancement), pour une machine sans
 # session graphique seulement ; rendu logiciel imposé ; le journal l'écrit (« HORS ECRAN ») et qwindows.dll n'est
 # alors pas contrôlé. La CI windows-latest n'en a pas besoin (vraie fenêtre, VERIF ci-s1).
-# -H264 (vraie fenêtre seulement, refusé avec -HorsEcran) : un second lancement de 20 s ouvre dans un cadre web
-# tests/data/media/essai-h264.html, qui lit essai-h264.mp4 (H.264 et AAC) ; il doit en décoder 2 s (« ACTCRAFT H264 w=… »)
-# et annoncer AAC lisible, avec Qt6WebEngineCore.dll chargé depuis le dossier d'installation (codecs de la release).
-# Usage : pwsh -NoProfile -File ./scripts/essai-installateur.ps1 [-Setup <chemin>] [-Rendu d3d11|logiciel] [-HorsEcran] [-H264]
+# Usage : pwsh -NoProfile -File ./scripts/essai-installateur.ps1 [-Setup <chemin>] [-Rendu d3d11|logiciel] [-HorsEcran]
 # Dernière ligne et code : « INSTALLATEUR OK » (0) ou « INSTALLATEUR EN ECHEC : <raison> » (1). Tout échec, même
 # imprévu (exception), arrête les processus lancés, désinstalle et nettoie avant cette ligne.
-param([string]$Setup, [ValidateSet('d3d11', 'logiciel')][string]$Rendu = 'd3d11', [switch]$HorsEcran, [switch]$H264)
+param([string]$Setup, [ValidateSet('d3d11', 'logiciel')][string]$Rendu = 'd3d11', [switch]$HorsEcran)
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
 
@@ -39,8 +36,7 @@ function Nettoyer {
             $limite = (Get-Date).AddSeconds(20)
             while ((Test-Path $dossier) -and (Get-Date) -lt $limite) { Start-Sleep -Milliseconds 500 }
         }
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $dossier, "$dossier.log", "$dossier-version.txt", "$dossier-qt.txt",
-            "$dossier-h264", "$dossier-h264.txt", $menu
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $dossier, "$dossier.log", "$dossier-version.txt", "$dossier-qt.txt", $menu
         foreach ($c in $cles + $cleDesinstallation) { Remove-Item -LiteralPath $c -Recurse -Force -ErrorAction SilentlyContinue }
     } catch {
         Write-Output "nettoyage incomplet : $($_.Exception.Message)"
@@ -67,7 +63,6 @@ function Lancer([string[]]$Arguments, [string]$Sortie, [string]$Erreurs) {
 try {
     . "$PSScriptRoot/version-projet.ps1"
     $version = Get-ActCraftVersion
-    if ($H264 -and $HorsEcran) { Echec '-H264 exige une vraie fenêtre : refusé avec -HorsEcran' }
     if (-not $Setup) { $Setup = "build/paquet/ActCraft-$version-setup.exe" }
     if (-not (Test-Path $Setup)) { Echec "$Setup introuvable" }
     $dossier = Join-Path ([IO.Path]::GetTempPath()) ('actcraft-essai-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
@@ -144,42 +139,6 @@ try {
     $qsg | Where-Object { $_ -match 'Creating QRhi with backend|Adapter \d+:' } | Select-Object -First 3 | ForEach-Object { Write-Output "qt : $($_.Trim())" }
     if ($Rendu -eq 'd3d11' -and -not ($qsg -match 'backend D3D11')) { Echec "rendu D3D11 non obtenu (journal de Qt : $traces)" }
     if ($HorsEcran) { Remove-Item (Join-Path $dossier 'platforms/qoffscreen.dll') -Force }
-
-    # H.264 et AAC dans un cadre web (-H264) : page et vidéo copiées hors du dossier d'installation ; la console de la page
-    # arrive sur la sortie d'erreur (QT_FORCE_STDERR_LOGGING).
-    if ($H264) {
-        $pages = "$dossier-h264"
-        New-Item -ItemType Directory -Force $pages | Out-Null
-        Copy-Item tests/data/media/essai-h264.html, tests/data/media/essai-h264.mp4 $pages
-        $tracesH264 = "$dossier-h264.txt"
-        $cadre = Lancer @('--essai-cadre-web', (Join-Path $pages 'essai-h264.html'), '--quitter-apres', '20000') $null $tracesH264
-        $moteur = $null
-        $limite = (Get-Date).AddSeconds(90)
-        while (-not $cadre.HasExited -and (Get-Date) -lt $limite) {
-            Start-Sleep -Milliseconds 500
-            if (-not $moteur) {
-                $cadre.Refresh()
-                try { $moteur = $cadre.Modules | Where-Object { $_.ModuleName -ieq 'Qt6WebEngineCore.dll' } | Select-Object -First 1 } catch { $moteur = $null }
-            }
-        }
-        if (-not $cadre.HasExited) { Echec "cadre web : pas de fin après 90 s (journal $tracesH264)" }
-        if ($cadre.ExitCode -ne 0) { Echec "cadre web : code de sortie $($cadre.ExitCode) (journal $tracesH264)" }
-        if (-not $moteur -or -not $moteur.FileName.StartsWith($dossier, [StringComparison]::OrdinalIgnoreCase)) {
-            Echec "Qt6WebEngineCore.dll non chargé depuis $dossier ($($moteur.FileName))"
-        }
-        Write-Output "Qt6WebEngineCore.dll : $($moteur.FileName)"
-        $journalH264 = "$(Get-Content -Raw -ErrorAction SilentlyContinue $tracesH264)"
-        if ($journalH264 -notmatch 'ACTCRAFT CADRE WEB CHARGE') { Echec "le cadre web n'a pas fini de charger (journal $tracesH264)" }
-        $decodee = [regex]::Match($journalH264, 'ACTCRAFT H264 w=[1-9]\d* h=[1-9]\d* t=[\d.]+')
-        if (-not $decodee.Success) {
-            $raison = [regex]::Match($journalH264, 'ACTCRAFT H264 ECHEC code=\S+').Value
-            Echec "vidéo H.264 non décodée dans le cadre : $raison (journal $tracesH264)"
-        }
-        Write-Output $decodee.Value
-        if ($journalH264 -notmatch 'ACTCRAFT AAC probably') { Echec "AAC non lisible dans le cadre (journal $tracesH264)" }
-        Write-Output 'AAC OK'
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $pages, $tracesH264
-    }
 
     # Désinstallation silencieuse : le dossier est vidé (le désinstallateur finit après son retour).
     $u = Start-Process -FilePath (Join-Path $dossier 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -PassThru -WindowStyle Hidden
