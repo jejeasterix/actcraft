@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ESSAI</title>
+<!-- Essai H.264 et AAC du cadre web (scripts/essai-dmg.sh --h264). -->
+<script>console.warn("ACTCRAFT JS OK")</script>
+<p>Cadre chargé.</p>
+<video id="v" src="essai-h264.mp4" muted autoplay playsinline width="320" height="240"></video>
+<script>
+const v = document.getElementById("v");
+console.warn("ACTCRAFT AAC " + v.canPlayType('audio/mp4; codecs="mp4a.40.2"'));
+v.addEventListener("error", () => console.warn("ACTCRAFT H264 ECHEC code=" + (v.error ? v.error.code : "?")));
+v.addEventListener("timeupdate", function vu() {
+  if (v.currentTime >= 2 && v.videoWidth > 0) {
+    v.removeEventListener("timeupdate", vu);
+    console.warn("ACTCRAFT H264 w=" + v.videoWidth + " h=" + v.videoHeight + " t=" + v.currentTime);
+  }
+});
+</script>
