@@ -27,8 +27,8 @@ joué à l'écran pendant un job, sauf la fin des captures D3D11 (arrêtées dè
 
 ### L11-T17-PC : `NOMS OK`, titres du corpus, `textsAreOurs`
 
-- `NOMS OK : 1315 fichiers, 0 nom composé d'Inspire`, après deux correctifs : `penColor` (aide de
-  `tst_ui_secondpalette`, renommée `strokeColorOf`) et `secondTool_pen` (mention de l'état du chantier, reformulée).
+- `NOMS OK : 1315 fichiers, 0 nom composé d'Inspire`, après deux correctifs : une aide de
+  `tst_ui_secondpalette` (renommée `strokeColorOf`) et un nom d'objet cité dans l'état du chantier (reformulé).
 - Contrôle des titres du corpus : 8 coïncidences avant correctif. Deux vraies : « Nouveau paperboard » et « Outil
   formes », libellés périmés du contexte `actions-objet` de `ui/src/commandlabels.cpp` (jamais affichés :
   `object-actions.json` dit « Créer un paperboard », « Paperboard à la taille de l'écran », « Formes »). Test rouge
