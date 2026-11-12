@@ -15,10 +15,15 @@ namespace {
 
 constexpr qsizetype kChunk = qsizetype{1} << 20; // 1 Mio
 constexpr qint64 kMaxReserve = qint64{64} << 20; // 64 Mio
-// Renommage final refusé : écriture refaite après 25, 50… 1 600 ms (3,2 s en tout). Sous Windows, un
-// antivirus ou l'indexeur tient un instant le fichier qui vient d'être écrit, sans partage de suppression («
-// Accès refusé ») ; run 43141999645 de la PR 28.
+// Renommage final refusé : sous Windows, écriture refaite après 25, 50… 1 600 ms (3,2 s en tout). Un fichier
+// ouvert sans partage de suppression (un lecteur d'ActCraft, un antivirus, l'indexeur) refuse le renommage
+// (« Accès refusé ») ; run 43141999645 de la PR 28. Ailleurs, le renommage ne dépend pas des fichiers ouverts
+// et un refus ne passe pas en attendant (disque plein, en lecture seule) : un seul essai.
+#ifdef Q_OS_WIN
 constexpr int kRenameAttempts = 8;
+#else
+constexpr int kRenameAttempts = 1;
+#endif
 constexpr unsigned long kFirstRenameRetryMs = 25;
 
 bool isContent(const QUrl& url)
