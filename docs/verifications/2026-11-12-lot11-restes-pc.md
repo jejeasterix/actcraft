@@ -8,7 +8,7 @@ joué à l'écran pendant un job, sauf la fin des captures D3D11 (arrêtées dè
 ## Verdict
 
 Restes prouvés : `NOMS OK`, titres du corpus, `textsAreOurs`, raccourcis F-950 à F-953, `recognitioncontroller.cpp:230`,
-notices (0 « à relever »), `APK OK`, `LICENCES OK` (APK), `ANDROID PORTAIL OK`, `APK BANC OK`, captures D3D11 (66/68,
+notices (0 « à relever » sur la branche ; voir « Pour O98 »), `APK OK`, `LICENCES OK` (APK), `ANDROID PORTAIL OK`, `APK BANC OK`, captures D3D11 (66/68,
 dont S8 et S17), contraste de `PrintSetupDialog` (≥ 10:1), scénarios `gestes` réussis. Non conclus, raison écrite :
 essai tablette (marge du clavier), essai cycle (option ignorée en release), banc Android (`MESURE INVALIDE`), banc
 D3D11 (un passage, `MESURE INVALIDE`), L11-C3-PC, stylet réel (L11-C24), REA statique et A22. Corrigés en TDD : six
@@ -158,7 +158,9 @@ Relevé de l'ancien dépôt (`docs/spec/fonctionnalites.md:862-868`, nos mots) c
 
 ## Pour O98 (`release.yml`, non touché)
 
-- Les notices n'ont plus aucune ligne « à relever » : la garde des notices de `release.yml` passe désormais.
+- Sur cette branche, les notices n'ont plus aucune ligne « à relever ». À la fusion de main (PR 32), la version de
+  main de `THIRD_PARTY_NOTICES.md` l'emporte : recompter les « à relever » avant tout tag, la garde de
+  `release.yml` échoue s'il en reste (relecture de la PR 31, 2026-11-13).
 - Le code source exact de FFmpeg n'est toujours pas publié avec les paquets (promis par la notice). Version Windows
   relevée : FFmpeg 9.0.1, LGPL 2.1 ou ultérieure, ligne `configure` dans la notice ; Android non relevé.
 - La liste des composants tiers de Qt PDF reste « à confirmer » (SBOM de Qt PDF vide).

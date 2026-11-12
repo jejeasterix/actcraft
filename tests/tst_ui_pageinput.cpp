@@ -1155,10 +1155,15 @@ private slots:
         app.tools->activateFor(QStringLiteral("select"), 1);
         tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(400, 300)); // le second tient le cercle
         QTRY_VERIFY_WITH_TIMEOUT(app.tools->usableSelection().empty(), 3000);
+        QCOMPARE(app.tools->selectionCount(), 1); // la prise du second ne vide pas la sélection du premier
         QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
         QCoreApplication::processEvents();
         QCOMPARE(kindShown(), core::ObjectKind::Stroke);
         tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
+        // Témoin : relâché, le même cercle est reconnu (le refus venait bien de la prise).
+        QTRY_VERIFY_WITH_TIMEOUT(!app.tools->usableSelection().empty(), 3000);
+        QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
+        QTRY_VERIFY_WITH_TIMEOUT(kindShown() != core::ObjectKind::Stroke, 3000);
     }
 
     // L11-C10 (J3) : une commande lancée par un outil du second utilisateur part en son nom ; un gestionnaire
