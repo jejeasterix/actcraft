@@ -7,8 +7,17 @@
 #include <QTest>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cstring>
+#include <thread>
 #include <utility>
+
+#ifdef Q_OS_WIN
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 using namespace actcraft;
 using namespace Qt::StringLiterals;
@@ -69,6 +78,38 @@ private:
     qint64 m_announced;
     qint64 m_pos = 0;
 };
+
+#ifdef Q_OS_WIN
+// Refuse le renommage par-dessus `path` jusqu'à release(), comme un antivirus ou l'indexeur qui ouvre le
+// fichier qui vient d'être écrit sans partage de suppression (« Accès refusé »).
+class RenameBlock
+{
+public:
+    explicit RenameBlock(const QString& path)
+    {
+        m_handle = CreateFileW(reinterpret_cast<LPCWSTR>(QDir::toNativeSeparators(path).utf16()),
+                               GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
+                               FILE_ATTRIBUTE_NORMAL, nullptr);
+        m_held = m_handle != INVALID_HANDLE_VALUE;
+    }
+    ~RenameBlock() { release(); }
+    RenameBlock(const RenameBlock&) = delete;
+    RenameBlock& operator=(const RenameBlock&) = delete;
+
+    bool held() const { return m_held; }
+    void release()
+    {
+        if (m_held && !m_released.exchange(true)) {
+            CloseHandle(m_handle);
+        }
+    }
+
+private:
+    HANDLE m_handle = INVALID_HANDLE_VALUE;
+    bool m_held = false;
+    std::atomic<bool> m_released{false};
+};
+#endif
 
 } // namespace
 
@@ -134,6 +175,49 @@ private slots:
         QVERIFY2(written ? now == "nouveau" : (now == before && !error.isEmpty()), qPrintable(error));
         QCOMPARE(QDir(dir.path()).entryList(QDir::Files | QDir::Hidden).size(), 1);
     }
+
+#ifdef Q_OS_WIN
+    // Run 43141999645 (PR 28) : sous Windows, le renommage par-dessus le fichier qui vient d'être écrit est
+    // refusé tant qu'un autre processus le tient ; « Enregistrer » échouait, puis FileActions le relançait
+    // (un enregistrement de trop). Rendu 200 ms plus tard : l'écriture réessaie et réussit.
+    void renameRefusedForAMomentIsRetried()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(u"essai.actcraft"_s);
+        const QUrl url = QUrl::fromLocalFile(path);
+        QVERIFY(formats::writeUrl(url, QByteArray("ancien"), nullptr));
+        RenameBlock block(path);
+        QVERIFY(block.held());
+        std::thread holder([&block] {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            block.release();
+        });
+        QString error;
+        const bool written = formats::writeUrl(url, QByteArray("nouveau"), &error);
+        holder.join();
+        QVERIFY2(written, qPrintable(error));
+        QCOMPARE(formats::readUrl(url).data, QByteArray("nouveau"));
+        QCOMPARE(QDir(dir.path()).entryList(QDir::Files | QDir::Hidden).size(), 1);
+    }
+
+    // Tenu tout du long : l'écriture finit par échouer, l'erreur le dit, l'ancien fichier reste entier.
+    void renameRefusedForGoodFailsAndKeepsTheFile()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(u"essai.actcraft"_s);
+        const QUrl url = QUrl::fromLocalFile(path);
+        QVERIFY(formats::writeUrl(url, QByteArray("ancien"), nullptr));
+        QString error;
+        {
+            RenameBlock block(path);
+            QVERIFY(block.held());
+            QVERIFY(!formats::writeUrl(url, QByteArray("nouveau"), &error));
+        }
+        QVERIFY2(error.startsWith(u"enregistrement impossible"_s), qPrintable(error));
+        QCOMPARE(formats::readUrl(url).data, QByteArray("ancien"));
+        QCOMPARE(QDir(dir.path()).entryList(QDir::Files | QDir::Hidden).size(), 1);
+    }
+#endif
 
     void readRefusesMissingAndOversizedFiles()
     {

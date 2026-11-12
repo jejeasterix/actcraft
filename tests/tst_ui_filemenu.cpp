@@ -639,7 +639,12 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(ask, "save"));
         pool.release();
         QTRY_VERIFY_WITH_TIMEOUT(actions->property("quitting").toBool(), 20000);
-        QTest::qWait(300);          // une seconde écriture finirait ici
+        QTest::qWait(300); // une seconde écriture finirait ici
+        // Un enregistrement échoué est relancé : le compte serait faux sans que rien ne dise pourquoi (run
+        // 43141999645, PR 28). L'erreur d'écriture est montrée d'abord.
+        for (const QList<QVariant>& finished : std::as_const(saved)) {
+            QVERIFY2(finished.at(0).toBool(), qPrintable(finished.at(1).toString()));
+        }
         QCOMPARE(saved.count(), 2); // « Enregistrer sous », puis l'enregistrement en cours : pas de troisième
         QCOMPARE(pagesIn(path), std::size_t{2});
         QVERIFY(!doc->isModified());
