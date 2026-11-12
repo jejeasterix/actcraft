@@ -84,8 +84,8 @@ private:
 };
 
 #ifdef Q_OS_WIN
-// Refuse le renommage par-dessus `path` jusqu'à release(), comme un antivirus ou l'indexeur qui ouvre le
-// fichier qui vient d'être écrit sans partage de suppression (« Accès refusé »).
+// Refuse le renommage par-dessus `path` jusqu'à release(), comme tout QFile ouvert sous Windows (la vignette
+// des documents récents, un antivirus, l'indexeur) : ouvert sans partage de suppression (« Accès refusé »).
 class RenameBlock
 {
 public:
@@ -182,7 +182,7 @@ private slots:
 
 #ifdef Q_OS_WIN
     // Run 43141999645 (PR 28) : sous Windows, le renommage par-dessus le fichier qui vient d'être écrit est
-    // refusé tant qu'un autre processus le tient ; « Enregistrer » échouait, puis FileActions le relançait
+    // refusé tant qu'il reste ouvert ailleurs ; « Enregistrer » échouait, puis FileActions le relançait
     // (un enregistrement de trop). Rendu 200 ms plus tard : l'écriture réessaie et réussit.
     void renameRefusedForAMomentIsRetried()
     {
