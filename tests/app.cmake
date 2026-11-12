@@ -35,6 +35,30 @@ if(ACTCRAFT_PWSH)
         FAIL_REGULAR_EXPRESSION "Qt6Charts" RUN_SERIAL TRUE)
 endif()
 
+# Avis sur les brevets H.264 et AAC exigé dans un bundle macOS qui livre Qt WebEngine (verifier-licences-mac.sh) : présent, absent.
+if(APPLE)
+    set(_bundles ${CMAKE_BINARY_DIR}/../tests-fixtures/licences-mac)
+    foreach(_cas avis sans-avis)
+        file(MAKE_DIRECTORY ${_bundles}/${_cas}/Contents/Frameworks/QtCore.framework
+            ${_bundles}/${_cas}/Contents/Frameworks/QtWebEngineCore.framework ${_bundles}/${_cas}/Contents/Resources)
+    endforeach()
+    file(COPY ${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md DESTINATION ${_bundles}/avis/Contents/Resources)
+    file(WRITE ${_bundles}/sans-avis/Contents/Resources/THIRD_PARTY_NOTICES.md "# Avis\n")
+    add_test(NAME tst_licences_mac_webengine_avis
+        COMMAND ${PROJECT_SOURCE_DIR}/scripts/verifier-licences-mac.sh ${_bundles}/avis)
+    set_tests_properties(tst_licences_mac_webengine_avis PROPERTIES PASS_REGULAR_EXPRESSION "LICENCES OK")
+    add_test(NAME tst_licences_mac_webengine_sans_avis
+        COMMAND ${PROJECT_SOURCE_DIR}/scripts/verifier-licences-mac.sh ${_bundles}/sans-avis)
+    set_tests_properties(tst_licences_mac_webengine_sans_avis PROPERTIES
+        PASS_REGULAR_EXPRESSION "LICENCES EN ECHEC : avis-brevets-H.264")
+endif()
+
+# Minimum macOS d'un bundle (verifier-minos-mac.sh) : de petits bundles construits par clang, minimum conforme, absent, dépassé.
+if(APPLE)
+    add_test(NAME tst_minos_mac COMMAND ${PROJECT_SOURCE_DIR}/tests/verifier-minos-mac.sh)
+    set_tests_properties(tst_minos_mac PROPERTIES PASS_REGULAR_EXPRESSION "MINOS ESSAI OK")
+endif()
+
 # Fichier ouvert au lancement (S4, décision 26).
 actcraft_add_test(tst_app_open
     SOURCES tst_app_open.cpp ${PROJECT_SOURCE_DIR}/app/startup.cpp

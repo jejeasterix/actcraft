@@ -230,7 +230,14 @@ Le cadre web sur PC et Mac passe par le module Qt WebEngine (`LGPL-3.0-only`, li
 
 - Chromium : Licence SPDX : `BSD-3-Clause`. Copyright 2015 The Chromium Authors.
 
-Certains codecs vidéo (H.264, AAC) dépendent de la provenance de Qt WebEngine ; leur redistribution est une décision prise avant toute publication. Les brevets sur ces codecs relèvent des utilisateurs et des distributeurs.
+Provenance de Qt WebEngine :
+
+- macOS : construit avec les codecs propriétaires (option `webengine-proprietary-codecs`) ; formule `qtwebengine` 6.11.2 de Homebrew (sources publiées par Qt, `qtwebengine-everywhere-src-6.11.2.tar.xz`, avec les options et les correctifs de la formule), sur Qt 6.12.0 de Homebrew (formule `qtbase` et ses correctifs). **Code source** : les formules de Homebrew utilisées (`qtbase.rb`, `qtwebengine.rb`) et leurs correctifs sont publiés à côté des paquets de chaque version d'ActCraft (page de la version sur GitHub) ; elles viennent du dépôt https://github.com/Homebrew/homebrew-core.
+- Windows : Qt WebEngine du Qt officiel 6.12.0, sans les codecs propriétaires : le cadre web ne lit pas H.264 ni AAC (Vimeo et Lumni ne jouent pas) ; ces pages se lisent dans le navigateur du système.
+
+### Brevets des codecs H.264 et AAC
+
+Le cadre web de macOS (Qt WebEngine) et le lecteur de médias (FFmpeg de Qt Multimedia, sous Windows et Android) décodent les formats H.264 (MPEG-4 AVC) et AAC. Ces formats sont couverts par des brevets dans certains pays, concédés sous licence notamment par Via LA (ex-MPEG LA). Les licences des logiciels ci-dessus ne couvrent pas ces brevets. ActCraft n'a conclu aucun contrat de licence de brevets : chaque utilisateur et chaque distributeur vérifie ce que la loi de son pays lui impose.
 
 ## Qt Multimedia, FFmpeg et Qt WebView
 
@@ -252,7 +259,7 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   n'embarque pas FFmpeg.
 - **Moteur du cadre web** : PC et Mac, Qt WebEngine (Chromium), livré avec ActCraft (voir « Qt WebEngine et
   Chromium ») ; Android, navigateur du système.
-- Les brevets sur certains codecs vidéo relèvent des utilisateurs et des distributeurs, non de la licence du logiciel.
+- Brevets des codecs H.264 et AAC : voir « Brevets des codecs H.264 et AAC » plus haut.
 
 ## Bibliothèques non Qt livrées
 

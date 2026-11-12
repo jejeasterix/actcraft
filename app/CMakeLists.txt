@@ -18,6 +18,16 @@ actcraft_set_warnings(actcraft)
 # `actcraft --version` (décision 31, S1).
 target_compile_definitions(actcraft PRIVATE ACTCRAFT_VERSION="${PROJECT_VERSION}")
 
+# Minimum macOS déclaré (LSMinimumSystemVersion) : la cible de déploiement de la construction, sinon 14.4 (minimum de
+# Qt 6.12 ; clang prend alors la version du SDK, les binaires peuvent exiger plus). Seul le paquet est contrôlé :
+# scripts/paquet-mac.sh fixe la cible (27.0 avec le Qt de Homebrew) et scripts/verifier-minos-mac.sh refuse un binaire du
+# bundle qui exigerait plus que le minimum déclaré.
+if(CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(ACTCRAFT_MACOS_MINIMUM ${CMAKE_OSX_DEPLOYMENT_TARGET})
+else()
+    set(ACTCRAFT_MACOS_MINIMUM 14.4)
+endif()
+
 set_target_properties(actcraft PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER org.actcraft.ActCraft
     # Nom affiché par macOS (barre des menus, Finder) ; le modèle Info.plist.in le lit (CFBundleName).
