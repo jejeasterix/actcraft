@@ -12,7 +12,7 @@ Objectifs, dans l'ordre :
 ActCraft lit les paperboards `.flipchart` pour l'interopérabilité. Ce projet n'est ni affilié à Promethean ni
 soutenu par Promethean.
 
-> État : version 0.6.0 (novembre 2026). ActCraft dessine et corrige : sélection, stylo et marqueur,
+> État : version 1.0.0 (novembre 2026). ActCraft dessine et corrige : sélection, stylo et marqueur,
 > gomme, annuler et rétablir, effacer, corbeille et gestes à deux doigts, avec un tracé qui ne fige plus. Depuis la
 > 0.5.0, il pose des formes et du texte, gère les pages (navigateur, menu, fond) et la grille, et allonge la page. Il ouvre et
 > enregistre les paperboards (format natif `.actcraft`, lecture des `.flipchart`), depuis la 0.2.0. Depuis la
