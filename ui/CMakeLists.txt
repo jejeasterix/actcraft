@@ -487,6 +487,7 @@ qt_add_resources(actcraft_ui "ui_lot6_data"
           help/clock.html
           help/ticker.html
           help/web-browser.html
+          help/web-frame.html
           help/shape-recognition.html
           help/handwriting.html
           help/camera-area.html

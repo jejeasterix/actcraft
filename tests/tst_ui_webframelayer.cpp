@@ -127,6 +127,36 @@ private slots:
         QTRY_COMPARE(view->property("_loads").toInt(), 1);
     }
 
+    // OA27 : « Ouvrir dans le navigateur » est grisée sans adresse http(s), puis ouvre l'adresse du cadre
+    // visé.
+    void openExternalCommandFollowsTheFrameAddress()
+    {
+        actcraft::ui::Commands commands;
+        WebFrameHost host;
+        QVERIFY(host.start(&commands));
+        host.useFakeView();
+        QList<QUrl> opened;
+        host.frames->setOpener([&opened](const QUrl& url) {
+            opened.append(url);
+            return true;
+        });
+        const QString id = QStringLiteral("webframe.open-external");
+        QVERIFY(commands.registry().hasHandler(id));
+        QVERIFY(!commands.isEnabled(id)); // aucun cadre
+        QVERIFY(host.frames->insertFrame(QStringLiteral("<p>a</p>"), {}));
+        QTRY_COMPARE(host.frames->count(), 1);
+        QVERIFY(!commands.isEnabled(id)); // un cadre sans adresse
+        QVERIFY(host.frames->insertFrame({}, QStringLiteral("https://exemple.invalide/page")));
+        QTRY_COMPARE(host.frames->count(), 2);
+        QTRY_VERIFY(commands.isEnabled(id));
+        // L'argument vise le second cadre, celui qui a une adresse.
+        QVERIFY(commands.trigger(id, 1));
+        QCOMPARE(opened, QList<QUrl>{QUrl(QStringLiteral("https://exemple.invalide/page"))});
+        opened.clear();
+        QVERIFY(commands.trigger(id, 0)); // sans adresse : rien ne s'ouvre
+        QVERIFY(opened.isEmpty());
+    }
+
     // Revue T20 : la vue disparaît (nouveau document) pendant que l'image fixe attend sa capture. Le travail
     // en cours est abandonné, sans quoi il resterait en suspens et refuserait toute image fixe suivante.
     void snapshotIsCancelledWhenTheViewGoesAway()

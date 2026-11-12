@@ -9,6 +9,7 @@ Item {
     height: 768
     property DocumentController documentController: null
     property bool inputBlocked: false
+    property var commands: null // posé avant la fin de la création : le gestionnaire s'inscrit à ce moment
     property var profile: null
     signal popupOpened()
     signal popupClosed()
@@ -26,5 +27,6 @@ Item {
     }
     WebFrameLayer {
         objectName: "webFrameLayer"
+        commands: host.commands
     }
 }

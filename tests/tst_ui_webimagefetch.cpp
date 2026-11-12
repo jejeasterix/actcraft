@@ -25,6 +25,52 @@ class TstUiWebImageFetch : public QObject
 {
     Q_OBJECT
 private slots:
+    // OA27 : le type annoncé par la réponse est lu (la vidéo sans extension se reconnaît par lui).
+    void reportsTheContentType()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.rawResponse(QStringLiteral("/flux"),
+                           "HTTP/1.1 200 OK\r\nContent-Type: Video/MP4; codecs=avc1\r\nContent-Length: 3\r\n"
+                           "Connection: close\r\n\r\nABC");
+        Run run;
+        run.fetch.start(server.url(QStringLiteral("/flux")));
+        QTRY_COMPARE(run.finished.count(), 1);
+        QCOMPARE(run.error(), QString());
+        QCOMPARE(run.fetch.contentType(), QStringLiteral("video/mp4"));
+    }
+
+    // OA27 : une vidéo a sa propre borne, plus large ; au-delà, refus dès l'en-tête annonçant la taille.
+    void videoHasItsOwnLimit()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.rawResponse(QStringLiteral("/gros.mp4"),
+                           "HTTP/1.1 200 OK\r\nContent-Type: video/mp4\r\nContent-Length: " +
+                               QByteArray::number(WebImageFetch::kMaxVideoBytes + 1) +
+                               "\r\nConnection: close\r\n\r\nABC");
+        Run run;
+        run.fetch.start(server.url(QStringLiteral("/gros.mp4")), {}, WebImageFetch::Kind::Video);
+        QTRY_COMPARE_WITH_TIMEOUT(run.finished.count(), 1, 30000);
+        QVERIFY2(run.error().contains(QStringLiteral("100 Mo")), qPrintable(run.error()));
+    }
+
+    void videoOverImageLimitIsAccepted()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.rawResponse(QStringLiteral("/moyen.mp4"),
+                           "HTTP/1.1 200 OK\r\nContent-Type: video/mp4\r\nContent-Length: " +
+                               QByteArray::number(WebImageFetch::kMaxBytes + 1024) +
+                               "\r\nConnection: close\r\n\r\n" +
+                               QByteArray(int(WebImageFetch::kMaxBytes) + 1024, 'v'));
+        Run run;
+        run.fetch.start(server.url(QStringLiteral("/moyen.mp4")), {}, WebImageFetch::Kind::Video);
+        QTRY_COMPARE_WITH_TIMEOUT(run.finished.count(), 1, 30000);
+        QCOMPARE(run.error(), QString());
+        QCOMPARE(run.data().size(), int(WebImageFetch::kMaxBytes) + 1024);
+    }
+
     void fetchesTheBytes()
     {
         TestServer server;

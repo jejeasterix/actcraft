@@ -9,6 +9,7 @@
 
 #include <QBuffer>
 #include <QCoreApplication>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -1774,6 +1775,8 @@ QVariant WebFrameItems::data(const QModelIndex& index, int role) const
         return row.directUrl;
     case ContentFileRole:
         return row.contentFile;
+    case ExternalUrlRole:
+        return externalUrlOf(row);
     default:
         return {};
     }
@@ -1781,11 +1784,60 @@ QVariant WebFrameItems::data(const QModelIndex& index, int role) const
 
 QHash<int, QByteArray> WebFrameItems::roleNames() const
 {
-    return {{ObjectIdRole, "objectId"}, {BoundsRole, "bounds"},       {HtmlRole, "html"},
-            {AddressRole, "address"},   {BlockedRole, "blocked"},     {RefusedRole, "refused"},
-            {LoadingRole, "loading"},   {ContentRole, "content"},     {BaseUrlRole, "baseUrl"},
-            {TitleRole, "title"},       {CanGoBackRole, "canGoBack"}, {CanGoForwardRole, "canGoForward"},
-            {SerialRole, "serial"},     {DirectUrlRole, "directUrl"}, {ContentFileRole, "contentFile"}};
+    return {{ObjectIdRole, "objectId"},
+            {BoundsRole, "bounds"},
+            {HtmlRole, "html"},
+            {AddressRole, "address"},
+            {BlockedRole, "blocked"},
+            {RefusedRole, "refused"},
+            {LoadingRole, "loading"},
+            {ContentRole, "content"},
+            {BaseUrlRole, "baseUrl"},
+            {TitleRole, "title"},
+            {CanGoBackRole, "canGoBack"},
+            {CanGoForwardRole, "canGoForward"},
+            {SerialRole, "serial"},
+            {DirectUrlRole, "directUrl"},
+            {ContentFileRole, "contentFile"},
+            {ExternalUrlRole, "externalUrl"}};
+}
+
+namespace {
+bool isWebAddress(const QUrl& url)
+{
+    const QString scheme = url.scheme().toLower();
+    return (scheme == QLatin1String("http") || scheme == QLatin1String("https")) && url.isValid() &&
+           !url.host().isEmpty();
+}
+} // namespace
+
+QUrl WebFrameItems::externalUrlOf(const Row& row) const
+{
+    const QUrl shown = row.blocked ? row.pendingUrl
+                                   : (!m_guardsEnabled && row.viewUrl.isValid() ? row.viewUrl : row.baseUrl);
+    if (isWebAddress(shown))
+        return shown.adjusted(QUrl::RemoveUserInfo);
+    const QString typed = row.address.trimmed();
+    if (typed.isEmpty())
+        return {};
+    const QUrl url = QUrl::fromUserInput(typed);
+    return isWebAddress(url) ? url.adjusted(QUrl::RemoveUserInfo) : QUrl();
+}
+
+QUrl WebFrameItems::externalUrl(int row) const
+{
+    return row >= 0 && row < m_rows.size() ? externalUrlOf(m_rows[row]) : QUrl();
+}
+
+bool WebFrameItems::openExternally(int row)
+{
+    const QUrl url = externalUrl(row);
+    if (url.isEmpty())
+        return false;
+    const bool opened = m_opener ? m_opener(url) : QDesktopServices::openUrl(url);
+    if (!opened)
+        emit externalOpenFailed(tr("Le navigateur du système n’a pas pu ouvrir %1.").arg(url.toString()));
+    return opened;
 }
 
 bool WebFrameItems::insertFrame(const QString& html, const QString& address)
