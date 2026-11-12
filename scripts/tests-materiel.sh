@@ -15,6 +15,8 @@ echec() {
 [ "$(uname -s)" = Darwin ] || echec "Mac requis (uname -s = $(uname -s))"
 export ACTCRAFT_QT_DIR="${ACTCRAFT_QT_DIR:-$(brew --prefix qt 2>/dev/null)}"
 [ -n "$ACTCRAFT_QT_DIR" ] || echec "Qt introuvable : ACTCRAFT_QT_DIR ou brew install qt"
+# La sortie prouve un commit : aucun fichier suivi modifié.
+git diff --quiet HEAD -- || echec "arbre modifié : la sortie ne prouverait pas le commit $(git rev-parse --short HEAD)"
 echo "Commit : $(git rev-parse HEAD) ; macOS $(sw_vers -productVersion) ; Qt : $ACTCRAFT_QT_DIR"
 cmake --preset debug > /dev/null || echec "configuration CMake"
 tests=$(ctest --preset debug -L materiel -N | sed -n 's/^ *Test *#[0-9]*: *\([^ ]*\).*/\1/p')

@@ -1,6 +1,6 @@
 # État — livraison-complete
 
-Statut : **release 1.0.0 en cours** (OA72, 2026-11-12) — tous les lots fusionnés dans `main` (`ac042a32`, `VERSION 1.0.0`) ; dépôt rendu public, CI passée sur les machines de GitHub (PR #32) ; go de release de Jérôme du 2026-11-11 : « Go pou release quand c’est prêt »
+Statut : **release 1.0.0 en cours** (OA72, 2026-11-12) — tous les lots fusionnés dans `main` (`ac042a32`, `VERSION 1.0.0`) ; dépôt rendu public, CI déplacée sur les machines de GitHub (PR #32, CI en cours) ; go de release de Jérôme du 2026-11-11 : « Go pou release quand c’est prêt »
 Gabarit : lots (provisoire, à confirmer à l'étage 2)
 Avancement : 10/10 lots clos (lot 9 supprimé, décision 0218) — clos : 1, 2, 10, 3, 4, 5, 6, 7, 8, 11 · lot 7 : PR #19 fusionnée ; lot 8 : PR #16 fusionnée ; lot 11 : PR #23 fusionnée ; tâche Qt WebEngine (décision 0217) : PR #26 fusionnée ; release.yml : PR #28 et #29 fusionnées ; restes PC du lot 11 : PR #31 ouverte (OA89, non fusionnée) ; ses relevés de copyright de THIRD_PARTY_NOTICES.md sont repris dans la PR #32, prérequis du tag (contrôle « NOTICES COMPLETES » du job `secrets`)
 Étage : 4 clôture — release 1.0.0 : PR #32 (workflows sur les machines de GitHub), puis tag `v1.0.0` et publication — depuis 2026-11-12

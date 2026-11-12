@@ -66,8 +66,9 @@ jobs:
     # Lot 4 : la suite debug Windows, jouée en série, dépasse 20 min (73/138 tests à 11 min, PR #8). Lot 5 : 170 tests,
     # coupée à 99/170 à 50 min (run 41715403316, PR #9). Windows : 119 min de tests à 4 à la fois au run 42932734568
     # (337 tests). Sur une machine de GitHub, la compilation part d'un arbre vide à chaque run (ni ccache ni arbre
-    # gardé) : délai du job = délais de ses étapes Compiler et Tester, plus 15 min d'installation (Qt, outils).
-    # macOS : 50 min mesurées au run 43303503126 (compilation 17 min, tests 30 min) ; 90 min, l'ancien délai.
+    # gardé) : sous Windows, délai du job = délais de ses étapes Compiler et Tester, plus 15 min d'installation (Qt,
+    # outils) ; 132 min mesurées au run 43303503126 (compilation 26 min, tests 105 min). macOS : 50 min mesurées au même
+    # run (compilation 17 min, tests 30 min) ; 90 min, l'ancien délai, plus court que la somme des délais d'étapes.
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 285 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
