@@ -5654,8 +5654,8 @@
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="77"/>
-        <source>Origine XY</source>
-        <translation>Origine XY</translation>
+        <source>Repère XY</source>
+        <translation>Repère XY</translation>
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="78"/>

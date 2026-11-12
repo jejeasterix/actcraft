@@ -74,7 +74,7 @@ namespace {
     QT_TRANSLATE_NOOP("commandes", "Équerre"),
     QT_TRANSLATE_NOOP("commandes", "Rapporteur"),
     QT_TRANSLATE_NOOP("commandes", "Compas"),
-    QT_TRANSLATE_NOOP("commandes", "Origine XY"),
+    QT_TRANSLATE_NOOP("commandes", "Repère XY"),
     QT_TRANSLATE_NOOP("commandes", "Dés"),
     QT_TRANSLATE_NOOP("commandes", "Calculatrice"),
     QT_TRANSLATE_NOOP("commandes", "Horloge"),
