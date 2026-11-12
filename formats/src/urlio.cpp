@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFile>
 #include <QSaveFile>
+#include <QThread>
 
 #include <algorithm>
 
@@ -14,6 +15,11 @@ namespace {
 
 constexpr qsizetype kChunk = qsizetype{1} << 20; // 1 Mio
 constexpr qint64 kMaxReserve = qint64{64} << 20; // 64 Mio
+// Renommage final refusé : écriture refaite après 25, 50… 1 600 ms (3,2 s en tout). Sous Windows, un
+// antivirus ou l'indexeur tient un instant le fichier qui vient d'être écrit, sans partage de suppression («
+// Accès refusé ») ; run 43141999645 de la PR 28.
+constexpr int kRenameAttempts = 8;
+constexpr unsigned long kFirstRenameRetryMs = 25;
 
 bool isContent(const QUrl& url)
 {
@@ -100,22 +106,30 @@ bool writeUrl(const QUrl& url, const QByteArray& data, QString* error)
     if (url.isLocalFile()) {
         // Jamais d'écriture en place d'un fichier existant : temporaire voisin, puis renommage par-dessus.
         // Sans repli en écriture directe (dossier sans droit de création) : mieux vaut échouer qu'écraser à
-        // moitié.
-        QSaveFile file(url.toLocalFile());
-        file.setDirectWriteFallback(false);
-        if (!file.open(QIODevice::WriteOnly)) {
-            return fail(u"écriture impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString()));
+        // moitié. Seul un renommage refusé est réessayé (kRenameAttempts) ; toute autre erreur échoue
+        // aussitôt.
+        for (int attempt = 1;; ++attempt) {
+            QSaveFile file(url.toLocalFile());
+            file.setDirectWriteFallback(false);
+            if (!file.open(QIODevice::WriteOnly)) {
+                return fail(
+                    u"écriture impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString()));
+            }
+            if (file.write(data) != data.size()) {
+                const QString why = file.errorString();
+                file.cancelWriting();
+                return fail(u"écriture incomplète : %1 (%2)"_s.arg(url.toDisplayString(), why));
+            }
+            if (file.commit()) {
+                return true;
+            }
+            // En cas d'échec, QSaveFile supprime son temporaire.
+            if (file.error() != QFileDevice::RenameError || attempt == kRenameAttempts) {
+                return fail(
+                    u"enregistrement impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString()));
+            }
+            QThread::msleep(kFirstRenameRetryMs << (attempt - 1));
         }
-        if (file.write(data) != data.size()) {
-            const QString why = file.errorString();
-            file.cancelWriting();
-            return fail(u"écriture incomplète : %1 (%2)"_s.arg(url.toDisplayString(), why));
-        }
-        if (!file.commit()) { // en cas d'échec, QSaveFile supprime son temporaire
-            return fail(
-                u"enregistrement impossible : %1 (%2)"_s.arg(url.toDisplayString(), file.errorString()));
-        }
-        return true;
     }
     if (isContent(url)) {
         QFile file(url.toString());
