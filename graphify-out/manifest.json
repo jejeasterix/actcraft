@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "THIRD_PARTY_NOTICES.md": {
-    "mtime": 1794412610.1560755,
-    "ast_hash": "1759a8bdf7859dbb40d1938e3e6075fb",
+    "mtime": 1794476631.48426,
+    "ast_hash": "23c2eb656ddfe43b593e870c6cd6315e",
     "semantic_hash": ""
   },
   "docs/design/2026-10-14-direction-visuelle.md": {
@@ -5195,8 +5195,8 @@
     "semantic_hash": ""
   },
   "tests/tst_app_notices.cpp": {
-    "mtime": 1794403148.4857538,
-    "ast_hash": "fb713c09874a3556e620f24f28623fe8",
+    "mtime": 1794476640.3444593,
+    "ast_hash": "d220fb36fa91d9303b483ba98e0f892a",
     "semantic_hash": ""
   },
   "tests/tst_app_versioninfo.cpp": {
@@ -5285,8 +5285,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_shortcuts.cpp": {
-    "mtime": 1794416401.3184786,
-    "ast_hash": "4ddee3144f90cbeb8d64a2ec5729bf08",
+    "mtime": 1794478413.659305,
+    "ast_hash": "08d2f75b6edffcedd78634d709d1d6e0",
     "semantic_hash": ""
   },
   "tests/tst_ui_touchmode.cpp": {
@@ -5790,8 +5790,8 @@
     "semantic_hash": ""
   },
   "ui/help/xy-origin.html": {
-    "mtime": 1794447773.0835235,
-    "ast_hash": "d2326e15e9e62e5177af75f264c6169f",
+    "mtime": 1794476781.6730094,
+    "ast_hash": "ae23a2070ec0245626342a5c5821ccf0",
     "semantic_hash": ""
   },
   "ui/icons/deux-utilisateurs.svg": {
@@ -5825,8 +5825,8 @@
     "semantic_hash": ""
   },
   "docs/verifications/2026-11-12-lot11-restes-pc.md": {
-    "mtime": 1794475702.70196,
-    "ast_hash": "32b6f848cb3ebb94bbc7f0fcdf542cc2",
+    "mtime": 1794479122.6250408,
+    "ast_hash": "3e618048838906d53097678a36925324",
     "semantic_hash": ""
   }
 }

@@ -7,7 +7,12 @@ joué à l'écran pendant un job, sauf la fin des captures D3D11 (arrêtées dè
 
 ## Verdict
 
-<!-- VERDICT -->
+Restes prouvés : `NOMS OK`, titres du corpus, `textsAreOurs`, raccourcis F-950 à F-953, `recognitioncontroller.cpp:230`,
+notices (0 « à relever »), `APK OK`, `LICENCES OK` (APK), `ANDROID PORTAIL OK`, `APK BANC OK`, captures D3D11 (66/68,
+dont S8 et S17), contraste de `PrintSetupDialog` (≥ 10:1), scénarios `gestes` réussis. Non conclus, raison écrite :
+essai tablette (marge du clavier), essai cycle (option ignorée en release), banc Android (`MESURE INVALIDE`), banc
+D3D11 (un passage, `MESURE INVALIDE`), L11-C3-PC, stylet réel (L11-C24), REA statique et A22. Corrigés en TDD : six
+défauts, dont deux trouvés par la relecture.
 
 ## Windows
 
@@ -168,4 +173,13 @@ notices, aide du repère accordée, sha des tranches. Laissés : `Close-ActCraft
 (écran 2560 × 1600 des AVD d'essai) ; les scénarios `gestes` visent le binaire de ce worktree (à repointer s'ils sont
 rejoués ailleurs). La voie « retirée » des récents reste prouvée par `tst_ui_documentportal.cpp:162-177`.
 
-<!-- BANC -->
+## Banc Direct3D 11 plein écran (Windows)
+
+Un passage (`bench.ps1 -Rendu d3d11 -Taille plein-ecran -SansConstruire`, release de fef73048, PC sans job de CI ;
+JSON `bench/results/2026-11-12_112021-Dell-Inc-Latitude-5450-direct3d11.json`, hors dépôt). Critères de la
+référence tenus : `stroke` 60,0 images/s, p95 17,0 ms, latence p50 10,1 ms ; `zoom` 60,1 / 17,0 ; `scroll` 60,0 / 17,0 ;
+0 % > 25 ms, 0 figement, 0 reprise (lot 6 : 60,0 / 17,3). Verdict brut **`MESURE INVALIDE`** : `background export
+incomplete or failed in export-fond, content-check-failed`. Hors référence, au-dessus des seuils comme aux bancs
+précédents : `page` (36,9 images/s), `onglets` (45,2), `gommer`, `forme-page-annotee` ; nouveaux : `message-defilant`
+latence p50 35,5 ms, pic mémoire 1,20 Go (> 1 Gio). Un passage seulement (S13 en veut trois) : la porte de
+non-régression n'est pas conclue ; l'export de fond invalide est à examiner.
