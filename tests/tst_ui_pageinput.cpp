@@ -1093,10 +1093,10 @@ private slots:
         tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
     }
 
-    // Reste PC du lot 11 (recognitioncontroller.cpp:230) : la conversion a posteriori en forme lit la sélection
-    // utilisable, comme les panneaux de L11-C10 (G). Le premier sélectionne un cercle à main levée, le second
-    // le tient de son stylet ; « convertir en forme » du premier ne le touche pas. Ancien patron (sélection
-    // brute) : le cercle tenu par l'autre devient une ellipse.
+    // Reste PC du lot 11 (recognitioncontroller.cpp:230) : la conversion a posteriori en forme lit la
+    // sélection utilisable, comme les panneaux de L11-C10 (G). Le premier sélectionne un cercle à main levée,
+    // le second le tient de son stylet ; « convertir en forme » du premier ne le touche pas. Ancien patron
+    // (sélection brute) : le cercle tenu par l'autre devient une ellipse.
     void heldObjectIsNotRecognized()
     {
         App app;
@@ -1107,7 +1107,8 @@ private slots:
         tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(400, 300));
         for (int i = 1; i <= 40; ++i) {
             const double a = 2 * 3.14159265358979 * i / 40;
-            tablet(app, m_stylus11.get(), QEvent::TabletMove, QPointF(300 + 100 * std::cos(a), 300 + 100 * std::sin(a)));
+            tablet(app, m_stylus11.get(), QEvent::TabletMove,
+                   QPointF(300 + 100 * std::cos(a), 300 + 100 * std::sin(a)));
         }
         tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(400, 300));
         QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 1, 3000);

@@ -103,7 +103,8 @@ private slots:
         const QString root = QStringLiteral(ACTCRAFT_LABELS_SRC);
         QFile src(root + QStringLiteral("/ui/src/commandlabels.cpp"));
         QVERIFY(src.open(QIODevice::ReadOnly));
-        const QRegularExpression entry(QStringLiteral("QT_TRANSLATE_NOOP\\(\"actions-objet\", \"((?:[^\"\\\\]|\\\\.)*)\"\\)"));
+        const QRegularExpression entry(
+            QStringLiteral("QT_TRANSLATE_NOOP\\(\"actions-objet\", \"((?:[^\"\\\\]|\\\\.)*)\"\\)"));
         QSet<QString> extracted;
         for (auto it = entry.globalMatch(QString::fromUtf8(src.readAll())); it.hasNext();) {
             extracted.insert(it.next().captured(1).replace(QStringLiteral("\\\""), QStringLiteral("\"")));
@@ -120,8 +121,10 @@ private slots:
         QStringList stale = (extracted - labels).values();
         missing.sort();
         stale.sort();
-        QVERIFY2(missing.isEmpty(), qPrintable(QStringLiteral("absents : ") + missing.join(QStringLiteral(" | "))));
-        QVERIFY2(stale.isEmpty(), qPrintable(QStringLiteral("périmés : ") + stale.join(QStringLiteral(" | "))));
+        QVERIFY2(missing.isEmpty(),
+                 qPrintable(QStringLiteral("absents : ") + missing.join(QStringLiteral(" | "))));
+        QVERIFY2(stale.isEmpty(),
+                 qPrintable(QStringLiteral("périmés : ") + stale.join(QStringLiteral(" | "))));
     }
 
     // L11-C11 (L) : le navigateur d'actions montre le libellé traduit, contexte « actions-objet ».
