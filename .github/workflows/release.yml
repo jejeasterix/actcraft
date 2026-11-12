@@ -14,7 +14,9 @@ name: Release
 # « windows » (étapes de paquet-windows de ci.yml), xcode-27 (macOS 27) pour « macos ». Les secrets de signature ne
 # vont qu'à « secrets » et « android » en mode réel, deux machines jetables, dans l'environnement « release ».
 # H.264 selon la plateforme (décisions de Jérôme, 2026-11-11) : le Mac exige un Qt WebEngine construit avec les codecs
-# propriétaires (Qt de Homebrew, en lecture seule ; docs/etudes/2026-11-11-h264-webengine.md). Windows : Qt officiel, dont
+# propriétaires (bouteilles Homebrew installées par le job, jamais construites ; docs/etudes/2026-11-11-h264-webengine.md).
+# Bouteilles non épinglées : une mise à jour des formules qt ou qtwebengine arrête le job « macos » sur ses contrôles de
+# version (QT_VERSION, qtwebengine 6.11.2), jamais un paquet construit avec une autre version. Windows : Qt officiel, dont
 # le Qt WebEngine n'a pas H.264 (Vimeo et Lumni ne jouent pas dans le cadre web, à ouvrir dans le navigateur du système) ;
 # il est exigé sans codecs propriétaires, aucune construction de Chromium (« Je ne veux pas d'une construction de 6 à
 # 10h »). FFmpeg de Qt Multimedia garde son décodeur H.264 sous Windows et Android.
@@ -193,9 +195,8 @@ jobs:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && needs.mode.outputs.windows == 'true' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     runs-on: windows-latest
-    # Délai de paquet-windows de ci.yml : étapes de compilation release et d'installateur (90 min chacune au plus ; la
-    # compilation part d'un arbre vide), plus l'installation de Qt et d'Inno Setup et l'essai S1.
-    timeout-minutes: 200
+    # 16 min mesurées sur windows-latest (essai 43301736325) ; 90 min, le délai propre de l'ancien runner du PC.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -228,12 +229,21 @@ jobs:
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
+      # Inno Setup 6.7.3 épinglé, somme SHA-256 vérifiée, installé par utilisateur et portable dans le dossier temporaire
+      # du job : même version que celle de l'ancien runner du PC, jamais celle que l'image de GitHub aurait.
       - name: Installer Inno Setup
         shell: pwsh
         run: |
-          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
-          if (-not (Test-Path $iscc)) { throw "ISCC.exe introuvable après installation" }
+          $dossier = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3'
+          $iscc = Join-Path $dossier 'ISCC.exe'
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $setup
+          $somme = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          if ($somme -ne '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732') { throw "innosetup-6.7.3.exe : somme inattendue $somme" }
+          $p = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+            '/CURRENTUSER', '/PORTABLE=1', '/NOICONS', "/DIR=`"$dossier`"")
+          if ($p.ExitCode -ne 0 -or -not (Test-Path $iscc)) { throw "installation d'Inno Setup en échec (code $($p.ExitCode))" }
+          "Inno Setup : $iscc"
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
       # L'installateur ne livre que actcraft.exe : seule cette cible est compilée.
@@ -294,9 +304,9 @@ jobs:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     runs-on: xcode-27
-    # Le Mac mini prenait 90 min au plus sans son attente de 45 min (délai de 135 min) ; ici, sans ccache, la
-    # compilation Release part d'un arbre vide, après l'installation des formules : 150 min.
-    timeout-minutes: 150
+    # 10 min mesurées sur xcode-27 (essai 43301736325) ; 90 min, le délai propre de l'ancien runner du Mac mini (135 min
+    # dont 45 d'attente).
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 

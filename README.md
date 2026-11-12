@@ -113,4 +113,7 @@ Détails : [`docs/BRIEF.md`](docs/BRIEF.md).
 
 ## Licence
 
-[MIT](LICENSE). Qt est utilisé sous licence LGPLv3.
+[GNU GPL v3](LICENSE) (SPDX : `GPL-3.0-only`). Copyright (C) 2026 Jérôme Denis.
+ActCraft est un logiciel libre : vous pouvez le redistribuer et le modifier selon les termes de la GNU General Public
+License version 3, publiée par la Free Software Foundation. Il est fourni sans aucune garantie.
+Qt est utilisé sous licence LGPLv3 ; composants tiers : [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

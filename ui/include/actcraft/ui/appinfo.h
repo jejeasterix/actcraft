@@ -22,7 +22,7 @@ public:
     explicit AppInfo(QObject* parent = nullptr);
 
     QString version() const;     // project(VERSION) du CMakeLists.txt racine
-    QString licenseName() const; // « MIT »
+    QString licenseName() const; // « GNU GPL v3 » (SPDX GPL-3.0-only, fichier LICENSE)
     QString projectUrl() const;  // page du projet (F-760 : l'aide est la page du projet)
     // THIRD_PARTY_NOTICES.md, intégré aux ressources (:/actcraft/THIRD_PARTY_NOTICES.md).
     QString notices() const;

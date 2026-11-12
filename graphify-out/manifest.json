@@ -630,8 +630,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1794515446.8951924,
-    "ast_hash": "0f2eb472f6b64d800d531532a7081fa0",
+    "mtime": 1794519791.046454,
+    "ast_hash": "5e34271411f8c6117c2868263006a94f",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -645,8 +645,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794515281.8009818,
-    "ast_hash": "a6c782041010480a4c533b88fe91897d",
+    "mtime": 1794517515.899784,
+    "ast_hash": "19b9faffa09713548115fd83a5f9222d",
     "semantic_hash": ""
   },
   "actions/CMakeLists.txt": {
@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "docs/BRIEF.md": {
-    "mtime": 1793751829.6599836,
-    "ast_hash": "261b857f825ad9ec7d94df5a536f4b0f",
+    "mtime": 1794517515.9011424,
+    "ast_hash": "e47f8d18bb360c8dcb9feb94eb99c0a5",
     "semantic_hash": ""
   },
   "docs/banc.md": {
@@ -870,8 +870,8 @@
     "semantic_hash": ""
   },
   "tests/tst_ui_about.cpp": {
-    "mtime": 1793057364.3246093,
-    "ast_hash": "c3d52df579edc8a888c7717b3fab36de",
+    "mtime": 1794517515.899388,
+    "ast_hash": "e88ec360c636cd4a0ba22246884e01c0",
     "semantic_hash": ""
   },
   "tests/tst_ui_commands.cpp": {
@@ -900,8 +900,8 @@
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/appinfo.h": {
-    "mtime": 1793057364.3312225,
-    "ast_hash": "2896933ea20cb9d99116b248cbfa2764",
+    "mtime": 1794517515.8991165,
+    "ast_hash": "ddc8361213a9c05b62acceb18dcaa07c",
     "semantic_hash": ""
   },
   "ui/include/actcraft/ui/commands.h": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "ui/src/appinfo.cpp": {
-    "mtime": 1793057364.3343632,
-    "ast_hash": "b7c7e61fe4120859b986f70eb484f4af",
+    "mtime": 1794517515.8988144,
+    "ast_hash": "70a6343b8ce079ee835e1a705494ce25",
     "semantic_hash": ""
   },
   "ui/src/commands.cpp": {
@@ -930,18 +930,18 @@
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
-    "mtime": 1794515568.2234118,
-    "ast_hash": "e6d7ca46653608d894585f843f3fffa3",
+    "mtime": 1794519791.0468662,
+    "ast_hash": "8144ada24178a8ec77e5555c3692ec22",
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
-    "mtime": 1794515281.7943454,
-    "ast_hash": "fc8724234a50b4c94cd722eb2629c0a0",
+    "mtime": 1794517515.9016361,
+    "ast_hash": "6d3a047547715409a13ae5465df734fc",
     "semantic_hash": ""
   },
   "THIRD_PARTY_NOTICES.md": {
-    "mtime": 1794515281.8011637,
-    "ast_hash": "95f91a7a71d0b3497eb7930a41983d34",
+    "mtime": 1794518379.0803664,
+    "ast_hash": "cb80a13ef84e721bd0e5cb814d85a510",
     "semantic_hash": ""
   },
   "docs/design/2026-10-14-direction-visuelle.md": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "docs/sessions/livraison-complete-etat.md": {
-    "mtime": 1794515281.8270655,
-    "ast_hash": "546422d0818e7fcff98167c66bf7f004",
+    "mtime": 1794517753.8037753,
+    "ast_hash": "cdc723f06a932120494bec48b91c3a18",
     "semantic_hash": ""
   },
   "docs/specs/2026-10-14-livraison-complete-cadrage.md": {
@@ -5015,8 +5015,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci-ciblee.yml": {
-    "mtime": 1794515615.078463,
-    "ast_hash": "d02a13bafce7612515695f3cf1bef766",
+    "mtime": 1794519791.0471613,
+    "ast_hash": "a255b17d861c768c013b04b994f26639",
     "semantic_hash": ""
   },
   "docs/ci-ciblee.md": {
@@ -5175,8 +5175,8 @@
     "semantic_hash": ""
   },
   "tests/tst_app_notices.cpp": {
-    "mtime": 1794515282.0878787,
-    "ast_hash": "fb713c09874a3556e620f24f28623fe8",
+    "mtime": 1794518394.6621323,
+    "ast_hash": "5d90628f61a7ed9d8bc5e7a24972b209",
     "semantic_hash": ""
   },
   "tests/tst_app_versioninfo.cpp": {
@@ -5514,11 +5514,6 @@
     "ast_hash": "3912d958d00bac4a6b550f75d7c806bb",
     "semantic_hash": ""
   },
-  "LICENSES/MPL-1.1.txt": {
-    "mtime": 1794515281.7994986,
-    "ast_hash": "f3f5b7d58710f015f868c6eddcd5195f",
-    "semantic_hash": ""
-  },
   "LICENSES/MPL-2.0.txt": {
     "mtime": 1794515281.7996213,
     "ast_hash": "48a3fe23ed1353e0995dadfda05ffdb6",
@@ -5585,8 +5580,8 @@
     "semantic_hash": ""
   },
   "packaging/autres-autorises.txt": {
-    "mtime": 1794515282.0763059,
-    "ast_hash": "dbf5a5517c1f186e3fc17b0360c1fb43",
+    "mtime": 1794517515.9006271,
+    "ast_hash": "57a48496942f83a1d6a8084645b2cc8f",
     "semantic_hash": ""
   },
   "ui/help/calculator.html": {
@@ -5892,6 +5887,16 @@
   "tests/data/media/essai-h264.mp4": {
     "mtime": 1794515282.084578,
     "ast_hash": "530b526d106970f63f514eb8746f729b",
+    "semantic_hash": ""
+  },
+  "scripts/tests-materiel.sh": {
+    "mtime": 1794519804.5459814,
+    "ast_hash": "b4ff2e844046b732e48056af95470202",
+    "semantic_hash": ""
+  },
+  "docs/tests-materiel.md": {
+    "mtime": 1794519809.5820065,
+    "ast_hash": "29bf2833f6349a78e63da978f3225a56",
     "semantic_hash": ""
   }
 }

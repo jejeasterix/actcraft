@@ -138,12 +138,15 @@ Locaux, jamais publiés hors du go de la release (décisions 26 à 33 du cadrage
   débogage, annoncé `APK NON PUBLIABLE` ; aucune release, aucun téléversement), puis suppression de la branche.
   Une release déjà présente pour le tag (brouillon compris) arrête le workflow (`RELEASE EXISTE DEJA`).
   Publication du brouillon : `gh release edit v<version> --draft=false`, sous le même go.
+- Porte avant chaque tag de release : `scripts/tests-materiel.sh` sur un Mac réel, sur le commit du tag (tests au label
+  ctest `materiel`, exclus du job macOS de la CI ; `docs/tests-materiel.md`). Dernière ligne `TESTS MATERIEL OK`, sinon
+  pas de tag.
 - **Au go, avant de pousser le tag** (Jérôme ou l'orchestrateur, une seule fois) : créer l'environnement GitHub
   `release` (Settings → Environments), règle de déploiement limitée aux tags `v*` (« Selected branches and tags »,
   motif de tag `v*`), et y placer les quatre secrets `ACTCRAFT_KEYSTORE_BASE64`, `ACTCRAFT_KEYSTORE_PASSWORD`,
   `ACTCRAFT_KEY_ALIAS`, `ACTCRAFT_KEY_PASSWORD` comme secrets d'environnement, jamais comme secrets de dépôt
   (`gh secret set <nom> --env release`). `release.yml` référence cet environnement en mode réel seulement (jobs
-  `secrets`, `android`, `release`) : sans lui, le premier tag le créerait sans protection. Le mode essai n'y touche
+  `secrets` et `android`) : sans lui, le premier tag le créerait sans protection. Le mode essai n'y touche
   pas (nom d'environnement vide).
 
 ## Sources du cadrage (après le coffre)

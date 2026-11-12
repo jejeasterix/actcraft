@@ -17,6 +17,9 @@ on:
 # Exécuteurs : les machines de GitHub (ubuntu-latest, windows-latest, macos-latest), gratuites pour un dépôt public
 # (OA72, 2026-11-12). Plus aucun runner auto-hébergé : celui du Mac mini et celui du PC sont retirés, et un job de
 # PR venu d'un fork ne peut atteindre aucune de nos machines.
+# Tests au label ctest « materiel » (cadence réelle d'encodage, tst_media_displayrecorder) : exclus du seul job macOS
+# (machine de GitHub trop lente, rendu sans RHI), joués sous Windows ici et sur un Mac réel par
+# scripts/tests-materiel.sh, porte avant chaque release (docs/tests-materiel.md).
 # Pas de groupe de concurrence : un run n'est jamais annulé par un autre (O85, jamais d'annulation sans cause
 # trouvée).
 
@@ -63,7 +66,8 @@ jobs:
     # coupée à 99/170 à 50 min (run 41715403316, PR #9). Windows : 119 min de tests à 4 à la fois au run 42932734568
     # (337 tests). Sur une machine de GitHub, la compilation part d'un arbre vide à chaque run (ni ccache ni arbre
     # gardé) : délai du job = délais de ses étapes Compiler et Tester, plus 15 min d'installation (Qt, outils).
-    timeout-minutes: ${{ matrix.os == 'windows-latest' && 285 || 255 }}
+    # macOS : 50 min mesurées au run 43303503126 (compilation 17 min, tests 30 min) ; 90 min, l'ancien délai.
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && 285 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -84,6 +88,20 @@ jobs:
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+      # Sortie audio virtuelle (BlackHole) : la machine de GitHub liste une sortie qui ne consomme rien, et le lecteur
+      # ne voit jamais sa position avancer (tst_media_player, run 43303503126). BlackHole consomme le son en temps réel,
+      # comme une vraie carte ; elle devient la sortie par défaut.
+      - name: Sortie audio virtuelle (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install --cask blackhole-2ch
+          brew install switchaudio-osx
+          sudo killall coreaudiod || true
+          for i in $(seq 1 20); do SwitchAudioSource -a -t output | grep -qx 'BlackHole 2ch' && break; sleep 1; done
+          SwitchAudioSource -t output -s 'BlackHole 2ch'
+          echo "Sortie audio : $(SwitchAudioSource -c -t output)"
 
       # 4 tests à la fois sous Windows, comme sur l'ancien runner du PC : en série, les tests d'interface dépassent
       # 90 min (run 42268652493). Chacun tourne hors écran, avec réglages et ressources dans des dossiers jetables ;
@@ -112,7 +130,7 @@ jobs:
           cmake -E make_directory "${{ runner.temp }}/journaux-tests"
           cmake -E rm -f build/debug/Testing/Temporary/LastTestsFailed.log
           cmake -E rm -rf build/debug/journaux-tests
-          ctest --preset debug --output-on-failure --output-log "${{ runner.temp }}/journaux-tests/ctest-sortie.txt" --output-junit "${{ runner.temp }}/journaux-tests/ctest-junit.xml"
+          ctest --preset debug --output-on-failure ${{ runner.os == 'macOS' && '-LE materiel' || '' }} --output-log "${{ runner.temp }}/journaux-tests/ctest-sortie.txt" --output-junit "${{ runner.temp }}/journaux-tests/ctest-junit.xml"
 
       # Relances en direct plafonnées à 2 min : la suite Windows a de 71 à 81 min de tests (run 42434070554).
       - name: Journaux des tests rouges
@@ -146,9 +164,9 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: windows-latest
     # Lot 5 : compilation release coupée à 693/808 à 15 min (run 41715403316, PR #9). Lot 8 : coupée à 25 min avec
-    # Qt Multimedia et Qt WebView (run 42337666352, PR #16). Délai du job = délai de l'étape Construire l'installateur
-    # (90 min, compilation release comprise), plus 30 min d'installation (Qt, Inno Setup) et d'essai S1.
-    timeout-minutes: 120
+    # Qt Multimedia et Qt WebView (run 42337666352, PR #16). 36 min mesurées sur windows-latest (run 43303503126) :
+    # 90 min, l'ancien délai.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -169,12 +187,21 @@ jobs:
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
+      # Inno Setup 6.7.3 épinglé, somme SHA-256 vérifiée, installé par utilisateur et portable dans le dossier temporaire
+      # du job : même version que celle de l'release.yml et de l'ancien runner du PC, jamais celle que l'image de GitHub aurait.
       - name: Installer Inno Setup
         shell: pwsh
         run: |
-          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
-          if (-not (Test-Path $iscc)) { throw "ISCC.exe introuvable après installation" }
+          $dossier = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3'
+          $iscc = Join-Path $dossier 'ISCC.exe'
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $setup
+          $somme = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          if ($somme -ne '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732') { throw "innosetup-6.7.3.exe : somme inattendue $somme" }
+          $p = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+            '/CURRENTUSER', '/PORTABLE=1', '/NOICONS', "/DIR=`"$dossier`"")
+          if ($p.ExitCode -ne 0 -or -not (Test-Path $iscc)) { throw "installation d'Inno Setup en échec (code $($p.ExitCode))" }
+          "Inno Setup : $iscc"
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
       # Chaque script finit par une ligne de verdict (« … OK » / « … EN ECHEC : … ») : la CI l'exige en plus du code.

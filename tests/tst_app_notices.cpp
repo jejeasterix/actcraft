@@ -62,7 +62,6 @@ const QHash<QString, QByteArray>& pinnedTexts()
         {QStringLiteral("MIT-open-group"),
          "d5942d51b7e079b0eab4d6f9e06f1b8625f918b8802117a9c3127c004c5df9b6"},
         {QStringLiteral("MIT"), "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5"},
-        {QStringLiteral("MPL-1.1"), "6214f8b1300bb9f37b16ebc146f8f61af0187e0025042ff95c8b3030744a8795"},
         {QStringLiteral("MPL-2.0"), "66a3107d5ad6a058aab753eaac2047ccb2ed0e39465dd0fe5844da3e300d5172"},
         {QStringLiteral("Unicode-3.0"), "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1"},
         {QStringLiteral("Unlicense"), "0bdebfeda07d45dada625ae1317c6f833186e798b171d0db640bcf32e92a8240"},

@@ -30,7 +30,7 @@ QString AppInfo::version() const
 
 QString AppInfo::licenseName() const
 {
-    return QStringLiteral("MIT");
+    return QStringLiteral("GNU GPL v3");
 }
 
 QString AppInfo::projectUrl() const

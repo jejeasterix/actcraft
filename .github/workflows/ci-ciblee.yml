@@ -41,9 +41,9 @@ jobs:
   tests:
     name: tests ciblés (${{ inputs.plateforme }})
     runs-on: ${{ inputs.plateforme == 'macos' && 'macos-latest' || 'windows-latest' }}
-    # Délai du job = compilation (120 min au plus, comme ci.yml) + tests (25 min au plus, délai de l'étape) + 15 min
-    # d'installation (Qt, outils).
-    timeout-minutes: 160
+    # Compilation mesurée sur les machines de GitHub (run 43303503126) : 17 min (macOS), 26 min (Windows) ; plus les
+    # tests (25 min au plus, délai de l'étape) et l'installation : 90 min.
+    timeout-minutes: 90
     steps:
       # Dossier des journaux créé avant tout : un échec de checkout, de configuration ou de compilation
       # téléverse quand même l'artefact journaux-tests (contrat avec ci-ciblee.cjs), avec au moins ce contexte.
@@ -81,6 +81,7 @@ jobs:
           path: _ci-ciblee-outils
           sparse-checkout: scripts/ci
 
+      # Étapes suivantes reprises du job build de ci.yml, à garder alignées avec lui.
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
@@ -97,6 +98,20 @@ jobs:
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
+
+      # Sortie audio virtuelle (BlackHole) : la machine de GitHub liste une sortie qui ne consomme rien, et le lecteur
+      # ne voit jamais sa position avancer (tst_media_player, run 43303503126), comme dans ci.yml. BlackHole consomme le son en temps réel,
+      # comme une vraie carte ; elle devient la sortie par défaut.
+      - name: Sortie audio virtuelle (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install --cask blackhole-2ch
+          brew install switchaudio-osx
+          sudo killall coreaudiod || true
+          for i in $(seq 1 20); do SwitchAudioSource -a -t output | grep -qx 'BlackHole 2ch' && break; sleep 1; done
+          SwitchAudioSource -t output -s 'BlackHole 2ch'
+          echo "Sortie audio : $(SwitchAudioSource -c -t output)"
 
       # 4 tests à la fois sous Windows, comme le job build de ci.yml.
       - name: Tests en parallèle (Windows)
