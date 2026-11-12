@@ -1,3 +1,5 @@
+#include "support/testserver.h"
+
 #include <actcraft/core/connectors.h>
 #include <actcraft/core/edits.h>
 #include <actcraft/core/model.h>
@@ -7,6 +9,7 @@
 #include <actcraft/ui/objectediting.h>
 #include <actcraft/ui/toolhost.h>
 
+#include <QBuffer>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QImage>
@@ -457,6 +460,97 @@ private slots:
     }
 
     // L5-C17 (mineur) : un objet sans emprise ne compte pas dans le centrage de « Coller ici ».
+    // S2 : l'URL d'une image, copiée puis collée, devient une image téléchargée.
+    void pasteImageAddressDownloads()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        QImage picture(50, 40, QImage::Format_RGB32);
+        picture.fill(Qt::green);
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        picture.save(&buffer, "PNG");
+        server.page(QStringLiteral("/photo.png"), bytes);
+        Fixture f(0, false);
+        QGuiApplication::clipboard()->setText(server.url(QStringLiteral("/photo.png")).toString());
+        f.editing.paste();
+        QTRY_VERIFY_WITH_TIMEOUT(f.objectCount() == 1 && f.lastObjectIs<core::ImageObject>(), 10000);
+        f.document.undo();
+        QCOMPARE(f.objectCount(), 0);
+    }
+
+    // E9 : page non image → objet texte, après la réponse.
+    void pasteNonImagePageBecomesText()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        server.page(QStringLiteral("/page"), "<p>texte</p>");
+        Fixture f(0, false);
+        QGuiApplication::clipboard()->setText(server.url(QStringLiteral("/page")).toString());
+        f.editing.paste();
+        QCOMPARE(f.objectCount(), 0); // rien tant que la réponse n'est pas là
+        QTRY_VERIFY_WITH_TIMEOUT(f.objectCount() == 1 && f.lastObjectIs<core::Text>(), 10000);
+    }
+
+    // Le téléchargement collé finit longtemps après : l'outil et la sélection choisis entre-temps restent.
+    void downloadedImageDoesNotOverrideWhatTheUserDidMeanwhile()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        QImage picture(50, 40, QImage::Format_RGB32);
+        picture.fill(Qt::green);
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        picture.save(&buffer, "PNG");
+        server.page(QStringLiteral("/lente.png"), bytes);
+        server.hold(QStringLiteral("/lente.png"));
+        Fixture f(1, false);
+        QGuiApplication::clipboard()->setText(server.url(QStringLiteral("/lente.png")).toString());
+        f.editing.paste();
+        QTRY_COMPARE_WITH_TIMEOUT(server.requests(), 1, 10000);
+        f.tools.activate(QStringLiteral("pen"));
+        server.release();
+        QTRY_VERIFY_WITH_TIMEOUT(f.objectCount() == 2 && f.lastObjectIs<core::ImageObject>(), 10000);
+        QCOMPARE(f.tools.currentTool(), QStringLiteral("pen"));
+        QVERIFY(f.selection().empty());
+    }
+
+    // S2 : 404 → message, document inchangé.
+    void pasteMissingAddressReportsTheFailure()
+    {
+        TestServer server;
+        QVERIFY(server.listening());
+        Fixture f(0, false);
+        QSignalSpy failed(&f.editing, &ui::ObjectEditing::insertionFailed);
+        QGuiApplication::clipboard()->setText(server.url(QStringLiteral("/absent.png")).toString());
+        f.editing.pasteAt({100, 100});
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 10000);
+        QCOMPARE(f.objectCount(), 0);
+    }
+
+    // Cadrage n° 22, E9 : compte pour une URL le texte entier, sur une ligne, en http(s), avec un hôte.
+    void pasteNotQuiteAnAddressStaysText_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::newRow("deux lignes") << QStringLiteral("https://a.example/x\nhttps://b.example/y");
+        QTest::newRow("espace") << QStringLiteral("https://a.example/x y");
+        QTest::newRow("phrase") << QStringLiteral("voir https://a.example/x");
+        QTest::newRow("schema") << QStringLiteral("ftp://a.example/x");
+        QTest::newRow("sans hote") << QStringLiteral("https:///x");
+    }
+
+    void pasteNotQuiteAnAddressStaysText()
+    {
+        QFETCH(QString, text);
+        Fixture f(0, false);
+        QGuiApplication::clipboard()->setText(text);
+        f.editing.paste();
+        QTRY_COMPARE(f.objectCount(), 1); // sans passer par le réseau
+        QVERIFY(f.lastObjectIs<core::Text>());
+    }
+
     void pasteAtIgnoresObjectsWithoutExtent()
     {
         Fixture f(1, false);

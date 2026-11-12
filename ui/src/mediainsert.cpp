@@ -37,6 +37,25 @@ bool isVideoExtension(const QString& suffix)
     return videos.contains(suffix.toLower());
 }
 
+QString videoExtensionForMimeType(const QString& mimeType)
+{
+    const QString type = mimeType.section(';', 0, 0).trimmed().toLower();
+    if (type == QLatin1String("video/mp4"))
+        return QStringLiteral("mp4");
+    if (type == QLatin1String("video/webm"))
+        return QStringLiteral("webm");
+    if (type == QLatin1String("video/quicktime"))
+        return QStringLiteral("mov");
+    if (type == QLatin1String("video/x-m4v"))
+        return QStringLiteral("m4v");
+    return {};
+}
+
+bool isVideoMimeType(const QString& mimeType)
+{
+    return !videoExtensionForMimeType(mimeType).isEmpty();
+}
+
 namespace {
 
 enum class Kind

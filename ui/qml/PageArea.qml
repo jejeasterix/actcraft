@@ -12,6 +12,9 @@ Item {
     // Lot 3 : outils de l'utilisateur ; null pour une annotation de bureau (lot 7), où la zone dessine sans eux.
     property Tools tools: null
     property Commands commands: null
+    property var profile: null
+    property var insertion: null
+    property var editing: null
     // Lot 4 : édition du texte (TextEditing de la fenêtre) ; null pour une annotation de bureau.
     property TextEditing textEditing: null
     property bool textListOpen: false // une liste de la barre de texte est ouverte : Échap la ferme, il ne valide pas
@@ -27,6 +30,8 @@ Item {
     property int contextMenuRequestCount: 0
     // Lot 5 : menu d'édition d'objet (ObjectEditMenu) ; le clic droit sur la sélection l'ouvre à la place du menu de page.
     property var objectMenu: null
+    // edit.copy : la sélection d'un cadre web au focus passe avant les objets de la page.
+    function copyFromWebFrame() { return webFrameLayerItem.copyFromFocusedView() }
     // Le point (coordonnées de la vue) tombe-t-il dans l'emprise du cadre de sélection ?
     function insideSelection(p) {
         const frame = area.tools ? area.tools.selectionFrame : null
@@ -238,8 +243,12 @@ Item {
                 // Lot 8 (L8-T2) : surcouches du lot, vides (coquille). Il n'y a ni rideau ni projecteur sur cette tête
                 // (H8-7) : elles se placent par rapport à ce qui existe, au-dessus des zones.
                 WebFrameLayer {
+                    id: webFrameLayerItem
                     z: 3
                     commands: area.commands
+                    profile: area.profile
+                    insertion: area.insertion
+                    editing: area.editing
                 }
                 MediaLayer { z: 4 }
                 ActionOverlays {

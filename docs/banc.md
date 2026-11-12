@@ -299,7 +299,7 @@ voir « Limites connues »).
 2. Installer Qt 6.12 :
    ```bash
    python3 -m pip install --user "git+https://github.com/miurahr/aqtinstall"
-   python3 -m aqt install-qt mac desktop 6.12.0 clang_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir ~/Qt
+   python3 -m aqt install-qt mac desktop 6.12.0 clang_64 -m qtshadertools qtimageformats qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning --outputdir ~/Qt
    export ACTCRAFT_QT_DIR=~/Qt/6.12.0/macos
    ```
    `export` ne vaut que pour le terminal courant : le refaire dans chaque nouveau terminal, ou ajouter la ligne à

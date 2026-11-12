@@ -263,6 +263,7 @@ namespace {
     QT_TRANSLATE_NOOP("commandes", "Page web précédente"),
     QT_TRANSLATE_NOOP("commandes", "Page web suivante"),
     QT_TRANSLATE_NOOP("commandes", "Recharger le cadre"),
+    QT_TRANSLATE_NOOP("commandes", "Ouvrir le cadre dans le navigateur"),
     QT_TRANSLATE_NOOP("commandes", "Poser une image du cadre"),
     QT_TRANSLATE_NOOP("commandes", "Débloquer le contenu du cadre"),
     QT_TRANSLATE_NOOP("commandes", "Diffuser en protégé…"),

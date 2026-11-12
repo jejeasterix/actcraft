@@ -42,7 +42,7 @@ fi
 # Lecteur, enregistreurs et cadre web sont livrés : une construction qui les a perdus (module Qt manquant) est refusée.
 for option_cmake in ACTCRAFT_MEDIA ACTCRAFT_WEBFRAME; do
   grep -qx "$option_cmake:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null ||
-    echec "$option_cmake n'est pas ON dans $build/CMakeCache.txt (Qt Multimedia ou Qt WebView manquant)"
+    echec "$option_cmake n'est pas ON dans $build/CMakeCache.txt (Qt Multimedia ou Qt WebEngine manquant)"
 done
 source_app="$(find "$build" -maxdepth 2 -name actcraft.app -type d | head -1)"
 [ -n "$source_app" ] || echec "actcraft.app absent de $build (construire d'abord, sans --sans-construire)"
@@ -67,6 +67,25 @@ erreur="$(grep '^ERROR' "$journal" | grep -v 'ActCraft\.Ui' |
   grep -vE '^ERROR: +using QList\(|^ERROR: Cannot resolve rpath "@rpath/' | head -1)"
 [ -z "$erreur" ] || echec "macdeployqt : $erreur"
 
+# Qt WebEngine (cadrage DA4) : le greffon référence @rpath/QtWebEngine…, que macdeployqt ne résout pas chez Homebrew, et
+# le processus auxiliaire exige Helpers/ et Resources/ complets : frameworks copiés entiers, en-têtes retirés.
+copier_framework() { # <formule Homebrew> <nom du framework>
+  local source="$qt/lib/$2.framework"
+  [ -d "$source" ] || source="$(brew --prefix "$1" 2>/dev/null)/lib/$2.framework"
+  [ -d "$source" ] || echec "$2.framework introuvable (ni $qt/lib, ni formule $1)"
+  rm -rf "$app/Contents/Frameworks/$2.framework"
+  # -H : chez Homebrew, $qt/lib/<nom>.framework est un lien ; c'est le framework qu'il faut copier.
+  cp -RH "$source" "$app/Contents/Frameworks/" || echec "copie de $2.framework"
+  chmod -R u+w "$app/Contents/Frameworks/$2.framework"
+  rm -rf "$app/Contents/Frameworks/$2.framework/Headers" "$app/Contents/Frameworks/$2.framework/Versions/A/Headers"
+}
+copier_framework qtwebengine QtWebEngineCore
+copier_framework qtwebengine QtWebEngineQuick
+copier_framework qtwebengine QtWebEngineQuickDelegatesQml
+copier_framework qtwebchannel QtWebChannel
+copier_framework qtwebchannel QtWebChannelQuick
+copier_framework qtpositioning QtPositioning
+
 # macdeployqt copie en entier les dossiers d'import de Qt (QtQuick/, QtQml/) : il y entraîne des modules qu'ActCraft
 # n'importe pas, dont deux sous GPL seule (Qt Virtual Keyboard, Qt Quick Timeline : « Jamais » de qt-autorises.txt),
 # Qt 3D (Scene2D, Scene3D) et State Machine. Chaque module part avec les greffons que ses liens désignent
@@ -74,7 +93,7 @@ erreur="$(grep '^ERROR' "$journal" | grep -v 'ActCraft\.Ui' |
 # boucle suivante. Un module oublié ici ne passe pas : verifier-licences-mac.sh refuse tout framework absent de
 # qt-autorises.txt.
 qml="$app/Contents/Resources/qml"
-for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/Scene3D QtQml/StateMachine; do
+for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/Scene3D QtQml/StateMachine QtWebView; do
   [ -d "$qml/$module" ] || continue
   find "$qml/$module" -type l -name '*.dylib' | while read -r lien; do
     rm -f "$(dirname "$lien")/$(readlink "$lien")"
@@ -83,6 +102,10 @@ for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/S
   echo "Retiré, non importé : $module"
 done
 rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
+rm -rf "$app/Contents/PlugIns/webview" # Qt WebView : Android seulement (cadrage n° 8)
+# Greffon NMEA de Qt Positioning (récepteur GPS série) : il lie Qt Serial Port, hors de qt-autorises.txt, que la boucle
+# plus bas retire une fois ce greffon parti. Qt Positioning reste : Qt WebEngine le lie.
+rm -f "$app/Contents/PlugIns/position/libqtposition_nmea.dylib"
 
 # Références @rpath laissées par macdeployqt (voir plus haut) : réécrites sous la forme des siennes
 # (@executable_path/../Frameworks/…) quand le framework est dans le bundle ; les autres restent, refusées plus bas.
@@ -96,12 +119,23 @@ find "$app" -type f -exec otool -L {} + 2>/dev/null |
       echo "Réécrit : ${fichier#"$app"/} → Frameworks/${cible%%/*}"
   done
 
-# Qt WebView passe par le moteur natif de macOS (greffon darwin), jamais par Qt WebEngine (qt-autorises.txt, lot 8) :
-# macdeployqt copie pourtant les deux greffons et, avec celui de WebEngine, ses frameworks. Le greffon est retiré, puis
-# tout framework et toute bibliothèque que plus rien ne référence, jusqu'à point fixe. Il ne doit rester aucun
-# QtWebEngine* : sinon verifier-licences-mac.sh refuse le bundle (arrêt).
-rm -f "$app/Contents/PlugIns/webview/libqtwebview_webengine.dylib"
-[ -f "$app/Contents/PlugIns/webview/libqtwebview_darwin.dylib" ] || echec "greffon Qt WebView natif (darwin) absent"
+# Chemins absolus de Homebrew dans les frameworks copiés à la main (QtWebEngineProcess, QtWebEngineCore, greffons) :
+# même forme que les autres. L'auxiliaire tourne ailleurs : @executable_path/../Frameworks y désigne un dossier qui
+# n'existe pas ; un lien l'y fait pointer vers les frameworks du bundle (DA4).
+find "$app" -type f -exec otool -L {} + 2>/dev/null |
+  awk '/^[^[:space:]].*:$/ { f = substr($0, 1, length($0) - 1); next }
+       /^[[:space:]]+\/opt\/homebrew\/opt\/[^\/]+\/lib\/[^\/]+\.framework\// { print f "\t" $1 }' |
+  while IFS=$'\t' read -r fichier ref; do
+    cible="${ref#*/lib/}"
+    [ -e "$app/Contents/Frameworks/$cible" ] || continue
+    install_name_tool -change "$ref" "@executable_path/../Frameworks/$cible" "$fichier" 2>/dev/null &&
+      echo "Réécrit : ${fichier#"$app"/} → Frameworks/${cible%%/*}"
+  done
+auxiliaire="$app/Contents/Frameworks/QtWebEngineCore.framework/Versions/A/Helpers/QtWebEngineProcess.app"
+[ -x "$auxiliaire/Contents/MacOS/QtWebEngineProcess" ] || echec "QtWebEngineProcess absent du bundle"
+ln -s ../../../../../.. "$auxiliaire/Contents/Frameworks" || echec "lien Frameworks de l'auxiliaire"
+
+# Tout framework et toute bibliothèque que plus rien ne référence s'en va, jusqu'à point fixe.
 liens="$paquet/liens.txt"
 while :; do
   # Tous les fichiers : un binaire de framework n'a ni extension ni droit d'exécution (-r--r--r-- chez Homebrew) ; un
@@ -122,6 +156,10 @@ while :; do
     fi
   done
   [ "$retire" = 1 ] || break
+done
+# La boucle ci-dessus retire ce que plus rien ne référence : le moteur doit y avoir survécu.
+for fw in QtWebEngineCore QtWebEngineQuick QtWebEngineQuickDelegatesQml QtWebChannel QtWebChannelQuick QtPositioning; do
+  [ -d "$app/Contents/Frameworks/$fw.framework" ] || echec "$fw.framework retiré du bundle"
 done
 
 # Identifiant (LC_ID_DYLIB) resté sur le chemin de Homebrew (44 frameworks de Qt 6.12 Homebrew, relevé du 2026-11-08) :
@@ -161,6 +199,11 @@ grep -q '^Plugins = PlugIns$' "$conf" && grep -q '^QmlImports = Resources/qml$' 
 cp LICENSE "$app/Contents/Resources/LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/"
 cp -R LICENSES "$app/Contents/Resources/LICENSES"
+# Texte de la licence de Chromium : celui de la formule ; Qt installé par aqt n'a pas de formule, la copie exacte du
+# dépôt (LICENSES/LICENSE.Chromium) le remplace.
+licence_chromium="$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium"
+[ -f "$licence_chromium" ] || licence_chromium="LICENSES/LICENSE.Chromium"
+cp "$licence_chromium" "$app/Contents/Resources/LICENSE.Chromium" || echec "copie de LICENSE.Chromium"
 
 licences="$(scripts/verifier-licences-mac.sh "$app")"
 code=$?

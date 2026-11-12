@@ -26,9 +26,12 @@ struct StartupOptions
     // `--journal-empreinte` (essai sur l'émulateur) : « ACTCRAFT EMPREINTE <h> » au journal à chaque
     // changement du document.
     bool logFingerprint = false;
+    // `--essai-cadre-web <adresse ou fichier>` (essai de l'image disque, S4) : un cadre posé au démarrage.
+    QString webFrameProbe;
 };
 
-// Lit `--sans-cache` (décision 8), `--ouvrir <fichier>` et `--journal-empreinte`.
+// Lit `--sans-cache` (décision 8), `--ouvrir <fichier>`, `--journal-empreinte` et `--essai-cadre-web <adresse
+// ou fichier>`.
 StartupOptions parseStartupOptions(const QStringList& args);
 
 // `--ouvrir <f>`, sinon premier argument qui n'est ni une option ni la valeur d'une option ; vide sinon.

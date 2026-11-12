@@ -256,6 +256,7 @@
   { "id": "webframe.back", "label": "Page web précédente", "icon": "cadre-web", "lockable": false, "restrictable": false },
   { "id": "webframe.forward", "label": "Page web suivante", "icon": "cadre-web", "lockable": false, "restrictable": false },
   { "id": "webframe.reload", "label": "Recharger le cadre", "icon": "cadre-web", "lockable": false, "restrictable": false },
+  { "id": "webframe.open-external", "label": "Ouvrir le cadre dans le navigateur", "icon": "cadre-web", "lockable": true, "restrictable": false },
   { "id": "webframe.snapshot", "label": "Poser une image du cadre", "icon": "cadre-web", "lockable": true, "restrictable": true },
   { "id": "webframe.unblock", "label": "Débloquer le contenu du cadre", "icon": "cadre-web", "opensDialog": true, "lockable": true, "restrictable": false },
   { "id": "file.publish", "label": "Diffuser en protégé…", "icon": "diffuser", "opensDialog": true, "lockable": true, "restrictable": true },

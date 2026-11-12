@@ -604,6 +604,22 @@ private slots:
         QVERIFY(opens >= 4);
     }
 
+    // Réglage de profil posé par le scénario (chantier cadre-web-webengine, cadrage n° 36).
+    void settingStepIsParsed()
+    {
+        UiScenario s;
+        QString error;
+        QVERIFY2(parseUiScenario("{\"format\":\"actcraft-scenario/1\",\"name\":\"x\",\"steps\":["
+                                 "{\"setting\":\"tools.web-frame-guards\",\"value\":true}]}",
+                                 s, error),
+                 qPrintable(error));
+        QCOMPARE(s.steps.size(), std::size_t{1});
+        QVERIFY(s.steps[0].kind == UiStepKind::Setting);
+        QCOMPARE(s.steps[0].target, QStringLiteral("tools"));
+        QCOMPARE(s.steps[0].property, QStringLiteral("web-frame-guards"));
+        QCOMPARE(s.steps[0].argument, QVariant(true));
+    }
+
     // Étapes de L2-T20 (S5) : fixture, attente d'une propriété, sonde de boucle, mémoire, archive.
     void newStepsAreParsed()
     {
@@ -685,6 +701,10 @@ private slots:
             << QByteArray("{\"remember\":\"a.b\",\"as\":\"SAMPLES\"}") << QStringLiteral("mémoire invalide");
         QTest::newRow("remember nom invalide")
             << QByteArray("{\"remember\":\"a.b\",\"as\":\"a}b\"}") << QStringLiteral("mémoire invalide");
+        QTest::newRow("setting sans valeur")
+            << QByteArray("{\"setting\":\"a.b\"}") << QStringLiteral("réglage invalide");
+        QTest::newRow("setting sans section")
+            << QByteArray("{\"setting\":\"ab\",\"value\":1}") << QStringLiteral("réglage invalide");
         // L8-C15 : saut d'une étape selon la plateforme.
         QTest::newRow("skipOn motif blanc")
             << QByteArray("{\"waitFor\":\"a.b\",\"value\":1,\"skipOn\":[\"macos\"],\"skipReason\":\"  \"}")

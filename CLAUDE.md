@@ -29,10 +29,10 @@ Dans une session PowerShell interactive : `. ./scripts/dev-env.ps1` charge MSVC,
 **Installation sur un nouveau poste Windows** : Visual Studio Build Tools 2022 (C++), CMake, Python 3.12, puis
 ```powershell
 python -m pip install --user ninja clang-format "git+https://github.com/miurahr/aqtinstall"
-python -m aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir C:\Qt
+python -m aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning --outputdir C:\Qt
 ```
 aqtinstall 3.3.0 (PyPI) ne sait pas installer Qt 6.12 : la version du dépôt GitHub, oui (vérifié le 2026-10-13).
-Autre dossier de Qt : variable `ACTCRAFT_QT_DIR`. `qtpdf` (Qt PDF seul, jamais Qt WebEngine) rend `ACTCRAFT_IMPORT_PDF` automatique (`ON` si le module est trouvé) ; sur Mac, `brew install qt` l'apporte (via `qtwebengine`).
+Autre dossier de Qt : variable `ACTCRAFT_QT_DIR`. `qtpdf` rend `ACTCRAFT_IMPORT_PDF` automatique (`ON` si le module est trouvé) ; `qtwebengine` rend `ACTCRAFT_WEBFRAME` automatique sur PC et Mac (Android : `qtwebview`) ; sur Mac, `brew install qt` les apporte.
 
 ## Architecture et règles
 Modules, règles de modularité et de fluidité : `docs/BRIEF.md` § 4. L'essentiel :

@@ -171,7 +171,7 @@ jobs:
         shell: bash
         run: |
           host=$([ "${{ runner.os }}" = "Windows" ] && echo windows || echo mac)
-          python -m aqt install-qt "$host" desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt "$host" desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
@@ -191,13 +191,14 @@ jobs:
           else
             echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
             qt_dir="$cache/Qt/$QT_VERSION/macos"
-            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant.
-            if [ ! -f "$cache/Qt/$QT_VERSION/.complet" ]; then
+            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant. Son nom porte
+            # les modules WebEngine : un cache posé sans eux est refait.
+            if [ ! -f "$cache/Qt/$QT_VERSION/.complet-webengine" ]; then
               rm -rf "$cache/Qt/$QT_VERSION"
               python3 -m venv "$cache/venv-aqt"
               "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf --outputdir "$cache/Qt"
-              touch "$cache/Qt/$QT_VERSION/.complet"
+              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" ${{ matrix.qt_arch }} -m qtshadertools qtimageformats qtpdf qtwebengine qtwebchannel qtpositioning --outputdir "$cache/Qt"
+              touch "$cache/Qt/$QT_VERSION/.complet-webengine"
             fi
           fi
           command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
@@ -223,6 +224,7 @@ jobs:
           foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf') {
             if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 ...)"; exit 1 }
           }
+          if (-not (Test-Path "$qt\lib\cmake\Qt6WebEngineQuick")) { "::warning::Qt WebEngine absent de $qt : construction sans cadre web (Reste PC 1)" }
           "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
           "$qt\bin" >> $env:GITHUB_PATH
           # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.
@@ -346,7 +348,7 @@ jobs:
         if: runner.environment == 'github-hosted'
         shell: bash
         run: |
-          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning --outputdir "$RUNNER_TEMP/Qt"
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
@@ -360,6 +362,7 @@ jobs:
           foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf') {
             if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt (aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 ...)"; exit 1 }
           }
+          if (-not (Test-Path "$qt\lib\cmake\Qt6WebEngineQuick")) { "::warning::Qt WebEngine absent de $qt : construction sans cadre web (Reste PC 1)" }
           "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
           "$qt\bin" >> $env:GITHUB_PATH
           # 6 compilations à la fois : le PC (15 Go) porte aussi les sessions Claude pendant le build.

@@ -2450,6 +2450,10 @@
 <context>
     <name>SettingsSchema</name>
     <message>
+        <source>Cadres web : appliquer la politique de contenu (JavaScript coupé, adresses filtrées)</source>
+        <translation>Cadres web : appliquer la politique de contenu (JavaScript coupé, adresses filtrées)</translation>
+    </message>
+    <message>
         <location filename="../src/settingsschema.cpp" line="117"/>
         <source>Horloge</source>
         <translation>Horloge</translation>
@@ -3169,6 +3173,10 @@
         <source>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</source>
         <translation>JavaScript reste coupé. Dans un document reçu, le contenu distant reste bloqué jusqu&apos;à ce que vous débloquiez sa page.</translation>
     </message>
+    <message>
+        <source>Le contenu du cadre s&apos;exécute tel quel : JavaScript actif, aucune adresse filtrée.</source>
+        <translation>Le contenu du cadre s&apos;exécute tel quel : JavaScript actif, aucune adresse filtrée.</translation>
+    </message>
 </context>
 <context>
     <name>WebFrameLayer</name>
@@ -3186,6 +3194,11 @@
         <location filename="../qml/WebFrameLayer.qml" line="226"/>
         <source>Débloquer…</source>
         <translation>Débloquer…</translation>
+    </message>
+    <message>
+        <location filename="../qml/WebFrameLayer.qml" line="472"/>
+        <source>Ouvrir dans le navigateur</source>
+        <translation>Ouvrir dans le navigateur</translation>
     </message>
     <message>
         <location filename="../qml/WebFrameLayer.qml" line="272"/>
@@ -3206,6 +3219,10 @@
         <location filename="../qml/WebFrameLayer.qml" line="335"/>
         <source>Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.</source>
         <translation>Le cadre web chargera le contenu distant de cette page, pour ce document seulement. JavaScript reste coupé.</translation>
+    </message>
+    <message>
+        <source>Le cadre web chargera le contenu distant de cette page, pour ce document seulement.</source>
+        <translation>Le cadre web chargera le contenu distant de cette page, pour ce document seulement.</translation>
     </message>
 </context>
 <context>
@@ -6599,6 +6616,11 @@
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="266"/>
+        <source>Ouvrir le cadre dans le navigateur</source>
+        <translation>Ouvrir le cadre dans le navigateur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="267"/>
         <source>Poser une image du cadre</source>
         <translation>Poser une image du cadre</translation>
     </message>

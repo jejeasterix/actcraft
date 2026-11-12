@@ -1,4 +1,5 @@
 #include "startup.h"
+#include "support/presentationharness.h"
 
 #include <actcraft/core/model.h>
 #include <actcraft/input/routing.h>
@@ -29,6 +30,7 @@
 #include <QTabletEvent>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <algorithm>
@@ -259,6 +261,34 @@ private slots:
         QSettings probe;
         QCOMPARE(probe.format(), QSettings::IniFormat);
         QVERIFY(probe.fileName().startsWith(m_settings.path()));
+    }
+
+    // E3 : le stylet sur un cadre web ne trace rien (vue WebEngine déclarée couverture, n° 17).
+    void stylusOnWebFrameDrawsNothing()
+    {
+        App app;
+        QVERIFY(start(app));
+        QQuickItem* layer =
+            presentationharness::findItem(app.window->contentItem(), QStringLiteral("webFrameLayer"));
+        QVERIFY(layer);
+        layer->setProperty("viewSource", QUrl::fromLocalFile(QStringLiteral(
+                                             ACTCRAFT_SOURCE_DIR "/tests/qml/FakeWebFrameView.qml")));
+        QObject* frames = layer->findChild<QObject*>(QStringLiteral("appWebFrames"));
+        QVERIFY(frames);
+        bool inserted = false;
+        QVERIFY(QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, inserted),
+                                          Q_ARG(QString, QStringLiteral("<p>a</p>")),
+                                          Q_ARG(QString, QString())));
+        QVERIFY(inserted);
+        QTRY_VERIFY_WITH_TIMEOUT(
+            presentationharness::findItem(app.window->contentItem(), QStringLiteral("webFrameView")), 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 1, 5000); // le cadre
+        const QPointF inside(512, 384);                               // centre du cadre, au centre de la page
+        tablet(app, m_stylus11.get(), QEvent::TabletPress, inside);
+        tablet(app, m_stylus11.get(), QEvent::TabletMove, inside + QPointF(40, 10));
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, inside + QPointF(40, 10));
+        QTest::qWait(300);
+        QCOMPARE(app.fixed->objectCount(), 1);
     }
 
     // L11-C24 (H11-O14, F-303) : mode à deux, le bouton math.ruler est hors de la vue (palette à droite) ;

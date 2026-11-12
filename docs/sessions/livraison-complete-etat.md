@@ -1344,3 +1344,5 @@ ouvertes : — · passées : **porte de fin du lot 2** (2026-10-17, PR #4 mergé
   (`regles-tache.md`) ; jamais `ctest` ni `tst_*.exe` sans `dev-env.ps1` (boîte DLL bloquante) ; supprimer un
   worktree depuis un autre dossier courant ; relire les tâches `concepteur-critique` ; limite de 40 tours des
   relecteurs : leur demander de conclure.
+
+Cadre web sur Qt WebEngine (O146) : chantier `cadre-web-webengine`, état dans `docs/sessions/cadre-web-webengine-etat.md`.
