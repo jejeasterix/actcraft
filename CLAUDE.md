@@ -111,6 +111,8 @@ Avancer seul, étape par étape, sans demander « je continue ? ». Solliciter J
 
 ## Git
 - Branche principale `main` ; remote `origin` = github.com/jejeasterix/actcraft (**public**). Merge par PR.
+- CI et release sur les machines de GitHub (`ubuntu-latest`, `windows-latest`, `macos-latest`, `xcode-27`), gratuites
+  pour un dépôt public. Aucun runner auto-hébergé : n'en enregistrer aucun, un job de fork l'atteindrait.
 - Commits fréquents, en français, chemins explicites (jamais `git add -A`), terminés par la ligne
   `Co-Authored-By` donnée par l'environnement.
 - Fichiers en LF (`.gitattributes`) ; build + tests verts (`scripts/test.ps1` → `TESTS OK`) avant tout commit.

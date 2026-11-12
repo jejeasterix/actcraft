@@ -1,7 +1,7 @@
 # CI ciblée et journaux des tests
 
-La CI complète joue toute la suite (81 min de tests sur le PC). Pour savoir si un test rouge est réparé, on
-rejoue seulement ce test, sur le même runner, avec `.github/workflows/ci-ciblee.yml`.
+La CI complète joue toute la suite (119 min de tests sous Windows). Pour savoir si un test rouge est réparé, on
+rejoue seulement ce test, sur le même exécuteur que la CI, avec `.github/workflows/ci-ciblee.yml`.
 
 ## Lancer
 
@@ -18,9 +18,8 @@ gh run download <run> --repo jejeasterix/actcraft -n journaux-tests -D journaux 
   branche seule ne voit pas les changements de `main`. Cette ref n'existe que si GitHub sait fusionner la PR
   (« couldn't find remote ref » sinon, run 42454755473) : prendre alors le SHA de sa tête.
 - Le motif est obligatoire et non vide : vide, il lancerait toute la suite.
-- Le runner est celui de la CI : le PC (`windows`, par défaut) ou le Mac mini (`macos`). Aucun exécuteur GitHub.
-- Le runner fait un job à la fois : un run ciblé attend la fin d'une CI en cours sur le même runner.
-- Compilation incrémentale : l'arbre `build/` du PC et le ccache du Mac sont ceux de la CI.
+- L'exécuteur est celui du job build de la CI : `windows-latest` (`windows`, par défaut) ou `macos-latest` (`macos`).
+- Aucun cache de compilation : chaque run compile depuis un arbre vide, comme la CI.
 
 ## Contrat (outillage `ci-ciblee.cjs`)
 
@@ -38,7 +37,7 @@ Un motif qui ne trouve aucun test fait échouer le run (`noTestsAction: error` d
 
 Écrit par le workflow, `ctest` et `scripts/ci/journaux-tests.cmake` (pris dans le commit du workflow) :
 
-- `contexte.txt` : motif, ref, runner, run ; seul fichier si l'échec précède les tests (garde, compilation) ;
+- `contexte.txt` : motif, ref, runner, run ; seul fichier si l'échec précède les tests (installation, compilation) ;
 - `ctest-sortie.txt`, `ctest-junit.xml` : sortie de ctest et résultat par test ;
 - `LastTest.log`, `LastTestsFailed.log` : copiés de `build/debug/Testing/Temporary` ;
 - `par-test/<test>.txt` (Windows) : sortie QtTest du passage sous ctest, pour chaque test, code de sortie en dernière

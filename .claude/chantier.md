@@ -122,6 +122,10 @@ Locaux, jamais publiés hors du go de la release (décisions 26 à 33 du cadrage
   Émulateur local ou CI : `docs/verifications/2026-10-14-outillage-paquets.md`.
 - Licences : `scripts/verifier-licences.ps1` (appelé par les deux scripts de paquet ; liste
   `packaging/qt-autorises.txt`).
+- Exécuteurs (OA72, 2026-11-12) : `ci.yml`, `ci-ciblee.yml`, `preuves-windows.yml` et `release.yml` tournent sur les
+  machines de GitHub (`ubuntu-latest`, `windows-latest`, `macos-latest` ; `xcode-27`, macOS 27, pour le `.dmg` de la
+  release), gratuites pour le dépôt public. Plus aucun runner auto-hébergé : ceux du Mac mini et du PC sont retirés.
+  Banc de fluidité et rendu sur vrai GPU : à la main sur le PC, aucun workflow ne les joue.
 - CI : jobs `paquet-windows` (S1) et `android` (S3, émulateur KVM) à chaque PR, sans téléversement. Plus de CI sur
   push (ni `main` ni `essai-ci/**`, lot B11 du chantier mac-autonome). Essai de CI sans PR :
   `gh workflow run ci.yml --repo jejeasterix/actcraft --ref <branche>` (branche poussée, avec `main` fusionné) ;
