@@ -1,5 +1,6 @@
 #pragma once
 
+#include <actcraft/ui/commands.h>
 #include <actcraft/ui/documentcontroller.h>
 #include <actcraft/ui/webframeitem.h>
 
@@ -22,12 +23,17 @@ struct WebFrameHost
     QQuickItem* layer = nullptr;
     actcraft::ui::WebFrameItems* frames = nullptr;
 
-    bool start()
+    // `commands` : posées avant la fin de la création, comme Main.qml les donne à la couche.
+    bool start(actcraft::ui::Commands* commands = nullptr)
     {
         document.newDocument(1024, 768);
         QQmlComponent component(
             &engine, QUrl::fromLocalFile(QStringLiteral(ACTCRAFT_SOURCE_DIR "/tests/qml/WebFrameHost.qml")));
-        root.reset(qobject_cast<QQuickItem*>(component.create()));
+        root.reset(qobject_cast<QQuickItem*>(component.beginCreate(engine.rootContext())));
+        if (root && commands)
+            root->setProperty("commands", QVariant::fromValue(commands));
+        if (root)
+            component.completeCreate();
         if (!root) {
             qWarning() << component.errors();
             return false;

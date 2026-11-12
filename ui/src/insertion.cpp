@@ -8,10 +8,13 @@
 
 #include <QBuffer>
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QFutureWatcher>
 #include <QImageReader>
 #include <QPointer>
+#include <QTemporaryDir>
 #include <QTextDocument>
 #include <QThread>
 #include <QtConcurrent>
@@ -224,6 +227,8 @@ core::RectF centeredRect(QPointF center, double width, double height)
 
 Insertion::Insertion(QObject* parent) : QObject(parent) {}
 
+Insertion::~Insertion() = default;
+
 DocumentController* Insertion::document() const
 {
     return m_document;
@@ -411,12 +416,22 @@ void Insertion::setMediaInsert(MediaInsert* insert)
         connect(insert, &MediaInsert::inserted, this, [this](int count) {
             if (m_forwarded > 0) {
                 --m_forwarded;
+                const bool waited = m_forwardedAfterWait > 0;
+                if (waited)
+                    --m_forwardedAfterWait;
+                releaseVideoFiles();
+                m_lastSelects =
+                    !waited; // après une attente réseau : ni outil changé, ni sélection (insertion.h)
                 emit inserted(count);
+                m_lastSelects = true;
             }
         });
         connect(insert, &MediaInsert::failed, this, [this](QString message) {
             if (m_forwarded > 0) {
                 --m_forwarded;
+                if (m_forwardedAfterWait > 0)
+                    --m_forwardedAfterWait;
+                releaseVideoFiles();
                 emit failed(std::move(message));
             }
         });
@@ -431,7 +446,7 @@ void Insertion::setPortal(DocumentPortal* portal)
         m_mediaInsert->setPortal(portal);
 }
 
-void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center)
+void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center, bool afterWaiting)
 {
     if (!m_mediaInsert) {
         auto* own = new MediaInsert(this);
@@ -441,6 +456,8 @@ void Insertion::routeMedia(const QUrl& url, std::optional<QPointF> center)
         setMediaInsert(own);
     }
     ++m_forwarded;
+    if (afterWaiting)
+        ++m_forwardedAfterWait;
     if (center)
         m_mediaInsert->insertFileAt(url, *center);
     else
@@ -526,20 +543,33 @@ WebImageFetch::Decide Insertion::webDecider() const
     };
 }
 
-void Insertion::startDownload(const QUrl& url, const QString& fallback, QPointF center)
+void Insertion::startDownload(const QUrl& url, const QString& fallback, QPointF center,
+                              WebImageFetch::Kind kind)
 {
     if (m_pending++ == 0)
         emit busyChanged();
     auto origin = trackOrigin();
     auto* fetch = new WebImageFetch(this);
     connect(fetch, &WebImageFetch::finished, this,
-            [this, fetch, url, fallback, center, origin](const QByteArray& data, const QString& error) {
+            [this, fetch, url, fallback, center, origin, kind](const QByteArray& data, const QString& error) {
                 fetch->deleteLater();
                 if (!error.isEmpty()) {
-                    releaseOrigin(*origin);
-                    if (--m_pending == 0)
-                        emit busyChanged();
-                    emit failed(error);
+                    abandonDownload(*origin, error);
+                    return;
+                }
+                // Vidéo : reconnue par l'extension de l'adresse (kind) ou par le type de la réponse. Un lien
+                // « .mp4 » qui répond par une page (connexion exigée, par exemple) n'est pas une vidéo.
+                const QString mimeExtension = videoExtensionForMimeType(fetch->contentType());
+                if (kind == WebImageFetch::Kind::Video &&
+                    fetch->contentType().startsWith(QLatin1String("text/"))) {
+                    abandonDownload(*origin,
+                                    tr("Vidéo indisponible : l'adresse renvoie une page, pas une vidéo."));
+                    return;
+                }
+                if (kind == WebImageFetch::Kind::Video || !mimeExtension.isEmpty()) {
+                    const QString suffix = QFileInfo(url.path()).suffix().toLower();
+                    placeDownloadedVideo(data, isVideoExtension(suffix) ? suffix : mimeExtension, url, center,
+                                         origin);
                     return;
                 }
                 InsertionJob job;
@@ -555,8 +585,87 @@ void Insertion::startDownload(const QUrl& url, const QString& fallback, QPointF 
                 start(std::move(jobs), origin); // compte sa propre attente : pas de clignotement de `busy`
                 if (--m_pending == 0)
                     emit busyChanged();
+                releaseVideoFiles();
             });
-    fetch->start(url, webDecider());
+    fetch->start(url, webDecider(), kind);
+}
+
+// Vidéo téléchargée (OA27) : écrite dans un dossier temporaire, hors du fil de l'interface, puis confiée à
+// MediaInsert comme un fichier déposé (ressource du document, espace réservé, action, verrou de classe).
+// Posée seulement sur la page du dépôt, celle que l'utilisateur regarde encore : sinon rien n'est posé.
+void Insertion::placeDownloadedVideo(const QByteArray& data, const QString& extension, const QUrl& url,
+                                     QPointF center, std::shared_ptr<InsertionOrigin> origin)
+{
+    if (!m_videoDir)
+        m_videoDir = std::make_unique<QTemporaryDir>();
+    if (!m_videoDir->isValid()) {
+        abandonDownload(*origin, tr("Vidéo indisponible : le dossier temporaire est inutilisable."));
+        return;
+    }
+    QString base;
+    for (const QChar c : QFileInfo(url.path()).completeBaseName()) {
+        if (c.isLetterOrNumber() || c == QLatin1Char('-') || c == QLatin1Char('_'))
+            base.append(c);
+    }
+    if (base.isEmpty())
+        base = QStringLiteral("video");
+    // Un dossier par vidéo : le fichier garde le nom de l'adresse, que MediaInsert montre comme nom de
+    // l'objet.
+    const QString folder = m_videoDir->filePath(QString::number(++m_videoCount));
+    if (!QDir().mkpath(folder)) {
+        abandonDownload(*origin, tr("Vidéo indisponible : le dossier temporaire est inutilisable."));
+        return;
+    }
+    const QString path = QDir(folder).filePath(QStringLiteral("%1.%2").arg(base.left(80), extension));
+    auto* watcher = new QFutureWatcher<bool>(this);
+    connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, path, center, origin]() {
+        const bool written = watcher->result();
+        watcher->deleteLater();
+        releaseOrigin(*origin);
+        const bool sameOrigin = m_document != nullptr && m_document->generation() == origin->generation &&
+                                *origin->page &&
+                                **origin->page == static_cast<std::size_t>(m_document->currentIndex());
+        QString error;
+        if (!written)
+            error = tr("Vidéo indisponible : écriture impossible.");
+        else if (!sameOrigin)
+            error = QStringLiteral("Insertion abandonnée : le document affiché a changé.");
+        if (error.isEmpty()) {
+            m_videoFiles.append(path);
+            routeMedia(QUrl::fromLocalFile(path), center, true);
+        } else {
+            QFile::remove(path);
+        }
+        if (--m_pending == 0)
+            emit busyChanged();
+        releaseVideoFiles();
+        if (!error.isEmpty())
+            emit failed(error);
+    });
+    watcher->setFuture(QtConcurrent::run([path, data]() {
+        QFile file(path);
+        return file.open(QIODevice::WriteOnly) && file.write(data) == data.size();
+    }));
+}
+
+// Téléchargement qui n'aboutit pas : l'attente prend fin, le message est dit, la page n'a pas bougé.
+void Insertion::abandonDownload(InsertionOrigin& origin, const QString& message)
+{
+    releaseOrigin(origin);
+    if (--m_pending == 0)
+        emit busyChanged();
+    releaseVideoFiles();
+    emit failed(message);
+}
+
+// Plus rien en route : les vidéos téléchargées sont dans le document, ou refusées.
+void Insertion::releaseVideoFiles()
+{
+    if (m_forwarded > 0 || m_pending > 0)
+        return;
+    for (const QString& path : std::as_const(m_videoFiles))
+        QFile::remove(path);
+    m_videoFiles.clear();
 }
 
 bool Insertion::insertDataUrl(const QUrl& url, QPointF center)
@@ -605,7 +714,9 @@ bool Insertion::acceptWebDrop(const QVariantList& urls, const QString& text, con
             continue;
         const QString scheme = url.scheme().toLower();
         if (scheme == QLatin1String("http") || scheme == QLatin1String("https")) {
-            startDownload(url, text.trimmed().isEmpty() ? url.toString() : text, pagePoint);
+            const bool video = isVideoExtension(QFileInfo(url.path()).suffix());
+            startDownload(url, text.trimmed().isEmpty() ? url.toString() : text, pagePoint,
+                          video ? WebImageFetch::Kind::Video : WebImageFetch::Kind::Image);
             handled = true;
         } else if (scheme == QLatin1String("data")) {
             if (!insertDataUrl(url, pagePoint))

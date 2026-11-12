@@ -20,6 +20,10 @@ namespace actcraft::ui {
 // l'unique liste, pour l'insertion, le dépôt de fichiers et les médias de la page.
 bool isSoundExtension(const QString& suffix);
 bool isVideoExtension(const QString& suffix);
+// Type MIME d'une vidéo que le lecteur sait jouer (« video/mp4 »…, paramètres ignorés) et son extension
+// de fichier ; extension vide pour tout autre type.
+bool isVideoMimeType(const QString& mimeType);
+QString videoExtensionForMimeType(const QString& mimeType);
 
 // Insertion d'un son ou d'une vidéo (F-552, S25, lot 8) : un fichier ou une ressource du document devient un
 // `core::Media` à image d'espace réservé, portant l'action « jouer un son ». Aucune lecture ici (le lecteur

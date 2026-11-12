@@ -3196,6 +3196,11 @@
         <translation>Débloquer…</translation>
     </message>
     <message>
+        <location filename="../qml/WebFrameLayer.qml" line="472"/>
+        <source>Ouvrir dans le navigateur</source>
+        <translation>Ouvrir dans le navigateur</translation>
+    </message>
+    <message>
         <location filename="../qml/WebFrameLayer.qml" line="272"/>
         <source>Image fixe</source>
         <translation>Image fixe</translation>
@@ -6611,6 +6616,11 @@
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="266"/>
+        <source>Ouvrir le cadre dans le navigateur</source>
+        <translation>Ouvrir le cadre dans le navigateur</translation>
+    </message>
+    <message>
+        <location filename="../src/commandlabels.cpp" line="267"/>
         <source>Poser une image du cadre</source>
         <translation>Poser une image du cadre</translation>
     </message>
