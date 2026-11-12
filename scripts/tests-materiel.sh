@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Tests au label ctest « materiel » sur un Mac réel : ceux qui exigent une vraie machine (cadence d'encodage de
-# tst_media_displayrecorder) et que le job macOS de la CI, sur une machine de GitHub, exclut (-LE materiel). Porte avant
+# Tests au label ctest « materiel » sur un Mac réel : ceux qui exigent une vraie machine (sortie audio de
+# tst_media_player, cadence d'encodage de tst_media_displayrecorder) et que le job macOS de la CI, sur une machine de
+# GitHub, exclut (-LE materiel). Porte avant
 # chaque release (docs/tests-materiel.md). Preset debug, Qt de ACTCRAFT_QT_DIR ou, à défaut, de Homebrew ; seuls les
 # exécutables de ces tests sont compilés.
 # Usage : scripts/tests-materiel.sh

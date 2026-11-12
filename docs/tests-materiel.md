@@ -5,9 +5,11 @@ pour un défaut du code. Ils portent le label ctest `materiel`.
 
 | Test | Exigence | Mesure sur macos-latest |
 |---|---|---|
+| `tst_media_player` | une sortie audio qui consomme le son | position restée à 0 dans 8 cas, sortie virtuelle BlackHole comprise (runs 43303503126, 43313320173) |
 | `tst_media_displayrecorder` (cas `framesAreCappedAtThirtyPerSecond`) | au moins une image encodée toutes les 60 ms | 21 à 23 images pour 1 550 ms, rendu sans RHI (run 43303503126) |
 
-Le label porte sur tout l'exécutable : ctest ne sait pas étiqueter un seul cas.
+Le label porte sur tout l'exécutable : ctest ne sait pas étiqueter un seul cas. Le Mac qui joue le script doit avoir
+une sortie audio active (haut-parleur intégré du Mac mini, par exemple).
 
 ## Où ils tournent
 

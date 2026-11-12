@@ -17,9 +17,10 @@ on:
 # Exécuteurs : les machines de GitHub (ubuntu-latest, windows-latest, macos-latest), gratuites pour un dépôt public
 # (OA72, 2026-11-12). Plus aucun runner auto-hébergé : celui du Mac mini et celui du PC sont retirés, et un job de
 # PR venu d'un fork ne peut atteindre aucune de nos machines.
-# Tests au label ctest « materiel » (cadence réelle d'encodage, tst_media_displayrecorder) : exclus du seul job macOS
-# (machine de GitHub trop lente, rendu sans RHI), joués sous Windows ici et sur un Mac réel par
-# scripts/tests-materiel.sh, porte avant chaque release (docs/tests-materiel.md).
+# Tests au label ctest « materiel » (sortie audio réelle, tst_media_player ; cadence réelle d'encodage,
+# tst_media_displayrecorder) : exclus du seul job macOS (machine de GitHub sans sortie audio qui consomme, trop lente,
+# rendu sans RHI), joués sous Windows ici et sur un Mac réel par scripts/tests-materiel.sh, porte avant chaque release
+# (docs/tests-materiel.md).
 # Pas de groupe de concurrence : un run n'est jamais annulé par un autre (O85, jamais d'annulation sans cause
 # trouvée).
 
@@ -88,20 +89,6 @@ jobs:
           dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
           echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
           echo "${dir%/}/bin" >> "$GITHUB_PATH"
-
-      # Sortie audio virtuelle (BlackHole) : la machine de GitHub liste une sortie qui ne consomme rien, et le lecteur
-      # ne voit jamais sa position avancer (tst_media_player, run 43303503126). BlackHole consomme le son en temps réel,
-      # comme une vraie carte ; elle devient la sortie par défaut.
-      - name: Sortie audio virtuelle (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          brew install --cask blackhole-2ch
-          brew install switchaudio-osx
-          sudo killall coreaudiod || true
-          for i in $(seq 1 20); do SwitchAudioSource -a -t output | grep -qx 'BlackHole 2ch' && break; sleep 1; done
-          SwitchAudioSource -t output -s 'BlackHole 2ch'
-          echo "Sortie audio : $(SwitchAudioSource -c -t output)"
 
       # 4 tests à la fois sous Windows, comme sur l'ancien runner du PC : en série, les tests d'interface dépassent
       # 90 min (run 42268652493). Chacun tourne hors écran, avec réglages et ressources dans des dossiers jetables ;

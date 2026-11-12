@@ -2,6 +2,10 @@
 actcraft_add_test(tst_media_player
     SOURCES tst_media_player.cpp
     LIBS ActCraft::media ActCraft::ui) # ui : LinkLauncher réel du repli (fallbackNeedsConfirmation)
+# Label « materiel » : la lecture exige une sortie audio qui consomme le son. Sur macos-latest, la sortie listée ne
+# consomme rien et la position reste à 0, même avec la sortie virtuelle BlackHole (runs 43303503126, 43313320173).
+# Exclu du job macOS de GitHub, joué sous Windows en CI et sur un Mac réel par scripts/tests-materiel.sh.
+set_tests_properties(tst_media_player PROPERTIES LABELS materiel)
 actcraft_add_test(tst_media_soundrecorder
     SOURCES tst_media_soundrecorder.cpp
     LIBS ActCraft::media)
