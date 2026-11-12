@@ -5,8 +5,10 @@
 # sélecteur → « ACTCRAFT OUVERT <empreinte> ». Puis relance de l'application (am force-stop, puis lancement) : le
 # document se rouvre par la liste des documents récents, sans sélecteur (permission gardée), empreinte égale. Puis
 # document retiré (par MediaStore, comme au départ de l'essai ; pm clear de DocumentsUI ne retire pas les permissions
-# gardées) et nouvelle relance : l'entrée est retirée, avec « ACTCRAFT RECENT RETIRE <nom> » dans logcat, et n'est
-# plus affichée. Refuse de démarrer si un émulateur occupe déjà le port de l'essai. Appels adb :
+# gardées) et nouvelle relance : l'entrée n'est plus affichée. Sur l'émulateur (API 34, joué au PC le 2026-11-12),
+# l'effacement par MediaStore ne retire pas la permission gardée : l'entrée est cachée (« ACTCRAFT RECENT CACHE
+# <nom> », RecentDocuments::prune) ; une permission perdue la retire (« ACTCRAFT RECENT RETIRE <nom> »). L'une ou
+# l'autre ligne est attendue, et la voie suivie est écrite. Refuse de démarrer si un émulateur occupe déjà le port de l'essai. Appels adb :
 # scripts/android-commun.ps1. Dernière ligne : « ANDROID PORTAIL OK » (0) ou « ANDROID PORTAIL EN ECHEC : <raison> »
 # (1), même sur une erreur imprévue. Sorties de diagnostic sous le .tmp/ du dépôt du script (portail-*.png,
 # portail-*.xml, portail-logcat*.txt). Ce que l'essai a lancé (émulateur et ses descendants, client et serveur adb)
@@ -497,6 +499,7 @@ try {
     $null = Invoke-Adb @('uninstall', $paquet) 60
     $processus = Install-ActCraftApk -Apk $Apk -Paquet $paquet
     Write-Output "processus : $processus"
+    Close-ActCraftAccueil
 
     # Un trait au doigt au milieu de la page (tablette 2560 × 1600, comme essai-android.ps1), contrôlé sur la capture :
     # un document vide s'enregistrerait et se relirait aussi à l'identique.
@@ -610,13 +613,14 @@ try {
     Restart-ActCraft
     $retire = Wait-Journal "ACTCRAFT RECENT RETIRE $([regex]::Escape($nomFichier))"
     Invoke-Adb @('logcat', '-d') | Set-Content -Encoding utf8 -LiteralPath (Join-Path $tmp 'portail-logcat-retrait.txt')
-    if (-not $retire) {
-        # Permission encore tenue après le retrait : l'entrée est cachée (ACTCRAFT RECENT CACHE), pas retirée.
+    if ($retire) {
+        Write-Output "permission perdue, entrée retirée : $retire"
+    } else {
+        # Permission encore tenue après le retrait (MediaStore ne la retire pas) : l'entrée est cachée, pas retirée.
         $cache = Wait-Journal "ACTCRAFT RECENT CACHE $([regex]::Escape($nomFichier))" 5
-        if ($cache) { Stop-Essai "permission toujours tenue après le retrait du document : entrée cachée, pas retirée ($cache)" }
-        Stop-Essai "aucune ligne ACTCRAFT RECENT RETIRE $nomFichier après le retrait du document"
+        if (-not $cache) { Stop-Essai "ni ACTCRAFT RECENT RETIRE ni ACTCRAFT RECENT CACHE $nomFichier après le retrait du document" }
+        Write-Output "permission gardée, entrée cachée : $cache"
     }
-    Write-Output $retire
     if (Find-EntreeRecente $nomFichier 6) {
         Save-Diagnostic 'retire'
         Stop-Essai "entrée récente « $nomFichier » encore affichée après son retrait"
