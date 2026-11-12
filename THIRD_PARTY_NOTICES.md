@@ -112,16 +112,16 @@ plateforme, certains ne sont pas présents dans le paquet (Qt peut aussi s'appuy
   Foundation.
 - Qt Core, BLAKE2 (implémentation de référence) : Licence SPDX : `CC0-1.0 OR Apache-2.0`. Copyright 2012, Samuel
   Neves.
-- Qt Core, zlib 1.3.2 : Licence SPDX : `Zlib`. Copyright : à relever au PC.
+- Qt Core, zlib 1.3.2 : Licence SPDX : `Zlib`. Copyright : (C) 1995-2026 Jean-loup Gailly and Mark Adler.
 - Qt Core, Easing Equations : Licence SPDX : `BSD-3-Clause`. Copyright (c) 2001 Robert Penner.
-- Qt Core, double-conversion 3.4.0 : Licence SPDX : `BSD-3-Clause`. Copyright : à relever au PC.
+- Qt Core, double-conversion 3.4.0 : Licence SPDX : `BSD-3-Clause`. Copyright 2006-2012, the V8 project authors.
 - Qt Core, MD4 et MD5 : Licence SPDX : `CC0-1.0`. Copyright : aucun (MD4 écrit par Alexander Peslyak en 2001 et
   placé dans le domaine public ; MD5 écrit par Colin Plumb en 1993, aucun droit revendiqué).
 - Qt Core, SHA-1 : Licence SPDX : `LicenseRef-SHA1-Public-Domain`. Copyright (C) Dominik Reichl ; Copyright (C) 2016
   The Qt Company Ltd.
-- Qt Core, PCRE2 10.48 : Licence SPDX : `LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception`.
-  Copyright : à relever au PC.
-- Qt Core, compilateur à la volée de PCRE2 (SLJIT) : Licence SPDX : `BSD-2-Clause`. Copyright : à relever au PC.
+- Qt Core, PCRE2 10.48 : Licence SPDX : `LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception`. Copyright
+  (c) 1997-2007 University of Cambridge ; Copyright (c) 2007-2024 Philip Hazel ; Copyright (c) 2010-2024 Zoltan Herczeg.
+- Qt Core, compilateur à la volée de PCRE2 (SLJIT) : Licence SPDX : `BSD-2-Clause`. Copyright Zoltan Herczeg.
 - Qt Core, SHA-3 Keccak 3.2 : Licence SPDX : `CC0-1.0`. Copyright : aucun (Guido Bertoni, Joan Daemen, Michaël
   Peeters et Gilles Van Assche ont renoncé à leurs droits).
 - Qt Core, SHA-3 brg_endian 1.0.0 : Licence SPDX : `BSD-2-Clause`. Copyright (c) 1998-2013, Brian Gladman, Worcester,
@@ -136,26 +136,68 @@ plateforme, certains ne sont pas présents dans le paquet (Qt peut aussi s'appuy
 - Qt Core, tl::expected : Licence SPDX : `CC0-1.0`. Copyright : aucun (Sy Brand a renoncé à ses droits).
 - Qt Core, Unicode Character Database 36 et Unicode CLDR 48.2 : Licence SPDX : `Unicode-3.0`. Copyright (C)
   1991-2025 Unicode, Inc. ; Copyright (C) 2004-2025 Unicode, Inc.
-- Qt Gui, FreeType 2.14.3 : Licence SPDX : `FTL OR GPL-2.0-only` (ActCraft retient la FTL ; textes
-  `LICENSES/FTL.txt` et `LICENSES/GPL-2.0-only.txt`). Mention demandée par la FTL : « Portions of this software are
-  copyright © The FreeType Project (https://freetype.org). All rights reserved. » (année de la version livrée à
-  ajouter au relevé du PC). Copyright : à relever au PC.
+- Qt Gui, FreeType 2.14.3 : Licence SPDX : `FTL OR GPL-2.0-only` (ActCraft retient la FTL ; textes `LICENSES/FTL.txt` et
+  `LICENSES/GPL-2.0-only.txt`). Mention demandée par la FTL : « Portions of this software are copyright © The FreeType
+  Project (https://freetype.org). All rights reserved. » (année de la version livrée à ajouter au relevé du PC).
+  Copyright (c) 2007-2014 Adobe Systems Incorporated ; Copyright (c) 2004-2026 Albert Chin-A-Young ; Copyright (c)
+  2018-2026 Armin Hasitzka, David Turner, Robert Wilhelm, and Werner Lemberg ; Copyright (c) 2000 Computing Research
+  Labs, New Mexico State University ; Copyright (c) 1996-2026 David Turner, Robert Wilhelm, Dominik Röttsches, and
+  Werner Lemberg ; Copyright (c) 2004-2026 David Turner, Robert Wilhelm, Werner Lemberg and George Williams ; Copyright
+  (c) 2022-2026 David Turner, Robert Wilhelm, Werner Lemberg, and Moazin Khatti ; Copyright (c) 2008-2026 David Turner,
+  Robert Wilhelm, Werner Lemberg, and suzuki toshiya ; Copyright (c) 2003-2026 David Turner, Robert Wilhelm, and Werner
+  Lemberg ; Copyright (c) 2005-2026 David Turner ; Copyright (c) 2007-2026 Derek Clegg and Michael Toftdal ; Copyright
+  (c) 2007 Dmitry Timoshkov for Codeweavers ; Copyright (c) 2001-2015 Francesco Zappa Nardelli ; Copyright (c) 2005,
+  2007, 2008, 2013 George Williams ; Copyright (c) 2013-2026 Google, Inc. Google Author(s) Behdad Esfahbod and Stuart
+  Gill ; Copyright (c) 2013-2022 Google, Inc. ; Copyright (c) 2003 Huw D M Davies for Codeweavers ; Copyright (c)
+  2010-2026 Joel Klinghed ; Copyright (c) 1996-2026 Just van Rossum, David Turner, Robert Wilhelm, and Werner Lemberg ;
+  Copyright (c) 2003-2026 Masatake YAMATO and Redhat K.K. ; Copyright (c) 2004-2026 Masatake YAMATO, Redhat K.K, David
+  Turner, Robert Wilhelm, and Werner Lemberg ; Copyright (c) 2019-2026 Nikhil Ramakrishnan, David Turner, Robert
+  Wilhelm, and Werner Lemberg ; Copyright (c) 2009-2026 Oran Agra and Mickey Gabel ; Copyright (c) 2007-2026 Rahul
+  Bhalerao <rahul.bhalerao@redhat.com> ; Copyright (c) 2002-2026 Roberto Alameda ; Copyright (c) 2015-2026 Werner
+  Lemberg ; Copyright (c) 2004-2026 suzuki toshiya, Masatake YAMATO, Red Hat K.K., David Turner, Robert Wilhelm, and
+  Werner Lemberg ; Copyright (c) 2019 nyorain ; Copyright (c) 2022-2026 David Turner, Robert Wilhelm, Werner Lemberg,
+  George Williams, and Dominik Röttsches ; Copyright (C) 2009, 2023  Red Hat, Inc.
 - Qt Gui, rastériseur anticrénelé de FreeType 2 : Licence SPDX : `FTL OR GPL-2.0-only`. Copyright 2000-2016 by David
   Turner, Robert Wilhelm, and Werner Lemberg.
-- Qt Gui, FreeType 2, prise en charge BDF : Licence SPDX : `MIT`. Copyright : à relever au PC.
-- Qt Gui, FreeType 2, prise en charge PCF : Licence SPDX : `MIT AND MIT-open-group`. Copyright : à relever au PC.
-- Qt Gui, FreeType 2, zlib : Licence SPDX : `Zlib`. Copyright : à relever au PC.
-- Qt Gui, HarfBuzz-NG 14.5.0 : Licence SPDX : `MIT`. Copyright : à relever au PC.
-- Qt Gui, libjpeg-turbo 3.2.0 : Licence SPDX : `IJG AND BSD-3-Clause`. Mention demandée par l'IJG : « This software
-  is based in part on the work of the Independent JPEG Group. » Copyright : à relever au PC.
-- Qt Gui, libpng 1.6.58 : Licence SPDX : `Libpng AND libpng-2.0`. Copyright : à relever au PC.
-- Qt Gui, MD4C 0.5.3 : Licence SPDX : `MIT`. Copyright : à relever au PC.
-- Qt Gui, Pixman 0.17.12 : Licence SPDX : `MIT`. Copyright : à relever au PC.
+- Qt Gui, FreeType 2, prise en charge BDF : Licence SPDX : `MIT`. Copyright (c) 2000 Computing Research Labs, New Mexico
+  State University ; Copyright (c) 2001-2014 Francesco Zappa Nardelli.
+- Qt Gui, FreeType 2, prise en charge PCF : Licence SPDX : `MIT AND MIT-open-group`. Copyright (c) 2001, 2012 David
+  Turner, Robert Wilhelm, and Werner Lemberg ; Copyright (c) 2000-2014 Francesco Zappa Nardelli ; Copyright (c) 1990,
+  1994, 1998 The Open Group.
+- Qt Gui, FreeType 2, zlib : Licence SPDX : `Zlib`. Copyright (C) 1995-2024 Jean-loup Gailly and Mark Adler.
+- Qt Gui, HarfBuzz-NG 14.5.0 : Licence SPDX : `MIT`. Copyright © 2010-2022  Google, Inc. ; Copyright © 2015-2020
+  Ebrahim Byagowi ; Copyright © 2019,2020  Facebook, Inc. ; Copyright © 2012,2015  Mozilla Foundation ; Copyright © 2011
+   Codethink Limited ; Copyright © 2008,2010  Nokia Corporation and/or its subsidiary(-ies) ; Copyright © 2009  Keith
+  Stribley ; Copyright © 2011  Martin Hosken and SIL International ; Copyright © 2007  Chris Wilson ; Copyright ©
+  2005,2006,2020,2021,2022,2023  Behdad Esfahbod ; Copyright © 2004,2007,2008,2009,2010,2013,2021,2022,2023  Red Hat,
+  Inc. ; Copyright © 1998-2005  David Turner and Werner Lemberg ; Copyright © 2016  Igalia S.L. ; Copyright © 2022
+  Matthias Clasen ; Copyright © 2018,2021  Khaled Hosny ; Copyright © 2018,2019,2020  Adobe, Inc ; Copyright © 2013-2015
+   Alexei Podtelezhnikov.
+- Qt Gui, libjpeg-turbo 3.2.0 : Licence SPDX : `IJG AND BSD-3-Clause`. Mention demandée par l'IJG : « This software is
+  based in part on the work of the Independent JPEG Group. » Copyright (C) 2009-2026 D. R. Commander ; Copyright (C)
+  1991-1998 Thomas G. Lane ; Copyright (C) 2009 Pierre Ossman for Cendio AB ; Copyright (C) 1999-2006 MIYASAKA Masaru ;
+  Copyright (C) 1999 Ken Murchison ; Copyright (C) 2015-2016, 2018, 2022 Matthieu Darbois ; Copyright (C) 2018 Matthias
+  Räncker ; Copyright (C) 2019-2020 Arm Limited ; Copyright (C) 2022 Felix Hanau ; Copyright (C) 1997-1998 Thomas G.
+  Lane, Todd Newman ; Copyright (C) 2021 Alex Richardson ; Copyright (C) 2015, 2020 Google, Inc. ; Copyright (C) 2013
+  Linaro Limited ; Copyright (C) 2014 Olle Liljenzin ; Copyright (C) 1991-2020 Thomas G. Lane, Guido Vollbeding.
+- Qt Gui, libpng 1.6.58 : Licence SPDX : `Libpng AND libpng-2.0`. Copyright (c) 1995-2026 The PNG Reference Library
+  Authors ; Copyright (c) 2000-2026 Cosmin Truta ; Copyright (c) 1998-2018 Glenn Randers-Pehrson ; Copyright (c)
+  1996-1997 Andreas Dilger ; Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc. ; Copyright (c) 2000-2017
+  Simon-Pierre Cadieux ; Copyright (c) 2000-2017 Eric S. Raymond ; Copyright (c) 2000-2017 Mans Rullgard ; Copyright (c)
+  2000-2017 Gilles Vollant ; Copyright (c) 2000-2017 James Yu ; Copyright (c) 2000-2017 Mandar Sahastrabuddhe ;
+  Copyright (c) 1998-2000 Tom Lane ; Copyright (c) 1998-2000 Willem van Schaik ; Copyright (c) 1996-1997 John Bowler ;
+  Copyright (c) 1996-1997 Kevin Bracey ; Copyright (c) 1996-1997 Sam Bushell ; Copyright (c) 1996-1997 Magnus Holmgren ;
+  Copyright (c) 1996-1997 Greg Roelofs ; Copyright (c) 1996-1997 Tom Tanner ; Copyright (c) 1995-1996 Dave Martindale ;
+  Copyright (c) 1995-1996 Paul Schmidt ; Copyright (c) 1995-1996 Tim Wegner.
+- Qt Gui, MD4C 0.5.3 : Licence SPDX : `MIT`. Copyright © 2016-2024 Martin Mitáš.
+- Qt Gui, Pixman 0.17.12 : Licence SPDX : `MIT`. Copyright © 2009 Nokia Corporation.
 - Qt Gui, Emoji Segmenter 0.4.0 : Licence SPDX : `Apache-2.0`. Copyright 2019 Google LLC.
 - Qt Gui, Adobe Glyph List For New Fonts 1.7 : Licence SPDX : `BSD-3-Clause`. Copyright 2002, 2003, 2005, 2006,
   2008, 2010, 2015 Adobe Systems.
-- Qt Gui, polices DejaVu 2.37 : Licence SPDX : `Bitstream-Vera`. Copyright : à relever au PC.
-- Qt Gui, D3D12 Memory Allocator : Licence SPDX : `MIT`. Copyright : à relever au PC.
+- Qt Gui, polices DejaVu 2.37 : Licence SPDX : `Bitstream-Vera`. Copyright (c) 2003 by Bitstream, Inc ; Copyright (c)
+  2006 by Tavmjong Bah ; (c) American Mathematical Society.
+- Qt Gui, D3D12 Memory Allocator : Licence SPDX : `MIT`. Copyright (c) 2019-2026 Advanced Micro Devices, Inc. All rights
+  reserved.
 - Qt Gui, Vulkan Memory Allocator 3.3.0 : Licence SPDX : `MIT`. Copyright (c) 2017-2025 Advanced Micro Devices, Inc.
   All rights reserved.
 - Qt Gui, générateur de mipmaps D3D12 : Licence SPDX : `MIT`. Copyright (c) 2015 Microsoft.
@@ -165,12 +207,15 @@ plateforme, certains ne sont pas présents dans le paquet (Qt peut aussi s'appuy
 - Qt Gui, algorithme de mise à l'échelle lissée : Licence SPDX : `BSD-2-Clause AND Imlib2`. Copyright (C) 2004,
   2005 Daniel M. Duley ; (C) Carsten Haitzler and various contributors ; (C) Willem Monsuwe.
 - Qt Gui, WebGradients : Licence SPDX : `MIT`. Copyright (c) 2017 itmeo.
-- Qt Gui, interface Wintab (Windows) : Licence SPDX : `LicenseRef-Lcs-Telegraphics`. Copyright : à relever au PC.
-- Qt Gui, style natif pour Android (Android) : Licence SPDX : `Apache-2.0`. Copyright : à relever au PC.
+- Qt Gui, interface Wintab (Windows) : Licence SPDX : `LicenseRef-Lcs-Telegraphics`. Copyright 1991-1998 by
+  LCS/Telegraphics.
+- Qt Gui, style natif pour Android (Android) : Licence SPDX : `Apache-2.0`. Copyright (C) 2005 The Android Open Source
+  Project.
 - Qt Gui, profil de couleur sRGB (fichier ICC) : Licence SPDX : `LicenseRef-ICC-License`. Copyright International
   Color Consortium, 2015.
-- Qt Image Formats, libtiff 4.7.2 : Licence SPDX : `libtiff`. Copyright : à relever au PC.
-- Qt Image Formats, libwebp 1.6.0 : Licence SPDX : `BSD-3-Clause`. Copyright : à relever au PC.
+- Qt Image Formats, libtiff 4.7.2 : Licence SPDX : `libtiff`. Copyright (c) 1988-1997 Sam Leffler ; Copyright (c)
+  1991-1997 Silicon Graphics, Inc.
+- Qt Image Formats, libwebp 1.6.0 : Licence SPDX : `BSD-3-Clause`. Copyright (c) 2010, Google Inc. All rights reserved.
 - Qt Network, Public Suffix List : Licence SPDX : `MPL-2.0`. Copyright : aucun déclaré (liste fournie à l'origine
   par Jo Hermans, tenue sur https://github.com/publicsuffix/list).
 - Qt Network, libpsl : Licence SPDX : `BSD-3-Clause`. Copyright 2014-2016 The Chromium Authors. All rights reserved.
@@ -185,38 +230,55 @@ plateforme, certains ne sont pas présents dans le paquet (Qt peut aussi s'appuy
   Platforms, Inc. and affiliates.
 - Qt Quick Controls, valeurs d'ombre d'Angular Material : Licence SPDX : `MIT`. Copyright (c) 2014-2016 Google, Inc.
 - Qt Multimedia, dr_libs 0.14.6 : Licence SPDX : `Unlicense OR MIT-0`. Copyright 2023 David Reid.
-- Qt Multimedia, Signalsmith Stretch 1.1.0 : Licence SPDX : `MIT`. Copyright : à relever au PC.
+- Qt Multimedia, Signalsmith Stretch 1.1.0 : Licence SPDX : `MIT`. Copyright (c) 2022 Geraint Luff / Signalsmith Audio
+  Ltd.
 - Qt Multimedia, Two-Level Segregated Fit 3.1 : Licence SPDX : `BSD-3-Clause`. Copyright (c) 2006-2016, Matthew
   Conte.
-- Qt Multimedia, Boost : Licence SPDX : `BSL-1.0`. Copyright : à relever au PC.
-- Qt Multimedia, libjpeg : Licence SPDX : `IJG`. Mention demandée par l'IJG : « This software is based in part on
-  the work of the Independent JPEG Group. » Copyright : à relever au PC.
-- Qt Multimedia, zlib : Licence SPDX : `Zlib`. Copyright : à relever au PC.
+- Qt Multimedia, Boost : Licence SPDX : `BSL-1.0`. Copyright : (C) Copyright John Maddock 2006. Copyright (c) 2006
+  Xiaogang Zhang.
+- Qt Multimedia, libjpeg : Licence SPDX : `IJG`. Mention demandée par l'IJG : « This software is based in part on the
+  work of the Independent JPEG Group. » Copyright (C) 1991-2020, Thomas G. Lane, Guido Vollbeding.
+- Qt Multimedia, zlib : Licence SPDX : `Zlib`. Copyright (C) 1995-2022 Jean-loup Gailly and Mark Adler.
 
 ## Qt PDF et PDFium
 
 L'import PDF passe par le module Qt PDF (`Qt6Pdf`, `LGPL-3.0-only`, lié dynamiquement ; jamais Qt WebEngine). Qt
 PDF embarque **PDFium**, le moteur PDF du projet Chromium (https://pdfium.googlesource.com/pdfium/), et les
 bibliothèques qu'il utilise. Composants relevés dans la page « Licenses Used in Qt » (section Qt PDF) et dans le
-binaire de Qt PDF (symboles de Little CMS et d'OpenJPEG), recopiés en nos mots ; les lignes de copyright et la
-liste exacte sont à relever au PC dans le fichier `qt_attribution.json` de Qt PDF 6.12.0.
+binaire de Qt PDF (symboles de Little CMS et d'OpenJPEG), recopiés en nos mots. Les lignes de copyright sont
+relevées dans les fichiers de licence des sources de Qt PDF 6.12.0 (dépôt `qt/qtwebengine`, commit `9a169a5`, celui
+que déclare la nomenclature SPDX de Qt PDF ; sous-module `qt/qtwebengine-chromium`, commit `10236088e164`). La
+nomenclature de Qt PDF ne déclare aucun composant : la liste exacte des composants présents dans le binaire livré reste
+à confirmer.
 
-- Qt PDF, PDFium : Licence SPDX : `BSD-3-Clause OR Apache-2.0`. Copyright : à relever au PC.
-- Qt PDF, Abseil (https://abseil.io/) : Licence SPDX : `Apache-2.0`. Copyright : à relever au PC.
+- Qt PDF, PDFium : Licence SPDX : `BSD-3-Clause OR Apache-2.0`. Copyright 2014 The PDFium Authors.
+- Qt PDF, Abseil (https://abseil.io/) : Licence SPDX : `Apache-2.0`. Copyright The Abseil Authors (mention des en-têtes
+  de fichiers, par exemple « Copyright 2017 The Abseil Authors. » ; le fichier LICENSE, Apache-2.0, n'en porte pas).
 - Qt PDF, FreeType (https://freetype.org/) : Licence SPDX : `FTL`. Mention demandée par la FTL : voir FreeType
-  ci-dessus. Copyright : à relever au PC.
-- Qt PDF, code commun du projet Chromium (https://www.chromium.org/) : Licence SPDX : `BSD-3-Clause`. Copyright : à
-  relever au PC.
-- Qt PDF, fast_float (https://github.com/fastfloat/fast_float) : Licence SPDX : `MIT`. Copyright : à relever au PC.
-- Qt PDF, libjpeg-turbo (https://libjpeg-turbo.org/) : Licence SPDX : `IJG AND BSD-3-Clause AND Zlib`. Mention
-  demandée par l'IJG : « This software is based in part on the work of the Independent JPEG Group. » Copyright : à
-  relever au PC.
-- Qt PDF, libpng (http://www.libpng.org/) : Licence SPDX : `libpng-2.0 AND Libpng`. Copyright : à relever au PC.
-- Qt PDF, zlib (https://zlib.net/) : Licence SPDX : `Zlib`. Copyright : à relever au PC.
-- Qt PDF, Little CMS (https://www.littlecms.com/) : Licence SPDX : `MIT`. Copyright : à relever au PC.
-- Qt PDF, OpenJPEG (https://www.openjpeg.org/) : Licence SPDX : `BSD-2-Clause`. Copyright : à relever au PC.
-- Qt PDF, Anti-Grain Geometry (AGG) : licence et copyright à relever au PC (`qt_attribution.json` de Qt PDF ; la
-  nomenclature de Qt PDF disponible sur le Mac ne déclare aucun composant).
+  ci-dessus. Copyright 1996-2002, 2006 by David Turner, Robert Wilhelm, and Werner Lemberg.
+- Qt PDF, code commun du projet Chromium (https://www.chromium.org/) : Licence SPDX : `BSD-3-Clause`. Copyright 2015 The
+  Chromium Authors.
+- Qt PDF, fast_float (https://github.com/fastfloat/fast_float) : Licence SPDX : `MIT`. Copyright (c) 2021 The fast_float
+  authors.
+- Qt PDF, libjpeg-turbo (https://libjpeg-turbo.org/) : Licence SPDX : `IJG AND BSD-3-Clause AND Zlib`. Mention demandée
+  par l'IJG : « This software is based in part on the work of the Independent JPEG Group. » Copyright (C)2009-2024 D. R.
+  Commander. All Rights Reserved. ; Copyright (C)2015 Viktor Szathmáry. All Rights Reserved.
+- Qt PDF, libpng (http://www.libpng.org/) : Licence SPDX : `libpng-2.0 AND Libpng`. Copyright (c) 1995-2026 The PNG
+  Reference Library Authors. ; Copyright (c) 2018-2026 Cosmin Truta. ; Copyright (c) 2000-2002, 2004, 2006-2018 Glenn
+  Randers-Pehrson. ; Copyright (c) 1996-1997 Andreas Dilger. ; Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.
+- Qt PDF, zlib (https://zlib.net/) : Licence SPDX : `Zlib`. Copyright (C) 1995-2022 Jean-loup Gailly and Mark Adler.
+- Qt PDF, Little CMS (https://www.littlecms.com/) : Licence SPDX : `MIT`. Copyright (c) 2023 Marti Maria Saguer.
+- Qt PDF, OpenJPEG (https://www.openjpeg.org/) : Licence SPDX : `BSD-2-Clause`. Copyright (c) 2002-2014, Universite
+  catholique de Louvain (UCL), Belgium ; Copyright (c) 2002-2014, Professor Benoit Macq ; Copyright (c) 2003-2014,
+  Antonin Descampe ; Copyright (c) 2003-2009, Francois-Olivier Devaux ; Copyright (c) 2005, Herve Drolon, FreeImage Team
+  ; Copyright (c) 2002-2003, Yannick Verschueren ; Copyright (c) 2001-2003, David Janssens ; Copyright (c) 2011-2012,
+  Centre National d'Etudes Spatiales (CNES), France ; Copyright (c) 2012, CS Systemes d'Information, France.
+- Qt PDF, Anti-Grain Geometry (AGG) 2.3 (https://sourceforge.net/projects/agg/) : licence propre à AGG 2.3 (fichier
+  `copying` des sources de Qt PDF ; Chromium la déclare « MIT », mais le texte est celui reproduit ici et n'a pas de
+  fichier sous `LICENSES/`). Copyright (C) 2002-2005 Maxim Shemanarev (McSeem). Texte de la licence : « Permission to
+  copy, use, modify, sell and distribute this software is granted provided this copyright notice appears in all copies.
+  This software is provided "as is" without express or implied warranty, and with no claim as to its suitability for any
+  purpose. »
 
 ## Qt Multimedia, FFmpeg et Qt WebView
 
@@ -229,9 +291,13 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   `ffmpeg`, qui charge les bibliothèques dynamiques de FFmpeg livrées par Qt ; l'utilisateur peut les remplacer.
   ActCraft ne modifie pas FFmpeg. Licence SPDX : `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND
   BSD-Source-Code AND ISC AND MIT AND MPL-2.0` (déclaration de Qt ; licence principale : LGPL 2.1 ou ultérieure, les
-  autres couvrent des fichiers inclus). Copyright : les développeurs de FFmpeg ; détail à relever au PC. Version et
-  options de compilation des bibliothèques livrées : à relever au PC (rapport
-  `docs/verifications/2026-10-22-lot8-modules.md`) ; `scripts/verifier-licences.ps1` refuse toute bibliothèque FFmpeg
+  autres couvrent des fichiers inclus). Copyright (c) 2000-2023 the FFmpeg developers. Version livrée avec Qt 6.12.0
+  sous Windows : FFmpeg 9.0.1 (`avcodec-63.dll`, `avformat-63.dll`, `avutil-61.dll`, `swresample-7.dll`,
+  `swscale-10.dll`), licence compilée « LGPL version 2.1 or later », options de compilation relevées dans les
+  bibliothèques : `--disable-programs --disable-doc --disable-debug --enable-network --disable-lzma --enable-pic
+  --disable-vulkan --disable-v4l2-m2m --disable-decoder=truemotion1 --disable-avdevice --disable-avfilter
+  --enable-zlib --toolchain=msvc --enable-shared --disable-static` (version et options des bibliothèques Android :
+  non relevées) ; `scripts/verifier-licences.ps1` refuse toute bibliothèque FFmpeg
   dont la licence compilée n'est pas « LGPL version 2.1 or later » (option GPL ou « nonfree »). **Code source** : le
   code source exact des bibliothèques FFmpeg livrées est publié à côté des paquets de chaque version d'ActCraft (page
   de la version sur GitHub). Sous macOS, le Qt de Homebrew s'appuie sur les composants du système (AVFoundation) et

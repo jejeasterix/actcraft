@@ -39,22 +39,27 @@ try {
     $abis = if ($Abi -eq 'tous') { @('arm64-v8a', 'x86_64') } else { @($Abi) }
     foreach ($a in $abis) {
         $preset = if ($a -eq 'arm64-v8a') { 'android-arm64' } else { 'android-x86_64' }
-        cmake --preset $preset
+        # Les préréglages Android coupent le banc (ACTCRAFT_BUILD_BENCH=OFF, CMakePresets.json) : il est configuré
+        # dans un dossier à lui, pour que le dossier de l'APK de l'application (paquet-android.ps1) reste sans banc
+        # (joué au PC le 2026-11-12 : « unknown target 'actcraft-bench_make_apk' »).
+        $dossier = "build/$preset-banc"
+        cmake --preset $preset -B $dossier -DACTCRAFT_BUILD_BENCH=ON
         if ($LASTEXITCODE -ne 0) { throw "configuration $preset en échec" }
         # A24 (amendement 1, M13) : même coupure du démon Gradle que paquet-android.ps1, rendue telle quelle après.
         $gradleOptsAvant = $env:GRADLE_OPTS
         $env:GRADLE_OPTS = (@($env:GRADLE_OPTS, '-Dorg.gradle.daemon=false') | Where-Object { $_ }) -join ' '
         try {
             # Cible propre au banc : la cible « apk » de paquet-android.ps1 reste celle de l'application.
-            cmake --build --preset $preset --target actcraft-bench_make_apk
+            cmake --build $dossier --target actcraft-bench_make_apk
         } finally {
             $env:GRADLE_OPTS = $gradleOptsAvant
         }
         if ($LASTEXITCODE -ne 0) { throw "construction $preset en échec" }
-        $brut = Get-ChildItem -Recurse -Filter '*.apk' "build/$preset" |
-            Where-Object { $_.FullName -match 'outputs[\\/]apk' -and $_.FullName -match 'actcraft-bench' } |
+        # androiddeployqt nomme l'APK d'après son dossier (android-build-release-unsigned.apk) : cherché sous bench/.
+        $brut = Get-ChildItem -Recurse -Filter '*.apk' (Join-Path $dossier 'bench') |
+            Where-Object { $_.FullName -match 'outputs[\\/]apk' } |
             Sort-Object LastWriteTime | Select-Object -Last 1
-        if (-not $brut) { throw "aucun APK de banc produit sous build/$preset" }
+        if (-not $brut) { throw "aucun APK de banc produit sous $dossier" }
 
         $aligne = Join-Path $sortie "ActCraft-banc-$version-$a-aligne.apk"
         $final = Join-Path $sortie "ActCraft-banc-$version-$a.apk"
