@@ -90,15 +90,17 @@ Item {
     onVisibleChanged: if (visible) Qt.callLater(root.showCurrent)
 
     // Un raccourci de la fenêtre (Suppr = supprimer des objets) ne passe pas avant ces touches.
+    // Ctrl seul : avec Maj, ces touches sont d'autres raccourcis de la fenêtre (retourner, connecteur, avancer d'un
+    // cran, capture de l'écran).
     Keys.onShortcutOverride: event => {
-        const ctrl = (event.modifiers & Qt.ControlModifier) !== 0
+        const ctrl = (event.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) === Qt.ControlModifier
         if (event.key === Qt.Key_Delete
                 || (ctrl && (event.key === Qt.Key_X || event.key === Qt.Key_C || event.key === Qt.Key_V
                              || event.key === Qt.Key_D)))
             event.accepted = true
     }
     Keys.onPressed: event => {
-        const ctrl = (event.modifiers & Qt.ControlModifier) !== 0
+        const ctrl = (event.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) === Qt.ControlModifier
         const shift = (event.modifiers & Qt.ShiftModifier) !== 0
         event.accepted = true
         if (event.key === Qt.Key_Delete)

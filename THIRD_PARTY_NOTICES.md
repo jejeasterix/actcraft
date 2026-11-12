@@ -8,9 +8,9 @@ les plateformes (APK compris), dans les ressources de l'application (`:/actcraft
 liste SPDX ; ceux dont l'identifiant commence par `LicenseRef-` sont repris du projet Qt ou renvoient aux conditions
 de l'éditeur.
 
-Les lignes de copyright viennent des déclarations de Qt (nomenclature SPDX de Qt 6.12.0) ou de la source du
-composant. Une ligne de copyright qui renvoie au relevé à faire au PC signale une ligne absente de la nomenclature disponible lors de
-la rédaction : elle sera reprise des fichiers `qt_attribution.json` de Qt 6.12.0 pour Windows et pour Android.
+Les lignes de copyright viennent des déclarations de Qt (nomenclature SPDX de Qt 6.12.0), des fichiers
+`qt_attribution.json` des sources de Qt 6.12.0 (qtbase), ou des fichiers de licence des sources du composant
+(`qtwebengine-chromium` pour Qt PDF), relevés au PC le 2026-11-12.
 
 Ce document décrit ce que les paquets contiennent et sous quelles licences ; il n'a pas été validé par un juriste et
 ne constitue pas un avis juridique.
@@ -137,8 +137,9 @@ plateforme, certains ne sont pas présents dans le paquet (Qt peut aussi s'appuy
 - Qt Core, Unicode Character Database 36 et Unicode CLDR 48.2 : Licence SPDX : `Unicode-3.0`. Copyright (C)
   1991-2025 Unicode, Inc. ; Copyright (C) 2004-2025 Unicode, Inc.
 - Qt Gui, FreeType 2.14.3 : Licence SPDX : `FTL OR GPL-2.0-only` (ActCraft retient la FTL ; textes `LICENSES/FTL.txt` et
-  `LICENSES/GPL-2.0-only.txt`). Mention demandée par la FTL : « Portions of this software are copyright © The FreeType
-  Project (https://freetype.org). All rights reserved. » (année de la version livrée à ajouter au relevé du PC).
+  `LICENSES/GPL-2.0-only.txt`). Mention demandée par la FTL : « Portions of this software are copyright © 2026 The FreeType
+  Project (https://freetype.org). All rights reserved. » (2026 : année des copyrights de FreeType 2.14.3 dans la
+  nomenclature de Qt).
   Copyright (c) 2007-2014 Adobe Systems Incorporated ; Copyright (c) 2004-2026 Albert Chin-A-Young ; Copyright (c)
   2018-2026 Armin Hasitzka, David Turner, Robert Wilhelm, and Werner Lemberg ; Copyright (c) 2000 Computing Research
   Labs, New Mexico State University ; Copyright (c) 1996-2026 David Turner, Robert Wilhelm, Dominik Röttsches, and

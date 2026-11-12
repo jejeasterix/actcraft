@@ -16,7 +16,11 @@ joué à l'écran pendant un job, sauf la fin des captures D3D11 (arrêtées dè
 - 337 tests : 333 verts, 3 sautés attendus (`tst_formats_oracle`, `tst_formats_oracle_synth`,
   `tst_flipchart_miniatures_samples` : variables du poste absentes), 1 rouge hors périmètre (ci-dessous). 0 avertissement
   (`/W4 /WX`, MSVC 17.14). `format.ps1 -Check` : 0.
-- Jouée en quatre tranches (`-I 130,337`, `-I 266,337`, `-I 320,337`) : la commande de fond de l'outil s'arrête à 2 h.
+- Jouée en quatre tranches, la commande de fond de l'outil s'arrêtant à 2 h : tests 1-129 sur 301d3c6e (rouge alors :
+  `tst_actions_layout`, F12), 130-265 sur 301d3c6e (rouge alors : `tst_ui_helppages`, « Origine XY »), 266-337 sur
+  46d1e0af. Après les correctifs de la relecture, rejoués sur la tête : `tst_actions_registry`, `tst_actions_layout`,
+  `tst_ui_filemenu`, `tst_ui_language`, `tst_ui_shortcuts`, `tst_ui_helppages`, `tst_app_notices` (7/7). La suite
+  complète de la tête est celle de la CI de la PR.
 - `ACTCRAFT_REFERENCE_NAMES` = `C:\Users\JeromeDenis\REA - Activinspire\docs\re\lots\lot11-noms.txt` (72 noms, hors
   dépôt) : `namesAreOurs` et `textsAreOurs` jouent, ne sautent plus.
 - **Rouge hors périmètre** : `tst_media_soundrecorder`, lignes `micro` (vrai micro du PC) : `704 ms enregistrées pour
@@ -153,5 +157,15 @@ Relevé de l'ancien dépôt (`docs/spec/fonctionnalites.md:862-868`, nos mots) c
 - Le code source exact de FFmpeg n'est toujours pas publié avec les paquets (promis par la notice). Version Windows
   relevée : FFmpeg 9.0.1, LGPL 2.1 ou ultérieure, ligne `configure` dans la notice ; Android non relevé.
 - La liste des composants tiers de Qt PDF reste « à confirmer » (SBOM de Qt PDF vide).
+
+## Relecture adversariale
+
+0 bloquant, 2 majeurs corrigés : le navigateur de pages captait Ctrl+Maj+X, C, V et D (il ne regardait pas Maj :
+les deux raccourcis neufs collaient ou dupliquaient des pages ; X et C, retourner et connecteur, l'étaient déjà avant
+ce diff), test `pageNavigatorKeepsOnlyItsOwnKeys` rouge vu (`Actual (fired) size: 0`) puis vert ; mention FreeType
+complétée (2026, année des copyrights de FreeType 2.14.3 dans la nomenclature de Qt). Mineurs traités : en-tête des
+notices, aide du repère accordée, sha des tranches. Laissés : `Close-ActCraftAccueil` appuie à des coordonnées fixes
+(écran 2560 × 1600 des AVD d'essai) ; les scénarios `gestes` visent le binaire de ce worktree (à repointer s'ils sont
+rejoués ailleurs). La voie « retirée » des récents reste prouvée par `tst_ui_documentportal.cpp:162-177`.
 
 <!-- BANC -->

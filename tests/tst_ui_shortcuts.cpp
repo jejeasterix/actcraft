@@ -204,6 +204,47 @@ private slots:
     }
 
     // Une touche seule (Suppr) appartient au champ de texte quand il a le focus : l'objet reste.
+    // Le navigateur de pages garde Ctrl+X, C, V et D (couper, copier, coller, dupliquer des pages), pas leurs
+    // formes avec Maj (retourner, connecteur, avancer d'un cran, capture de l'écran). Ancien patron (Ctrl
+    // seul testé, Maj ignorée) : quand les miniatures avaient le focus, ces quatre raccourcis agissaient sur
+    // les pages (relecture des restes PC du lot 11 ; Ctrl+Maj+V et D ajoutés par L11-T23-PC).
+    void pageNavigatorKeepsOnlyItsOwnKeys()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QStringList fired;
+        const QList<std::pair<QString, QString>> shifted = {
+            {QStringLiteral("Ctrl+Shift+X"), QStringLiteral("transform.flip-x")},
+            {QStringLiteral("Ctrl+Shift+C"), QStringLiteral("tool.connector")},
+            {QStringLiteral("Ctrl+Shift+V"), QStringLiteral("arrange.forward")},
+            {QStringLiteral("Ctrl+Shift+D"), QStringLiteral("tool.camera-screen")}};
+        QStringList watched{QStringLiteral("edit.paste")};
+        for (const auto& [keys, command] : shifted) {
+            watched << command;
+        }
+        for (const QString& command : watched) {
+            s.commands->setNativeHandler(command, [&fired, command](const QVariant&) { fired << command; });
+            s.commands->setEnabled(command, true);
+        }
+        QVERIFY(s.commands->trigger(QStringLiteral("view.browsers")));
+        auto* navigator = s.window->findChild<QQuickItem*>(QStringLiteral("pageNavigator"));
+        QVERIFY(navigator);
+        QTRY_VERIFY(navigator->isVisible());
+        for (const auto& [keys, command] : shifted) {
+            navigator->forceActiveFocus();
+            QTRY_VERIFY(navigator->hasActiveFocus());
+            fired.clear();
+            QTest::keySequence(s.window, QKeySequence(keys));
+            QTRY_COMPARE(fired, QStringList{command});
+        }
+        // Contrôle : Ctrl+V reste au navigateur (coller des pages), pas à la commande de la fenêtre.
+        navigator->forceActiveFocus();
+        fired.clear();
+        QTest::keySequence(s.window, QKeySequence(QStringLiteral("Ctrl+V")));
+        QTest::qWait(200);
+        QVERIFY(fired.isEmpty());
+    }
+
     void noSingleKeyShortcutWhileTyping()
     {
         Shell s;
