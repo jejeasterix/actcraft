@@ -630,8 +630,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1794519791.046454,
-    "ast_hash": "5e34271411f8c6117c2868263006a94f",
+    "mtime": 1794523250.7088983,
+    "ast_hash": "bee01494918bccd9bd34f32387879011",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -5015,8 +5015,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci-ciblee.yml": {
-    "mtime": 1794519791.0471613,
-    "ast_hash": "a255b17d861c768c013b04b994f26639",
+    "mtime": 1794523250.7087471,
+    "ast_hash": "e73e615af4cc2b01f30b8873f4affd74",
     "semantic_hash": ""
   },
   "docs/ci-ciblee.md": {
@@ -5890,13 +5890,13 @@
     "semantic_hash": ""
   },
   "scripts/tests-materiel.sh": {
-    "mtime": 1794519804.5459814,
-    "ast_hash": "b4ff2e844046b732e48056af95470202",
+    "mtime": 1794523250.709525,
+    "ast_hash": "8c93de3bae81d57cb3328039e110b718",
     "semantic_hash": ""
   },
   "docs/tests-materiel.md": {
-    "mtime": 1794519809.5820065,
-    "ast_hash": "29bf2833f6349a78e63da978f3225a56",
+    "mtime": 1794523250.709362,
+    "ast_hash": "ecaddeb5a70a9361586ad681c5284dbc",
     "semantic_hash": ""
   }
 }
