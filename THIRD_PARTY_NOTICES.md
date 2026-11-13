@@ -313,7 +313,9 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   `ffmpeg`, qui charge les bibliothèques dynamiques de FFmpeg livrées par Qt ; l'utilisateur peut les remplacer.
   ActCraft ne modifie pas FFmpeg. Licence SPDX : `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND
   BSD-Source-Code AND ISC AND MIT AND MPL-2.0` (déclaration de Qt ; licence principale : LGPL 2.1 ou ultérieure, les
-  autres couvrent des fichiers inclus). Copyright (c) 2000-2023 the FFmpeg developers. Version livrée avec Qt 6.12.0
+  autres couvrent des fichiers inclus) ; sous Windows, `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND
+  BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib` : les bibliothèques y sont compilées avec zlib 1.3.1
+  (`--enable-zlib`, voir « zlib » ci-dessous). Copyright (c) 2000-2023 the FFmpeg developers. Version livrée avec Qt 6.12.0
   sous Windows : FFmpeg 9.0.1 (`avcodec-63.dll`, `avformat-63.dll`, `avutil-61.dll`, `swresample-7.dll`,
   `swscale-10.dll`), licence compilée « LGPL version 2.1 or later », options de compilation relevées dans les
   bibliothèques : `--disable-programs --disable-doc --disable-debug --enable-network --disable-lzma --enable-pic
@@ -327,6 +329,9 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   code source exact des bibliothèques FFmpeg livrées est publié à côté des paquets de chaque version d'ActCraft (page
   de la version sur GitHub). Sous macOS, le Qt de Homebrew s'appuie sur les composants du système (AVFoundation) et
   n'embarque pas FFmpeg.
+- **zlib 1.3.1** (https://zlib.net/) : compilée dans les bibliothèques de FFmpeg livrées sous Windows (Qt la lie à
+  FFmpeg, `--enable-zlib`). Licence SPDX : `Zlib` (texte dans `LICENSES/Zlib.txt`). Copyright (C) 1995-2024 Jean-loup
+  Gailly and Mark Adler.
 - **Moteur du cadre web** : PC et Mac, Qt WebEngine (Chromium), livré avec ActCraft (voir « Qt WebEngine et
   Chromium ») ; Android, navigateur du système.
 - Brevets des codecs H.264 et AAC : voir « Brevets des codecs H.264 et AAC » plus haut.
@@ -352,19 +357,19 @@ LGPL 2.1 ou ultérieure.
 - `dxil.dll` (Windows) : validateur de shaders DirectX du kit de développement Windows, déposé avec DXC. Licence
   SPDX : `LicenseRef-Microsoft-Redistributable`. Copyright (c) Microsoft Corporation.
 - `avcodec*.dll` (Windows) : FFmpeg, codecs ; licence compilée contrôlée. Licence SPDX : `LGPL-2.1-or-later AND
-  BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0`. Copyright : les développeurs de
+  BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib`. Copyright : les développeurs de
   FFmpeg.
 - `avformat*.dll` (Windows) : FFmpeg, formats de fichiers ; licence compilée contrôlée. Licence SPDX :
-  `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0`. Copyright :
+  `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib`. Copyright :
   les développeurs de FFmpeg.
 - `avutil*.dll` (Windows) : FFmpeg, outils communs ; licence compilée contrôlée. Licence SPDX : `LGPL-2.1-or-later AND
-  BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0`. Copyright : les développeurs de
+  BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib`. Copyright : les développeurs de
   FFmpeg.
 - `swresample*.dll` (Windows) : FFmpeg, rééchantillonnage du son ; licence compilée contrôlée. Licence SPDX :
-  `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0`. Copyright :
+  `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib`. Copyright :
   les développeurs de FFmpeg.
 - `swscale*.dll` (Windows) : FFmpeg, mise à l'échelle des images ; licence compilée contrôlée. Licence SPDX :
-  `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0`. Copyright :
+  `LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib`. Copyright :
   les développeurs de FFmpeg.
 - `libavcodec*.so` (Android) : FFmpeg, codecs ; licence compilée contrôlée. Licence SPDX : `LGPL-2.1-or-later AND
   BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0`. Copyright : les développeurs de
