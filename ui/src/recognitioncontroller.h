@@ -139,6 +139,7 @@ private:
     void resetSession();
     void forgetPending(const std::vector<core::ObjectId>& converted);
     std::vector<core::ObjectId> selectedObjects() const; // vide sans outils ou sans sélection
+    bool selectionAllHeld() const; // sélection brute non vide, mais tout y est tenu par l'autre utilisateur
     void recognizeShapes(const std::vector<core::ObjectId>& strokes);
     void dispatch(const std::vector<core::ObjectId>& strokes);
     void recognizeHandwriting(const std::vector<core::ObjectId>& strokes);
