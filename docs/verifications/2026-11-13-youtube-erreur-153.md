@@ -74,12 +74,16 @@ Correctif, dans la vue seule (`ui/qml/WebFrameEngineView.qml`) : quand `contentF
 - L'amorce porte un repère (`data-actcraft-primer`). Tout chargement réussi qui la montre la réécrit : `load()`, le
   rechargement du moteur ou de son menu, un retour dans l'historique. Aucune autre page n'est écrite.
 - L'écriture part par morceaux de 524 288 caractères, un par tour de boucle. Un jeton posé sur la fenêtre de
-  l'amorce refuse d'écrire dans une page qui l'aurait remplacée.
+  l'amorce, à son ouverture, refuse d'écrire dans une page qui l'aurait remplacée. Une navigation dans le même
+  document pendant l'écriture (`location.hash` d'un script) ne l'interrompt pas.
+- Une coupure ne tombe jamais au milieu d'une paire de substitution : l'analyseur laisserait ses deux moitiés dans
+  deux nœuds de texte (constaté par le test).
+- Chaque `load()` change de génération : un rappel de `runJavaScript` parti avant lui est ignoré.
 - `pageLoaded` part quand `document.readyState` vaut `complete`, comme le `load` d'une page chargée.
 - L'amorce n'est pas vide : `loadHtml("", base)` charge l'adresse de base elle-même (« site inaccessible »).
 
 Coût sur le fil de l'interface, mesuré au harnais (Mac, Qt 6.12) : d'un bloc, 15 ms pour 2,5 Mo et 170 ms pour 25 Mo ;
-par morceaux, 4 ms au plus par morceau pour 25 Mo (48 morceaux).
+par morceaux, 4 ms au plus par morceau pour 25 Mo (48 morceaux). Non mesuré au banc ni sur le Dell 3510.
 
 Piste écartée : un `QWebEngineUrlRequestInterceptor` qui pose `Referer`. Il marche (lecture vue au harnais), mais il
 demande de lier Qt WebEngine à l'application, alors que le QML le charge seulement au premier cadre (DA2).
@@ -97,8 +101,8 @@ après : REQ …/embed/M7lc1UVf-VE…  firstParty=https://org.actcraft.actcraft/
 Même résultat avec un fichier de 25 Mo.
 
 Part déterministe, dans la CI : `tst_ui_webengine` (`heavyPlayerHtmlKeepsTheIdentityOrigin` : HTML de 3 Mo par
-`contentFile`, origine `https://org.actcraft.actcraft`, contenu entier avec une paire de substitution coupée entre
-deux morceaux, puis même résultat et un seul `pageLoaded` après un rechargement du moteur).
+`contentFile`, origine `https://org.actcraft.actcraft`, contenu entier malgré un `location.hash` posé pendant
+l'écriture, paire de substitution à la coupure d'un morceau restée dans un seul nœud, puis même résultat, titre déjà écrit au `pageLoaded` et un seul `pageLoaded` après un rechargement du moteur).
 
 Limites : Android (`WebFrameSystemView.qml`) charge encore le fichier, sans `Referer`. Une page lourde du lecteur ne
 lit pas ses ressources relatives au dossier du document, comme une page moyenne du lecteur.

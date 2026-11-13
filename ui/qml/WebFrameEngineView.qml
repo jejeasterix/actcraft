@@ -30,6 +30,9 @@ Item {
     readonly property int _chunk: 524288
     property int _written: 0
     property string _token: ""
+    property bool _writing: false
+    // Chaque load() change de génération : un rappel de runJavaScript parti avant lui est ignoré.
+    property int _generation: 0
     function _writesUnderBase() {
         return !guardsEnabled && contentFile.toString() !== "" && baseUrl.toString().startsWith("https:")
     }
@@ -38,23 +41,35 @@ Item {
         const hash = page.indexOf("#")
         return _writesUnderBase() && (hash < 0 ? page : page.slice(0, hash)) === baseUrl.toString()
     }
+    // Jeton et position ne changent qu'à l'ouverture de l'amorce : une navigation dans le même document pendant
+    // l'écriture (fragment, history) ne l'interrompt pas.
     function _writePrimer() {
-        _token = Math.random().toString(36).slice(2)
-        _written = 0
+        const generation = _generation
+        const token = Math.random().toString(36).slice(2)
         web.runJavaScript("(function(){var r=document.documentElement;if(!r||!r.hasAttribute('data-actcraft-primer'))"
-                          + "return false;document.open();window.actcraftPrimer=" + JSON.stringify(_token)
+                          + "return false;document.open();window.actcraftPrimer=" + JSON.stringify(token)
                           + ";return true})()",
                           function (opened) {
-                              if (opened)
+                              if (generation !== root._generation)
+                                  return
+                              if (opened) {
+                                  root._token = token
+                                  root._written = 0
+                                  root._writing = true
                                   writer.start()
-                              else
+                              } else if (!root._writing) {
                                   root.pageLoaded()
+                              }
                           })
     }
-    // Le jeton refuse d'écrire dans une page qui aurait remplacé l'amorce. Une paire de substitution coupée
-    // entre deux morceaux est recollée par l'analyseur (tst_ui_webengine).
+    // Le jeton refuse d'écrire dans une page qui aurait remplacé l'amorce. Une paire de substitution n'est
+    // jamais coupée : l'analyseur la laisserait en deux nœuds de texte (tst_ui_webengine).
     function _writeNext() {
-        const end = Math.min(html.length, _written + _chunk)
+        const generation = _generation
+        let end = Math.min(html.length, _written + _chunk)
+        const high = end < html.length ? html.charCodeAt(end - 1) : 0
+        if (high >= 0xD800 && high <= 0xDBFF)
+            end -= 1
         const last = end === html.length
         const piece = html.slice(_written, end)
         _written = end
@@ -62,7 +77,7 @@ Item {
                           + "document.write(" + JSON.stringify(piece) + ");"
                           + (last ? "delete window.actcraftPrimer;document.close();" : "") + "return true})()",
                           function (written) {
-                              if (written && last)
+                              if (written && last && generation === root._generation)
                                   root._settle() // un script externe bloquant retarde la fin de l'analyse
                           })
         if (!last)
@@ -70,17 +85,24 @@ Item {
     }
     // pageLoaded après la fin de l'analyse du HTML écrit, comme le load d'une page chargée.
     function _settle() {
+        const generation = _generation
         web.runJavaScript("document.readyState", function (state) {
-            if (state === "complete")
+            if (generation !== root._generation)
+                return
+            if (state === "complete") {
+                root._writing = false
                 root.pageLoaded()
-            else
+            } else {
                 settle.start()
+            }
         })
     }
 
     function load() {
-        writer.stop() // l'écriture en cours visait l'ancien contenu
+        ++_generation // l'écriture en cours visait l'ancien contenu
+        writer.stop()
         settle.stop()
+        _writing = false
         if (directUrl.toString() !== "")
             web.url = directUrl
         else if (_writesUnderBase())
@@ -146,14 +168,10 @@ Item {
         onLoadingChanged: function (info) {
             if (root.guardsEnabled && info.status === WebEngineView.LoadStartedStatus)
                 root.navigationTaken(info.url)
-            if (info.status === WebEngineView.LoadStartedStatus) {
-                writer.stop()
-                settle.stop()
-            } else if (info.status === WebEngineView.LoadSucceededStatus && root._showsPrimer(info.url)) {
+            if (info.status === WebEngineView.LoadSucceededStatus && root._showsPrimer(info.url))
                 root._writePrimer()
-            } else if (info.status === WebEngineView.LoadSucceededStatus) {
+            else if (info.status === WebEngineView.LoadSucceededStatus)
                 root.pageLoaded()
-            }
             root._report()
         }
     }

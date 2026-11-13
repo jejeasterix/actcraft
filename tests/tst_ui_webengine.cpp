@@ -331,22 +331,26 @@ private slots:
     {
         WebFrameHost host;
         QVERIFY(host.start());
-        const QString head = QStringLiteral("<body><p id=a>");
+        // Navigation dans le même document pendant l'écriture : elle ne l'interrompt pas.
+        const QString head = QStringLiteral("<body><script>location.hash='debut'</script><p id=a>");
         const qsizetype before = 524288 - 1 - head.size();
         const qsizetype total = 3 * 1024 * 1024;
         QVERIFY(host.frames->insertFrame(
             head + QString(before, u'a') + QStringLiteral("\U0001F600") + QString(total - before - 2, u'a') +
                 QStringLiteral(
                     "</p><script>var player='https://www.youtube-nocookie.com/embed/x';"
-                    "var t=document.getElementById('a').textContent;"
-                    "document.title=location.origin+' '+t.length+' '+t.indexOf('\\u{1F600}')</script>"),
+                    "var a=document.getElementById('a'),t=a.textContent,cut=[].filter.call(a.childNodes,"
+                    "function(n){return /[\\uD800-\\uDBFF]$/.test(n.data)}).length;"
+                    "document.title=location.origin+' '+t.length+' '+t.indexOf('\\u{1F600}')+' "
+                    "'+cut</script>"),
             {}));
         QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 1, kLoadMs);
         QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
         QQuickItem* web = findItem(host.root.get(), QStringLiteral("webFrameEngine"));
         QVERIFY(view && web);
         QVERIFY(!view->property("contentFile").toUrl().isEmpty()); // le chemin lourd, pas loadHtml
-        const QString expected = QStringLiteral("https://org.actcraft.actcraft %1 %2").arg(total).arg(before);
+        const QString expected =
+            QStringLiteral("https://org.actcraft.actcraft %1 %2 0").arg(total).arg(before);
         QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), expected, 10000);
         // Rechargement du moteur (bouton, menu de la page) depuis une adresse à fragment : le HTML est
         // réécrit, un seul pageLoaded, l'amorce ne compte pas.
@@ -359,7 +363,7 @@ private slots:
         QSignalSpy loaded(view, SIGNAL(pageLoaded()));
         host.frames->reload(0);
         QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
-        QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), expected, 10000);
+        QCOMPARE(web->property("title").toString(), expected); // pageLoaded après l'écriture
         QTest::qWait(500);
         QCOMPARE(loaded.count(), 1);
     }
