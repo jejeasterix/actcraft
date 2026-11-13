@@ -28,6 +28,17 @@ using namespace Qt::StringLiterals;
 
 namespace {
 
+// Descripteurs ouverts du processus (/dev/fd) ; 0 sous Windows, qui contrôle par une ouverture exclusive.
+int openDescriptors()
+{
+#ifdef Q_OS_WIN
+    return 0;
+#else
+    return static_cast<int>(
+        QDir(u"/dev/fd"_s).entryList(QDir::AllEntries | QDir::System | QDir::NoDotAndDotDot).size());
+#endif
+}
+
 // Comme un content:// : séquentiel, taille 0 annoncée, atEnd() vrai avant toute lecture. `failAt` : position
 // où readData rend -1 (erreur de lecture), -1 pour jamais.
 class SequentialDevice final : public QIODevice
@@ -235,6 +246,36 @@ private slots:
         const formats::UrlReadResult tooBig = formats::readUrl(big, 10);
         QVERIFY(!tooBig.ok);
         QVERIFY2(tooBig.error.contains(u"volumineux"_s), qPrintable(tooBig.error));
+    }
+
+    // Reste d'OA98 : readUrl rend le fichier fermé, lu ou refusé. Sous Windows, un fichier encore ouvert
+    // refuse une ouverture exclusive et sa suppression ; ailleurs, il compte parmi les descripteurs ouverts.
+    void readUrlClosesTheFile()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(u"lu.actcraft"_s);
+        QVERIFY(formats::writeUrl(QUrl::fromLocalFile(path), QByteArray(100, 'x'), nullptr));
+        for (const qint64 maxBytes : {formats::kMaxUrlRead, qint64{10}}) { // lu, puis refusé trop gros
+            const int before = openDescriptors();
+            const formats::UrlReadResult r = formats::readUrl(QUrl::fromLocalFile(path), maxBytes);
+            QCOMPARE(r.ok, maxBytes != 10);
+            QCOMPARE(openDescriptors(), before);
+#ifdef Q_OS_WIN
+            // Une poignée passagère d'un tiers (antivirus, indexeur : voir urlio.cpp) se ferme seule ; celle
+            // que readUrl garderait, non.
+            const auto openExclusively = [&path] {
+                const HANDLE exclusive =
+                    CreateFileW(reinterpret_cast<const wchar_t*>(path.utf16()), GENERIC_READ | GENERIC_WRITE,
+                                0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                if (exclusive == INVALID_HANDLE_VALUE)
+                    return false;
+                CloseHandle(exclusive);
+                return true;
+            };
+            QTRY_VERIFY2(openExclusively(), "fichier encore ouvert après readUrl");
+#endif
+        }
+        QVERIFY(QFile::remove(path)); // juste après une ouverture exclusive réussie sous Windows
     }
 
     void sequentialDeviceOfUnknownSizeIsReadToTheEnd()

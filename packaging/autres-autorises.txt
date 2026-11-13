@@ -16,11 +16,12 @@ dxil.dll LicenseRef-Microsoft-Redistributable
 
 # FFmpeg, chargé par le greffon multimédia de Qt (Windows : avcodec-<n>.dll… ; Android : libavcodec….so).
 # verifier-licences.ps1 lit aussi la licence compilée dans chaque bibliothèque : « LGPL version 2.1 or later » exigée.
-avcodec*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
-avformat*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
-avutil*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
-swresample*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
-swscale*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
+# Windows : bibliothèques compilées avec zlib 1.3.1 (`--enable-zlib`), d'où « AND Zlib ».
+avcodec*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib
+avformat*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib
+avutil*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib
+swresample*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib
+swscale*.dll LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0 AND Zlib
 libavcodec*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
 libavformat*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0
 libavutil*.so LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-Source-Code AND ISC AND MIT AND MPL-2.0

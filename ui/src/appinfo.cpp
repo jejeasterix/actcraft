@@ -38,10 +38,29 @@ QString AppInfo::projectUrl() const
     return QStringLiteral("https://github.com/jejeasterix/actcraft");
 }
 
+namespace {
+
+QString readResource(const QString& path)
+{
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+}
+
+} // namespace
+
 QString AppInfo::notices() const
 {
-    QFile file(QStringLiteral(":/actcraft/THIRD_PARTY_NOTICES.md"));
-    return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+    return readResource(QStringLiteral(":/actcraft/THIRD_PARTY_NOTICES.md"));
+}
+
+QString AppInfo::copyright() const
+{
+    return QStringLiteral("Copyright (C) 2026 Jérôme Denis");
+}
+
+QString AppInfo::licenseText() const
+{
+    return readResource(QStringLiteral(":/actcraft/LICENSES/GPL-3.0-only.txt"));
 }
 
 } // namespace actcraft::ui
