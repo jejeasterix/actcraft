@@ -28,6 +28,18 @@ qt="${ACTCRAFT_QT_DIR:-$(brew --prefix qt 2>/dev/null)}"
 macdeployqt="$qt/bin/macdeployqt"
 [ -x "$macdeployqt" ] || echec "macdeployqt introuvable ($macdeployqt) : ACTCRAFT_QT_DIR ou brew install qt"
 
+# Minimum macOS déclaré (LSMinimumSystemVersion) et cible de déploiement de la construction. Qt de Homebrew : ses
+# bibliothèques (ICU, PCRE2, double-conversion copiées par macdeployqt, Qt WebEngine) sont construites pour le macOS du
+# Mac qui les a produites (minos 27.0 relevé le 2026-11-11), le paquet exige donc macOS 27. Qt officiel (aqt) :
+# 14.4, le minimum de Qt 6.12. scripts/verifier-minos-mac.sh refuse un bundle dont un binaire exigerait plus.
+# Le Qt est celui de Homebrew s'il en porte le chemin, que ACTCRAFT_QT_DIR le désigne ou non (ci-ciblee.yml le fait).
+brew_qt_minimum="$(brew --prefix qt 2>/dev/null)"
+if [ -n "$brew_qt_minimum" ] && [ "$qt" = "$brew_qt_minimum" ]; then
+  minimum_macos=27.0
+else
+  minimum_macos=14.4
+fi
+
 build="$racine/build/macos-paquet"
 if [ "$construire" = 1 ]; then
   lanceur=""
@@ -35,7 +47,8 @@ if [ "$construire" = 1 ]; then
     lanceur="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
   fi
   # shellcheck disable=SC2086 # $lanceur : zéro ou deux options
-  cmake -S . -B "$build" -G Ninja -DCMAKE_PREFIX_PATH="$qt" -DCMAKE_BUILD_TYPE=Release $lanceur ||
+  cmake -S . -B "$build" -G Ninja -DCMAKE_PREFIX_PATH="$qt" -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET="$minimum_macos" $lanceur ||
     echec "configuration CMake"
   cmake --build "$build" --target actcraft --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-2}" || echec "compilation Release"
 fi
@@ -63,15 +76,30 @@ journal="$paquet/macdeployqt.txt"
 # bundle. Ces lignes ne sont pas un verdict : la référence est réécrite plus bas si son framework est dans le bundle,
 # son greffon est retiré si son module n'est pas importé, et toute référence @rpath restée sans cible est refusée
 # après la boucle des retraits.
+# Qt officiel (aqt) : greffons SQL des bases externes (Mimer, ODBC, PostgreSQL), liés à des clients absents du Mac ;
+# macdeployqt signale chacun de ces clients (« can't open file », « no file at »). ActCraft n'utilise que SQLite (stockage
+# local de Qt Quick) : ces greffons sont retirés, et seules les lignes qui nomment un de leurs clients sont écartées.
+sql_externes="libqsqlmimer.dylib libqsqlodbc.dylib libqsqlpsql.dylib"
+clients_sql="$journal.clients-sql"
+: > "$clients_sql"
+for greffon in $sql_externes; do
+  [ -f "$qt/plugins/sqldrivers/$greffon" ] || continue
+  otool -arch arm64 -L "$qt/plugins/sqldrivers/$greffon" | awk 'NR > 1 && $1 ~ /^\// && $1 !~ /^\/(usr\/lib|System)\// { print $1 }' >> "$clients_sql"
+  rm -f "$app/Contents/PlugIns/sqldrivers/$greffon"
+done
 erreur="$(grep '^ERROR' "$journal" | grep -v 'ActCraft\.Ui' |
-  grep -vE '^ERROR: +using QList\(|^ERROR: Cannot resolve rpath "@rpath/' | head -1)"
+  grep -vE '^ERROR: +using QList\(|^ERROR: Cannot resolve rpath "@rpath/' |
+  { if [ -s "$clients_sql" ]; then grep -vF -f "$clients_sql"; else cat; fi; } | head -1)"
+rm -f "$clients_sql"
 [ -z "$erreur" ] || echec "macdeployqt : $erreur"
 
 # Qt WebEngine (cadrage DA4) : le greffon référence @rpath/QtWebEngine…, que macdeployqt ne résout pas chez Homebrew, et
 # le processus auxiliaire exige Helpers/ et Resources/ complets : frameworks copiés entiers, en-têtes retirés.
+# Repli sur la formule Homebrew seulement sans ACTCRAFT_QT_DIR (cas de release.yml) : avec un Qt désigné, un framework
+# manquant arrête le paquet au lieu de mêler un Qt WebEngine d'une autre provenance.
 copier_framework() { # <formule Homebrew> <nom du framework>
   local source="$qt/lib/$2.framework"
-  [ -d "$source" ] || source="$(brew --prefix "$1" 2>/dev/null)/lib/$2.framework"
+  [ -d "$source" ] || [ -n "${ACTCRAFT_QT_DIR:-}" ] || source="$(brew --prefix "$1" 2>/dev/null)/lib/$2.framework"
   [ -d "$source" ] || echec "$2.framework introuvable (ni $qt/lib, ni formule $1)"
   rm -rf "$app/Contents/Frameworks/$2.framework"
   # -H : chez Homebrew, $qt/lib/<nom>.framework est un lien ; c'est le framework qu'il faut copier.
@@ -85,6 +113,20 @@ copier_framework qtwebengine QtWebEngineQuickDelegatesQml
 copier_framework qtwebchannel QtWebChannel
 copier_framework qtwebchannel QtWebChannelQuick
 copier_framework qtpositioning QtPositioning
+
+# Qt officiel (aqt) : binaires universels (x86_64 et arm64). L'image ne vise que les Mac Apple Silicon : chaque Mach-O
+# universel est réduit à arm64 (moitié du poids), et otool -L n'écrit plus qu'une section par fichier, comme les
+# analyses plus bas l'attendent (sinon « fichier (architecture x86_64): » rend leurs listes aveugles).
+while IFS= read -r -d '' fichier; do
+  archs="$(lipo -archs "$fichier" 2>/dev/null)" || continue
+  [ "$archs" = arm64 ] && continue
+  case " $archs " in
+    *" arm64 "*) ;;
+    *) echec "binaire sans arm64 : ${fichier#"$app"/} ($archs)" ;;
+  esac
+  chmod u+w "$fichier"
+  lipo -thin arm64 "$fichier" -output "$fichier" || echec "réduction à arm64 : ${fichier#"$app"/}"
+done < <(find "$app" -type f -print0)
 
 # macdeployqt copie en entier les dossiers d'import de Qt (QtQuick/, QtQml/) : il y entraîne des modules qu'ActCraft
 # n'importe pas, dont deux sous GPL seule (Qt Virtual Keyboard, Qt Quick Timeline : « Jamais » de qt-autorises.txt),
@@ -103,6 +145,13 @@ for module in QtQuick/VirtualKeyboard QtQuick/Timeline QtQuick/Scene2D QtQuick/S
 done
 rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
 rm -rf "$app/Contents/PlugIns/webview" # Qt WebView : Android seulement (cadrage n° 8)
+# Greffon FFmpeg de Qt Multimedia (Qt officiel ; Qt Homebrew n'a que le greffon darwin) : il tire les bibliothèques de
+# FFmpeg. Le paquet Mac n'en livre pas (THIRD_PARTY_NOTICES.md : FFmpeg sous Windows et Android) : retiré. Le greffon
+# darwin reste (AVFoundation, codecs du système, H.264 compris) ; les bibliothèques de FFmpeg, plus référencées, partent
+# dans la boucle plus bas.
+rm -f "$app/Contents/PlugIns/multimedia/libffmpegmediaplugin.dylib"
+[ -f "$app/Contents/PlugIns/multimedia/libdarwinmediaplugin.dylib" ] ||
+  echec "greffon multimédia darwin absent du bundle (PlugIns/multimedia)"
 # Greffon NMEA de Qt Positioning (récepteur GPS série) : il lie Qt Serial Port, hors de qt-autorises.txt, que la boucle
 # plus bas retire une fois ce greffon parti. Qt Positioning reste : Qt WebEngine le lie.
 rm -f "$app/Contents/PlugIns/position/libqtposition_nmea.dylib"
@@ -174,9 +223,10 @@ find "$app/Contents/Frameworks" -type f | while read -r fichier; do
   esac
 done
 
-# Tous les fichiers (binaires de framework sans extension ni droit x) ; les non Mach-O sont ignorés.
+# Tous les fichiers (binaires de framework sans extension ni droit x) ; les non Mach-O sont ignorés. Tout chemin absolu
+# hors du système (/usr/lib, /System) est refusé : Homebrew, /usr/local, ou un client installé ailleurs (Postgres.app).
 restes="$(find "$app" -type f -exec otool -L {} + 2>/dev/null |
-  grep -E '^[[:space:]]+(/opt/homebrew|/usr/local)/' | sort -u)"
+  grep -E '^[[:space:]]+/' | grep -vE '^[[:space:]]+/(usr/lib|System)/' | sort -u)"
 [ -z "$restes" ] || echec "dépendances hors du bundle : $(echo "$restes" | head -3 | tr -s '[:space:]' ' ')"
 # Une référence @rpath que macdeployqt n'a pas réécrite doit trouver sa cible dans Contents/Frameworks : sinon dyld la
 # cherche ailleurs (rpaths de Homebrew restés dans un greffon) ou ne la trouve pas.
@@ -199,16 +249,27 @@ grep -q '^Plugins = PlugIns$' "$conf" && grep -q '^QmlImports = Resources/qml$' 
 cp LICENSE "$app/Contents/Resources/LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/"
 cp -R LICENSES "$app/Contents/Resources/LICENSES"
-# Texte de la licence de Chromium : celui de la formule ; Qt installé par aqt n'a pas de formule, la copie exacte du
-# dépôt (LICENSES/LICENSE.Chromium) le remplace.
-licence_chromium="$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium"
-[ -f "$licence_chromium" ] || licence_chromium="LICENSES/LICENSE.Chromium"
+# Texte de la licence de Chromium : celui de la formule quand Qt vient de Homebrew ; Qt installé par aqt n'a pas de
+# formule, la copie exacte du dépôt (LICENSES/LICENSE.Chromium) le remplace, même si Homebrew a aussi qtwebengine.
+licence_chromium="LICENSES/LICENSE.Chromium"
+brew_qt="$(brew --prefix qt 2>/dev/null)"
+if [ -n "$brew_qt" ] && [ "$qt" = "$brew_qt" ]; then
+  licence_brew="$(brew --prefix qtwebengine 2>/dev/null)/LICENSE.Chromium"
+  [ -f "$licence_brew" ] && licence_chromium="$licence_brew"
+fi
 cp "$licence_chromium" "$app/Contents/Resources/LICENSE.Chromium" || echec "copie de LICENSE.Chromium"
 
 licences="$(scripts/verifier-licences-mac.sh "$app")"
 code=$?
 echo "$licences"
 [ "$code" = 0 ] && [ "$(echo "$licences" | tail -1)" = "LICENCES OK" ] || echec "licences (voir ci-dessus)"
+
+# Minimum macOS : déclaré dans l'Info.plist, et aucun binaire du bundle n'en exige plus (après le dernier retrait de
+# bibliothèque, avant la signature).
+minos="$(scripts/verifier-minos-mac.sh "$app")"
+code=$?
+echo "$minos"
+[ "$code" = 0 ] && [ "$(echo "$minos" | tail -1)" = "MINOS OK : minimum $minimum_macos" ] || echec "minimum macOS (voir ci-dessus)"
 
 # Signature ad hoc, après toute écriture dans le bundle (elle scelle Contents/Resources).
 codesign --force --deep -s - "$app" || echec "signature ad hoc"
@@ -217,15 +278,17 @@ codesign --verify --deep --strict "$app" || echec "signature ad hoc invalide"
 ln -s /Applications "$stage/Applications"
 cp LICENSE "$stage/LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$stage/"
-cat > "$stage/LISEZ-MOI.txt" <<'TEXTE'
+cat > "$stage/LISEZ-MOI.txt" <<TEXTE
 ActCraft pour macOS (Mac Apple Silicon)
 
 Installer : glisser ActCraft dans le dossier Applications.
+Système requis : macOS $minimum_macos ou plus récent (sur un macOS plus ancien, le Finder refuse de l'ouvrir).
 
 Cette version n'est pas signée par un certificat de développeur Apple. Au premier lancement, macOS la bloque :
-- macOS 14 et avant : clic droit (ou Contrôle + clic) sur ActCraft, « Ouvrir », puis « Ouvrir » encore ;
 - macOS 15 et après : ouvrir ActCraft une fois, puis Réglages Système > Confidentialité et sécurité,
   « Ouvrir quand même ».
+- macOS 14 (Qt officiel seulement, minimum 14.4) : clic droit (ou Contrôle + clic) sur ActCraft, « Ouvrir », puis
+  « Ouvrir » encore.
 Autre manière, dans le Terminal : xattr -dr com.apple.quarantine /Applications/ActCraft.app
 (retire la marque que macOS pose sur les fichiers téléchargés).
 TEXTE

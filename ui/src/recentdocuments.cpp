@@ -35,11 +35,18 @@ ThumbnailJob readThumbnail(const QString& url, qint64 stamp)
     job.url = url;
     job.stamp = stamp;
     job.offMainThread = QThread::currentThread() != QCoreApplication::instance()->thread();
-    QFile file(QUrl(url).toLocalFile());
-    if (!file.open(QIODevice::ReadOnly)) {
-        return job;
+    // Fermé dès la lecture, avant le décodage : sous Windows, un fichier ouvert refuse le renommage d'un
+    // enregistrement qui le remplace (run 43141999645 de la PR 28 : « Enregistrer » juste après
+    // « Enregistrer sous », dont la vignette se lisait encore).
+    QByteArray bytes;
+    {
+        QFile file(QUrl(url).toLocalFile());
+        if (!file.open(QIODevice::ReadOnly)) {
+            return job;
+        }
+        bytes = file.readAll();
     }
-    const formats::DecodeResult decoded = formats::decodeActcraft(file.readAll());
+    const formats::DecodeResult decoded = formats::decodeActcraft(bytes);
     if (decoded.ok && !decoded.thumbnails.empty() && !decoded.thumbnails.front().isEmpty()) {
         job.dataUrl = QStringLiteral("data:image/png;base64,") +
                       QString::fromLatin1(decoded.thumbnails.front().toBase64());

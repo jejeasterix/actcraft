@@ -7,7 +7,19 @@ name: Release
 #   SHA256SUMS.txt ; notes tirées de CHANGELOG.md ; BROUILLON de release, jamais publié par ce workflow.
 # - workflow_dispatch : « essai » ou « reel » (mêmes règles ; « reel » se lance sur le tag v<version>).
 # - Push d'une branche essai-ci/release-<sujet> : « essai », pour prouver le flux sans tag (workflow_dispatch n'est
-#   utilisable qu'une fois le workflow sur main).
+#   utilisable qu'une fois le workflow sur main). Branche essai-ci/release-mac-<sujet> : même essai sans le job
+#   « windows », pour prouver les jobs macOS sans attendre celui de Windows.
+# Exécuteurs (OA72, 2026-11-12) : les machines de GitHub, gratuites pour un dépôt public ; les runners auto-hébergés
+# du Mac mini et du PC sont retirés. ubuntu-latest pour les jobs légers et « android », windows-latest pour
+# « windows » (étapes de paquet-windows de ci.yml), xcode-27 (macOS 27) pour « macos ». Les secrets de signature ne
+# vont qu'à « secrets » et « android » en mode réel, deux machines jetables, dans l'environnement « release ».
+# H.264 selon la plateforme (décisions de Jérôme, 2026-11-11) : le Mac exige un Qt WebEngine construit avec les codecs
+# propriétaires (bouteilles Homebrew installées par le job, jamais construites ; docs/etudes/2026-11-11-h264-webengine.md).
+# Bouteilles non épinglées : une mise à jour des formules qt ou qtwebengine arrête le job « macos » sur ses contrôles de
+# version (QT_VERSION, qtwebengine 6.11.2), jamais un paquet construit avec une autre version. Windows : Qt officiel, dont
+# le Qt WebEngine n'a pas H.264 (Vimeo et Lumni ne jouent pas dans le cadre web, à ouvrir dans le navigateur du système) ;
+# il est exigé sans codecs propriétaires, aucune construction de Chromium (« Je ne veux pas d'une construction de 6 à
+# 10h »). FFmpeg de Qt Multimedia garde son décodeur H.264 sous Windows et Android.
 # Mode « essai » : tout est construit et essayé, l'APK est signé par une clé de débogage (non publiable) ; aucun
 # secret lu, aucun artefact téléversé, aucune release. Un job y prouve que le mode réel, privé de secrets, échoue avec
 # son message. Le tag, sa poussée et la publication du brouillon relèvent du go écrit de Jérôme (action finale,
@@ -28,8 +40,9 @@ on:
 
 # Un seul run à la fois par référence (un run en cours n'est pas annulé). Une release déjà présente pour le tag,
 # brouillon compris, arrête le job « release » (RELEASE EXISTE DEJA) : jamais de second brouillon.
-# Environnement GitHub « release » (tags v* seulement, secrets de signature) : référencé en mode réel seulement ; en
-# mode essai le nom est vide, aucun environnement n'est créé ni lu. Création au go : .claude/chantier.md.
+# Environnement GitHub « release » (tags v* seulement, secrets de signature) : référencé par « secrets » et « android »,
+# en mode réel seulement ; en mode essai le nom est vide, aucun environnement n'est créé ni lu. Création au go :
+# .claude/chantier.md.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -44,10 +57,11 @@ env:
 jobs:
   mode:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       mode: ${{ steps.mode.outputs.mode }}
       version: ${{ steps.mode.outputs.version }}
+      windows: ${{ steps.mode.outputs.windows }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -70,15 +84,20 @@ jobs:
             Write-Output "Tag $env:NOM_REF différent de la version du projet (v$version) : arrêt."
             exit 1
           }
+          # Job « windows » sauté seulement en essai poussé sur essai-ci/release-mac-<sujet> ; toujours joué en réel.
+          $windows = if ($mode -eq 'essai' -and $env:TYPE_REF -eq 'branch' -and $env:NOM_REF -clike 'essai-ci/release-mac-*') { 'false' } else { 'true' }
           "mode=$mode" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
-          Write-Output "Mode $mode, version $version ($env:EVENEMENT, $env:TYPE_REF $env:NOM_REF)"
+          "windows=$windows" >> $env:GITHUB_OUTPUT
+          Write-Output "Mode $mode, version $version, job windows : $windows ($env:EVENEMENT, $env:TYPE_REF $env:NOM_REF)"
 
   # Mode réel : refus, avant toute construction, si un secret de signature manque (secret absent = variable vide).
   secrets:
     needs: mode
     if: needs.mode.outputs.mode == 'reel'
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
+    # ubuntu-latest, mode réel seulement (un job court par release) : il lit les secrets de signature, sur une machine
+    # jetable, comme le job android réel.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -127,7 +146,7 @@ jobs:
     needs: mode
     if: needs.mode.outputs.mode == 'essai'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -170,13 +189,14 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/notes.txt" -Tail 1) -cne 'NOTES OK : notes.md') { exit 1 }
           Get-Content notes.md
 
-  # S1 : installateur construit et essayé comme dans ci.yml (paquet-windows) ; téléversé en mode réel seulement.
+  # S1 : installateur construit et essayé dans une vraie fenêtre (qwindows, D3D11 sur WARP), comme le job
+  # paquet-windows de ci.yml ; téléversé en mode réel seulement.
   windows:
     needs: [mode, secrets]
-    if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
+    if: ${{ !cancelled() && needs.mode.result == 'success' && needs.mode.outputs.windows == 'true' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     runs-on: windows-latest
-    # 20 min ne suffisaient plus au lot 5 : construction de l'installateur coupée à 18 min, deux fois (v0.6.0).
-    timeout-minutes: 45
+    # 16 min mesurées sur windows-latest (essai 43301736325) ; 90 min, le délai propre de l'ancien runner du PC.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -184,32 +204,72 @@ jobs:
         with:
           python-version: "3.12"
 
-      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 : même commit que ci.yml.
+      # Même aqtinstall que ci.yml : la 3.3.0 ne sait pas installer Qt 6.12.
       - name: Installer Ninja et aqtinstall
         run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
-      - name: Installer Qt
-        shell: bash
+      # Qt officiel (aqtinstall), mêmes modules que ci.yml, Qt WebEngine exigé : la release l'embarque. Son Qt
+      # WebEngine doit être sans codecs propriétaires (H.264), relevé dans les fonctions activées de son module.
+      - name: Installer Qt (Qt WebEngine sans H.264)
+        shell: pwsh
         run: |
-          python -m aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
-          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
-          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
-          echo "${dir%/}/bin" >> "$GITHUB_PATH"
+          python -m aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview qtwebengine qtwebchannel qtpositioning --outputdir "$env:RUNNER_TEMP/Qt"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $qt = Join-Path $env:RUNNER_TEMP "Qt/$env:QT_VERSION/msvc2022_64"
+          foreach ($module in 'Qt6', 'Qt6ShaderTools', 'Qt6Pdf', 'Qt6Multimedia', 'Qt6WebEngineQuick', 'Qt6WebChannel', 'Qt6Positioning') {
+            if (-not (Test-Path "$qt\lib\cmake\$module")) { "::error::$module absent de $qt"; exit 1 }
+          }
+          $pri = "$qt\mkspecs\modules\qt_lib_webenginecore_private.pri"
+          $actives = Select-String -LiteralPath $pri -Pattern '^QT\.webenginecore_private\.enabled_features\s*=' -ErrorAction SilentlyContinue
+          if (-not $actives) { "::error::fonctions de Qt WebEngine illisibles ($pri)"; exit 1 }
+          if ($actives.Line -match '(^|\s)webengine-proprietary-codecs(\s|$)') { "::error::Qt WebEngine de $qt avec codecs propriétaires (H.264) : refusé pour la release"; exit 1 }
+          "Qt WebEngine sans codecs propriétaires ($pri)"
+          "ACTCRAFT_QT_DIR=$qt" >> $env:GITHUB_ENV
+          "$qt\bin" >> $env:GITHUB_PATH
 
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
+      # Inno Setup 6.7.3 épinglé, somme SHA-256 vérifiée, installé par utilisateur et portable dans le dossier temporaire
+      # du job : même version que celle de l'ancien runner du PC, jamais celle que l'image de GitHub aurait.
       - name: Installer Inno Setup
         shell: pwsh
         run: |
-          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
-          if (-not (Test-Path $iscc)) { throw "ISCC.exe introuvable après installation" }
+          $dossier = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3'
+          $iscc = Join-Path $dossier 'ISCC.exe'
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $setup
+          $somme = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          if ($somme -ne '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732') { throw "innosetup-6.7.3.exe : somme inattendue $somme" }
+          $p = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+            '/CURRENTUSER', '/PORTABLE=1', '/NOICONS', "/DIR=`"$dossier`"")
+          if ($p.ExitCode -ne 0 -or -not (Test-Path $iscc)) { throw "installation d'Inno Setup en échec (code $($p.ExitCode))" }
+          "Inno Setup : $iscc"
           "ACTCRAFT_ISCC=$iscc" >> $env:GITHUB_ENV
 
-      - name: Construire l'installateur
+      # L'installateur ne livre que actcraft.exe : seule cette cible est compilée.
+      - name: Compiler actcraft seul en release
+        timeout-minutes: 90
         shell: pwsh
         run: |
-          pwsh -NoProfile -File ./scripts/paquet.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
+          $libre = (Get-PSDrive (Get-Location).Drive.Name).Free / 1GB
+          "Espace libre : {0:N1} Go" -f $libre
+          cmake --preset release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Lecteur et cadre web livrés : une configuration qui les a perdus (module Qt refusé par find_package, par exemple
+          # une version de Qt WebEngine différente de qtbase) arrête la release, comme paquet-mac.sh sur le Mac.
+          foreach ($option in 'ACTCRAFT_MEDIA', 'ACTCRAFT_WEBFRAME') {
+            if (-not (Select-String -LiteralPath build/release/CMakeCache.txt -Pattern "^$option`:BOOL=ON$" -Quiet)) { "::error::$option n'est pas ON dans build/release/CMakeCache.txt (Qt Multimedia ou Qt WebEngine refusé)"; exit 1 }
+          }
+          cmake --build --preset release --target actcraft
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # actcraft.exe vient de l'étape précédente (-SansConstruire). Verdict exigé sur la dernière ligne (contrôle des
+      # licences compris : paquet.ps1 appelle verifier-licences.ps1).
+      - name: Construire l'installateur
+        timeout-minutes: 90
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/paquet.ps1 -SansConstruire | Tee-Object -FilePath "$env:RUNNER_TEMP/paquet.txt"
           if ($LASTEXITCODE -ne 0 -or (Get-Content "$env:RUNNER_TEMP/paquet.txt" -Tail 1) -notmatch '^PAQUET OK : ') { exit 1 }
 
       # S1 dans une vraie fenêtre, rendu D3D11 (WARP sur l'exécuteur sans GPU), comme ci.yml.
@@ -236,113 +296,69 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret. Exécuteur choisi selon la visibilité du dépôt :
-  # privé → runner auto-hébergé du Mac mini, comme la valeur par défaut de l'entrée runner_macos de ci.yml
-  # (macos-latest y coûterait des minutes payantes) ; public → macos-latest (gratuit ; un runner auto-hébergé est exclu
-  # d'un dépôt public). Contrairement au job « build » de ci.yml, qui reste sur le Mac mini par défaut et ne passe sur
-  # macos-latest que par l'entrée runner_macos de workflow_dispatch, ce job n'a pas d'entrée : la visibilité décide.
-  # Aucun arrêt sur « public ». Image téléversée en mode réel seulement.
+  # Paquet macOS non signé (amendement 3 du plan du lot 11), aucun secret. Image téléversée en mode réel seulement.
+  # Exécuteur xcode-27 (macOS 27, arm64), pas macos-latest : Homebrew y pose les bouteilles « golden_gate » des
+  # formules qt et qtwebengine, celles du Mac mini qui a fixé le minimum macOS 27 du paquet (scripts/paquet-mac.sh) ;
+  # aucun binaire du bundle n'exige plus (verifier-minos-mac.sh).
   macos:
     needs: [mode, secrets]
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
-    runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "macOS", "ARM64", "actcraft"]') || 'macos-latest' }}
-    timeout-minutes: 60
+    runs-on: xcode-27
+    # 10 min mesurées sur xcode-27 (essai 43301736325) ; 90 min, le délai propre de l'ancien runner du Mac mini (135 min
+    # dont 45 d'attente).
+    timeout-minutes: 90
     steps:
-      # Mac mini : garde de mémoire de l'étape « Gardes du runner auto-hébergé (visibilité, mémoire) » du job build de ci.yml
-      # (sa garde de visibilité n'a plus d'objet ici : runs-on la tient).
-      - name: Garde du runner auto-hébergé (mémoire)
-        if: runner.environment != 'github-hosted'
-        run: |
-          dispo_go() {
-            # Part libre selon macOS (mémoire compressible comprise), en Go entiers.
-            memory_pressure | awk -v t="$(sysctl -n hw.memsize)" '/free percentage/ {sub("%","",$NF); printf "%d", $NF*t/100/1073741824}'
-          }
-          for i in $(seq 1 30); do
-            go=$(dispo_go)
-            if ! [ "$go" -ge 0 ] 2>/dev/null; then echo "::error::Mémoire disponible illisible (memory_pressure)"; exit 1; fi
-            if [ "$go" -ge 3 ]; then echo "Mémoire disponible : $go Go"; exit 0; fi
-            echo "Mémoire disponible : $go Go (< 3 Go), nouvel essai dans 30 s ($i/30)"
-            sleep 30
-          done
-          echo "::error::Moins de 3 Go de mémoire disponible sur le Mac depuis 15 min : build macOS abandonné, à relancer."
-          exit 1
-
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # macos-latest : Qt par aqtinstall, comme les étapes « Installer Ninja et aqtinstall » et « Installer Qt » du job build
-      # de ci.yml, avec Qt Multimedia et Qt WebView (requis).
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        if: runner.environment == 'github-hosted'
-        with:
-          python-version: "3.12"
-
-      # aqtinstall 3.3.0 ne sait pas installer Qt 6.12 (nouveau découpage du dépôt Qt) : version de développement,
-      # épinglée sur le commit vérifié par les runs du 2026-10-15 (même commit dans les trois jobs).
-      - name: Installer Ninja et aqtinstall
-        if: runner.environment == 'github-hosted'
-        run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-
-      - name: Installer Qt
-        if: runner.environment == 'github-hosted'
+      # Qt de Homebrew : son Qt WebEngine (formule qtwebengine) a les codecs propriétaires, que le Qt officiel n'a pas.
+      # Bouteilles prises telles quelles, jamais construites ici. Version de qtbase exigée égale à QT_VERSION.
+      # ACTCRAFT_QT_DIR reste vide : paquet-mac.sh prend alors $(brew --prefix qt) et les frameworks de Qt WebEngine dans
+      # leur formule.
+      - name: Qt de Homebrew et Ninja
         shell: bash
         run: |
-          python -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
-          dir=$(ls -d "$RUNNER_TEMP"/Qt/"$QT_VERSION"/*/ | head -1)
-          echo "ACTCRAFT_QT_DIR=${dir%/}" >> "$GITHUB_ENV"
-          echo "${dir%/}/bin" >> "$GITHUB_PATH"
+          sw_vers
+          brew install qt qtwebengine ninja
+          brew_qt="$(brew --prefix qt 2>/dev/null)" || { echo "::error::Homebrew ou sa formule qt absents"; exit 1; }
+          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1)
+          [ "$version" = "$QT_VERSION" ] || { echo "::error::Qt de Homebrew ${version:-illisible} ≠ $QT_VERSION (brew install qt qtwebengine)"; exit 1; }
+          [ -x "$brew_qt/bin/macdeployqt" ] || { echo "::error::macdeployqt absent de $brew_qt"; exit 1; }
+          brew_we="$(brew --prefix qtwebengine 2>/dev/null)"
+          [ -d "$brew_we/lib/QtWebEngineCore.framework" ] || { echo "::error::formule qtwebengine absente (brew install qtwebengine)"; exit 1; }
+          # Version nommée par THIRD_PARTY_NOTICES.md (provenance de Qt WebEngine) : une mise à jour de la formule exige
+          # d'abord la mise à jour de l'avis et de cette ligne.
+          version_we="$(brew list --versions qtwebengine | awk '{ print $2 }')"
+          case "$version_we" in
+            6.11.2 | 6.11.2_*) ;;
+            *) echo "::error::qtwebengine $version_we de Homebrew : l'avis nomme 6.11.2 (THIRD_PARTY_NOTICES.md)"; exit 1 ;;
+          esac
+          command -v ninja >/dev/null || { echo "::error::ninja absent (brew install ninja)"; exit 1; }
+          echo "Qt de Homebrew $version : $brew_qt ; Qt WebEngine : $brew_we"
+          echo "QTWEBENGINE_PRI=$brew_we/share/qt/mkspecs/modules/qt_lib_webenginecore_private.pri" >> "$GITHUB_ENV"
+          # paquet-mac.sh compile à 2 à la fois sans cette variable : une compilation par cœur de l'exécuteur.
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.ncpu)" >> "$GITHUB_ENV"
 
-      # Mac mini : copie de l'étape « Qt, Ninja et ccache du Mac » du job build de ci.yml, sans « matrix » ; le repli aqt prend aussi qtmultimedia et qtwebview, sous
-      # un témoin qui nomme les modules. Qt Homebrew en lecture seule si sa version concorde, sinon Qt installé une
-      # fois dans le cache du runner (hors des worktrees des sessions). ccache garde la compilation chaude d'un run à
-      # l'autre.
-      - name: Qt, Ninja et ccache du Mac
-        if: runner.environment != 'github-hosted' && runner.os == 'macOS'
+      # Qt WebEngine avec codecs propriétaires (H.264, AAC) : relevé dans les fonctions activées de son module.
+      - name: Qt WebEngine avec H.264
         shell: bash
         run: |
-          cache="$HOME/actions-runner-actcraft/_cache"
-          mkdir -p "$cache"
-          brew_qt=/opt/homebrew/opt/qt
-          version=$(sed -n 's/^set(PACKAGE_VERSION "\([0-9.]*\)")/\1/p' "$brew_qt/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake" 2>/dev/null | head -1) || true
-          if [ "$version" = "$QT_VERSION" ]; then
-            qt_dir="$brew_qt"
-          else
-            echo "Qt Homebrew $version ≠ $QT_VERSION : Qt $QT_VERSION dans $cache/Qt"
-            qt_dir="$cache/Qt/$QT_VERSION/macos"
-            # Témoin écrit en dernier : une installation interrompue est refaite au run suivant. Le cache est celui de
-            # l'étape « Qt, Ninja et ccache du Mac » de ci.yml, dont le témoin « .complet » ne garantit pas Qt Multimedia ni Qt WebView : ce job a son
-            # témoin, qui nomme les modules ; il pose aussi « .complet » (sur-ensemble des modules de ci.yml).
-            modules="qtshadertools qtimageformats qtpdf qtmultimedia qtwebview"
-            temoin="$cache/Qt/$QT_VERSION/.complet-$(echo "$modules" | tr ' ' '-')"
-            if [ ! -f "$temoin" ]; then
-              rm -rf "$cache/Qt/$QT_VERSION"
-              python3 -m venv "$cache/venv-aqt"
-              "$cache/venv-aqt/bin/pip" install -q "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-              # shellcheck disable=SC2086 # $modules : un mot par module
-              "$cache/venv-aqt/bin/python" -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m $modules --outputdir "$cache/Qt"
-              touch "$cache/Qt/$QT_VERSION/.complet" "$temoin"
-            fi
+          actives=$(grep -E '^QT\.webenginecore_private\.enabled_features[[:space:]]*=' "$QTWEBENGINE_PRI") ||
+            { echo "::error::fonctions de Qt WebEngine illisibles ($QTWEBENGINE_PRI)"; exit 1; }
+          if ! grep -qE '(^|[[:space:]])webengine-proprietary-codecs([[:space:]]|$)' <<<"$actives"; then
+            echo "::error::Qt WebEngine de Homebrew sans codecs propriétaires (H.264) : refusé pour la release"
+            exit 1
           fi
-          command -v ninja >/dev/null || { echo "::error::ninja absent du Mac (brew install ninja)"; exit 1; }
-          echo "Qt : $qt_dir ($version)"
-          echo "ACTCRAFT_QT_DIR=$qt_dir" >> "$GITHUB_ENV"
-          echo "$qt_dir/bin" >> "$GITHUB_PATH"
-          # 4 compilations à la fois : le Mac (8 Go) garde de la mémoire pour les sessions pendant le build.
-          echo "CMAKE_BUILD_PARALLEL_LEVEL=4" >> "$GITHUB_ENV"
-          if command -v ccache >/dev/null; then
-            echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
-            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
-            # Pas de CCACHE_BASEDIR : il rend __FILE__ relatif et casse QFINDTESTDATA (tst_modules, tst_ui_preferences).
-            # Le dossier de travail du runner est fixe, les chemins absolus suffisent au cache.
-            echo "CCACHE_DIR=$cache/ccache" >> "$GITHUB_ENV"
-          fi
+          echo "Qt WebEngine avec codecs propriétaires ($QTWEBENGINE_PRI)"
 
-      # paquet-mac.sh refuse une construction où ACTCRAFT_MEDIA ou ACTCRAFT_WEBFRAME vaut OFF (module Qt manquant).
+      # paquet-mac.sh refuse une construction où ACTCRAFT_MEDIA ou ACTCRAFT_WEBFRAME vaut OFF (module Qt manquant), et
+      # appelle verifier-licences-mac.sh (LICENCES OK exigé).
       - name: Construire l'image disque
         shell: bash
         run: |
           if ./scripts/paquet-mac.sh > "$RUNNER_TEMP/paquet-mac.txt" 2>&1; then code=0; else code=$?; fi
           cat "$RUNNER_TEMP/paquet-mac.txt"
           if [ "$code" != 0 ] || ! tail -1 "$RUNNER_TEMP/paquet-mac.txt" | grep -q '^DMG OK : '; then exit 1; fi
+          grep -qx 'LICENCES OK' "$RUNNER_TEMP/paquet-mac.txt" || { echo "::error::LICENCES OK absent du journal de paquet-mac.sh"; exit 1; }
 
       # Bloquant : bundle, signature, qt.conf, otool, bibliothèques chargées à --version.
       - name: Essai de l'image disque
@@ -384,6 +400,7 @@ jobs:
     if: ${{ !cancelled() && needs.mode.result == 'success' && (needs.secrets.result == 'success' || (needs.secrets.result == 'skipped' && needs.mode.outputs.mode == 'essai')) }}
     # Mode réel seulement (secrets de signature) ; vide en mode essai : aucun environnement.
     environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
+    # ubuntu-latest dans les deux modes : en mode réel, la clé de signature ne va que sur cette machine jetable.
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -408,12 +425,12 @@ jobs:
       - name: Installer Ninja et aqtinstall
         run: python -m pip install ninja "git+https://github.com/miurahr/aqtinstall@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
-      # Qt Android arm64-v8a seul ; ACTCRAFT_QT_ANDROID_X86_64_DIR désigne le même dossier pour que
-      # dev-env-android.ps1 ne s'arrête pas (le preset android-x86_64 n'est pas construit ici).
+      # Qt Android arm64-v8a seul, mêmes modules que le job android de ci.yml ; ACTCRAFT_QT_ANDROID_X86_64_DIR désigne
+      # le même dossier pour que dev-env-android.ps1 ne s'arrête pas (le preset android-x86_64 n'est pas construit ici).
       - name: Installer Qt (hôte et Android arm64-v8a)
         run: |
-          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
-          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
+          python -m aqt install-qt all_os android "$QT_VERSION" android_arm64_v8a -m qtshadertools qtimageformats qtpdf qtmultimedia qtwebview --outputdir "$RUNNER_TEMP/Qt"
           echo "ACTCRAFT_QT_HOST_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_ARM64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
           echo "ACTCRAFT_QT_ANDROID_X86_64_DIR=$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" >> "$GITHUB_ENV"
@@ -487,9 +504,10 @@ jobs:
   release:
     needs: [mode, secrets, windows, android, macos]
     if: needs.mode.outputs.mode == 'reel'
-    environment: ${{ needs.mode.outputs.mode == 'reel' && 'release' || '' }}
+    # Sans environnement : ce job ne lit aucun secret de signature. La règle de l'environnement « release » (tags v*
+    # seulement) est déjà tenue par le job « secrets », dont il dépend.
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -546,7 +564,7 @@ jobs:
     needs: [mode, windows, android, macos, release]
     if: always() && needs.mode.outputs.mode == 'reel'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
       actions: write
     steps:

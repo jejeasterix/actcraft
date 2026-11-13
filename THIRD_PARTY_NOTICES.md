@@ -1,6 +1,6 @@
 # Avis concernant les composants tiers
 
-ActCraft est distribué sous licence MIT (fichier `LICENSE`, Licence SPDX : `MIT`, Copyright (c) 2026 Jérôme Denis).
+ActCraft est distribué sous licence GNU GPL v3 (fichier `LICENSE`, Licence SPDX : `GPL-3.0-only`, Copyright (C) 2026 Jérôme Denis).
 Ses paquets (installateur Windows, APK Android) contiennent aussi les composants tiers ci-dessous, chacun sous sa
 propre licence. Chaque licence est citée par son identifiant SPDX (https://spdx.org/licenses/) ; son texte complet,
 `LICENSES/<identifiant>.txt`, est livré dans le dossier `LICENSES/` à côté de l'exécutable sous Windows et, sur toutes
@@ -293,7 +293,14 @@ Le cadre web sur PC et Mac passe par le module Qt WebEngine (`LGPL-3.0-only`, li
 
 - Chromium : Licence SPDX : `BSD-3-Clause`. Copyright 2015 The Chromium Authors.
 
-Certains codecs vidéo (H.264, AAC) dépendent de la provenance de Qt WebEngine ; leur redistribution est une décision prise avant toute publication. Les brevets sur ces codecs relèvent des utilisateurs et des distributeurs.
+Provenance de Qt WebEngine :
+
+- macOS : construit avec les codecs propriétaires (option `webengine-proprietary-codecs`) ; formule `qtwebengine` 6.11.2 de Homebrew (sources publiées par Qt, `qtwebengine-everywhere-src-6.11.2.tar.xz`, avec les options et les correctifs de la formule), sur Qt 6.12.0 de Homebrew (formule `qtbase` et ses correctifs). **Code source** : les formules de Homebrew utilisées (`qtbase.rb`, `qtwebengine.rb`) et leurs correctifs sont publiés à côté des paquets de chaque version d'ActCraft (page de la version sur GitHub) ; elles viennent du dépôt https://github.com/Homebrew/homebrew-core.
+- Windows : Qt WebEngine du Qt officiel 6.12.0, sans les codecs propriétaires : le cadre web ne lit pas H.264 ni AAC (Vimeo et Lumni ne jouent pas) ; ces pages se lisent dans le navigateur du système.
+
+### Brevets des codecs H.264 et AAC
+
+Le cadre web de macOS (Qt WebEngine) et le lecteur de médias (FFmpeg de Qt Multimedia, sous Windows et Android) décodent les formats H.264 (MPEG-4 AVC) et AAC. Ces formats sont couverts par des brevets dans certains pays, concédés sous licence notamment par Via LA (ex-MPEG LA). Les licences des logiciels ci-dessus ne couvrent pas ces brevets. ActCraft n'a conclu aucun contrat de licence de brevets : chaque utilisateur et chaque distributeur vérifie ce que la loi de son pays lui impose.
 
 ## Qt Multimedia, FFmpeg et Qt WebView
 
@@ -319,7 +326,7 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   n'embarque pas FFmpeg.
 - **Moteur du cadre web** : PC et Mac, Qt WebEngine (Chromium), livré avec ActCraft (voir « Qt WebEngine et
   Chromium ») ; Android, navigateur du système.
-- Les brevets sur certains codecs vidéo relèvent des utilisateurs et des distributeurs, non de la licence du logiciel.
+- Brevets des codecs H.264 et AAC : voir « Brevets des codecs H.264 et AAC » plus haut.
 
 ## Bibliothèques non Qt livrées
 
@@ -385,7 +392,7 @@ LGPL 2.1 ou ultérieure.
 - `libc++_shared.so` (Android) : bibliothèque standard C++ du kit Android NDK (libc++ du projet LLVM,
   https://libcxx.llvm.org/). Licence SPDX : `Apache-2.0 WITH LLVM-exception`. Copyright : les contributeurs du
   projet LLVM.
-- `libactcraft_*.so` (Android) : ActCraft lui-même. Licence SPDX : `MIT`. Copyright (c) 2026 Jérôme Denis.
+- `libactcraft_*.so` (Android) : ActCraft lui-même. Licence SPDX : `GPL-3.0-only`. Copyright (C) 2026 Jérôme Denis.
 
 ## Bibliothèques du paquet macOS
 
@@ -398,7 +405,7 @@ l'expression offre un choix, ActCraft retient la licence qui n'est pas la GPL. V
 - `libbrotli*.dylib` (macOS) : brotli, formule `brotli`, décompression Brotli (`libbrotlicommon`, `libbrotlidec`), tirée par FreeType ; version 1.2.1, https://github.com/google/brotli. Licence SPDX : `MIT`. Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
 - `libcrypto.*.dylib` (macOS) : openssl@4, formule `openssl@4`, OpenSSL, cryptographie, chargée par le greffon TLS de Qt ; version 4.1.0, https://openssl-library.org. Licence SPDX : `Apache-2.0`. Copyright (c) 1998-2026 The OpenSSL Project Authors.
 - `libssl.*.dylib` (macOS) : openssl@4, formule `openssl@4`, OpenSSL, protocole TLS, chargée par le greffon TLS de Qt ; version 4.1.0, https://openssl-library.org. Licence SPDX : `Apache-2.0`. Copyright (c) 1998-2026 The OpenSSL Project Authors.
-- `libdbus-1.*.dylib` (macOS) : dbus, formule `dbus`, client D-Bus, tiré par QtDBus ; licence retenue : `AFL-2.1` ; version 1.16.2, https://wiki.freedesktop.org/www/Software/dbus. Licence SPDX : `AFL-2.1 OR GPL-2.0-or-later`. Copyright (C) 2002, 2003 Red Hat Inc. et les auteurs de D-Bus.
+- `libdbus-1.*.dylib` (macOS) : dbus, formule `dbus`, client D-Bus, tiré par QtDBus ; licence retenue : `GPL-2.0-or-later` (seule option compatible avec la GPLv3 d'ActCraft, décision de Jérôme du 2026-11-12, « GPLv3 ») ; version 1.16.2, https://wiki.freedesktop.org/www/Software/dbus. Licence SPDX : `AFL-2.1 OR GPL-2.0-or-later`. Copyright (C) 2002, 2003 Red Hat Inc. et les auteurs de D-Bus.
 - `libdouble-conversion.*.dylib` (macOS) : double-conversion, formule `double-conversion`, conversion des nombres décimaux, tirée par QtCore ; version 3.4.0, https://github.com/google/double-conversion. Licence SPDX : `BSD-3-Clause`. Copyright 2006-2011, the V8 project authors.
 - `libfreetype.*.dylib` (macOS) : freetype, formule `freetype`, rendu des polices, tiré par QtGui ; licence retenue : FreeType License ; version 2.15.0, https://www.freetype.org/. Licence SPDX : `FTL`. Copyright (C) 1996-2026 by David Turner, Robert Wilhelm, and Werner Lemberg.
 - `libglib-2.0.*.dylib` (macOS) : glib, formule `glib`, GLib, boucle d'événements et utilitaires, tirée par QtCore ; version 2.90.1, https://docs.gtk.org/glib/. Licence SPDX : `LGPL-2.1-or-later`. Copyright (C) 1995-1997 Peter Mattis, Spencer Kimball and Josh MacDonald, et les auteurs de GLib.
@@ -455,9 +462,12 @@ THE SOFTWARE.
 
 Correcteur orthographique, lié statiquement à ActCraft. Copyright 2002-2022 Németh László et contributeurs.
 Source : https://github.com/hunspell/hunspell (version étiquetée v1.7.2), copie dans `third_party/hunspell/`.
-Hunspell est proposé sous une triple licence (MPL 1.1, GPL 2.0 ou LGPL 2.1) ; ActCraft l'utilise sous l'option
-**Mozilla Public License 1.1** (décision H6-6b), Licence SPDX : `MPL-1.1` (texte dans `LICENSES/MPL-1.1.txt` et
-`third_party/hunspell/COPYING.MPL` ; mentions dans `third_party/hunspell/license.hunspell` et `license.myspell`). Les
+Hunspell est proposé sous une triple licence (MPL 1.1, GPL 2.0 ou ultérieure, LGPL 2.1 ou ultérieure) ; ActCraft
+l'utilise sous l'option **GNU Lesser General Public License 2.1 ou ultérieure**, Licence SPDX : `LGPL-2.1-or-later`
+(texte dans `LICENSES/LGPL-2.1-or-later.txt` ; mentions dans `third_party/hunspell/license.hunspell` et
+`license.myspell`). Ce choix suit le passage d'ActCraft en GPLv3 (décision de Jérôme du 2026-11-12, « GPLv3 ») et
+remplace l'option MPL 1.1 de la décision H6-6b, incompatible avec la GPL. Les sources d'ActCraft étant publiées sous
+GPLv3, ActCraft peut être lié à nouveau avec une version modifiée de Hunspell. Les
 sources de Hunspell livrées avec ActCraft sont celles de la version 1.7.2, sans modification ; elles sont disponibles
 à l'adresse ci-dessus.
 

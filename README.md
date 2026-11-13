@@ -12,7 +12,7 @@ Objectifs, dans l'ordre :
 ActCraft lit les paperboards `.flipchart` pour l'interopérabilité. Ce projet n'est ni affilié à Promethean ni
 soutenu par Promethean.
 
-> État : version 0.6.0 (novembre 2026). ActCraft dessine et corrige : sélection, stylo et marqueur,
+> État : version 1.0.0 (novembre 2026). ActCraft dessine et corrige : sélection, stylo et marqueur,
 > gomme, annuler et rétablir, effacer, corbeille et gestes à deux doigts, avec un tracé qui ne fige plus. Depuis la
 > 0.5.0, il pose des formes et du texte, gère les pages (navigateur, menu, fond) et la grille, et allonge la page. Il ouvre et
 > enregistre les paperboards (format natif `.actcraft`, lecture des `.flipchart`), depuis la 0.2.0. Depuis la
@@ -24,7 +24,11 @@ soutenu par Promethean.
 
 - **Windows 10 ou 11** : `ActCraft-<version>-setup.exe`, sans droits d'administrateur.
 - **Android 9 ou plus** : `ActCraft-<version>-arm64-v8a.apk`.
-- **macOS** (Mac à puce Apple) : `ActCraft-<version>-macos-arm64.dmg`, non signé.
+- **macOS 27 ou plus récent** (Mac à puce Apple) : `ActCraft-<version>-macos-arm64.dmg`, non signé.
+
+Cadre web : sur macOS, il lit H.264 et AAC. Sous Windows, il ne les lit pas (le Qt officiel n'a pas ces codecs) : les
+pages qui n'offrent que H.264, comme Vimeo et Lumni, ne jouent pas, ouvrez-les dans le navigateur du système ; YouTube
+joue dans le cadre.
 
 Les paquets seront publiés sur la page des [versions](https://github.com/jejeasterix/actcraft/releases) du dépôt.
 Les paquets de la prochaine version ne sont pas encore publiés.
@@ -45,14 +49,13 @@ installez.
 
 ### Installer sous macOS
 
-1. Ouvrez `ActCraft-<version>-macos-arm64.dmg` (Mac à puce Apple), puis glissez ActCraft dans le dossier
-   Applications.
-2. Le paquet n'est **pas signé** : ni certificat de développeur, ni notarisation par Apple. macOS le dit au premier
-   lancement.
-   - macOS 14 et avant : dans Applications, clic droit sur ActCraft, puis « Ouvrir », puis « Ouvrir ».
-   - macOS 15 et après : ouvrez ActCraft une fois (macOS le refuse), puis Réglages Système > Confidentialité et
-     sécurité > « Ouvrir quand même ».
-3. Pourquoi : macOS marque tout fichier téléchargé (attribut `com.apple.quarantine`) et refuse d'ouvrir une
+1. Vérifiez que votre Mac est à puce Apple et sous **macOS 27 ou plus récent** : le paquet déclare ce minimum, et
+   macOS refuse de l'ouvrir sur un système plus ancien.
+2. Ouvrez `ActCraft-<version>-macos-arm64.dmg`, puis glissez ActCraft dans le dossier Applications.
+3. Le paquet n'est **pas signé** : ni certificat de développeur, ni notarisation par Apple. macOS le dit au premier
+   lancement : ouvrez ActCraft une fois (macOS le refuse), puis Réglages Système > Confidentialité et sécurité >
+   « Ouvrir quand même ».
+4. Pourquoi : macOS marque tout fichier téléchargé (attribut `com.apple.quarantine`) et refuse d'ouvrir une
    application marquée qui n'a pas été notarisée par Apple. Cette marque se retire en une ligne, dans le Terminal :
 
    ```sh
@@ -110,4 +113,7 @@ Détails : [`docs/BRIEF.md`](docs/BRIEF.md).
 
 ## Licence
 
-[MIT](LICENSE). Qt est utilisé sous licence LGPLv3.
+[GNU GPL v3](LICENSE) (SPDX : `GPL-3.0-only`). Copyright (C) 2026 Jérôme Denis.
+ActCraft est un logiciel libre : vous pouvez le redistribuer et le modifier selon les termes de la GNU General Public
+License version 3, publiée par la Free Software Foundation. Il est fourni sans aucune garantie.
+Qt est utilisé sous licence LGPLv3 ; composants tiers : [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

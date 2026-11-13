@@ -4,11 +4,12 @@ Les versions d'ActCraft, de la plus récente à la plus ancienne. Une section pa
 chaque lot (décision 31 du cadrage `docs/specs/2026-10-14-livraison-complete-cadrage.md`) ; la section sert de notes
 à la release correspondante.
 
-## 1.0.0 — non publiée
+## 1.0.0 — 2026-11-12
 
-Toucher, deux utilisateurs, tablette, reprise, aide complète, mises à jour et accessibilité. Le numéro 1.0.0 est posé à
-la release ; les versions 0.6.0 à 0.9.0 ne sont pas toutes publiées : leurs nouveautés viennent avec celle-ci.
+Toucher, deux utilisateurs, tablette, reprise, aide complète, mises à jour et accessibilité. Les versions 0.6.0 à
+0.9.0 ne sont pas toutes publiées : leurs nouveautés viennent avec celle-ci.
 
+- Licence : GPLv3 à partir de cette version (auparavant MIT ; la 0.6.0, publiée sous MIT, le reste).
 - Toucher : le doigt a quatre modes (Gestion complète par défaut, ignorer, écrire, sélectionner), réglés par
   Affichage > Mode du toucher ; par défaut, le doigt suit l'outil et deux doigts font le geste (déplacer, zoomer) ; la paume posée sur l'écran n'écrit pas, et les menus s'ouvrent au doigt. En mode
   tactile, les cibles à toucher font au moins 48 dp.
@@ -22,8 +23,11 @@ la release ; les versions 0.6.0 à 0.9.0 ne sont pas toutes publiées : leurs no
   permet de le faire au démarrage. Rien ne s'installe sans votre accord.
 - Accessibilité et langues : les textes visibles sont traduisibles, les profils de commandes (cinq) fonctionnent de
   bout en bout, et les raccourcis clavier ne se déclenchent pas pendant la saisie d'un texte.
-- Paquet macOS (Mac à puce Apple), non signé : clic droit > Ouvrir au premier lancement ; le guide de démarrage du
-  `README.md` détaille les deux façons de l'ouvrir.
+- Paquet macOS (Mac à puce Apple, macOS 27 ou plus récent), non signé : « Ouvrir quand même » dans Réglages Système au
+  premier lancement ; le guide de démarrage du `README.md` détaille les deux façons de l'ouvrir.
+- Cadre web et vidéos : sur macOS, il lit H.264 et AAC. Sous Windows, il ne les lit pas (Qt officiel sans ces codecs) :
+  les pages qui n'offrent que H.264, comme Vimeo et Lumni, ne jouent pas, ouvrez-les dans le navigateur du système ;
+  YouTube joue dans le cadre. Le lecteur de médias lit H.264 sur Windows (FFmpeg) et sur macOS (système). Les brevets H.264 et AAC sont expliqués dans `THIRD_PARTY_NOTICES.md`.
 - Depuis la 0.1.0 : de la page blanche et du stylo (0.1.0) jusqu'aux formes, au texte, aux pages et aux fichiers
   (0.2.0 à 0.5.0), à l'édition des objets, à l'export et à l'impression (0.6.0), puis aux actions, aux médias et au
   cadre web (0.9.0), la 1.0.0 rend le tout utilisable au doigt, à deux et sur tablette.

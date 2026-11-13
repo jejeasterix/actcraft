@@ -27,7 +27,7 @@ private slots:
         std::unique_ptr<QObject> info(component.create());
         QVERIFY2(info, qPrintable(component.errorString()));
         QCOMPARE(info->property("version").toString(), QStringLiteral(ACTCRAFT_TEST_VERSION));
-        QCOMPARE(info->property("licence").toString(), QStringLiteral("MIT"));
+        QCOMPARE(info->property("licence").toString(), QStringLiteral("GNU GPL v3"));
         QCOMPARE(info->property("url").toString(), QStringLiteral("https://github.com/jejeasterix/actcraft"));
         const QString notices = info->property("notices").toString();
         QVERIFY2(notices.contains(QLatin1String("Qt")) && notices.contains(QLatin1String("LGPL")),

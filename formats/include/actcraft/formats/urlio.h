@@ -28,7 +28,8 @@ UrlReadResult readUrl(const QUrl& url, qint64 maxBytes = kMaxUrlRead);
 // d'avance.
 std::optional<QByteArray> readBounded(QIODevice& device, qint64 maxBytes, QString* error);
 // Fichier local : temporaire voisin puis renommage (QSaveFile) — l'ancien fichier reste intact en cas
-// d'échec. content:// : écriture complète en une passe (pas de dossier voisin inscriptible).
+// d'échec ; sous Windows, un renommage refusé (fichier tenu ouvert un instant) est réessayé quelques
+// secondes. content:// : écriture complète en une passe (pas de dossier voisin inscriptible).
 bool writeUrl(const QUrl& url, const QByteArray& data, QString* error);
 // Argument d'une commande de fichier (décision 20) : QUrl telle quelle ; texte « content:… » ou « file:… » lu
 // comme URL ; autre texte = chemin local (relatif au dossier courant). Vide si l'argument est absent ou vide.

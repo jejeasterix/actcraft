@@ -4,7 +4,7 @@
 #include <QtTest>
 
 // Version affichée, règle du versionCode et journal des versions (L11-T28). Le numéro lui-même suit
-// project(VERSION) : il passe à 1.0.0 à la release, pas ici.
+// project(VERSION).
 class TstAppVersionInfo : public QObject
 {
     Q_OBJECT

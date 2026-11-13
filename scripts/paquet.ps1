@@ -38,6 +38,24 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'windeployqt en échec' }
     Get-ChildItem -Recurse -Filter *.pdb $stage | Remove-Item -Force # N2-7 : pas de PDB dans l'installateur
 
+    # Qt WebEngine (cadre web) : windeployqt copie QtWebEngineProcess.exe et resources/, mais --no-translations lui fait
+    # sauter translations/qtwebengine_locales, dont le moteur a besoin (en-US.pak au moins) : copié depuis Qt. Un moteur
+    # incomplet arrête le paquet.
+    if (Test-Path (Join-Path $stage 'Qt6WebEngineCore.dll')) {
+        $locales = Join-Path $env:ACTCRAFT_QT_DIR 'translations/qtwebengine_locales'
+        $localesStage = Join-Path $stage 'translations/qtwebengine_locales'
+        if (-not (Test-Path (Join-Path $localesStage 'en-US.pak'))) {
+            if (-not (Test-Path (Join-Path $locales 'en-US.pak'))) { throw "Qt WebEngine : $locales sans en-US.pak" }
+            New-Item -ItemType Directory -Force $localesStage | Out-Null
+            Copy-Item (Join-Path $locales '*.pak') $localesStage
+        }
+        foreach ($moteur in 'QtWebEngineProcess.exe', 'resources/qtwebengine_resources.pak', 'resources/icudtl.dat',
+            'translations/qtwebengine_locales/en-US.pak') {
+            if (-not (Test-Path (Join-Path $stage $moteur))) { throw "Qt WebEngine incomplet : $moteur absent de $stage" }
+        }
+        Write-Output 'Qt WebEngine : QtWebEngineProcess.exe, resources/ et qtwebengine_locales/ déployés'
+    }
+
     # Runtime MSVC à côté de l'exécutable : vc_redist exigerait l'administrateur. Le dossier suit la version de Visual
     # Studio : Microsoft.VC143.CRT (2022, poste), Microsoft.VC145.CRT (2026, exécuteurs windows-latest de la CI).
     $crt = Get-ChildItem -Directory (Join-Path $env:VCToolsRedistDir 'x64') -Filter 'Microsoft.VC14*.CRT' |
