@@ -1573,7 +1573,8 @@ void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const Q
     row.contentFile = file;
     row.content = failed ? messagePage(tr("Page trop lourde : le fichier n'a pas pu être écrit.")) : row.html;
     row.baseUrl = m_resourceBase;
-    // Au-delà de la limite de loadHtml, la vue lit le fichier (file:, sans Referer : limite connue).
+    // Au-delà de la limite de loadHtml, la vue lit le fichier (file:, sans Referer) ; avec l'identité, elle
+    // écrit le HTML dans une page de cette base (OB52, WebFrameEngineView.qml).
     row.viewBase = player && !failed ? kPlayerIdentity : m_resourceBase;
     row.loading = false;
     ++row.serial;

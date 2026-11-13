@@ -21,9 +21,92 @@ Item {
     signal navigationTaken(url pageUrl)
     signal pageLoaded()
 
+    // OB52, erreur 153 : un HTML lourd (contentFile) de base https (identité du lecteur YouTube) ne se lit pas
+    // en file:, qui n'envoie aucun Referer. Une page d'amorce prend la base, puis le HTML y est écrit
+    // (document.write) : la page garde l'origine https. L'amorce porte un repère : tout chargement réussi qui la
+    // montre (load, rechargement du moteur ou de son menu, retour) la réécrit ; aucune autre page ne l'est.
+    // Écriture par morceaux, un par tour de boucle : d'un bloc, 25 Mo tiennent le fil 170 ms (Mac, OB52).
+    readonly property string _primer: "<!DOCTYPE html><html data-actcraft-primer></html>"
+    readonly property int _chunk: 524288
+    property int _written: 0
+    property string _token: ""
+    property bool _writing: false
+    // Chaque load() change de génération : un rappel de runJavaScript parti avant lui est ignoré.
+    property int _generation: 0
+    function _writesUnderBase() {
+        return !guardsEnabled && contentFile.toString() !== "" && baseUrl.toString().startsWith("https:")
+    }
+    function _showsPrimer(pageUrl) {
+        const page = pageUrl.toString()
+        const hash = page.indexOf("#")
+        return _writesUnderBase() && (hash < 0 ? page : page.slice(0, hash)) === baseUrl.toString()
+    }
+    // Jeton et position ne changent qu'à l'ouverture de l'amorce : une navigation dans le même document pendant
+    // l'écriture (fragment, history) ne l'interrompt pas.
+    function _writePrimer() {
+        const generation = _generation
+        const token = Math.random().toString(36).slice(2)
+        web.runJavaScript("(function(){var r=document.documentElement;if(!r||!r.hasAttribute('data-actcraft-primer'))"
+                          + "return false;document.open();window.actcraftPrimer=" + JSON.stringify(token)
+                          + ";return true})()",
+                          function (opened) {
+                              if (generation !== root._generation)
+                                  return
+                              if (opened) {
+                                  root._token = token
+                                  root._written = 0
+                                  root._writing = true
+                                  writer.start()
+                              } else if (!root._writing) {
+                                  root.pageLoaded()
+                              }
+                          })
+    }
+    // Le jeton refuse d'écrire dans une page qui aurait remplacé l'amorce. Une paire de substitution n'est
+    // jamais coupée : l'analyseur la laisserait en deux nœuds de texte (tst_ui_webengine).
+    function _writeNext() {
+        const generation = _generation
+        let end = Math.min(html.length, _written + _chunk)
+        const high = end < html.length ? html.charCodeAt(end - 1) : 0
+        if (high >= 0xD800 && high <= 0xDBFF)
+            end -= 1
+        const last = end === html.length
+        const piece = html.slice(_written, end)
+        _written = end
+        web.runJavaScript("(function(){if(window.actcraftPrimer!==" + JSON.stringify(_token) + ")return false;"
+                          + "document.write(" + JSON.stringify(piece) + ");"
+                          + (last ? "delete window.actcraftPrimer;document.close();" : "") + "return true})()",
+                          function (written) {
+                              if (written && last && generation === root._generation)
+                                  root._settle() // un script externe bloquant retarde la fin de l'analyse
+                          })
+        if (!last)
+            writer.start()
+    }
+    // pageLoaded après la fin de l'analyse du HTML écrit, comme le load d'une page chargée.
+    function _settle() {
+        const generation = _generation
+        web.runJavaScript("document.readyState", function (state) {
+            if (generation !== root._generation)
+                return
+            if (state === "complete") {
+                root._writing = false
+                root.pageLoaded()
+            } else {
+                settle.start()
+            }
+        })
+    }
+
     function load() {
+        ++_generation // l'écriture en cours visait l'ancien contenu
+        writer.stop()
+        settle.stop()
+        _writing = false
         if (directUrl.toString() !== "")
             web.url = directUrl
+        else if (_writesUnderBase())
+            web.loadHtml(_primer, baseUrl) // non vide : loadHtml("", base) chargerait l'adresse de base
         else if (contentFile.toString() !== "")
             web.url = contentFile
         else
@@ -46,6 +129,17 @@ Item {
     Component {
         id: guardedProfile
         WebEngineProfilePrototype {}
+    }
+
+    Timer {
+        id: writer
+        interval: 0
+        onTriggered: root._writeNext()
+    }
+    Timer {
+        id: settle
+        interval: 50
+        onTriggered: root._settle()
     }
 
     WebEngineView {
@@ -74,7 +168,9 @@ Item {
         onLoadingChanged: function (info) {
             if (root.guardsEnabled && info.status === WebEngineView.LoadStartedStatus)
                 root.navigationTaken(info.url)
-            if (info.status === WebEngineView.LoadSucceededStatus)
+            if (info.status === WebEngineView.LoadSucceededStatus && root._showsPrimer(info.url))
+                root._writePrimer()
+            else if (info.status === WebEngineView.LoadSucceededStatus)
                 root.pageLoaded()
             root._report()
         }
