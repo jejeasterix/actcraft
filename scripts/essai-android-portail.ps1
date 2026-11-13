@@ -611,15 +611,15 @@ try {
     $null = Invoke-Adb @('logcat', '-c')
     if ($LASTEXITCODE -ne 0) { Stop-Essai "adb logcat -c (code $LASTEXITCODE) : journal non vidé avant le retrait$(Get-ActCraftAdbErreur)" }
     Restart-ActCraft
-    $retire = Wait-Journal "ACTCRAFT RECENT RETIRE $([regex]::Escape($nomFichier))"
+    # Une seule attente pour les deux voies : l'émulateur prend CACHE, et attendre RETIRE d'abord y perdait 60 s.
+    $recent = Wait-Journal "ACTCRAFT RECENT (RETIRE|CACHE) $([regex]::Escape($nomFichier))"
     Invoke-Adb @('logcat', '-d') | Set-Content -Encoding utf8 -LiteralPath (Join-Path $tmp 'portail-logcat-retrait.txt')
-    if ($retire) {
-        Write-Output "permission perdue, entrée retirée : $retire"
+    if (-not $recent) { Stop-Essai "ni ACTCRAFT RECENT RETIRE ni ACTCRAFT RECENT CACHE $nomFichier après le retrait du document" }
+    if ($recent -cmatch 'ACTCRAFT RECENT RETIRE ') {
+        Write-Output "permission perdue, entrée retirée : $recent"
     } else {
         # Permission encore tenue après le retrait (MediaStore ne la retire pas) : l'entrée est cachée, pas retirée.
-        $cache = Wait-Journal "ACTCRAFT RECENT CACHE $([regex]::Escape($nomFichier))" 5
-        if (-not $cache) { Stop-Essai "ni ACTCRAFT RECENT RETIRE ni ACTCRAFT RECENT CACHE $nomFichier après le retrait du document" }
-        Write-Output "permission gardée, entrée cachée : $cache"
+        Write-Output "permission gardée, entrée cachée : $recent"
     }
     if (Find-EntreeRecente $nomFichier 6) {
         Save-Diagnostic 'retire'
