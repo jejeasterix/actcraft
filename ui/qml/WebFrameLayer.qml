@@ -279,7 +279,7 @@ Item {
             required property bool refused
             required property bool loading
             required property string content
-            required property url baseUrl
+            required property url viewBase // base de loadHtml (OA92), pas celle du titre
             required property url directUrl
             required property url contentFile
             required property string title
@@ -357,7 +357,7 @@ Item {
                         return
                     const view = loader.item
                     view.html = frame.content
-                    view.baseUrl = frame.baseUrl
+                    view.baseUrl = frame.viewBase
                     view.directUrl = frame.directUrl
                     view.contentFile = frame.contentFile
                     view.serial = frame.serial

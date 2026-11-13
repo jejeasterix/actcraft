@@ -88,7 +88,8 @@ public:
         SerialRole,      // change à chaque contenu neuf : la vue recharge
         DirectUrlRole,   // adresse donnée telle quelle à la vue (gardes coupées)
         ContentFileRole, // HTML au-delà de la limite de loadHtml : fichier du modèle
-        ExternalUrlRole  // adresse http(s) à ouvrir dans le navigateur du système, vide sinon (OA27)
+        ExternalUrlRole, // adresse http(s) à ouvrir dans le navigateur du système, vide sinon (OA27)
+        ViewBaseRole     // base donnée à loadHtml par la vue (OA92), vide gardes allumées
     };
     Q_ENUM(Role)
 
@@ -215,6 +216,7 @@ private:
         bool loading = false;
         QString content;
         QUrl baseUrl;
+        QUrl viewBase; // base de loadHtml, gardes coupées (showDirect)
         QUrl directUrl;
         QUrl contentFile;
         QVector<QUrl> links;
@@ -245,7 +247,7 @@ private:
     void finishContent(std::uint64_t id, std::uint64_t ticket, const QUrl& base, const Prepared& prepared,
                        const QUrl& heavy, bool failed);
     void showDirect(Row& row);
-    void finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed);
+    void finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed, bool player);
     void releaseContentFile(Row& row);
     void dropShown(Row& row); // contenu affiché abandonné : fichier lourd, adresse directe, liens
     QString heavyDir();
@@ -285,6 +287,8 @@ private:
     Grabber m_grabber;
     Opener m_opener;
     QUrl externalUrlOf(const Row& row) const;
+    QUrl shownUrl(const Row& row) const;
+    static bool namesThePlayerIdentity(const Row& row);
     QByteArray m_lastCapture; // empreinte de la dernière capture ; vide : aucune
     QNetworkAccessManager* m_network = nullptr;
     QHash<QNetworkReply*, Pending> m_replies;
