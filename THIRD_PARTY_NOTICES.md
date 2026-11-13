@@ -318,8 +318,11 @@ Lecture et enregistrement de médias (son, image, vidéo) et cadre web intégré
   `swscale-10.dll`), licence compilée « LGPL version 2.1 or later », options de compilation relevées dans les
   bibliothèques : `--disable-programs --disable-doc --disable-debug --enable-network --disable-lzma --enable-pic
   --disable-vulkan --disable-v4l2-m2m --disable-decoder=truemotion1 --disable-avdevice --disable-avfilter
-  --enable-zlib --toolchain=msvc --enable-shared --disable-static` (version et options des bibliothèques Android :
-  non relevées) ; `scripts/verifier-licences.ps1` refuse toute bibliothèque FFmpeg
+  --enable-zlib --toolchain=msvc --enable-shared --disable-static`. Version livrée sous Android : la même, FFmpeg
+  9.0.1 (`libavcodec.so`, `libavformat.so`, `libavutil.so`, `libswresample.so`, `libswscale.so`), licence compilée
+  « LGPL version 2.1 or later », mêmes options sans `--enable-zlib --toolchain=msvc`, plus `--enable-cross-compile
+  --target-os=android --enable-jni --enable-mediacodec --enable-openssl --enable-pthreads --enable-neon --disable-asm
+  --disable-indev=android_camera --arch=aarch64 --cpu=armv8-a` ; `scripts/verifier-licences.ps1` refuse toute bibliothèque FFmpeg
   dont la licence compilée n'est pas « LGPL version 2.1 or later » (option GPL ou « nonfree »). **Code source** : le
   code source exact des bibliothèques FFmpeg livrées est publié à côté des paquets de chaque version d'ActCraft (page
   de la version sur GitHub). Sous macOS, le Qt de Homebrew s'appuie sur les composants du système (AVFoundation) et
