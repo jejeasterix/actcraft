@@ -19310,7 +19310,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "core_src_spellcheck_cpp_qchar",
-      "community": 303,
+      "community": 549,
       "norm_label": "qchar"
     },
     {
@@ -19360,7 +19360,7 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "src_spellcheck_iswordchar",
-      "community": 303,
+      "community": 549,
       "norm_label": "iswordchar()"
     },
     {
@@ -19370,7 +19370,7 @@
       "source_location": "L152",
       "_origin": "ast",
       "id": "src_spellcheck_isjoiner",
-      "community": 303,
+      "community": 549,
       "norm_label": "isjoiner()"
     },
     {
@@ -19380,7 +19380,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_spellcheck_word",
-      "community": 303,
+      "community": 549,
       "norm_label": "word"
     },
     {
@@ -19390,7 +19390,7 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "src_spellcheck_word_start",
-      "community": 303,
+      "community": 549,
       "norm_label": "start"
     },
     {
@@ -19400,7 +19400,7 @@
       "source_location": "L161",
       "_origin": "ast",
       "id": "src_spellcheck_word_length",
-      "community": 303,
+      "community": 549,
       "norm_label": "length"
     },
     {
@@ -19410,7 +19410,7 @@
       "source_location": "L164",
       "_origin": "ast",
       "id": "src_spellcheck_splitwords",
-      "community": 303,
+      "community": 549,
       "norm_label": "splitwords()"
     },
     {
@@ -19430,7 +19430,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "core_src_spellcheck_cpp_string",
-      "community": 685,
+      "community": 303,
       "norm_label": "string"
     },
     {
@@ -19460,7 +19460,7 @@
       "source_location": "L214",
       "_origin": "ast",
       "id": "spellrules",
-      "community": 685,
+      "community": 303,
       "norm_label": "spellrules"
     },
     {
@@ -19480,7 +19480,7 @@
       "source_location": "L273",
       "_origin": "ast",
       "id": "src_spellcheck_readlines",
-      "community": 685,
+      "community": 303,
       "norm_label": "readlines()"
     },
     {
@@ -19490,7 +19490,7 @@
       "source_location": "L273",
       "_origin": "ast",
       "id": "core_src_spellcheck_cpp_qstringlist",
-      "community": 685,
+      "community": 303,
       "norm_label": "qstringlist"
     },
     {
@@ -19500,7 +19500,7 @@
       "source_location": "L291",
       "_origin": "ast",
       "id": "src_spellcheck_loaduserdictionary",
-      "community": 685,
+      "community": 303,
       "norm_label": "loaduserdictionary()"
     },
     {
@@ -19510,7 +19510,7 @@
       "source_location": "L291",
       "_origin": "ast",
       "id": "core_src_spellcheck_cpp_size_t",
-      "community": 685,
+      "community": 303,
       "norm_label": "size_t"
     },
     {
@@ -19520,7 +19520,7 @@
       "source_location": "L291",
       "_origin": "ast",
       "id": "core_src_spellcheck_cpp_spellengine",
-      "community": 685,
+      "community": 303,
       "norm_label": "spellengine"
     },
     {
@@ -19530,7 +19530,7 @@
       "source_location": "L300",
       "_origin": "ast",
       "id": "src_spellcheck_addtouserdictionary",
-      "community": 685,
+      "community": 303,
       "norm_label": "addtouserdictionary()"
     },
     {
@@ -19540,7 +19540,7 @@
       "source_location": "L326",
       "_origin": "ast",
       "id": "src_spellcheck_spellchecker",
-      "community": 685,
+      "community": 303,
       "norm_label": "spellchecker()"
     },
     {
@@ -19590,7 +19590,7 @@
       "source_location": "L390",
       "_origin": "ast",
       "id": "src_spellcheck_ignore",
-      "community": 685,
+      "community": 303,
       "norm_label": "ignore()"
     },
     {
@@ -19600,7 +19600,7 @@
       "source_location": "L398",
       "_origin": "ast",
       "id": "src_spellcheck_ignorealways",
-      "community": 685,
+      "community": 303,
       "norm_label": "ignorealways()"
     },
     {
@@ -30550,7 +30550,7 @@
       "source_location": "L313",
       "_origin": "ast",
       "id": "formats_src_objectstream_cpp_optional",
-      "community": 30,
+      "community": 120,
       "norm_label": "optional"
     },
     {
@@ -30580,7 +30580,7 @@
       "source_location": "L398",
       "_origin": "ast",
       "id": "src_objectstream_parseobjectstream",
-      "community": 30,
+      "community": 120,
       "norm_label": "parseobjectstream()"
     },
     {
@@ -30590,7 +30590,7 @@
       "source_location": "L408",
       "_origin": "ast",
       "id": "src_objectstream_asnumber",
-      "community": 30,
+      "community": 120,
       "norm_label": "asnumber()"
     },
     {
@@ -30600,7 +30600,7 @@
       "source_location": "L428",
       "_origin": "ast",
       "id": "src_objectstream_asbool",
-      "community": 30,
+      "community": 120,
       "norm_label": "asbool()"
     },
     {
@@ -30610,7 +30610,7 @@
       "source_location": "L439",
       "_origin": "ast",
       "id": "src_objectstream_asstring",
-      "community": 30,
+      "community": 120,
       "norm_label": "asstring()"
     },
     {
@@ -30660,7 +30660,7 @@
       "source_location": "L463",
       "_origin": "ast",
       "id": "src_objectstream_asrect",
-      "community": 30,
+      "community": 120,
       "norm_label": "asrect()"
     },
     {
@@ -30670,7 +30670,7 @@
       "source_location": "L463",
       "_origin": "ast",
       "id": "formats_src_objectstream_cpp_rectf",
-      "community": 30,
+      "community": 120,
       "norm_label": "rectf"
     },
     {
@@ -30700,7 +30700,7 @@
       "source_location": "L479",
       "_origin": "ast",
       "id": "src_objectstream_aspointer",
-      "community": 30,
+      "community": 120,
       "norm_label": "aspointer()"
     },
     {
@@ -30710,7 +30710,7 @@
       "source_location": "L479",
       "_origin": "ast",
       "id": "formats_src_objectstream_cpp_pointer",
-      "community": 30,
+      "community": 120,
       "norm_label": "pointer"
     },
     {
@@ -44292,7 +44292,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "tests_tst_actions_profile_cpp_profile",
-      "community": 412,
+      "community": 86,
       "norm_label": "profile"
     },
     {
@@ -44412,7 +44412,7 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "tests_tst_actions_profile_tstactionsprofile_majorversionrefused",
-      "community": 412,
+      "community": 86,
       "norm_label": ".majorversionrefused()"
     },
     {
@@ -44432,7 +44432,7 @@
       "source_location": "L189",
       "_origin": "ast",
       "id": "tests_tst_actions_profile_tstactionsprofile_outofrangevaluesfallback",
-      "community": 412,
+      "community": 86,
       "norm_label": ".outofrangevaluesfallback()"
     },
     {
@@ -44442,7 +44442,7 @@
       "source_location": "L205",
       "_origin": "ast",
       "id": "tests_tst_actions_profile_tstactionsprofile_browsercurrentusesnavigatorids",
-      "community": 412,
+      "community": 86,
       "norm_label": ".browsercurrentusesnavigatorids()"
     },
     {
@@ -57832,7 +57832,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "tests_tst_core_spellcheck_tstcorespellcheck_init",
-      "community": 685,
+      "community": 506,
       "norm_label": ".init()"
     },
     {
@@ -57882,7 +57882,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "tests_tst_core_spellcheck_tstcorespellcheck_userdictionarykept",
-      "community": 685,
+      "community": 506,
       "norm_label": ".userdictionarykept()"
     },
     {
@@ -65262,7 +65262,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_l2_s2_tests_tst_formats_objectstream_cpp",
-      "community": 30,
+      "community": 120,
       "norm_label": "tst_formats_objectstream.cpp"
     },
     {
@@ -65272,7 +65272,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream",
-      "community": 30,
+      "community": 120,
       "norm_label": "tstformatsobjectstream"
     },
     {
@@ -65282,7 +65282,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_private",
-      "community": 30,
+      "community": 120,
       "norm_label": ".private()"
     },
     {
@@ -65292,7 +65292,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_cpp_q_object",
-      "community": 30,
+      "community": 120,
       "norm_label": "q_object"
     },
     {
@@ -65302,7 +65302,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_readsusersubtypes",
-      "community": 30,
+      "community": 120,
       "norm_label": ".readsusersubtypes()"
     },
     {
@@ -65312,7 +65312,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_unreadablepropertybecomesrawandtherestisread",
-      "community": 30,
+      "community": 120,
       "norm_label": ".unreadablepropertybecomesrawandtherestisread()"
     },
     {
@@ -65322,7 +65322,7 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_nullstringandnullpointer",
-      "community": 30,
+      "community": 120,
       "norm_label": ".nullstringandnullpointer()"
     },
     {
@@ -65332,7 +65332,7 @@
       "source_location": "L129",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_badstreamsarerefused",
-      "community": 30,
+      "community": 120,
       "norm_label": ".badstreamsarerefused()"
     },
     {
@@ -65342,7 +65342,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_nestingdepthisbounded",
-      "community": 30,
+      "community": 120,
       "norm_label": ".nestingdepthisbounded()"
     },
     {
@@ -65352,7 +65352,7 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_hugecountsarerefusedwithoutallocating",
-      "community": 30,
+      "community": 120,
       "norm_label": ".hugecountsarerefusedwithoutallocating()"
     },
     {
@@ -65362,7 +65362,7 @@
       "source_location": "L177",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_toomanypropertiesarerefused",
-      "community": 30,
+      "community": 120,
       "norm_label": ".toomanypropertiesarerefused()"
     },
     {
@@ -65372,7 +65372,7 @@
       "source_location": "L186",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_recordlargerthanthestreamisrefused",
-      "community": 30,
+      "community": 120,
       "norm_label": ".recordlargerthanthestreamisrefused()"
     },
     {
@@ -65382,7 +65382,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_everytruncationofavalidstreamissafe",
-      "community": 30,
+      "community": 120,
       "norm_label": ".everytruncationofavalidstreamissafe()"
     },
     {
@@ -65392,7 +65392,7 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_oddstringlengthanddeeplistareraw",
-      "community": 30,
+      "community": 120,
       "norm_label": ".oddstringlengthanddeeplistareraw()"
     },
     {
@@ -65402,7 +65402,7 @@
       "source_location": "L240",
       "_origin": "ast",
       "id": "tests_tst_formats_objectstream_tstformatsobjectstream_nanandhugerealsarekeptasis",
-      "community": 30,
+      "community": 120,
       "norm_label": ".nanandhugerealsarekeptasis()"
     },
     {
@@ -70622,7 +70622,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "inksurface",
-      "community": 138,
+      "community": 26,
       "norm_label": "inksurface"
     },
     {
@@ -71632,7 +71632,7 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletprobeitem",
-      "community": 268,
+      "community": 502,
       "norm_label": "tabletprobeitem"
     },
     {
@@ -71642,7 +71642,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletprobeitem_tabletprobeitem",
-      "community": 268,
+      "community": 502,
       "norm_label": ".tabletprobeitem()"
     },
     {
@@ -71652,7 +71652,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletprobeitem_tabletevents",
-      "community": 268,
+      "community": 502,
       "norm_label": "tabletevents"
     },
     {
@@ -71662,7 +71662,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qreal",
-      "community": 268,
+      "community": 502,
       "norm_label": "qreal"
     },
     {
@@ -71672,7 +71672,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletprobeitem_firstpressure",
-      "community": 268,
+      "community": 502,
       "norm_label": "firstpressure"
     },
     {
@@ -71682,7 +71682,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletprobeitem_mousepresses",
-      "community": 268,
+      "community": 502,
       "norm_label": "mousepresses"
     },
     {
@@ -71692,7 +71692,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletprobeitem_event",
-      "community": 268,
+      "community": 502,
       "norm_label": ".event()"
     },
     {
@@ -71702,7 +71702,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qevent",
-      "community": 268,
+      "community": 502,
       "norm_label": "qevent"
     },
     {
@@ -71712,7 +71712,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletprobeitem_mousepressevent",
-      "community": 268,
+      "community": 502,
       "norm_label": ".mousepressevent()"
     },
     {
@@ -71722,7 +71722,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qmouseevent",
-      "community": 268,
+      "community": 502,
       "norm_label": "qmouseevent"
     },
     {
@@ -71732,7 +71732,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletfilter",
-      "community": 268,
+      "community": 502,
       "norm_label": "tabletfilter"
     },
     {
@@ -71742,7 +71742,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletfilter_tabletevents",
-      "community": 268,
+      "community": 502,
       "norm_label": "tabletevents"
     },
     {
@@ -71752,7 +71752,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletfilter_firstpressure",
-      "community": 268,
+      "community": 502,
       "norm_label": "firstpressure"
     },
     {
@@ -71762,7 +71762,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_cpp_qpointf",
-      "community": 268,
+      "community": 502,
       "norm_label": "qpointf"
     },
     {
@@ -71772,7 +71772,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletfilter_firstposition",
-      "community": 268,
+      "community": 502,
       "norm_label": "firstposition"
     },
     {
@@ -71782,7 +71782,7 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tabletfilter_eventfilter",
-      "community": 268,
+      "community": 502,
       "norm_label": ".eventfilter()"
     },
     {
@@ -71972,7 +71972,7 @@
       "source_location": "L308",
       "_origin": "ast",
       "id": "tests_tst_qt_verifications_tstqtverifications_tableteventreachesquickitem",
-      "community": 268,
+      "community": 502,
       "norm_label": ".tableteventreachesquickitem()"
     },
     {
@@ -84862,7 +84862,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor",
-      "community": 120,
+      "community": 406,
       "norm_label": "fakeeditor"
     },
     {
@@ -84872,7 +84872,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_document",
-      "community": 120,
+      "community": 406,
       "norm_label": "document"
     },
     {
@@ -84882,7 +84882,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_document",
-      "community": 120,
+      "community": 406,
       "norm_label": "document"
     },
     {
@@ -84892,7 +84892,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_undostack",
-      "community": 120,
+      "community": 406,
       "norm_label": "undostack"
     },
     {
@@ -84902,7 +84902,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_stack",
-      "community": 120,
+      "community": 406,
       "norm_label": "stack"
     },
     {
@@ -84932,7 +84932,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_calls",
-      "community": 120,
+      "community": 406,
       "norm_label": "calls"
     },
     {
@@ -84942,7 +84942,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_executes",
-      "community": 120,
+      "community": 406,
       "norm_label": "executes"
     },
     {
@@ -84952,7 +84952,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_lifts",
-      "community": 120,
+      "community": 406,
       "norm_label": "lifts"
     },
     {
@@ -84962,7 +84962,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_drops",
-      "community": 120,
+      "community": 406,
       "norm_label": "drops"
     },
     {
@@ -84972,7 +84972,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_pageindex",
-      "community": 120,
+      "community": 406,
       "norm_label": ".pageindex()"
     },
     {
@@ -84992,7 +84992,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_execute",
-      "community": 120,
+      "community": 406,
       "norm_label": ".execute()"
     },
     {
@@ -85002,7 +85002,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_unique_ptr",
-      "community": 120,
+      "community": 406,
       "norm_label": "unique_ptr"
     },
     {
@@ -85012,7 +85012,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_undocommand",
-      "community": 120,
+      "community": 406,
       "norm_label": "undocommand"
     },
     {
@@ -85052,7 +85052,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_drop",
-      "community": 120,
+      "community": 406,
       "norm_label": ".drop()"
     },
     {
@@ -85072,7 +85072,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_name",
-      "community": 120,
+      "community": 406,
       "norm_label": ".name()"
     },
     {
@@ -85082,7 +85082,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_liftedobject",
-      "community": 120,
+      "community": 406,
       "norm_label": "liftedobject"
     },
     {
@@ -85092,7 +85092,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeeditor_m_lifted",
-      "community": 120,
+      "community": 406,
       "norm_label": "m_lifted"
     },
     {
@@ -85292,7 +85292,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeink",
-      "community": 120,
+      "community": 26,
       "norm_label": "fakeink"
     },
     {
@@ -85302,7 +85302,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeink_beginstroke",
-      "community": 120,
+      "community": 26,
       "norm_label": ".beginstroke()"
     },
     {
@@ -85312,7 +85312,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_argb",
-      "community": 120,
+      "community": 26,
       "norm_label": "argb"
     },
     {
@@ -85322,7 +85322,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeink_addpoint",
-      "community": 120,
+      "community": 26,
       "norm_label": ".addpoint()"
     },
     {
@@ -85332,7 +85332,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_strokepoint",
-      "community": 120,
+      "community": 26,
       "norm_label": "strokepoint"
     },
     {
@@ -85342,7 +85342,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_cpp_uint64_t",
-      "community": 120,
+      "community": 26,
       "norm_label": "uint64_t"
     },
     {
@@ -85352,7 +85352,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "tests_tst_tools_selectcopy_fakeink_clear",
-      "community": 120,
+      "community": 406,
       "norm_label": ".clear()"
     },
     {
@@ -86892,7 +86892,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "tests_tst_tools_text_fakeink",
-      "community": 205,
+      "community": 26,
       "norm_label": "fakeink"
     },
     {
@@ -86902,7 +86902,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "tests_tst_tools_text_fakeink_beginstroke",
-      "community": 205,
+      "community": 26,
       "norm_label": ".beginstroke()"
     },
     {
@@ -86912,7 +86912,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "tests_tst_tools_text_cpp_argb",
-      "community": 205,
+      "community": 26,
       "norm_label": "argb"
     },
     {
@@ -86922,7 +86922,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_tools_text_fakeink_addpoint",
-      "community": 205,
+      "community": 26,
       "norm_label": ".addpoint()"
     },
     {
@@ -86932,7 +86932,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_tools_text_cpp_strokepoint",
-      "community": 205,
+      "community": 26,
       "norm_label": "strokepoint"
     },
     {
@@ -86942,7 +86942,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_tst_tools_text_cpp_uint64_t",
-      "community": 205,
+      "community": 26,
       "norm_label": "uint64_t"
     },
     {
@@ -86952,7 +86952,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "tests_tst_tools_text_fakeink_clear",
-      "community": 205,
+      "community": 26,
       "norm_label": ".clear()"
     },
     {
@@ -98142,7 +98142,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "tests_tst_ui_escape_fakescreen",
-      "community": 336,
+      "community": 698,
       "norm_label": "fakescreen"
     },
     {
@@ -98162,7 +98162,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "tests_tst_ui_escape_fakescreen_encode",
-      "community": 336,
+      "community": 698,
       "norm_label": ".encode()"
     },
     {
@@ -98172,7 +98172,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "tests_tst_ui_escape_cpp_qvideoframe",
-      "community": 336,
+      "community": 698,
       "norm_label": "qvideoframe"
     },
     {
@@ -98182,7 +98182,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "tests_tst_ui_escape_fakescreen_stop",
-      "community": 336,
+      "community": 698,
       "norm_label": ".stop()"
     },
     {
@@ -109702,7 +109702,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "mathtoolscontroller",
-      "community": 724,
+      "community": 582,
       "norm_label": "mathtoolscontroller"
     },
     {
@@ -109722,7 +109722,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_documentcontroller",
-      "community": 493,
+      "community": 572,
       "norm_label": "documentcontroller()"
     },
     {
@@ -109782,7 +109782,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_frame_top",
-      "community": 582,
+      "community": 849,
       "norm_label": ".top()"
     },
     {
@@ -109802,7 +109802,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_frameof",
-      "community": 582,
+      "community": 849,
       "norm_label": "frameof()"
     },
     {
@@ -109822,7 +109822,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_qpointf",
-      "community": 582,
+      "community": 537,
       "norm_label": "qpointf"
     },
     {
@@ -109832,7 +109832,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_styluspath",
-      "community": 493,
+      "community": 572,
       "norm_label": "styluspath()"
     },
     {
@@ -109842,7 +109842,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_vector",
-      "community": 493,
+      "community": 816,
       "norm_label": "vector"
     },
     {
@@ -109852,7 +109852,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_initializer_list",
-      "community": 493,
+      "community": 572,
       "norm_label": "initializer_list"
     },
     {
@@ -110072,7 +110072,7 @@
       "source_location": "L262",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_qvariant",
-      "community": 582,
+      "community": 849,
       "norm_label": "qvariant"
     },
     {
@@ -110082,7 +110082,7 @@
       "source_location": "L267",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_laststroke",
-      "community": 582,
+      "community": 849,
       "norm_label": "laststroke()"
     },
     {
@@ -110092,7 +110092,7 @@
       "source_location": "L267",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_stroke",
-      "community": 724,
+      "community": 849,
       "norm_label": "stroke"
     },
     {
@@ -110102,7 +110102,7 @@
       "source_location": "L267",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_page",
-      "community": 572,
+      "community": 816,
       "norm_label": "page"
     },
     {
@@ -110112,7 +110112,7 @@
       "source_location": "L277",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_allonline",
-      "community": 582,
+      "community": 849,
       "norm_label": "allonline()"
     },
     {
@@ -110172,7 +110172,7 @@
       "source_location": "L297",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_squareof",
-      "community": 724,
+      "community": 582,
       "norm_label": "squareof()"
     },
     {
@@ -110182,7 +110182,7 @@
       "source_location": "L304",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_allonhypotenuse",
-      "community": 724,
+      "community": 849,
       "norm_label": "allonhypotenuse()"
     },
     {
@@ -110192,7 +110192,7 @@
       "source_location": "L314",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_alloncolumn",
-      "community": 724,
+      "community": 849,
       "norm_label": "alloncolumn()"
     },
     {
@@ -110202,7 +110202,7 @@
       "source_location": "L325",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_dial",
-      "community": 493,
+      "community": 582,
       "norm_label": "dial"
     },
     {
@@ -110212,7 +110212,7 @@
       "source_location": "L327",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_dial_cx",
-      "community": 493,
+      "community": 582,
       "norm_label": "cx"
     },
     {
@@ -110222,7 +110222,7 @@
       "source_location": "L328",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_dial_cy",
-      "community": 493,
+      "community": 582,
       "norm_label": "cy"
     },
     {
@@ -110232,7 +110232,7 @@
       "source_location": "L329",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_dial_radius",
-      "community": 493,
+      "community": 582,
       "norm_label": "radius"
     },
     {
@@ -110242,7 +110242,7 @@
       "source_location": "L330",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_dial_angle",
-      "community": 493,
+      "community": 582,
       "norm_label": "angle"
     },
     {
@@ -110262,7 +110262,7 @@
       "source_location": "L334",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_dialof",
-      "community": 493,
+      "community": 582,
       "norm_label": "dialof()"
     },
     {
@@ -110272,7 +110272,7 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_ondial",
-      "community": 493,
+      "community": 582,
       "norm_label": "ondial()"
     },
     {
@@ -110282,7 +110282,7 @@
       "source_location": "L350",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_rimpath",
-      "community": 493,
+      "community": 582,
       "norm_label": "rimpath()"
     },
     {
@@ -110292,7 +110292,7 @@
       "source_location": "L360",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_onrim",
-      "community": 493,
+      "community": 582,
       "norm_label": "onrim()"
     },
     {
@@ -110302,7 +110302,7 @@
       "source_location": "L365",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_allonrim",
-      "community": 493,
+      "community": 582,
       "norm_label": "allonrim()"
     },
     {
@@ -110312,7 +110312,7 @@
       "source_location": "L375",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_samepoint",
-      "community": 493,
+      "community": 572,
       "norm_label": "samepoint()"
     },
     {
@@ -110322,7 +110322,7 @@
       "source_location": "L386",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_lastof",
-      "community": 572,
+      "community": 816,
       "norm_label": "lastof()"
     },
     {
@@ -110332,7 +110332,7 @@
       "source_location": "L386",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_t",
-      "community": 572,
+      "community": 816,
       "norm_label": "t"
     },
     {
@@ -110342,7 +110342,7 @@
       "source_location": "L397",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_lastobjectof",
-      "community": 572,
+      "community": 816,
       "norm_label": "lastobjectof()"
     },
     {
@@ -110352,7 +110352,7 @@
       "source_location": "L397",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_pageobject",
-      "community": 572,
+      "community": 816,
       "norm_label": "pageobject"
     },
     {
@@ -110502,7 +110502,7 @@
       "source_location": "L447",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_countof",
-      "community": 572,
+      "community": 816,
       "norm_label": "countof()"
     },
     {
@@ -110712,7 +110712,7 @@
       "source_location": "L558",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_objectwithid",
-      "community": 572,
+      "community": 816,
       "norm_label": "objectwithid()"
     },
     {
@@ -110792,7 +110792,7 @@
       "source_location": "L611",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_commandsof",
-      "community": 816,
+      "community": 849,
       "norm_label": "commandsof()"
     },
     {
@@ -110802,7 +110802,7 @@
       "source_location": "L611",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_commands",
-      "community": 816,
+      "community": 849,
       "norm_label": "commands"
     },
     {
@@ -110812,7 +110812,7 @@
       "source_location": "L618",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_inkof",
-      "community": 582,
+      "community": 849,
       "norm_label": "inkof()"
     },
     {
@@ -110822,7 +110822,7 @@
       "source_location": "L618",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_sample",
-      "community": 582,
+      "community": 849,
       "norm_label": "sample"
     },
     {
@@ -110832,7 +110832,7 @@
       "source_location": "L618",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_userid",
-      "community": 582,
+      "community": 849,
       "norm_label": "userid"
     },
     {
@@ -110842,7 +110842,7 @@
       "source_location": "L618",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_cpp_phase",
-      "community": 582,
+      "community": 849,
       "norm_label": "phase"
     },
     {
@@ -110912,7 +110912,7 @@
       "source_location": "L749",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_rulerguidesthepenwithoutchangingit",
-      "community": 582,
+      "community": 849,
       "norm_label": ".rulerguidesthepenwithoutchangingit()"
     },
     {
@@ -110922,7 +110922,7 @@
       "source_location": "L799",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_syntheticreleasestaysontheguide",
-      "community": 582,
+      "community": 849,
       "norm_label": ".syntheticreleasestaysontheguide()"
     },
     {
@@ -110942,7 +110942,7 @@
       "source_location": "L850",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_closingtherulerkeepsthestroke",
-      "community": 582,
+      "community": 849,
       "norm_label": ".closingtherulerkeepsthestroke()"
     },
     {
@@ -110962,7 +110962,7 @@
       "source_location": "L894",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_rulerguidesonlyitsowner",
-      "community": 582,
+      "community": 849,
       "norm_label": ".rulerguidesonlyitsowner()"
     },
     {
@@ -110972,7 +110972,7 @@
       "source_location": "L925",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_otheruserpresskeepsthegrip",
-      "community": 493,
+      "community": 582,
       "norm_label": ".otheruserpresskeepsthegrip()"
     },
     {
@@ -110982,7 +110982,7 @@
       "source_location": "L960",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_seconduserrulerguidesonlyhim",
-      "community": 582,
+      "community": 849,
       "norm_label": ".seconduserrulerguidesonlyhim()"
     },
     {
@@ -110992,7 +110992,7 @@
       "source_location": "L1000",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_singleusereverytoolguides",
-      "community": 582,
+      "community": 849,
       "norm_label": ".singleusereverytoolguides()"
     },
     {
@@ -111012,7 +111012,7 @@
       "source_location": "L1051",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_mathtoolcursorfollowsthezone",
-      "community": 582,
+      "community": 849,
       "norm_label": ".mathtoolcursorfollowsthezone()"
     },
     {
@@ -111032,7 +111032,7 @@
       "source_location": "L1093",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_rulerblocksthestylus",
-      "community": 582,
+      "community": 849,
       "norm_label": ".rulerblocksthestylus()"
     },
     {
@@ -111042,7 +111042,7 @@
       "source_location": "L1152",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_setsquareguidesthepen",
-      "community": 724,
+      "community": 849,
       "norm_label": ".setsquareguidesthepen()"
     },
     {
@@ -111062,7 +111062,7 @@
       "source_location": "L1207",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_setsquarecursorfollowsthezone",
-      "community": 724,
+      "community": 582,
       "norm_label": ".setsquarecursorfollowsthezone()"
     },
     {
@@ -111092,7 +111092,7 @@
       "source_location": "L1318",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_filledarcbecomesoneshape",
-      "community": 493,
+      "community": 582,
       "norm_label": ".filledarcbecomesoneshape()"
     },
     {
@@ -111102,7 +111102,7 @@
       "source_location": "L1391",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_closedarcisundoneatonce",
-      "community": 493,
+      "community": 572,
       "norm_label": ".closedarcisundoneatonce()"
     },
     {
@@ -111182,7 +111182,7 @@
       "source_location": "L1706",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_markerfollowstheruler",
-      "community": 582,
+      "community": 849,
       "norm_label": ".markerfollowstheruler()"
     },
     {
@@ -111252,7 +111252,7 @@
       "source_location": "L1926",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_eraserignorestheothermathtools",
-      "community": 493,
+      "community": 582,
       "norm_label": ".eraserignorestheothermathtools()"
     },
     {
@@ -111282,7 +111282,7 @@
       "source_location": "L2045",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_selectionisnotguided",
-      "community": 582,
+      "community": 849,
       "norm_label": ".selectionisnotguided()"
     },
     {
@@ -111342,7 +111342,7 @@
       "source_location": "L2282",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_originsavedwiththepage",
-      "community": 493,
+      "community": 572,
       "norm_label": ".originsavedwiththepage()"
     },
     {
@@ -111352,7 +111352,7 @@
       "source_location": "L2329",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_originmoveisundoneatonce",
-      "community": 493,
+      "community": 572,
       "norm_label": ".originmoveisundoneatonce()"
     },
     {
@@ -111372,7 +111372,7 @@
       "source_location": "L2380",
       "_origin": "ast",
       "id": "tests_tst_ui_mathtools_tstuimathtools_strokekeepstheorigin",
-      "community": 493,
+      "community": 572,
       "norm_label": ".strokekeepstheorigin()"
     },
     {
@@ -111722,7 +111722,7 @@
       "source_location": "L212",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_cpp_qobject",
-      "community": 390,
+      "community": 274,
       "norm_label": "qobject"
     },
     {
@@ -111832,7 +111832,7 @@
       "source_location": "L278",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_scene",
-      "community": 390,
+      "community": 268,
       "norm_label": "scene"
     },
     {
@@ -111842,7 +111842,7 @@
       "source_location": "L280",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_cpp_qqmlengine",
-      "community": 390,
+      "community": 268,
       "norm_label": "qqmlengine"
     },
     {
@@ -111852,7 +111852,7 @@
       "source_location": "L280",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_scene_engine",
-      "community": 390,
+      "community": 268,
       "norm_label": "engine"
     },
     {
@@ -111862,7 +111862,7 @@
       "source_location": "L281",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_cpp_unique_ptr",
-      "community": 390,
+      "community": 268,
       "norm_label": "unique_ptr"
     },
     {
@@ -111872,7 +111872,7 @@
       "source_location": "L281",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_scene_root",
-      "community": 390,
+      "community": 268,
       "norm_label": "root"
     },
     {
@@ -111882,7 +111882,7 @@
       "source_location": "L282",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_cpp_qquickwindow",
-      "community": 390,
+      "community": 268,
       "norm_label": "qquickwindow"
     },
     {
@@ -111892,7 +111892,7 @@
       "source_location": "L282",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_scene_window",
-      "community": 390,
+      "community": 268,
       "norm_label": "window"
     },
     {
@@ -111902,7 +111902,7 @@
       "source_location": "L283",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_cpp_pageview",
-      "community": 390,
+      "community": 268,
       "norm_label": "pageview"
     },
     {
@@ -111912,7 +111912,7 @@
       "source_location": "L283",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_scene_view",
-      "community": 390,
+      "community": 268,
       "norm_label": "view"
     },
     {
@@ -111922,7 +111922,7 @@
       "source_location": "L284",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_cpp_fixedpageitem",
-      "community": 390,
+      "community": 268,
       "norm_label": "fixedpageitem"
     },
     {
@@ -111932,7 +111932,7 @@
       "source_location": "L284",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_scene_fixed",
-      "community": 390,
+      "community": 268,
       "norm_label": "fixed"
     },
     {
@@ -111942,7 +111942,7 @@
       "source_location": "L285",
       "_origin": "ast",
       "id": "tests_tst_ui_mediaitems_scene_overlays",
-      "community": 390,
+      "community": 268,
       "norm_label": "overlays"
     },
     {
@@ -147886,7 +147886,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_desktopcontroller_transparentpage",
-      "community": 709,
+      "community": 675,
       "norm_label": "transparentpage()"
     },
     {
@@ -148316,7 +148316,7 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "src_desktopcontroller_setannotating",
-      "community": 699,
+      "community": 709,
       "norm_label": "setannotating()"
     },
     {
@@ -148596,7 +148596,7 @@
       "source_location": "L471",
       "_origin": "ast",
       "id": "src_desktopcontroller_releasemainfront",
-      "community": 699,
+      "community": 709,
       "norm_label": "releasemainfront()"
     },
     {
@@ -148646,7 +148646,7 @@
       "source_location": "L529",
       "_origin": "ast",
       "id": "src_desktopcontroller_toggle",
-      "community": 699,
+      "community": 709,
       "norm_label": "toggle()"
     },
     {
@@ -148656,7 +148656,7 @@
       "source_location": "L534",
       "_origin": "ast",
       "id": "src_desktopcontroller_nextpage",
-      "community": 709,
+      "community": 675,
       "norm_label": "nextpage()"
     },
     {
@@ -148706,7 +148706,7 @@
       "source_location": "L600",
       "_origin": "ast",
       "id": "src_desktopcontroller_openwindow",
-      "community": 675,
+      "community": 709,
       "norm_label": "openwindow()"
     },
     {
@@ -148726,7 +148726,7 @@
       "source_location": "L664",
       "_origin": "ast",
       "id": "src_desktopcontroller_finishstroke",
-      "community": 709,
+      "community": 675,
       "norm_label": "finishstroke()"
     },
     {
@@ -148766,7 +148766,7 @@
       "source_location": "L720",
       "_origin": "ast",
       "id": "src_desktopcontroller_windowflags",
-      "community": 675,
+      "community": 709,
       "norm_label": "windowflags()"
     },
     {
@@ -166456,7 +166456,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "idcell",
-      "community": 364,
+      "community": 653,
       "norm_label": "idcell"
     },
     {
@@ -166466,7 +166466,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_presentationdocument_reportedadd",
-      "community": 364,
+      "community": 653,
       "norm_label": "reportedadd"
     },
     {
@@ -166476,7 +166476,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_presentationdocument_reportedadd_reportedadd",
-      "community": 364,
+      "community": 653,
       "norm_label": ".reportedadd()"
     },
     {
@@ -166546,7 +166546,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "ui_src_presentationdocument_cpp_addobjectcommand",
-      "community": 364,
+      "community": 653,
       "norm_label": "addobjectcommand"
     },
     {
@@ -166556,7 +166556,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_presentationdocument_reportedadd_m_command",
-      "community": 364,
+      "community": 653,
       "norm_label": "m_command"
     },
     {
@@ -166566,7 +166566,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_presentationdocument_reportedadd_m_ids",
-      "community": 364,
+      "community": 653,
       "norm_label": "m_ids"
     },
     {
@@ -166666,7 +166666,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_presentationdocument_addobjectonnewpage",
-      "community": 364,
+      "community": 653,
       "norm_label": "addobjectonnewpage"
     },
     {
@@ -166676,7 +166676,7 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "src_presentationdocument_addobjectonnewpage_addobjectonnewpage",
-      "community": 364,
+      "community": 653,
       "norm_label": ".addobjectonnewpage()"
     },
     {
@@ -166706,7 +166706,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "addpagecommand",
-      "community": 364,
+      "community": 653,
       "norm_label": "addpagecommand"
     },
     {
@@ -166716,7 +166716,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "src_presentationdocument_addobjectonnewpage_m_page",
-      "community": 364,
+      "community": 653,
       "norm_label": "m_page"
     },
     {
@@ -166726,7 +166726,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "src_presentationdocument_addobjectonnewpage_m_object",
-      "community": 364,
+      "community": 653,
       "norm_label": "m_object"
     },
     {
@@ -166736,7 +166736,7 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "src_presentationdocument_addobjectonnewpage_m_ids",
-      "community": 364,
+      "community": 653,
       "norm_label": "m_ids"
     },
     {
@@ -167116,7 +167116,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "c_users_jeromedenis_actcraft_worktrees_livraison_complete_b_ui_src_presentationdocument_h",
-      "community": 515,
+      "community": 493,
       "norm_label": "presentationdocument.h"
     },
     {
@@ -167126,7 +167126,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_presentationdocument_actcraft",
-      "community": 515,
+      "community": 493,
       "norm_label": "actcraft()"
     },
     {
@@ -167136,7 +167136,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "ui_src_presentationdocument_h_namespace",
-      "community": 515,
+      "community": 493,
       "norm_label": "namespace"
     },
     {
@@ -174246,7 +174246,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_spotlightcontroller_area",
-      "community": 665,
+      "community": 396,
       "norm_label": "area()"
     },
     {
@@ -174256,7 +174256,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "ui_src_spotlightcontroller_cpp_qsizef",
-      "community": 665,
+      "community": 396,
       "norm_label": "qsizef"
     },
     {
@@ -174266,7 +174266,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_spotlightcontroller_setarea",
-      "community": 665,
+      "community": 396,
       "norm_label": "setarea()"
     },
     {
@@ -193343,7 +193343,7 @@
       "label": "O\u00f9 ils tournent",
       "file_type": "document",
       "source_file": "docs/tests-materiel.md",
-      "source_location": "L14",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "docs_tests_materiel_o\u00f9_ils_tournent",
       "community": 844,
@@ -193353,7 +193353,7 @@
       "label": "Porte avant chaque release",
       "file_type": "document",
       "source_file": "docs/tests-materiel.md",
-      "source_location": "L20",
+      "source_location": "L27",
       "_origin": "ast",
       "id": "docs_tests_materiel_porte_avant_chaque_release",
       "community": 844,
@@ -639321,5 +639321,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d056507a41c2cf97328f7a2b0663b2e4b29181b3"
+  "built_at_commit": "1a6a35f5a098f001dd601285817696327bef6a4d"
 }
