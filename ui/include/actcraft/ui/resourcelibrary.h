@@ -159,6 +159,7 @@ public:
 
 private:
     bool mayEdit() const; // commandes présentes, document présent, pas de verrou
+    bool editWithFilesReleased(const std::function<bool()>& edit); // renommer, supprimer
     QString rootPath(const QString& root) const;
     void refresh();
     void setItems(std::vector<Item> items);
@@ -192,6 +193,7 @@ private:
     Insertion m_insertion;     // image : le chemin du dépôt sur la page (lot 5, A11)
     QThreadPool m_pool;        // vignettes : à part, pour ne retarder ni la recherche ni l'insertion
     QThreadPool m_listingPool; // listages : à part, attendus par un renommage ou une suppression refusés
+    QThreadPool m_searchPool;  // recherches : de même
 };
 
 } // namespace actcraft::ui

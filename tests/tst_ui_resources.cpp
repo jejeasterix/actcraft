@@ -435,23 +435,56 @@ private slots:
     void folderEditsWaitForTheListing()
     {
         QFETCH(bool, rename);
+        std::atomic<int> entered{0};
         std::atomic<int> listing{0};
-        ui::ResourceLibrary::setListingObserverForTests([&listing] {
+        ui::ResourceLibrary::setListingObserverForTests([&entered, &listing] {
             listing.fetch_add(1);
+            entered.fetch_add(1);
             QThread::msleep(400);
             listing.fetch_sub(1);
         });
         ui::ResourceLibrary::setFileEditRefusalForTests([&listing] { return listing.load() > 0; });
         Fixture f;
-        QTRY_COMPARE_WITH_TIMEOUT(listing.load(), 0, 10000); // listage de l'ouverture fini
+        QTRY_COMPARE_WITH_TIMEOUT(entered.load(), 1, 10000); // listage de l'ouverture
+        QTRY_COMPARE_WITH_TIMEOUT(listing.load(), 0, 10000);
         const QString w = QDir(f.mine).filePath(QStringLiteral("w"));
         const QString inner = QDir(w).filePath(QStringLiteral("dedans"));
         QVERIFY(QDir().mkpath(inner));
         f.library.openFolder(inner);
-        QTRY_COMPARE_WITH_TIMEOUT(listing.load(), 1, 10000);
+        QTRY_COMPARE_WITH_TIMEOUT(entered.load(), 2, 10000);
+        QCOMPARE(listing.load(), 1); // le listage de `inner` dort encore (400 ms)
         QVERIFY(rename ? f.library.rename(w, QStringLiteral("y")) : f.library.remove(w));
         QVERIFY(!QFileInfo::exists(w));
+        QCOMPARE(QFileInfo(QDir(f.mine).filePath(QStringLiteral("y"))).isDir(), rename);
         QCOMPARE(f.library.folder(), f.mine);
+    }
+
+    // Même refus pendant une recherche (QDirIterator tient le dossier parcouru) : la recherche est annulée,
+    // l'opération rejouée, et le dossier courant relu.
+    void folderEditsCancelTheSearch()
+    {
+        std::atomic<int> visited{0};
+        QSemaphore gate;
+        ui::ResourceLibrary::setSearchObserverForTests(holdFirst(visited, gate));
+        Fixture f;
+        const auto settle = qScopeGuard([&gate] { gate.release(); });
+        const QString w = QDir(f.mine).filePath(QStringLiteral("w"));
+        QVERIFY(QDir().mkpath(w));
+        for (int i = 0; i < 3; ++i)
+            QVERIFY(writeStrokeFragment(QDir(w).filePath(QStringLiteral("f%1.actcraft").arg(i)), {"mot"}));
+        QVERIFY(writeStrokeFragment(QDir(f.mine).filePath(QStringLiteral("g.actcraft")), {"mot"}));
+        f.library.search(QStringLiteral("absent"), true, true);
+        QTRY_COMPARE_WITH_TIMEOUT(visited.load(), 1, 10000);
+        std::atomic<bool> released{false};
+        ui::ResourceLibrary::setFileEditRefusalForTests([&released, &gate] {
+            if (released.exchange(true))
+                return false;
+            gate.release(); // la recherche, refusant ici le renommage, reprend et voit son annulation
+            return true;
+        });
+        QVERIFY(f.library.rename(w, QStringLiteral("y")));
+        QVERIFY(!f.library.searching());
+        QTRY_COMPARE_WITH_TIMEOUT(f.library.itemCount(), 1, 10000); // g.actcraft, dossier courant relu
     }
 
     void addSelectionCreatesTheNextName()
