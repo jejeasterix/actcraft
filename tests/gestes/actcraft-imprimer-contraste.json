@@ -1,9 +1,9 @@
 {
   "machine": "pc",
   "app": "actcraft.exe",
-  "lancement": "C:\\Users\\JeromeDenis\\ActCraft\\.worktrees\\lot11-pc\\build\\debug\\actcraft.exe",
+  "lancement": "C:\\Users\\JeromeDenis\\ActCraft\\build\\debug\\actcraft.exe",
   "appTestLocale": {
-    "chemin": "C:\\Users\\JeromeDenis\\ActCraft\\.worktrees\\lot11-pc\\build\\debug"
+    "chemin": "C:\\Users\\JeromeDenis\\ActCraft\\build\\debug"
   },
   "accords": [],
   "nom": "actcraft-imprimer-contraste",
