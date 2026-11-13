@@ -338,10 +338,12 @@ try {
     # Orientation : paysage au départ, rotation automatique coupée (on tourne à la main).
     $null = Invoke-Adb @('shell', 'settings', 'put', 'system', 'accelerometer_rotation', '0')
     $null = Invoke-Adb @('shell', 'settings', 'put', 'system', 'user_rotation', '0')
+    $null = Invoke-Adb @('shell', 'wm', 'user-rotation', 'lock', '0')
     $null = Invoke-Adb @('uninstall', $paquet) 60
     $processus = Install-ActCraftApk -Apk $Apk -Paquet $paquet
     Write-Output "processus : $processus"
     Start-Sleep -Seconds 5
+    Close-ActCraftAccueil # avant l'image de base : sinon la base est prise avant l'accueil et le trait tombe sur lui
 
     $base = Get-Mesures (Get-Capture 'base')
     Write-Output "base : $($base -join ' ')"
@@ -361,17 +363,30 @@ try {
 
     # Rotation : l'écran passe en portrait, le trait reste (D11-10), la palette reste visible.
     $null = Invoke-Adb @('shell', 'settings', 'put', 'system', 'user_rotation', '1')
+    # API 34 (joué au PC le 2026-11-12) : le réglage seul ne tourne pas l'écran ; la commande du gestionnaire de
+    # fenêtres, si.
+    $null = Invoke-Adb @('shell', 'wm', 'user-rotation', 'lock', '1')
     $tourne = $null
     $ok = Wait-Condition {
         $script:tourne = Get-Mesures (Get-Capture 'portrait')
         $script:tourne[0] -lt $script:tourne[1]
     } 60
     if (-not $ok) { Stop-Essai "l'écran n'a pas tourné (capture .tmp/tablette-portrait.png)" }
+    # Le sens de la capture change dès le début de l'animation de rotation : mesure reprise une fois l'animation finie
+    # (joué au PC le 2026-11-12 : capture prise en plein fondu, trait compté absent).
+    Start-Sleep -Seconds 4
+    $tourne = Get-Mesures (Get-Capture 'portrait')
     Write-Output "portrait : $($tourne -join ' ')"
     if ($tourne[2] -lt $base[2] + 200) { Stop-Essai 'trait perdu après la rotation (capture .tmp/tablette-portrait.png)' }
     $dump = @(Invoke-Adb @('shell', 'dumpsys', 'window')) -join "`n"
     if ($dump -notmatch 'mCurrentFocus=.*io\.github\.jejeasterix\.actcraft') { Stop-Essai "l'application n'a plus le focus après la rotation" }
-    $arbre = Read-ArbreUi
+    # Arbre relu jusqu'à 60 s : juste après la rotation, uiautomator n'obtient pas l'état de repos (joué au PC le
+    # 2026-11-12 : aucun arbre au premier essai).
+    $arbre = $null
+    $null = Wait-Condition {
+        $script:arbre = Read-ArbreUi
+        $script:arbre -and @(Get-Noeuds $script:arbre | Where-Object { $_.package -ceq $paquet }).Count
+    } 60
     if (-not $arbre -or -not @(Get-Noeuds $arbre | Where-Object { $_.package -ceq $paquet }).Count) {
         Stop-Essai 'interface de l''application absente après la rotation (palette non visible)'
     }
@@ -389,8 +404,14 @@ try {
     if (-not $ok) { Stop-Essai 'mInputShown=true absent de dumpsys input_method (clavier non ouvert)' }
     Start-Sleep -Seconds 3
     $fenetre = @(Invoke-Adb @('shell', 'dumpsys', 'window', 'InputMethod') 60) -join "`n"
+    Set-Content -Encoding utf8 -LiteralPath (Join-Path $tmp 'tablette-ime.txt') -Value $fenetre
     if ($fenetre -notmatch 'Rect\((\d+), (\d+) - (\d+), (\d+)\)') { Stop-Essai 'rectangle du clavier illisible dans dumpsys window InputMethod' }
     $hautClavier = [int]$Matches[2]
+    # API 34 (joué au PC le 2026-11-12) : la fenêtre du clavier couvre tout l'écran (haut 0) ; sa partie visible
+    # commence au retrait de contenu qu'il donne (« mGivenContentInsets=[gauche,haut][droite,bas] »).
+    if ($fenetre -match 'mGivenContentInsets=\[(\d+),(\d+)\]\[(\d+),(\d+)\]' -and [int]$Matches[2] -gt 0) {
+        $hautClavier += [int]$Matches[2]
+    }
     $avecClavier = Get-Mesures (Get-Capture 'clavier')
     Write-Output "clavier : haut $hautClavier, bas du cadre du texte $($avecClavier[3])"
     if ($avecClavier[3] -lt 0) { Stop-Essai 'cadre du texte introuvable sur la capture (.tmp/tablette-clavier.png)' }

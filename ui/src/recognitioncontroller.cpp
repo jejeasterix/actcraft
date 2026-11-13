@@ -227,7 +227,8 @@ void RecognitionController::setTools(ToolHost* tools)
 
 std::vector<core::ObjectId> RecognitionController::selectedObjects() const
 {
-    return m_tools ? m_tools->user().selection() : std::vector<core::ObjectId>{};
+    // Sans les objets que l'autre utilisateur tient (F-303, comme les panneaux de L11-C10 G).
+    return m_tools ? m_tools->usableSelection() : std::vector<core::ObjectId>{};
 }
 
 bool RecognitionController::shapeMode() const noexcept

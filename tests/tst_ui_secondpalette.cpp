@@ -157,7 +157,7 @@ input::Route secondFingerRoute(ui::PageView& view)
     return view.router().policy()->decide(press, state).route;
 }
 
-QColor penColor(ui::ToolHost& tools, input::UserId user)
+QColor strokeColorOf(ui::ToolHost& tools, input::UserId user)
 {
     return QColor::fromRgba(tools.user(user).settings(QStringLiteral("pen")).color);
 }
@@ -443,11 +443,11 @@ void TstUiSecondpalette::secondUserReceivesInDualMode()
     QCOMPARE(tools.currentTool(), QStringLiteral("pen"));
     QVERIFY(app.commands->trigger(QStringLiteral("tool.pen"), QVariant(), 1));
     QCOMPARE(tools.user(1).currentTool(), QStringLiteral("pen"));
-    const QColor first = penColor(tools, 0);
+    const QColor first = strokeColorOf(tools, 0);
     const double firstWidth = tools.user(0).settings(QStringLiteral("pen")).width;
     QVERIFY(app.commands->trigger(QStringLiteral("pen.color"), QStringLiteral("#1E88E5"), 1));
-    QCOMPARE(penColor(tools, 1), QColor(QStringLiteral("#1E88E5")));
-    QCOMPARE(penColor(tools, 0), first);
+    QCOMPARE(strokeColorOf(tools, 1), QColor(QStringLiteral("#1E88E5")));
+    QCOMPARE(strokeColorOf(tools, 0), first);
     QVERIFY(app.commands->trigger(QStringLiteral("pen.width"), 2, 1));
     QCOMPARE(tools.user(1).settings(QStringLiteral("pen")).width, 2.0);
     QCOMPARE(tools.user(0).settings(QStringLiteral("pen")).width, firstWidth);
@@ -461,8 +461,8 @@ void TstUiSecondpalette::secondUserReceivesInDualMode()
     QVERIFY(done.toBool());
     QCOMPARE(triggered.count(), 1);
     QCOMPARE(triggered.at(0).at(0).toString(), QStringLiteral("pen.color"));
-    QCOMPARE(penColor(tools, 1), QColor(QStringLiteral("#43A047")));
-    QCOMPARE(penColor(tools, 0), first);
+    QCOMPARE(strokeColorOf(tools, 1), QColor(QStringLiteral("#43A047")));
+    QCOMPARE(strokeColorOf(tools, 0), first);
 
     // Stylets : l'appareil 11, vu le premier, va à l'utilisateur 0 ; l'appareil 22 à l'utilisateur 1, à son
     // outil, pas à celui du premier.

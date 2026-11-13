@@ -1,0 +1,80 @@
+{
+  "machine": "pc",
+  "app": "actcraft.exe",
+  "lancement": "C:\\Users\\JeromeDenis\\ActCraft\\.worktrees\\lot11-pc\\build\\debug\\actcraft.exe",
+  "appTestLocale": {
+    "chemin": "C:\\Users\\JeromeDenis\\ActCraft\\.worktrees\\lot11-pc\\build\\debug"
+  },
+  "accords": [],
+  "nom": "actcraft-edition-export",
+  "but": "S8 : menu d'édition (copier, coller) à l'écran en Direct3D 11, sur un document neuf",
+  "etapes": [
+    {
+      "id": "lancer",
+      "faire": "lancer"
+    },
+    {
+      "id": "document-neuf",
+      "faire": "verifier",
+      "cible": {
+        "role": "window",
+        "nom": "Sans titre",
+        "exact": false
+      },
+      "present": true,
+      "prouve": "le scénario part d'un document neuf"
+    },
+    {
+      "id": "rendu-d3d11",
+      "faire": "verifier",
+      "cible": {
+        "role": "window",
+        "nom": "rendu : Direct3D 11",
+        "exact": false
+      },
+      "present": true,
+      "prouve": "la fenêtre est rendue par Direct3D 11 (titre de la fenêtre)"
+    },
+    {
+      "id": "menu-editer",
+      "faire": "cliquer",
+      "cible": {
+        "role": "button",
+        "nom": "Éditer"
+      }
+    },
+    {
+      "id": "entree-copier",
+      "faire": "verifier",
+      "cible": {
+        "role": "menuitem",
+        "nom": "Copier"
+      },
+      "present": true,
+      "prouve": "le menu d'édition (S8) est ouvert à l'écran"
+    },
+    {
+      "id": "entree-coller",
+      "faire": "verifier",
+      "cible": {
+        "role": "menuitem",
+        "nom": "Coller"
+      },
+      "present": true,
+      "prouve": "le collage (S8) est proposé dans le menu d'édition"
+    },
+    {
+      "id": "menu-edition",
+      "faire": "capturer"
+    },
+    {
+      "id": "fermer-menu",
+      "faire": "touche",
+      "touches": "escape"
+    },
+    {
+      "id": "quitter",
+      "faire": "fermer"
+    }
+  ]
+}

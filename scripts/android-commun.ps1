@@ -122,6 +122,14 @@ function Read-ActCraftPidof([string]$Paquet, [int]$Secondes) {
     }
 }
 
+# Ferme l'accueil (lot 6, Dashboard.qml), ouvert au premier lancement par-dessus la page, par son bouton « Créer »
+# (écran 2560 × 1600 des AVD d'essai : 964, 384), puis laisse 2 s à la page. Échap n'y suffit pas sous Android : il
+# choisit l'outil de sélection (tool.select). Joué au PC le 2026-11-12 : sans cela, le trait tombe sur l'accueil.
+function Close-ActCraftAccueil {
+    $null = Adb 30 shell input tap 964 384
+    Start-Sleep -Seconds 2
+}
+
 # Installe l'APK (install -r), vide le journal (logcat -c : refus si adb échoue), lance l'application et rend son
 # PID : attendu 120 s au plus (pidof toutes les 2 s), car une machine chargée peut lancer l'application après plus de
 # 10 s (cause probable, non prouvée, du rouge du run 42790149282), puis le même PID vivant 10 s plus tard, pour qu'un

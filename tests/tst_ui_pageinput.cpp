@@ -34,6 +34,7 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -1120,6 +1121,49 @@ private slots:
         held.setCommands(app.tools->commands());
         QTRY_COMPARE_WITH_TIMEOUT(held.title(), QStringLiteral("Page"), 3000);
         tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
+    }
+
+    // Reste PC du lot 11 (recognitioncontroller.cpp:230) : la conversion a posteriori en forme lit la
+    // sélection utilisable, comme les panneaux de L11-C10 (G). Le premier sélectionne un cercle à main levée,
+    // le second le tient de son stylet ; « convertir en forme » du premier ne le touche pas. Ancien patron
+    // (sélection brute) : le cercle tenu par l'autre devient une ellipse.
+    void heldObjectIsNotRecognized()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(0, 0, 500, 5000)));
+        app.tools->setWidth(20);
+        tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(400, 300));
+        for (int i = 1; i <= 40; ++i) {
+            const double a = 2 * 3.14159265358979 * i / 40;
+            tablet(app, m_stylus11.get(), QEvent::TabletMove,
+                   QPointF(300 + 100 * std::cos(a), 300 + 100 * std::sin(a)));
+        }
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(400, 300));
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 1, 3000);
+        auto* document = app.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        QVERIFY(document);
+        const auto kindShown = [document] {
+            const auto& objects =
+                document->document().page(static_cast<std::size_t>(document->currentIndex())).objects;
+            return objects.size() == 1 ? core::kindOf(objects.front()) : core::ObjectKind::Group;
+        };
+        QCOMPARE(kindShown(), core::ObjectKind::Stroke);
+        app.tools->selectAll();
+        QCOMPARE(app.tools->selectionCount(), 1);
+        app.tools->activateFor(QStringLiteral("select"), 1);
+        tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(400, 300)); // le second tient le cercle
+        QTRY_VERIFY_WITH_TIMEOUT(app.tools->usableSelection().empty(), 3000);
+        QCOMPARE(app.tools->selectionCount(), 1); // la prise du second ne vide pas la sélection du premier
+        QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
+        QCoreApplication::processEvents();
+        QCOMPARE(kindShown(), core::ObjectKind::Stroke);
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
+        // Témoin : relâché, le même cercle est reconnu (le refus venait bien de la prise).
+        QTRY_VERIFY_WITH_TIMEOUT(!app.tools->usableSelection().empty(), 3000);
+        QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
+        QTRY_VERIFY_WITH_TIMEOUT(kindShown() != core::ObjectKind::Stroke, 3000);
     }
 
     // L11-C10 (J3) : une commande lancée par un outil du second utilisateur part en son nom ; un gestionnaire

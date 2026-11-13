@@ -251,7 +251,7 @@ private slots:
 
     // Chaque ligne de packaging/autres-autorises.txt (« <motif> <expression SPDX> ») a son élément
     // « - `<motif>` … Licence SPDX : `<expression entière>` » ; chaque élément qui cite une licence nomme ses
-    // titulaires (« Copyright … », ou la réserve « Copyright : à relever au PC ») ; chaque dossier de
+    // titulaires (« Copyright … ») ; chaque dossier de
     // third_party/ est cité.
     void everyOtherLibraryHasANotice()
     {

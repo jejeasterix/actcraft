@@ -9,6 +9,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
+#include <QRegularExpression>
+#include <QSet>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTranslator>
@@ -90,6 +92,39 @@ private slots:
         QVERIFY2(checked > 100, "libellés non lus");
         QVERIFY2(missing.isEmpty(), qPrintable(QStringLiteral("absents de commandlabels.cpp : ") +
                                                missing.join(QStringLiteral(" | "))));
+    }
+
+    // Le navigateur d'actions traduit dans le contexte « actions-objet » : chaque libellé
+    // d'object-actions.json y figure tel quel, et ce contexte ne garde aucun libellé périmé. Ancien patron
+    // (présence n'importe où dans commandlabels.cpp) : « Formes » et « Créer un paperboard », extraits sous
+    // « commandes », passaient ; leurs anciennes formes restaient sous « actions-objet », jamais affichées.
+    void objectActionLabelsMatchTheirContext()
+    {
+        const QString root = QStringLiteral(ACTCRAFT_LABELS_SRC);
+        QFile src(root + QStringLiteral("/ui/src/commandlabels.cpp"));
+        QVERIFY(src.open(QIODevice::ReadOnly));
+        const QRegularExpression entry(
+            QStringLiteral("QT_TRANSLATE_NOOP\\(\"actions-objet\", \"((?:[^\"\\\\]|\\\\.)*)\"\\)"));
+        QSet<QString> extracted;
+        for (auto it = entry.globalMatch(QString::fromUtf8(src.readAll())); it.hasNext();) {
+            extracted.insert(it.next().captured(1).replace(QStringLiteral("\\\""), QStringLiteral("\"")));
+        }
+        QFile data(root + QStringLiteral("/actions/data/object-actions.json"));
+        QVERIFY(data.open(QIODevice::ReadOnly));
+        QSet<QString> labels;
+        const QRegularExpression label(QStringLiteral("\"label\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\""));
+        for (auto it = label.globalMatch(QString::fromUtf8(data.readAll())); it.hasNext();) {
+            labels.insert(it.next().captured(1));
+        }
+        QVERIFY(labels.size() > 40);
+        QStringList missing = (labels - extracted).values();
+        QStringList stale = (extracted - labels).values();
+        missing.sort();
+        stale.sort();
+        QVERIFY2(missing.isEmpty(),
+                 qPrintable(QStringLiteral("absents : ") + missing.join(QStringLiteral(" | "))));
+        QVERIFY2(stale.isEmpty(),
+                 qPrintable(QStringLiteral("périmés : ") + stale.join(QStringLiteral(" | "))));
     }
 
     // L11-C11 (L) : le navigateur d'actions montre le libellé traduit, contexte « actions-objet ».

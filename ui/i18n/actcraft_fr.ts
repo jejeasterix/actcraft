@@ -4553,8 +4553,8 @@
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="313"/>
-        <source>Outil formes</source>
-        <translation>Outil formes</translation>
+        <source>Formes</source>
+        <translation>Formes</translation>
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="314"/>
@@ -4668,13 +4668,13 @@
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="336"/>
-        <source>Nouveau paperboard</source>
-        <translation>Nouveau paperboard</translation>
+        <source>Créer un paperboard</source>
+        <translation>Créer un paperboard</translation>
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="337"/>
-        <source>Nouveau paperboard à la taille de l&apos;écran</source>
-        <translation>Nouveau paperboard à la taille de l&apos;écran</translation>
+        <source>Paperboard à la taille de l&apos;écran</source>
+        <translation>Paperboard à la taille de l&apos;écran</translation>
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="338"/>
@@ -5671,8 +5671,8 @@
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="77"/>
-        <source>Origine XY</source>
-        <translation>Origine XY</translation>
+        <source>Repère XY</source>
+        <translation>Repère XY</translation>
     </message>
     <message>
         <location filename="../src/commandlabels.cpp" line="78"/>

@@ -1,0 +1,98 @@
+{
+  "machine": "pc",
+  "app": "actcraft.exe",
+  "lancement": "C:\\Users\\JeromeDenis\\ActCraft\\.worktrees\\lot11-pc\\build\\debug\\actcraft.exe",
+  "appTestLocale": {
+    "chemin": "C:\\Users\\JeromeDenis\\ActCraft\\.worktrees\\lot11-pc\\build\\debug"
+  },
+  "accords": [],
+  "nom": "actcraft-imprimer-contraste",
+  "but": "S17 et contraste des libellés de PrintSetupDialog, à l'écran en Direct3D 11, sur un document neuf",
+  "etapes": [
+    {
+      "id": "lancer",
+      "faire": "lancer"
+    },
+    {
+      "id": "document-neuf",
+      "faire": "verifier",
+      "cible": {
+        "role": "window",
+        "nom": "Sans titre",
+        "exact": false
+      },
+      "present": true,
+      "prouve": "le scénario part d'un document neuf"
+    },
+    {
+      "id": "rendu-d3d11",
+      "faire": "verifier",
+      "cible": {
+        "role": "window",
+        "nom": "rendu : Direct3D 11",
+        "exact": false
+      },
+      "present": true,
+      "prouve": "la fenêtre est rendue par Direct3D 11 (titre de la fenêtre)"
+    },
+    {
+      "id": "menu-fichier",
+      "faire": "cliquer",
+      "cible": {
+        "role": "button",
+        "nom": "Fichier"
+      }
+    },
+    {
+      "id": "imprimer",
+      "faire": "cliquer",
+      "cible": {
+        "role": "menuitem",
+        "nom": "Imprimer…"
+      }
+    },
+    {
+      "id": "boite-ouverte",
+      "faire": "verifier",
+      "cible": {
+        "role": "statictext",
+        "nom": "Pages par feuille : lignes"
+      },
+      "present": true,
+      "prouve": "la boîte de réglage de l'impression (S17) est ouverte"
+    },
+    {
+      "id": "libelle-imprimante",
+      "faire": "verifier",
+      "cible": {
+        "role": "statictext",
+        "nom": "Imprimante"
+      },
+      "present": true,
+      "prouve": "le libellé Imprimante est affiché (contraste lu sur la capture)"
+    },
+    {
+      "id": "boite-impression",
+      "faire": "capturer"
+    },
+    {
+      "id": "fermer-boite",
+      "faire": "touche",
+      "touches": "escape"
+    },
+    {
+      "id": "boite-fermee",
+      "faire": "verifier",
+      "cible": {
+        "role": "statictext",
+        "nom": "Pages par feuille : lignes"
+      },
+      "absent": true,
+      "prouve": "Échap ferme la boîte sans imprimer"
+    },
+    {
+      "id": "quitter",
+      "faire": "fermer"
+    }
+  ]
+}

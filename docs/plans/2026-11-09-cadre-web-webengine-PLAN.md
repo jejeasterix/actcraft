@@ -2262,7 +2262,7 @@ Dans la classe de tests :
         QVERIFY(lastAs<core::ImageObject>(controller) != nullptr);
     }
 
-    void webDropOfDataUrlDecodesInPlace()
+    void webDropOfDataUrlDecodesOnTheSpot()
     {
         ui::DocumentController controller;
         controller.newDocument(1024, 768);

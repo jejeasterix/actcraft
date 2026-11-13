@@ -105,6 +105,19 @@ const std::vector<std::pair<const char*, const char*>> kTable = {
     {"tool.reveal-ink", "Ctrl+Shift+M"},
     {"link.file", "Ctrl+L"},
     {"record.sound", "Ctrl+Shift+R"},
+    // L11-T23-PC : touches de F-950 à F-952 relevées au PC, pour les commandes qui existent. Sans commande :
+    // F3, F8, Ctrl+U, Ctrl+Maj+Q ; F12 (site du projet) reste libre (tst_actions_layout, lot 6). Ctrl+Q et
+    // Ctrl+Maj+S restent à quitter et à enregistrer sous (usage du système), pas à la question et aux formes.
+    {"users.dual", "F4"},
+    {"browser.properties", "F9"},
+    {"browser.actions", "F10"},
+    {"profile.edit", "Ctrl+J"},
+    {"arrange.back", "Ctrl+Shift+B"},
+    {"tool.camera-screen", "Ctrl+Shift+D"},
+    {"arrange.front", "Ctrl+Shift+F"},
+    {"browser.notes", "Ctrl+Shift+N"},
+    {"arrange.forward", "Ctrl+Shift+V"},
+    {"arrange.backward", "Ctrl+Shift+W"},
 };
 
 // Écrit en français dans la page d'aide : « Maj », « Échap », « Suppr ».
@@ -188,6 +201,59 @@ private slots:
             ++played;
         }
         QVERIFY(played > 40);
+    }
+
+    // Le navigateur de pages garde Ctrl+X, C, V et D (couper, copier, coller, dupliquer des pages), pas leurs
+    // formes avec Maj (retourner, connecteur, avancer d'un cran, capture de l'écran). Ancien patron (Ctrl
+    // seul testé, Maj ignorée) : quand les miniatures avaient le focus, ces quatre raccourcis agissaient sur
+    // les pages (relecture des restes PC du lot 11 ; Ctrl+Maj+V et D ajoutés par L11-T23-PC).
+    void pageNavigatorKeepsOnlyItsOwnKeys()
+    {
+        Shell s;
+        QVERIFY(start(s));
+        QStringList fired;
+        const QList<std::pair<QString, QString>> shifted = {
+            {QStringLiteral("Ctrl+Shift+X"), QStringLiteral("transform.flip-x")},
+            {QStringLiteral("Ctrl+Shift+C"), QStringLiteral("tool.connector")},
+            {QStringLiteral("Ctrl+Shift+V"), QStringLiteral("arrange.forward")},
+            {QStringLiteral("Ctrl+Shift+D"), QStringLiteral("tool.camera-screen")}};
+        const QList<std::pair<QString, QString>> plain = {
+            {QStringLiteral("Ctrl+X"), QStringLiteral("edit.cut")},
+            {QStringLiteral("Ctrl+C"), QStringLiteral("edit.copy")},
+            {QStringLiteral("Ctrl+V"), QStringLiteral("edit.paste")},
+            {QStringLiteral("Ctrl+D"), QStringLiteral("edit.duplicate")}};
+        QStringList watched;
+        for (const auto& [keys, command] : plain) {
+            watched << command;
+        }
+        for (const auto& [keys, command] : shifted) {
+            watched << command;
+        }
+        for (const QString& command : watched) {
+            s.commands->setNativeHandler(command, [&fired, command](const QVariant&) { fired << command; });
+            s.commands->setEnabled(command, true);
+        }
+        QVERIFY(s.commands->trigger(QStringLiteral("view.browsers")));
+        auto* navigator = s.window->findChild<QQuickItem*>(QStringLiteral("pageNavigator"));
+        QVERIFY(navigator);
+        QTRY_VERIFY(navigator->isVisible());
+        for (const auto& [keys, command] : shifted) {
+            navigator->forceActiveFocus();
+            QTRY_VERIFY(navigator->hasActiveFocus());
+            fired.clear();
+            QTest::keySequence(s.window, QKeySequence(keys));
+            QTRY_COMPARE(fired, QStringList{command});
+        }
+        // Contrôle : Ctrl+X, C, V et D restent au navigateur (pages), pas aux commandes de la fenêtre.
+        for (const auto& [keys, command] : plain) {
+            navigator->forceActiveFocus();
+            QTRY_VERIFY(navigator->hasActiveFocus());
+            fired.clear();
+            QTest::keySequence(s.window, QKeySequence(keys));
+            QTest::qWait(200);
+            QVERIFY2(fired.isEmpty(),
+                     qPrintable(keys + QStringLiteral(" -> ") + fired.join(QLatin1Char(','))));
+        }
     }
 
     // Une touche seule (Suppr) appartient au champ de texte quand il a le focus : l'objet reste.
