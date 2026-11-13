@@ -60,6 +60,30 @@ Limites connues :
 - Android (`WebFrameSystemView.qml`) reçoit la même base, non essayé sur un appareil ; l'identifiant Android est
   `io.github.jejeasterix.actcraft`.
 
+## HTML lourd : correctif non étendu, hypothèse (reste d'OA92, OB25)
+
+Cas lu le 2026-11-13, non corrigé. Un HTML saisi dont l'adresse `data:` encodée dépasse la limite de `loadHtml`
+(`kLoadHtmlLimit`, 2 000 000 caractères, `ui/src/webframeitem.cpp`) est écrit dans un fichier temporaire
+(`writeHeavyHtml`) ; la vue le charge par `web.url = contentFile` (`ui/qml/WebFrameEngineView.qml`, `load()`), sans
+`loadHtml`. La page a l'origine `file:` : la base `viewBase` ne s'applique pas, et une page `file:` n'envoie aucun
+`Referer`. `finishDirect` donne bien l'identité à `viewBase`, mais la vue ne la lit pas quand `contentFile` est posé.
+
+Pourquoi le correctif ne s'étend pas simplement : la base de `loadHtml` est le seul moyen actuel de donner une origine
+https à un HTML saisi, et `loadHtml` passe par l'adresse `data:` bornée. Les autres moyens changent l'architecture :
+
+- un schéma propre (`QWebEngineUrlScheme`, déclaré avant l'application) servirait le fichier, mais son origine serait
+  `actcraft…:`, pas une adresse `https` comme le demande YouTube ;
+- Qt WebEngine refuse un gestionnaire de schéma pour `https` : servir le fichier sous `https://org.actcraft.actcraft/`
+  n'est pas possible par cette voie ;
+- Android (`WebFrameSystemView.qml`) charge par le navigateur du système, sans intercepteur.
+
+Hypothèse à essayer, PC et Mac seulement : un `QWebEngineUrlRequestInterceptor` sur le profil par défaut (gardes
+coupées) pose `Referer: https://org.actcraft.actcraft/` sur les requêtes `youtube.com/embed/` et
+`youtube-nocookie.com/embed/` dont `firstPartyUrl` est un fichier `file:` du dossier des pages lourdes. Non vérifié : le
+lecteur lit peut-être aussi `document.referrer` ou l'origine du parent, que l'en-tête ne change pas. Preuve à faire
+avec le harnais ci-dessus (lignes `REQ` et `ETAT`), sur un HTML de plus de 2 Mo qui intègre le lecteur. Cas rare : un
+code « Intégrer » pèse quelques centaines d'octets ; une page dépasse 2 Mo surtout par des images incluses.
+
 ## Essai réel, dans l'application
 
 ```sh

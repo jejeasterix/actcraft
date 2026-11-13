@@ -17,6 +17,8 @@ class AppInfo : public QObject
     Q_PROPERTY(QString licenseName READ licenseName CONSTANT)
     Q_PROPERTY(QString projectUrl READ projectUrl CONSTANT)
     Q_PROPERTY(QString notices READ notices CONSTANT)
+    Q_PROPERTY(QString copyright READ copyright CONSTANT)
+    Q_PROPERTY(QString licenseText READ licenseText CONSTANT)
 
 public:
     explicit AppInfo(QObject* parent = nullptr);
@@ -26,6 +28,10 @@ public:
     QString projectUrl() const;  // page du projet (F-760 : l'aide est la page du projet)
     // THIRD_PARTY_NOTICES.md, intégré aux ressources (:/actcraft/THIRD_PARTY_NOTICES.md).
     QString notices() const;
+    // Mentions légales de la GPLv3 (§ 0, § 5 d) : titulaire des droits, texte de la licence
+    // (:/actcraft/LICENSES/GPL-3.0-only.txt, le même que LICENSE).
+    QString copyright() const;
+    QString licenseText() const;
 };
 
 } // namespace actcraft::ui
