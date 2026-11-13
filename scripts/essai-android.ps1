@@ -168,11 +168,16 @@ foreach ($coin in $coins) {
 }
 Write-Output 'rectangles : entiers (coins opposés à la diagonale)'
 
-# Trait d'un doigt au milieu de la page (blanche avant le trait).
+# Trait d'un doigt au milieu de la page (blanche avant le trait). Témoin : un point de la page sur la même ligne, hors
+# du trait (0,65 L, 256 px après sa fin, page de x = 347 à 1956), blanc avant et après le glissement. Sans lui, une
+# capture toute noire passerait pour un trait.
 $y = [int]($hauteur * 0.5)
 $x0 = [int]($largeur * 0.30); $x1 = [int]($largeur * 0.55); $xm = [int](($x0 + $x1) / 2)
+$xTemoin = [int]($largeur * 0.65)
 $blanc = Pixel $avant $xm $y
 if (-not (Proche $blanc @(255, 255, 255) 12)) { Echec "page non blanche avant le trait (lu $($blanc -join ' '))" }
+$temoin = Pixel $avant $xTemoin $y
+if (-not (Proche $temoin @(255, 255, 255) 12)) { Echec "témoin ($xTemoin, $y) non blanc avant le trait (lu $($temoin -join ' '))" }
 $null = Adb 30 shell input swipe $x0 $y $x1 $y 600
 if ($LASTEXITCODE -ne 0) { Echec 'glissement du doigt refusé' }
 # Même attente bornée que pour la palette : sous charge, le trait peut s'afficher plus de 2 s après le glissement.
@@ -181,10 +186,12 @@ do {
     Start-Sleep -Seconds 2
     $apres = Capture 'apres'
     $trait = Pixel $apres $xm $y
+    $temoin = Pixel $apres $xTemoin $y
     $traitVu = $trait[0] -lt 100 -and $trait[1] -lt 100 -and $trait[2] -lt 100
 } while (-not $traitVu -and (Get-Date) -lt $limiteTrait)
-Write-Output "trait : lu $($trait -join ' ')"
+Write-Output "trait : lu $($trait -join ' ') ; témoin ($xTemoin, $y) : lu $($temoin -join ' ')"
 if (-not $traitVu) { Echec 'trait absent après le glissement' }
+if (-not (Proche $temoin @(255, 255, 255) 12)) { Echec "témoin ($xTemoin, $y) non blanc après le trait (lu $($temoin -join ' ')) : capture noire ?" }
 if ("$(Adb 30 shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus a redémarré ou s''est arrêté' }
 } catch {
     # Refus du module commun : sa raison telle quelle (mêmes messages qu'avant l'extraction) ; le reste est imprévu,

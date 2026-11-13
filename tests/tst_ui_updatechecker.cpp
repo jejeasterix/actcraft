@@ -117,6 +117,7 @@ private slots:
     void failureReported();
     void remoteOverrideRefused();
     void startCalledOnceByTheShell();
+    void bannerShownOnlyForANewVersionAtStart_data();
     void bannerShownOnlyForANewVersionAtStart();
     void updateBannerTextAfterStartupDiscovery();
     void updateBannerKeepsDiscoveryDuringManualCheck();
@@ -435,56 +436,40 @@ void TstUiUpdatechecker::startCalledOnceByTheShell()
     }
 }
 
+// Une ligne par fenêtre principale chargée : QTest arme sa limite de 300 s par ligne de données. Les quatre
+// chargements dans une seule fonction en prenaient plus de 300 s sous Windows (run 43141999645, « Test
+// function timed out » au quatrième).
+void TstUiUpdatechecker::bannerShownOnlyForANewVersionAtStart_data()
+{
+    QTest::addColumn<QByteArray>("url");
+    QTest::addColumn<bool>("atStart");
+    QTest::addColumn<UpdateChecker::State>("expected");
+    QTest::addColumn<bool>("bannerShown");
+    QTest::newRow("nouvelle version")
+        << fileUrl(data("newer.json")) << true << UpdateChecker::State::Available << true;
+    QTest::newRow("à jour") << fileUrl(data("prerelease.json")) << true << UpdateChecker::State::UpToDate
+                            << false;
+    QTest::newRow("erreur") << fileUrl(m_settings.filePath(QStringLiteral("absent.json"))) << true
+                            << UpdateChecker::State::Failed << false;
+    QTest::newRow("réglage faux") << fileUrl(data("newer.json")) << false << UpdateChecker::State::Idle
+                                  << false;
+}
+
 // L11-C17 (L11-T22) : la recherche du démarrage n'ouvre jamais la boîte modale ; le bandeau non modal
 // (bannerShown) n'apparaît que pour une nouvelle version (ni à jour, ni en erreur, ni quand le réglage est
 // faux).
 void TstUiUpdatechecker::bannerShownOnlyForANewVersionAtStart()
 {
-    struct Case
-    {
-        QByteArray url;
-        UpdateChecker::State expected;
-        bool bannerShown;
-    };
-    const QList<Case> cases{
-        {fileUrl(data("newer.json")), UpdateChecker::State::Available, true},
-        {fileUrl(data("prerelease.json")), UpdateChecker::State::UpToDate, false},
-        {fileUrl(m_settings.filePath(QStringLiteral("absent.json"))), UpdateChecker::State::Failed, false},
-    };
-    for (const Case& c : cases) {
-        qputenv(kVariable, c.url);
-        {
-            QSettings settings;
-            settings.setValue(QStringLiteral("updates/check-at-start"), true);
-            settings.sync();
-        }
-        QTemporaryDir profiles;
-        QVERIFY(profiles.isValid());
-        QQmlApplicationEngine engine;
-        StartupOptions options;
-        options.profileRoot = profiles.path();
-        QQuickWindow* window = loadMainWindow(engine, options);
-        QVERIFY(window);
-        auto* checker = window->findChild<UpdateChecker*>(QStringLiteral("appUpdates"));
-        auto* dialog = window->findChild<QObject*>(QStringLiteral("updateDialog"));
-        auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
-        QVERIFY(checker && dialog && banner);
-        QTRY_COMPARE(checker->state(), c.expected);
-        QCoreApplication::processEvents();
-        if (c.bannerShown)
-            QTRY_VERIFY(banner->property("visible").toBool());
-        else
-            QVERIFY(!banner->property("visible").toBool());
-        QTest::qWait(50);
-        QVERIFY(!dialog->property("visible").toBool()); // jamais de boîte au démarrage
-    }
-    // Réglage faux : aucune requête, aucune boîte.
+    QFETCH(QByteArray, url);
+    QFETCH(bool, atStart);
+    QFETCH(UpdateChecker::State, expected);
+    QFETCH(bool, bannerShown);
+    qputenv(kVariable, url);
     {
         QSettings settings;
-        settings.setValue(QStringLiteral("updates/check-at-start"), false);
+        settings.setValue(QStringLiteral("updates/check-at-start"), atStart);
         settings.sync();
     }
-    qputenv(kVariable, fileUrl(data("newer.json")));
     QTemporaryDir profiles;
     QVERIFY(profiles.isValid());
     QQmlApplicationEngine engine;
@@ -492,12 +477,25 @@ void TstUiUpdatechecker::bannerShownOnlyForANewVersionAtStart()
     options.profileRoot = profiles.path();
     QQuickWindow* window = loadMainWindow(engine, options);
     QVERIFY(window);
+    auto* checker = window->findChild<UpdateChecker*>(QStringLiteral("appUpdates"));
     auto* dialog = window->findChild<QObject*>(QStringLiteral("updateDialog"));
     auto* banner = window->findChild<QObject*>(QStringLiteral("updateBanner"));
-    QVERIFY(dialog && banner);
-    QTest::qWait(100);
-    QVERIFY(!dialog->property("visible").toBool());
-    QVERIFY(!banner->property("visible").toBool());
+    QVERIFY(checker && dialog && banner);
+    if (atStart) {
+        QTRY_COMPARE(checker->state(), expected);
+    } else {
+        // Réglage faux : aucune requête, donc aucune réponse qui ouvrirait le bandeau ou la boîte.
+        QCOMPARE(checker->requestCount(), 0);
+        QCOMPARE(checker->state(), expected);
+    }
+    QCoreApplication::processEvents();
+    if (bannerShown)
+        QTRY_VERIFY(banner->property("visible").toBool());
+    else
+        QVERIFY(!banner->property("visible").toBool());
+    QTest::qWait(50);
+    QVERIFY(!dialog->property("visible").toBool()); // jamais de boîte au démarrage
+    QCOMPARE(checker->requestCount(), atStart ? 1 : 0);
 }
 
 void TstUiUpdatechecker::enableCheckAtStart(const QByteArray& url) const

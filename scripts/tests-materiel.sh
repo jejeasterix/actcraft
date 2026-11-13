@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Tests au label ctest « materiel » sur un Mac réel : ceux qui exigent une vraie machine (sortie audio de
-# tst_media_player, cadence d'encodage de tst_media_displayrecorder, toucher sur la fenêtre du clavier de
-# tst_ui_keyboard) et que le job macOS de la CI, sur une machine de GitHub, exclut (-LE materiel). Porte avant
-# chaque release (docs/tests-materiel.md). Preset debug, Qt de ACTCRAFT_QT_DIR ou, à défaut, de Homebrew ; seuls les
-# exécutables de ces tests sont compilés (un test ctest peut viser un exécutable commun : tst_ui_keyboard → tst_ui_lot7).
+# tst_media_player, cadence d'encodage de tst_media_displayrecorder_framesAreCappedAtThirtyPerSecond) et que le job
+# macOS de la CI, sur une machine de GitHub, exclut (-LE materiel). Porte avant chaque release
+# (docs/tests-materiel.md). Preset debug, Qt de ACTCRAFT_QT_DIR ou, à défaut, de Homebrew ; seuls les exécutables de
+# ces tests sont compilés (plusieurs entrées ctest peuvent viser un même exécutable).
 # Usage : scripts/tests-materiel.sh
 # Dernière ligne et code : « TESTS MATERIEL OK : <n> test(s) » (0) ou « TESTS MATERIEL EN ECHEC : <raison> » (1).
 set -u

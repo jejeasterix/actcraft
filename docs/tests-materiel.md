@@ -6,20 +6,24 @@ pour un défaut du code. Ils portent le label ctest `materiel`.
 | Test | Exigence | Mesure sur macos-latest |
 |---|---|---|
 | `tst_media_player` | une sortie audio qui consomme le son | position restée à 0 dans 8 cas, sortie virtuelle BlackHole comprise (runs 43303503126, 43313320173) |
-| `tst_media_displayrecorder` (cas `framesAreCappedAtThirtyPerSecond`) | au moins une image encodée toutes les 60 ms | 21 à 23 images pour 1 550 ms, rendu sans RHI (run 43303503126) |
-| `tst_ui_inputpath` (cas `syntheticReleaseIsFiltered`, partie « doigt » : appui, déplacement, `TouchCancel`) | le trait du doigt annulé est versé | 1 objet au lieu de 2 (`tests/tst_ui_inputpath.cpp:386`), 2 fois sur 4 (rouge aux runs 43303503126 et 43333852627, vert aux runs 43313320173 et 43326876982), vert en relance directe ; vert 10 fois sur 10 sur le Mac mini |
-| `tst_ui_keyboard` (cas `keyboardWindowTakesEveryPointer(doigt)`, entrée ctest de l'exécutable `tst_ui_lot7`) | le toucher simulé arrive à la fenêtre du clavier | texte vide au lieu de « z », 2 fois sur 2 (runs 43313320173, 43326876982) ; vert 3 fois sur 3 sur le Mac mini (macOS 27.2, Qt de Homebrew) |
+| `tst_media_displayrecorder_framesAreCappedAtThirtyPerSecond` (seul cas de `tst_media_displayrecorder` déclaré à part) | au moins une image encodée toutes les 60 ms | 21 à 23 images pour 1 550 ms, rendu sans RHI (run 43303503126) |
 
-Cause des rouges de `tst_ui_keyboard` et de `tst_ui_inputpath`, à l'état d'**hypothèse** (non établie) : sur le macOS
-des machines de GitHub, avec le Qt officiel installé par aqt, le toucher simulé n'est pas livré de façon fiable (à une
-seconde fenêtre pour `tst_ui_keyboard`, toujours ; à la vue de la page pour `tst_ui_inputpath`, une fois sur deux). Reste à trouver la cause
-et à dire si elle touche le Qt officiel sur un vrai Mac ; pour `tst_ui_inputpath`, rendre aussi son attente
-déterministe. Les cas « souris » et « stylet » du même test sont verts.
+Le label porte sur une entrée ctest entière : ctest ne sait pas étiqueter un seul cas. Pour `tst_media_player`,
+l'entrée est tout l'exécutable. Pour `tst_media_displayrecorder`, le cas de la cadence a son entrée à lui ; les 13
+autres cas restent dans l'entrée `tst_media_displayrecorder`, jouée par le job macOS. L'entrée
+`tst_media_displayrecorder_functions` rougit si une fonction ajoutée au test n'est jouée par aucune des deux. Le Mac qui
+joue le script doit avoir une sortie audio active (haut-parleur intégré du Mac mini, par exemple).
 
-Le label porte sur une entrée ctest entière : ctest ne sait pas étiqueter un seul cas. Pour `tst_media_player` et
-`tst_media_displayrecorder`, l'entrée est tout l'exécutable ; pour `tst_ui_keyboard`, seule la classe du clavier
-de `tst_ui_lot7` (les 16 autres entrées de cet exécutable restent dans le job macOS). Le Mac qui joue le script doit avoir
-une sortie audio active (haut-parleur intégré du Mac mini, par exemple).
+## Sortis du label (OA90, 2026-11-13)
+
+Deux tests y sont entrés sur une hypothèse (« toucher simulé non livré sur le macOS de GitHub avec le Qt d'aqt »).
+L'hypothèse était fausse : les deux rouges venaient d'attentes fixes trop courtes ou trop longues pour une machine
+lente. Causes reproduites sur le Mac mini, corrigées, et les deux tests rendus au job macOS.
+
+| Test | Cause prouvée | Correctif |
+|---|---|---|
+| `tst_ui_inputpath` (`syntheticReleaseIsFiltered`, partie « doigt ») | Qt Quick retient un `TouchUpdate` jusqu'à l'image suivante. Le `TouchCancel` part droit à la vue, sans rien livrer avant lui. Si aucune image ne passe pendant l'attente fixe de 50 ms, la vue n'a jamais le déplacement : 1 objet au lieu de 2. Reproduit avec une attente de 1 ms. | attente de l'état : `pointerPosition` de la vue égal au point envoyé |
+| `tst_ui_keyboard` (`keyboardWindowTakesEveryPointer(doigt)`) | Le `TapHandler` d'une touche ne tape pas un appui tenu plus de 0,8 s (`longPressThreshold`). Le trait au doigt de `strokeAt` attend 50 ms 9 fois avant le relâché (8 étapes) : au moins 0,45 s, plus de 0,8 s sur une machine lente. Reproduit avec 85 ms par étape : texte vide au lieu de « z ». | `presentationharness::tapAt` : appui puis relâché, sans attente entre les deux |
 
 ## Où ils tournent
 

@@ -265,7 +265,7 @@ private slots:
         QVERIFY(window != main.window());
         const QPointF center = keyCenter(window, QStringLiteral("z"));
         QVERIFY2(!center.isNull(), "touche « z » absente ou hors de la fenêtre du clavier");
-        presentationharness::strokeAt(window, pointer, center, center);
+        presentationharness::tapAt(window, pointer, center);
         QTRY_COMPARE(textOf(field.get()), QStringLiteral("z"));
         QVERIFY(injected.isEmpty());
         QCOMPARE(QGuiApplication::focusObject(), field.get());

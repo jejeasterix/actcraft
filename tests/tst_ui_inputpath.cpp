@@ -377,10 +377,14 @@ private slots:
         QCOMPARE(f.fixed->objectCount(), 1);
         // Doigt terminé par l'annulation du système (finishTouchStroke). Amendé par L3-T13 (H3-17) : un
         // deuxième doigt abandonne désormais le trait sans le verser ; l'annulation le verse encore.
+        // L'annulation va droit à la vue, sans passer par la fenêtre : rien ne livre avant elle le
+        // déplacement que Qt Quick retient jusqu'à l'image suivante. On attend que la vue ait reçu chaque
+        // point. Une attente fixe d'une image (settleTouch) était parfois trop courte sur macos-latest : 1
+        // objet au lieu de 2, reproduit ici avec une attente de 1 ms.
         QTest::touchEvent(&f.window, m_screen).press(0, QPoint(300, 400));
-        settleTouch();
+        QTRY_COMPARE(f.view->pointerPosition(), QPointF(300, 400));
         QTest::touchEvent(&f.window, m_screen).move(0, QPoint(400, 400));
-        settleTouch();
+        QTRY_COMPARE(f.view->pointerPosition(), QPointF(400, 400));
         QTouchEvent cancel(QEvent::TouchCancel, m_screen);
         QCoreApplication::sendEvent(f.view, &cancel);
         QTRY_COMPARE(f.fixed->objectCount(), 2);

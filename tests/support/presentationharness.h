@@ -107,6 +107,30 @@ inline void strokeAt(QQuickWindow* window, Pointer pointer, QPointF from, QPoint
     QCoreApplication::processEvents();
 }
 
+// Appui puis relâché au même point, sans attente entre les deux. Un TapHandler ne tape pas un appui tenu plus
+// longtemps que son longPressThreshold (0,8 s par défaut) ; strokeAt au doigt attend une image entre deux
+// étapes, soit 9 attentes de 50 ms avant le relâché (8 étapes) : l'appui dure au moins 0,45 s, plus de 0,8 s
+// sur une machine lente (rouge de tst_ui_keyboard sur macos-latest, reproduit avec une attente de 85 ms par
+// étape).
+inline void tapAt(QQuickWindow* window, Pointer pointer, QPointF at)
+{
+    switch (pointer) {
+    case Pointer::Stylus:
+        sendTablet(window, QEvent::TabletPress, at);
+        sendTablet(window, QEvent::TabletRelease, at);
+        break;
+    case Pointer::Finger:
+        QTest::touchEvent(window, touchDevice()).press(0, at.toPoint());
+        QTest::touchEvent(window, touchDevice()).release(0, at.toPoint());
+        break;
+    case Pointer::Mouse:
+        QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, at.toPoint());
+        QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, at.toPoint());
+        break;
+    }
+    QCoreApplication::processEvents();
+}
+
 // Les délégués d'un Repeater n'ont pas toujours la fenêtre pour parent QObject : on suit l'arbre des éléments
 // (tests/tst_ui_shell.cpp, findItem).
 inline QQuickItem* findItem(QQuickItem* root, const QString& name)
