@@ -1,7 +1,9 @@
+#include "recognitioncontroller.h"
 #include "startup.h"
 #include "support/presentationharness.h"
 
 #include <actcraft/core/model.h>
+#include <actcraft/features/handwriting.h>
 #include <actcraft/input/routing.h>
 #include <actcraft/input/sample.h>
 #include <actcraft/input/touchmodes.h>
@@ -100,6 +102,28 @@ public:
         return decision;
     }
 };
+
+// Reconnaisseur d'écriture factice : toujours disponible, ne lit rien. Il suffit à atteindre la branche des
+// traits en attente de convertToText, que le reconnaisseur de la plateforme ferme hors Windows.
+class SilentRecognizer final : public features::HandwritingRecognizer
+{
+public:
+    bool available() const override { return true; }
+    QString status() const override { return QStringLiteral("Reconnaisseur muet"); }
+    QStringList recognize(const features::InkStrokes&) override { return {}; }
+};
+
+// Cercle fermé de 41 points, en pixels de page.
+core::Stroke circleStroke(QPointF centre, double radius)
+{
+    core::Stroke stroke;
+    stroke.baseWidth = 6;
+    for (int i = 0; i <= 40; ++i) {
+        const double a = 2 * 3.14159265358979 * i / 40;
+        stroke.points.push_back({centre.x() + radius * std::cos(a), centre.y() + radius * std::sin(a), 0.5f});
+    }
+    return stroke;
+}
 
 } // namespace
 
@@ -1164,6 +1188,74 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!app.tools->usableSelection().empty(), 3000);
         QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
         QTRY_VERIFY_WITH_TIMEOUT(kindShown() != core::ObjectKind::Stroke, 3000);
+    }
+
+    // Relecture de la PR 31 (mineur 3) : toute la sélection du premier est tenue par le second. La conversion
+    // a posteriori ne fait rien ; elle ne se rabat pas sur les traits en attente, que le premier n'a pas
+    // désignés. Ancien patron (sélection utilisable vide = aucune sélection) : le cercle B en attente devient
+    // une ellipse, puis l'écriture vide la session.
+    void heldSelectionLeavesPendingStrokes()
+    {
+        App app;
+        QVERIFY(start(app));
+        app.tools->setDualUsers(true);
+        app.view->setRoutingPolicy(std::make_unique<input::TwoUserPolicy>(QRectF(0, 0, 500, 5000)));
+        auto* document = app.window->findChild<ui::DocumentController*>(QStringLiteral("documentController"));
+        auto* recognition = app.window->findChild<ui::RecognitionController*>(QStringLiteral("recognition"));
+        QVERIFY(document);
+        QVERIFY(recognition);
+        recognition->setHandwritingFactoryForTest([] { return std::make_unique<SilentRecognizer>(); });
+        QTRY_VERIFY_WITH_TIMEOUT(recognition->handwritingAvailable(), 10000);
+        std::int64_t now = 0;
+        recognition->setClock([&now] { return now; }); // l'horloge reste figée : B ne part jamais seul
+        const auto shapes = [document] {
+            const auto& objects =
+                document->document().page(static_cast<std::size_t>(document->currentIndex())).objects;
+            return std::count_if(objects.begin(), objects.end(), [](const core::PageObject& object) {
+                return core::kindOf(object) == core::ObjectKind::Shape;
+            });
+        };
+        // A au stylet du premier, mode fermé : jamais en attente ; le stylet retenu range l'autre au second.
+        app.tools->setWidth(20);
+        tablet(app, m_stylus11.get(), QEvent::TabletPress, QPointF(400, 300));
+        for (int i = 1; i <= 40; ++i) {
+            const double a = 2 * 3.14159265358979 * i / 40;
+            tablet(app, m_stylus11.get(), QEvent::TabletMove,
+                   QPointF(300 + 100 * std::cos(a), 300 + 100 * std::sin(a)));
+        }
+        tablet(app, m_stylus11.get(), QEvent::TabletRelease, QPointF(400, 300));
+        QTRY_COMPARE_WITH_TIMEOUT(app.fixed->objectCount(), 1, 3000);
+        app.tools->selectAll();
+        QCOMPARE(app.tools->selectionCount(), 1);
+        recognition->setShapeMode(true);
+        document->commitStroke(circleStroke({1000, 500}, 60)); // B, en attente, hors de la sélection
+        QCOMPARE(recognition->pendingCount(), 1);
+        QCOMPARE(app.tools->selectionCount(), 1);
+        app.tools->activateFor(QStringLiteral("select"), 1);
+        tablet(app, m_stylus22.get(), QEvent::TabletPress, QPointF(400, 300)); // le second tient A
+        QTRY_VERIFY_WITH_TIMEOUT(app.tools->usableSelection().empty(), 3000);
+        QCOMPARE(app.tools->selectionCount(), 1);
+        QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
+        QCoreApplication::processEvents();
+        QCOMPARE(shapes(), 0);
+        QCOMPARE(recognition->pendingCount(), 1);
+        // Directement : la commande d'écriture suit la disponibilité de la plateforme, fermée hors Windows.
+        recognition->convertToText();
+        QCoreApplication::processEvents();
+        QCOMPARE(recognition->pendingCount(), 1);
+        tablet(app, m_stylus22.get(), QEvent::TabletRelease, QPointF(400, 300));
+        // Témoin : sans sélection du tout, la même commande convertit bien B en attente.
+        app.tools->clearSelection();
+        QCOMPARE(app.tools->selectionCount(), 0);
+        QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
+        QTRY_COMPARE_WITH_TIMEOUT(shapes(), 1, 3000);
+        QCOMPARE(recognition->pendingCount(), 0);
+        // Témoin de l'écriture : sans sélection, le trait C en attente part au reconnaisseur et quitte la
+        // session.
+        document->commitStroke(circleStroke({1000, 900}, 60));
+        QCOMPARE(recognition->pendingCount(), 1);
+        recognition->convertToText();
+        QCOMPARE(recognition->pendingCount(), 0);
     }
 
     // L11-C10 (J3) : une commande lancée par un outil du second utilisateur part en son nom ; un gestionnaire

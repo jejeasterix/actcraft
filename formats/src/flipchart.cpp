@@ -497,7 +497,7 @@ private:
         return key;
     }
 
-    // Réglages de présentation de la page (L7-T6) : distance du rideau, cadre du spot, origine XY, lus tels
+    // Réglages de présentation de la page (L7-T6) : distance du rideau, cadre du spot, repère XY, lus tels
     // quels ; une valeur non finie est ignorée avec un avertissement. Les propriétés codées ne sont pas lues
     // (flipchartids.h, H7-16).
     void readPresentation(const StreamObject& page, const QString& where, core::PagePresentation& out)
@@ -522,7 +522,7 @@ private:
                 out.hasOrigin = true;
                 out.origin = *o;
             } else {
-                warn(u"%1 : origine XY invalide, ignorée"_s.arg(where));
+                warn(u"%1 : repère XY invalide, ignoré"_s.arg(where));
             }
         }
     }

@@ -231,6 +231,13 @@ std::vector<core::ObjectId> RecognitionController::selectedObjects() const
     return m_tools ? m_tools->usableSelection() : std::vector<core::ObjectId>{};
 }
 
+// La sélection désignée est entièrement tenue par l'autre : une conversion a posteriori ne fait rien. Elle ne
+// se rabat pas sur les traits en attente, que l'utilisateur n'a pas désignés (relecture de la PR 31).
+bool RecognitionController::selectionAllHeld() const
+{
+    return m_tools && selectedObjects().empty() && m_tools->selectionCount() > 0;
+}
+
 bool RecognitionController::shapeMode() const noexcept
 {
     return m_shapeMode;
@@ -478,7 +485,9 @@ void RecognitionController::convertToShape()
     // sont pas gardent leur délai.
     const std::vector<core::ObjectId> selected = selectedObjects();
     if (selected.empty()) {
-        convertPending();
+        if (!selectionAllHeld()) {
+            convertPending();
+        }
         return;
     }
     forgetPending(selected);
@@ -492,6 +501,9 @@ void RecognitionController::convertToText()
     }
     std::vector<core::ObjectId> strokes = selectedObjects(); // a posteriori (F-295), quel que soit le mode
     if (strokes.empty()) {
+        if (selectionAllHeld()) {
+            return;
+        }
         strokes = m_session.pending();
         if (strokes.empty()) {
             return;

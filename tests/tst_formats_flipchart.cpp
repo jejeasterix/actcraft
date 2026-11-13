@@ -383,7 +383,7 @@ private slots:
         QVERIFY(core::hasUniqueIds(r.document));
     }
 
-    // Réglages de présentation de la page (L7-T6) : distance du rideau (13), cadre du spot (18), origine XY
+    // Réglages de présentation de la page (L7-T6) : distance du rideau (13), cadre du spot (18), repère XY
     // (29), lus tels quels ; une page qui ne les porte pas garde les défauts ; une valeur non finie est
     // ignorée avec un avertissement. Les propriétés codées ne sont pas lues : outil, rideau, spot et effet
     // gardent leurs défauts.
@@ -412,7 +412,7 @@ private slots:
         const QString warnings = r.warnings.join(u'\n');
         QVERIFY2(warnings.contains(u"distance du rideau invalide"_s), qPrintable(warnings));
         QVERIFY2(warnings.contains(u"cadre du spot invalide"_s), qPrintable(warnings));
-        QVERIFY2(warnings.contains(u"origine XY invalide"_s), qPrintable(warnings));
+        QVERIFY2(warnings.contains(u"repère XY invalide, ignoré"_s), qPrintable(warnings));
         const core::PagePresentation& p = r.document.page(0).presentation;
         QVERIFY(p.tools == core::PageToolsMode::Keep);
         QVERIFY(p.curtain == core::CurtainMode::Off);
