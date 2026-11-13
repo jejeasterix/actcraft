@@ -54,35 +54,42 @@ Limites connues :
 
 - un HTML qui intègre un lecteur YouTube ne lit plus ses ressources relatives au dossier du document ; une simple
   mention de l'adresse d'un lecteur dans le texte suffit à ce changement ;
-- un HTML au-delà de la limite de `loadHtml` (lu depuis un fichier `file:`) et un fichier local ouvert par son adresse
-  restent sans `Referer` ;
+- un fichier local ouvert par son adresse reste sans `Referer` ; un HTML au-delà de la limite de `loadHtml` est
+  corrigé sur PC et Mac (section suivante), pas sous Android ;
 - toutes les pages du lecteur partagent l'origine `https://org.actcraft.actcraft` dans le profil par défaut (éphémère) ;
 - Android (`WebFrameSystemView.qml`) reçoit la même base, non essayé sur un appareil ; l'identifiant Android est
   `io.github.jejeasterix.actcraft`.
 
-## HTML lourd : correctif non étendu, hypothèse (reste d'OA92, OB25)
+## HTML lourd : corrigé sur PC et Mac (OB52)
 
-Cas lu le 2026-11-13, non corrigé. Un HTML saisi dont l'adresse `data:` encodée dépasse la limite de `loadHtml`
-(`kLoadHtmlLimit`, 2 000 000 caractères, `ui/src/webframeitem.cpp`) est écrit dans un fichier temporaire
-(`writeHeavyHtml`) ; la vue le charge par `web.url = contentFile` (`ui/qml/WebFrameEngineView.qml`, `load()`), sans
-`loadHtml`. La page a l'origine `file:` : la base `viewBase` ne s'applique pas, et une page `file:` n'envoie aucun
-`Referer`. `finishDirect` donne bien l'identité à `viewBase`, mais la vue ne la lit pas quand `contentFile` est posé.
+Un HTML saisi dont l'adresse `data:` encodée dépasse la limite de `loadHtml` (`kLoadHtmlLimit`, 2 000 000
+caractères, `ui/src/webframeitem.cpp`) est écrit dans un fichier temporaire (`writeHeavyHtml`). Avant OB52, la vue
+le chargeait par `web.url = contentFile` : origine `file:`, aucun `Referer`, erreur 153. Le modèle donnait pourtant
+l'identité à `viewBase` (`finishDirect`), mais la vue ne la lisait pas quand `contentFile` était posé.
 
-Pourquoi le correctif ne s'étend pas simplement : la base de `loadHtml` est le seul moyen actuel de donner une origine
-https à un HTML saisi, et `loadHtml` passe par l'adresse `data:` bornée. Les autres moyens changent l'architecture :
+Correctif, dans la vue seule (`ui/qml/WebFrameEngineView.qml`) : quand `contentFile` est posé avec une base `https`
+(gardes coupées), `loadHtml` charge une page d'amorce de cette base, puis le HTML y est écrit
+(`document.open`, `document.write`, `document.close`, par `runJavaScript`). La page garde l'origine
+`https://org.actcraft.actcraft`. `pageLoaded` part après l'écriture ; `reload()` réécrit le HTML au lieu de recharger
+l'amorce. L'amorce n'est pas vide : `loadHtml("", base)` charge l'adresse de base elle-même (« site inaccessible »).
 
-- un schéma propre (`QWebEngineUrlScheme`, déclaré avant l'application) servirait le fichier, mais son origine serait
-  `actcraft…:`, pas une adresse `https` comme le demande YouTube ;
-- Qt WebEngine refuse un gestionnaire de schéma pour `https` : servir le fichier sous `https://org.actcraft.actcraft/`
-  n'est pas possible par cette voie ;
-- Android (`WebFrameSystemView.qml`) charge par le navigateur du système, sans intercepteur.
+Piste écartée : un `QWebEngineUrlRequestInterceptor` qui pose `Referer`. Il marche (lecture vue au harnais), mais il
+demande de lier Qt WebEngine à l'application, alors que le QML le charge seulement au premier cadre (DA2).
 
-Hypothèse à essayer, PC et Mac seulement : un `QWebEngineUrlRequestInterceptor` sur le profil par défaut (gardes
-coupées) pose `Referer: https://org.actcraft.actcraft/` sur les requêtes `youtube.com/embed/` et
-`youtube-nocookie.com/embed/` dont `firstPartyUrl` est un fichier `file:` du dossier des pages lourdes. Non vérifié : le
-lecteur lit peut-être aussi `document.referrer` ou l'origine du parent, que l'en-tête ne change pas. Preuve à faire
-avec le harnais ci-dessus (lignes `REQ` et `ETAT`), sur un HTML de plus de 2 Mo qui intègre le lecteur. Cas rare : un
-code « Intégrer » pèse quelques centaines d'octets ; une page dépasse 2 Mo surtout par des images incluses.
+Relevé du 2026-11-13, harnais : la vraie vue `WebFrameEngineView.qml`, fichier de 2,5 Mo avec une iframe
+`youtube-nocookie.com/embed/M7lc1UVf-VE?autoplay=1&mute=1`, base `https://org.actcraft.actcraft/`, capture à 15 s.
+
+```
+avant : REQ …/embed/M7lc1UVf-VE…  firstParty=file:///…/cadre-lourd.html   (aucun Referer)  → capture : Erreur 153
+après : REQ …/embed/M7lc1UVf-VE…  firstParty=https://org.actcraft.actcraft/
+          H Referer: https://org.actcraft.actcraft/                                       → capture : vidéo lue, sous-titres
+```
+
+Part déterministe, dans la CI : `tst_ui_webengine` (`heavyPlayerHtmlKeepsTheIdentityOrigin` : HTML de 3 Mo par
+`contentFile`, origine `https://org.actcraft.actcraft` et contenu entier, avant et après un rechargement).
+
+Limites : Android (`WebFrameSystemView.qml`) charge encore le fichier, sans `Referer`. Une page lourde du lecteur ne
+lit pas ses ressources relatives au dossier du document, comme une page moyenne du lecteur.
 
 ## Essai réel, dans l'application
 

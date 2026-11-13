@@ -322,6 +322,32 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), QStringLiteral("GROS"), 10000);
     }
 
+    // OB52, erreur 153 : un HTML lourd qui intègre le lecteur YouTube garde l'origine https de l'identité (le
+    // Referer de l'iframe /embed/), pas celle du fichier ; un rechargement la garde. Sans réseau : l'adresse
+    // du lecteur n'est qu'une chaîne, elle suffit à la détection.
+    void heavyPlayerHtmlKeepsTheIdentityOrigin()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        QVERIFY(host.frames->insertFrame(
+            QStringLiteral("<body><p id=a>") + QString(3 * 1024 * 1024, u'a') +
+                QStringLiteral(
+                    "</p><script>var player='https://www.youtube-nocookie.com/embed/x';document.title="
+                    "location.origin+' '+document.getElementById('a').textContent.length</script>"),
+            {}));
+        QTRY_COMPARE_WITH_TIMEOUT(host.layer->property("loadedViews").toInt(), 1, kLoadMs);
+        QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        QQuickItem* web = findItem(host.root.get(), QStringLiteral("webFrameEngine"));
+        QVERIFY(view && web);
+        QVERIFY(!view->property("contentFile").toUrl().isEmpty()); // le chemin lourd, pas loadHtml
+        const QString expected = QStringLiteral("https://org.actcraft.actcraft %1").arg(3 * 1024 * 1024);
+        QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), expected, 10000);
+        QSignalSpy loaded(view, SIGNAL(pageLoaded()));
+        host.frames->reload(0);
+        QTRY_COMPARE_WITH_TIMEOUT(loaded.count(), 1, kLoadMs);
+        QTRY_COMPARE_WITH_TIMEOUT(web->property("title").toString(), expected, 10000);
+    }
+
     // S3 : un cookie posé dans le document A est absent du document B, gardes allumées. Le cookie vient de la
     // réponse du document principal : en sous-ressource d'un document sans base, Chromium le traiterait comme
     // SameSite=Lax et ne le stockerait pas. La couche ne donne pas d'adresse à la vue gardes allumées : deux

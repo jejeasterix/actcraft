@@ -21,18 +21,37 @@ Item {
     signal navigationTaken(url pageUrl)
     signal pageLoaded()
 
+    // OB52, erreur 153 : un HTML lourd (contentFile) de base https (identité du lecteur YouTube) ne se lit pas
+    // en file:, qui n'envoie aucun Referer. Une page d'amorce vide prend la base, puis le HTML y est écrit
+    // (document.write) : la page garde l'origine https.
+    property bool _writePending: false
+    function _writesUnderBase() {
+        return !guardsEnabled && contentFile.toString() !== "" && baseUrl.toString().startsWith("https:")
+    }
+
     function load() {
-        if (directUrl.toString() !== "")
+        _writePending = false
+        if (directUrl.toString() !== "") {
             web.url = directUrl
-        else if (contentFile.toString() !== "")
+        } else if (_writesUnderBase()) {
+            _writePending = true
+            web.loadHtml("<!DOCTYPE html>", baseUrl) // vide, loadHtml chargerait la base elle-même
+        } else if (contentFile.toString() !== "") {
             web.url = contentFile
-        else
+        } else {
             web.loadHtml(html, guardsEnabled ? "" : baseUrl)
+        }
     }
     function stop() { web.stop() }
     function goBack() { web.goBack() }
     function goForward() { web.goForward() }
-    function reload() { web.reload() }
+    // Recharger la page d'amorce l'effacerait : le HTML lourd est réécrit.
+    function reload() {
+        if (_writesUnderBase() && web.url.toString() === baseUrl.toString())
+            load()
+        else
+            web.reload()
+    }
     function capture(callback) {
         if (!web.grabToImage(function (result) { callback(result.image) }))
             callback(null)
@@ -74,8 +93,15 @@ Item {
         onLoadingChanged: function (info) {
             if (root.guardsEnabled && info.status === WebEngineView.LoadStartedStatus)
                 root.navigationTaken(info.url)
-            if (info.status === WebEngineView.LoadSucceededStatus)
+            if (info.status === WebEngineView.LoadSucceededStatus && root._writePending) {
+                root._writePending = false
+                web.runJavaScript("document.open();document.write(" + JSON.stringify(root.html) + ");document.close()",
+                                  function () { root.pageLoaded() })
+            } else if (info.status === WebEngineView.LoadSucceededStatus) {
                 root.pageLoaded()
+            } else if (info.status !== WebEngineView.LoadStartedStatus) {
+                root._writePending = false
+            }
             root._report()
         }
     }
