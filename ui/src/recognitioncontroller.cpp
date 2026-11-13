@@ -231,8 +231,8 @@ std::vector<core::ObjectId> RecognitionController::selectedObjects() const
     return m_tools ? m_tools->usableSelection() : std::vector<core::ObjectId>{};
 }
 
-// La sélection désignée est entière tenue par l'autre : une conversion a posteriori ne fait rien. Elle ne se
-// rabat pas sur les traits en attente, que l'utilisateur n'a pas désignés (relecture de la PR 31).
+// La sélection désignée est entièrement tenue par l'autre : une conversion a posteriori ne fait rien. Elle ne
+// se rabat pas sur les traits en attente, que l'utilisateur n'a pas désignés (relecture de la PR 31).
 bool RecognitionController::selectionAllHeld() const
 {
     return m_tools && selectedObjects().empty() && m_tools->selectionCount() > 0;

@@ -114,10 +114,12 @@ public:
     // Les traits en attente sont reconnus tout de suite, sans le délai, selon le mode ouvert.
     Q_INVOKABLE void convertPending();
     // recognition.convert-to-shape : les annotations sélectionnées deviennent des formes, mode fermé ou non,
-    // en une étape ; sans sélection, les traits en attente (convertPending).
+    // en une étape ; sans sélection, les traits en attente (convertPending) ; une sélection toute tenue par
+    // l'autre utilisateur ne convertit rien.
     Q_INVOKABLE void convertToShape();
     // recognition.convert-to-text : les annotations sélectionnées sont lues comme de l'écriture et
-    // deviennent un texte, en une étape ; sans sélection, les traits en attente. Rien sans reconnaisseur.
+    // deviennent un texte, en une étape ; sans sélection, les traits en attente. Rien sans reconnaisseur, ni
+    // pour une sélection toute tenue par l'autre utilisateur.
     Q_INVOKABLE void convertToText();
 
 signals:

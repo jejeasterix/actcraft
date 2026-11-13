@@ -1250,6 +1250,12 @@ private slots:
         QVERIFY(app.tools->commands()->trigger(QStringLiteral("recognition.convert-to-shape")));
         QTRY_COMPARE_WITH_TIMEOUT(shapes(), 1, 3000);
         QCOMPARE(recognition->pendingCount(), 0);
+        // Témoin de l'écriture : sans sélection, le trait C en attente part au reconnaisseur et quitte la
+        // session.
+        document->commitStroke(circleStroke({1000, 900}, 60));
+        QCOMPARE(recognition->pendingCount(), 1);
+        recognition->convertToText();
+        QCOMPARE(recognition->pendingCount(), 0);
     }
 
     // L11-C10 (J3) : une commande lancée par un outil du second utilisateur part en son nom ; un gestionnaire
