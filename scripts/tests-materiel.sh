@@ -21,10 +21,22 @@ echo "Commit : $(git rev-parse HEAD) ; macOS $(sw_vers -productVersion) ; Qt : $
 cmake --preset debug > /dev/null || echec "configuration CMake"
 tests=$(ctest --preset debug -L materiel -N | sed -n 's/^ *Test *#[0-9]*: *\([^ ]*\).*/\1/p')
 [ -n "$tests" ] || echec "aucun test au label materiel"
-# Cibles : nom de fichier du premier élément de la commande de chaque test (json-v1 de ctest).
-cibles=$(ctest --preset debug -L materiel --show-only=json-v1 |
-  python3 -I -c 'import json, os, sys; print(" ".join(sorted({os.path.basename(t["command"][0]) for t in json.load(sys.stdin)["tests"]})))') ||
-  echec "commandes des tests illisibles (ctest --show-only=json-v1)"
+# Cibles : nom de fichier de l'exécutable de chaque test, lu dans `ctest -N -V`. Exécutable déjà construit : premier
+# mot de « Test command: » ; pas encore construit : ctest l'écrit dans « Could not find executable <chemin> » juste
+# avant, et « Test command: » ne porte plus que les arguments (le JSON de ctest n'a alors pas de commande du tout).
+cibles=$(ctest --preset debug -L materiel -N -V 2>&1 | python3 -I -c '
+import os, re, sys
+manquant, cibles = None, set()
+for ligne in sys.stdin:
+    m = re.match(r"Could not find executable (\S+)", ligne)
+    if m:
+        manquant = m.group(1)
+        continue
+    m = re.match(r"\d+: Test command: *(.*)$", ligne)
+    if m:
+        cibles.add(os.path.basename(manquant or m.group(1).split()[0].strip("\"")))
+        manquant = None
+print(" ".join(sorted(cibles)))') || echec "commandes des tests illisibles (ctest -N -V)"
 [ -n "$cibles" ] || echec "aucune cible pour les tests au label materiel"
 echo "Tests : $(echo $tests) ; cibles : $cibles"
 # shellcheck disable=SC2086 # $cibles : un nom de cible par exécutable

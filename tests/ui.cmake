@@ -65,6 +65,11 @@ actcraft_add_test(tst_ui_tools
 actcraft_add_test(tst_ui_inputpath
     SOURCES tst_ui_inputpath.cpp
     LIBS ActCraft::ui Qt6::Quick actcraft_uiplugin)
+# Label « materiel » : syntheticReleaseIsFiltered, partie « doigt » (appui, déplacement, TouchCancel), rouge 2 fois sur 4
+# sur macos-latest (runs 43303503126, 43333852627, tests/tst_ui_inputpath.cpp:386), vert en relance directe. Même
+# hypothèse que tst_ui_keyboard (docs/tests-materiel.md) : toucher simulé sur le macOS de GitHub avec le Qt d'aqt.
+# Exclu du job macOS de GitHub, joué sous Windows en CI et sur un Mac réel par scripts/tests-materiel.sh.
+set_tests_properties(tst_ui_inputpath PROPERTIES LABELS materiel)
 
 actcraft_add_test(tst_ui_shapes
     SOURCES tst_ui_shapes.cpp
