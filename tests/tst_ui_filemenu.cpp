@@ -58,6 +58,15 @@ bool ready(Shell& s)
     return QTest::qWaitFor([&] { return s.fixed->isReady() && s.view->cacheReady(); }, 10000);
 }
 
+// Fin d'une ouverture lancée : la lecture tourne sur le pool global, vidé ici sans limite de temps (la limite
+// de QTest par fonction reste la garde), puis sa fin arrive en file au fil principal. Une attente de 10 s sur
+// le signal rougissait quand la machine était chargée.
+bool openFinished(const QSignalSpy& loaded, int count)
+{
+    QThreadPool::globalInstance()->waitForDone();
+    return QTest::qWaitFor([&] { return loaded.count() == count; });
+}
+
 bool start(Shell& s)
 {
     StartupOptions options;
@@ -349,17 +358,17 @@ private slots:
         QVERIFY(writeTwoPages(path));
         QSignalSpy loaded(doc, &ui::DocumentController::loadFinished);
         QVERIFY(run(s, QStringLiteral("file.open"), path)); // vierge : remplacé dans son onglet
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(openFinished(loaded, 1));
         QCOMPARE(tabs->rowCount(), 1);
         QCOMPARE(doc->pageCount(), 2);
         QVERIFY(run(s, QStringLiteral("file.open"), path)); // document avec fichier : un onglet
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(openFinished(loaded, 2));
         QCOMPARE(tabs->rowCount(), 2);
         QCOMPARE(tabs->currentIndex(), 1);
         QVERIFY(run(s, QStringLiteral("page.insert-after")));
         QVERIFY(doc->isModified());
         QVERIFY(run(s, QStringLiteral("file.open"), path)); // modifié : un onglet, sans demande
-        QVERIFY(loaded.wait(10000));
+        QVERIFY(openFinished(loaded, 3));
         QVERIFY(!dialogVisible(s, "saveChangesDialog"));
         QCOMPARE(tabs->rowCount(), 3);
         QVERIFY(tabs->data(tabs->index(1), ui::DocumentTabs::ModifiedRole).toBool());

@@ -42,11 +42,6 @@ foreach(_key IN LISTS _lot7_ui_keys)
     actcraft_register_test(tst_ui_${_key} tst_ui_lot7 ${_key})
     set_tests_properties(tst_ui_${_key} PROPERTIES ENVIRONMENT "${_lot7_env}")
 endforeach()
-# Label « materiel » sur la seule entrée tst_ui_keyboard : le cas keyboardWindowTakesEveryPointer(doigt) est rouge
-# 2 fois sur 2 sur macos-latest (runs 43313320173, 43326876982) et vert 3 fois sur 3 sur un vrai Mac. Hypothèse, non
-# établie : le toucher simulé n'arrive pas à la seconde fenêtre (celle du clavier) sur le macOS de GitHub avec le Qt
-# d'aqt. Exclu du job macOS de GitHub, joué sous Windows en CI et sur un Mac réel par scripts/tests-materiel.sh.
-set_tests_properties(tst_ui_keyboard PROPERTIES LABELS materiel)
 # Passe Windows du lot 7 : liste des fenêtres du bureau en pixels logiques avec un rapport de pixels de 2
 # (camera_win.cpp, toQtPixels). Une entrée de plus que le compte figé ci-dessus (N = N_F + 30).
 if(WIN32)
