@@ -1,5 +1,6 @@
-# Hunspell 1.7.2 (correcteur orthographique ; triple licence MPL 1.1 / GPL 2.0 / LGPL 2.1, option MPL 1.1 retenue,
-# décision H6-6b) : sources de src/hunspell/ telles que publiées, sans les outils ni les scripts du paquet.
+# Hunspell 1.7.2 (correcteur orthographique ; triple licence MPL 1.1 / GPL 2.0+ / LGPL 2.1+, option LGPL 2.1 ou
+# ultérieure retenue depuis le passage d'ActCraft en GPLv3, 2026-11-12, à la place de l'option MPL 1.1 de H6-6b) :
+# sources de src/hunspell/ telles que publiées, sans les outils ni les scripts du paquet.
 # Code tiers : ni clang-format (scripts/format.ps1 exclut third_party/), ni nos avertissements (cible hors
 # actcraft_set_warnings : niveau par défaut du compilateur, sans /W4 /WX).
 add_library(hunspell STATIC

@@ -38,9 +38,9 @@ q*.dll LGPL-3.0-only
 libplugins_*.so LGPL-3.0-only
 libqml_*.so LGPL-3.0-only
 
-# Android : bibliothèque C++ du NDK (libc++ de LLVM) et ActCraft lui-même (licence MIT, fichier LICENSE).
+# Android : bibliothèque C++ du NDK (libc++ de LLVM) et ActCraft lui-même (licence GPL v3, fichier LICENSE).
 libc++_shared.so Apache-2.0 WITH LLVM-exception
-libactcraft_*.so MIT
+libactcraft_*.so GPL-3.0-only
 
 # Paquet macOS (L11-T29m) : bibliothèques Homebrew copiées par macdeployqt (Contents/Frameworks), lues par
 # scripts/verifier-licences-mac.sh. Licence : champ « license » de la formule (brew info --json=v2), celle de la
