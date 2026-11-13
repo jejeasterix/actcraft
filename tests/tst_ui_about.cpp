@@ -93,6 +93,7 @@ private slots:
         QVERIFY2(legalText.contains(QStringLiteral("Copyright (C) 2026 Jérôme Denis")),
                  qPrintable(legalText));
         QVERIFY2(legalText.contains(QStringLiteral("sans aucune garantie")), qPrintable(legalText));
+        QVERIFY2(legalText.contains(QStringLiteral("redistribuer")), qPrintable(legalText));
         QVERIFY2(legalText.contains(QStringLiteral("GNU General Public License")), qPrintable(legalText));
 
         QObject* notices = dialog->findChild<QObject*>(QStringLiteral("aboutNotices"));

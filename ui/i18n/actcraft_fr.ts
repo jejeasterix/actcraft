@@ -4,22 +4,37 @@
 <context>
     <name>AboutDialog</name>
     <message>
-        <location filename="../qml/AboutDialog.qml" line="10"/>
+        <location filename="../qml/AboutDialog.qml" line="11"/>
         <source>À propos d&apos;ActCraft</source>
         <translation>À propos d&apos;ActCraft</translation>
     </message>
     <message>
-        <location filename="../qml/AboutDialog.qml" line="22"/>
+        <location filename="../qml/AboutDialog.qml" line="23"/>
         <source>ActCraft %1</source>
         <translation>ActCraft %1</translation>
     </message>
     <message>
-        <location filename="../qml/AboutDialog.qml" line="29"/>
+        <location filename="../qml/AboutDialog.qml" line="30"/>
         <source>Logiciel libre de tableau blanc interactif, sous licence %1.</source>
         <translation>Logiciel libre de tableau blanc interactif, sous licence %1.</translation>
     </message>
     <message>
-        <location filename="../qml/AboutDialog.qml" line="78"/>
+        <location filename="../qml/AboutDialog.qml" line="38"/>
+        <source>%1. Ce programme est fourni sans aucune garantie, dans la mesure permise par la loi. C&apos;est un logiciel libre : vous pouvez le redistribuer et le modifier selon les termes de la GNU General Public License version 3, que le bouton « Licence » affiche.</source>
+        <translation>%1. Ce programme est fourni sans aucune garantie, dans la mesure permise par la loi. C&apos;est un logiciel libre : vous pouvez le redistribuer et le modifier selon les termes de la GNU General Public License version 3, que le bouton « Licence » affiche.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AboutDialog.qml" line="92"/>
+        <source>Composants tiers</source>
+        <translation>Composants tiers</translation>
+    </message>
+    <message>
+        <location filename="../qml/AboutDialog.qml" line="92"/>
+        <source>Licence</source>
+        <translation>Licence</translation>
+    </message>
+    <message>
+        <location filename="../qml/AboutDialog.qml" line="97"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="141"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="150"/>
         <location filename="../../tests/tst_ui_pseudolocale.cpp" line="152"/>
