@@ -22,36 +22,78 @@ Item {
     signal pageLoaded()
 
     // OB52, erreur 153 : un HTML lourd (contentFile) de base https (identité du lecteur YouTube) ne se lit pas
-    // en file:, qui n'envoie aucun Referer. Une page d'amorce vide prend la base, puis le HTML y est écrit
-    // (document.write) : la page garde l'origine https.
-    property bool _writePending: false
+    // en file:, qui n'envoie aucun Referer. Une page d'amorce prend la base, puis le HTML y est écrit
+    // (document.write) : la page garde l'origine https. L'amorce porte un repère : tout chargement réussi qui la
+    // montre (load, rechargement du moteur ou de son menu, retour) la réécrit ; aucune autre page ne l'est.
+    // Écriture par morceaux, un par tour de boucle : d'un bloc, 25 Mo tiennent le fil 170 ms (Mac, OB52).
+    readonly property string _primer: "<!DOCTYPE html><html data-actcraft-primer></html>"
+    readonly property int _chunk: 524288
+    property int _written: 0
+    property string _token: ""
     function _writesUnderBase() {
         return !guardsEnabled && contentFile.toString() !== "" && baseUrl.toString().startsWith("https:")
     }
+    function _showsPrimer(pageUrl) {
+        const page = pageUrl.toString()
+        const hash = page.indexOf("#")
+        return _writesUnderBase() && (hash < 0 ? page : page.slice(0, hash)) === baseUrl.toString()
+    }
+    function _writePrimer() {
+        _token = Math.random().toString(36).slice(2)
+        _written = 0
+        web.runJavaScript("(function(){var r=document.documentElement;if(!r||!r.hasAttribute('data-actcraft-primer'))"
+                          + "return false;document.open();window.actcraftPrimer=" + JSON.stringify(_token)
+                          + ";return true})()",
+                          function (opened) {
+                              if (opened)
+                                  writer.start()
+                              else
+                                  root.pageLoaded()
+                          })
+    }
+    // Le jeton refuse d'écrire dans une page qui aurait remplacé l'amorce. Une paire de substitution coupée
+    // entre deux morceaux est recollée par l'analyseur (tst_ui_webengine).
+    function _writeNext() {
+        const end = Math.min(html.length, _written + _chunk)
+        const last = end === html.length
+        const piece = html.slice(_written, end)
+        _written = end
+        web.runJavaScript("(function(){if(window.actcraftPrimer!==" + JSON.stringify(_token) + ")return false;"
+                          + "document.write(" + JSON.stringify(piece) + ");"
+                          + (last ? "delete window.actcraftPrimer;document.close();" : "") + "return true})()",
+                          function (written) {
+                              if (written && last)
+                                  root._settle() // un script externe bloquant retarde la fin de l'analyse
+                          })
+        if (!last)
+            writer.start()
+    }
+    // pageLoaded après la fin de l'analyse du HTML écrit, comme le load d'une page chargée.
+    function _settle() {
+        web.runJavaScript("document.readyState", function (state) {
+            if (state === "complete")
+                root.pageLoaded()
+            else
+                settle.start()
+        })
+    }
 
     function load() {
-        _writePending = false
-        if (directUrl.toString() !== "") {
+        writer.stop() // l'écriture en cours visait l'ancien contenu
+        settle.stop()
+        if (directUrl.toString() !== "")
             web.url = directUrl
-        } else if (_writesUnderBase()) {
-            _writePending = true
-            web.loadHtml("<!DOCTYPE html>", baseUrl) // vide, loadHtml chargerait la base elle-même
-        } else if (contentFile.toString() !== "") {
+        else if (_writesUnderBase())
+            web.loadHtml(_primer, baseUrl) // non vide : loadHtml("", base) chargerait l'adresse de base
+        else if (contentFile.toString() !== "")
             web.url = contentFile
-        } else {
+        else
             web.loadHtml(html, guardsEnabled ? "" : baseUrl)
-        }
     }
     function stop() { web.stop() }
     function goBack() { web.goBack() }
     function goForward() { web.goForward() }
-    // Recharger la page d'amorce l'effacerait : le HTML lourd est réécrit.
-    function reload() {
-        if (_writesUnderBase() && web.url.toString() === baseUrl.toString())
-            load()
-        else
-            web.reload()
-    }
+    function reload() { web.reload() }
     function capture(callback) {
         if (!web.grabToImage(function (result) { callback(result.image) }))
             callback(null)
@@ -65,6 +107,17 @@ Item {
     Component {
         id: guardedProfile
         WebEngineProfilePrototype {}
+    }
+
+    Timer {
+        id: writer
+        interval: 0
+        onTriggered: root._writeNext()
+    }
+    Timer {
+        id: settle
+        interval: 50
+        onTriggered: root._settle()
     }
 
     WebEngineView {
@@ -93,14 +146,13 @@ Item {
         onLoadingChanged: function (info) {
             if (root.guardsEnabled && info.status === WebEngineView.LoadStartedStatus)
                 root.navigationTaken(info.url)
-            if (info.status === WebEngineView.LoadSucceededStatus && root._writePending) {
-                root._writePending = false
-                web.runJavaScript("document.open();document.write(" + JSON.stringify(root.html) + ");document.close()",
-                                  function () { root.pageLoaded() })
+            if (info.status === WebEngineView.LoadStartedStatus) {
+                writer.stop()
+                settle.stop()
+            } else if (info.status === WebEngineView.LoadSucceededStatus && root._showsPrimer(info.url)) {
+                root._writePrimer()
             } else if (info.status === WebEngineView.LoadSucceededStatus) {
                 root.pageLoaded()
-            } else if (info.status !== WebEngineView.LoadStartedStatus) {
-                root._writePending = false
             }
             root._report()
         }
