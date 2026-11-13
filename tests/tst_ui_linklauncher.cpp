@@ -43,6 +43,10 @@ class TstUiLinkLauncher : public QObject
     Q_OBJECT
     QList<QUrl> m_opened;
     UrlCatcher m_catcher;
+    // Dossier temporaire propre à ce processus : les tests lancés en parallèle (ctest -j) créent leurs
+    // propres dossiers actcraft-* dans le dossier temporaire commun, que extractionDirs() compterait (reste
+    // d'OA92).
+    std::unique_ptr<QTemporaryDir> m_tempRoot;
     void fake(LinkLauncher& l)
     {
         m_opened.clear();
@@ -70,6 +74,13 @@ class TstUiLinkLauncher : public QObject
 private slots:
     void initTestCase()
     {
+        m_tempRoot = std::make_unique<QTemporaryDir>();
+        QVERIFY(m_tempRoot->isValid());
+        // TMPDIR hors de Windows, TMP et TEMP sous Windows (GetTempPath2W) : lus par QDir::tempPath à chaque
+        // appel.
+        for (const char* name : {"TMPDIR", "TMP", "TEMP"})
+            qputenv(name, QFile::encodeName(m_tempRoot->path()));
+        QCOMPARE(QDir::cleanPath(tempRoot()), QDir::cleanPath(m_tempRoot->path()));
         for (const char* scheme : {"http", "https", "file"})
             QDesktopServices::setUrlHandler(QString::fromLatin1(scheme), &m_catcher, "got");
     }
