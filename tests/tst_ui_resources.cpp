@@ -219,6 +219,8 @@ private slots:
         ui::ResourceLibrary::setRenderObserverForTests({});
         ui::ResourceLibrary::setThumbnailReadObserverForTests({});
         ui::ResourceLibrary::setSearchObserverForTests({});
+        ui::ResourceLibrary::setListingObserverForTests({});
+        ui::ResourceLibrary::setFileEditRefusalForTests({});
         QMutexLocker lock(&g_threadsMutex);
         g_renderThreads.clear();
     }
@@ -423,6 +425,33 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(reading.load(), 1, 10000);
         QVERIFY(rename ? f.library.rename(a, QStringLiteral("b")) : f.library.remove(a));
         QVERIFY(!QFile::exists(a));
+    }
+
+    void folderEditsWaitForTheListing_data() { fileEditsWaitForTheThumbnailBeingRead_data(); }
+
+    // Le listage du dossier courant tient ses dossiers ouverts ; Windows refuse alors de renommer ou de
+    // supprimer un de ses parents. Refus simulé ici tant que le listage tourne : l'opération attend sa fin.
+    // Rouge sous Windows sans cette attente : 1 lancement de la CI sur 2 (run 43339518413).
+    void folderEditsWaitForTheListing()
+    {
+        QFETCH(bool, rename);
+        std::atomic<int> listing{0};
+        ui::ResourceLibrary::setListingObserverForTests([&listing] {
+            listing.fetch_add(1);
+            QThread::msleep(400);
+            listing.fetch_sub(1);
+        });
+        ui::ResourceLibrary::setFileEditRefusalForTests([&listing] { return listing.load() > 0; });
+        Fixture f;
+        QTRY_COMPARE_WITH_TIMEOUT(listing.load(), 0, 10000); // listage de l'ouverture fini
+        const QString w = QDir(f.mine).filePath(QStringLiteral("w"));
+        const QString inner = QDir(w).filePath(QStringLiteral("dedans"));
+        QVERIFY(QDir().mkpath(inner));
+        f.library.openFolder(inner);
+        QTRY_COMPARE_WITH_TIMEOUT(listing.load(), 1, 10000);
+        QVERIFY(rename ? f.library.rename(w, QStringLiteral("y")) : f.library.remove(w));
+        QVERIFY(!QFileInfo::exists(w));
+        QCOMPARE(f.library.folder(), f.mine);
     }
 
     void addSelectionCreatesTheNextName()

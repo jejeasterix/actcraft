@@ -121,13 +121,17 @@ public:
     static QString sharedRoot(); // <AppDataLocation>/ressources-partagees (réglable par le profil)
 
     // Essais : racines, corbeille (`fails` : moveToTrash simulé en échec), observateurs du rendu (fil de la
-    // tâche de vignette, à chaque rendu), de la lecture d'une image par cette tâche (fichier ouvert) et de la
-    // recherche (fil de la recherche, à chaque fichier visité).
+    // tâche de vignette, à chaque rendu), de la lecture d'une image par cette tâche (fichier ouvert), de la
+    // recherche (fil de la recherche, à chaque fichier visité) et du listage (fil du listage, dossiers
+    // ouverts) ; refus simulé d'un renommage ou d'une suppression (vrai : refusé, comme Windows quand un fil
+    // tient un descripteur).
     static void setRootPathsForTests(const QString& mine, const QString& shared);
     static void setTrashForTests(bool useTrash, bool fails = false);
     static void setRenderObserverForTests(std::function<void()> observer);
     static void setThumbnailReadObserverForTests(std::function<void()> observer);
     static void setSearchObserverForTests(std::function<void()> observer);
+    static void setListingObserverForTests(std::function<void()> observer);
+    static void setFileEditRefusalForTests(std::function<bool()> refused);
 
 signals:
     void documentChanged();
@@ -185,8 +189,9 @@ private:
     std::uint64_t m_thumbnailGeneration = 0; // une vignette d'éléments remplacés ne s'applique pas
     std::deque<Item> m_thumbnailQueue;       // demandes en attente : une à la fois, hors contact
     bool m_thumbnailInFlight = false;
-    Insertion m_insertion; // image : le chemin du dépôt sur la page (lot 5, A11)
-    QThreadPool m_pool;    // vignettes : à part, pour ne retarder ni la recherche ni l'insertion
+    Insertion m_insertion;     // image : le chemin du dépôt sur la page (lot 5, A11)
+    QThreadPool m_pool;        // vignettes : à part, pour ne retarder ni la recherche ni l'insertion
+    QThreadPool m_listingPool; // listages : à part, attendus par un renommage ou une suppression refusés
 };
 
 } // namespace actcraft::ui

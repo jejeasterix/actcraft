@@ -22,6 +22,7 @@
 #include <QtConcurrent>
 
 #include <algorithm>
+#include <initializer_list>
 #include <optional>
 #include <utility>
 
@@ -46,6 +47,8 @@ struct TestHooks
     std::function<void()> renderObserver;
     std::function<void()> thumbnailReadObserver;
     std::function<void()> searchObserver;
+    std::function<void()> listingObserver;
+    std::function<bool()> fileEditRefused;
 };
 
 TestHooks& hooks()
@@ -137,6 +140,7 @@ ListingJob listRoot(const QString& root, bool createRoot, const QString& folder)
     ListingJob listing;
     if (createRoot && !root.isEmpty())
         QDir().mkpath(root);
+    notify(&TestHooks::listingObserver); // les dossiers de la racine et le dossier courant vont être ouverts
     if (!root.isEmpty())
         listFolders(root, 0, listing.folders);
     for (const QFileInfo& info : QDir(folder).entryInfoList(QDir::Files, QDir::Name | QDir::IgnoreCase)) {
@@ -209,16 +213,31 @@ QImage imageThumbnail(const QString& path, int width)
     return reader.read();
 }
 
-// Windows refuse de renommer ou de supprimer un fichier ouvert, ce que fait la vignette en vol (une au plus).
-// L'opération est rejouée après sa fin, et le fil principal n'attend que dans ce cas.
-template <typename Edit> bool withFileReleased(QThreadPool& pool, const Edit& edit)
+// Essais : refus simulé de l'opération, comme Windows quand un fil tient un descripteur.
+bool editRefused()
 {
-    if (edit())
+    std::function<bool()> refused;
+    {
+        QMutexLocker lock(&hooks().observerMutex);
+        refused = hooks().fileEditRefused;
+    }
+    return refused && refused();
+}
+
+// Windows refuse de renommer ou de supprimer un fichier ouvert, ce que fait la vignette en vol (une au plus),
+// ou un dossier dont un fil tient un descendant ouvert, ce que fait le listage. L'opération est rejouée après
+// leur fin, et le fil principal n'attend que dans ce cas.
+template <typename Edit> bool withFileReleased(std::initializer_list<QThreadPool*> pools, const Edit& edit)
+{
+    const auto attempt = [&edit] { return !editRefused() && edit(); };
+    if (attempt())
         return true;
-    if (pool.activeThreadCount() == 0)
+    if (std::none_of(pools.begin(), pools.end(),
+                     [](const QThreadPool* pool) { return pool->activeThreadCount() > 0; }))
         return false;
-    pool.waitForDone();
-    return edit();
+    for (QThreadPool* pool : pools)
+        pool->waitForDone();
+    return attempt();
 }
 
 struct ThumbnailJob
@@ -551,6 +570,18 @@ void ResourceLibrary::setSearchObserverForTests(std::function<void()> observer)
     hooks().searchObserver = std::move(observer);
 }
 
+void ResourceLibrary::setListingObserverForTests(std::function<void()> observer)
+{
+    QMutexLocker lock(&hooks().observerMutex);
+    hooks().listingObserver = std::move(observer);
+}
+
+void ResourceLibrary::setFileEditRefusalForTests(std::function<bool()> refused)
+{
+    QMutexLocker lock(&hooks().observerMutex);
+    hooks().fileEditRefused = std::move(refused);
+}
+
 QString ResourceLibrary::rootPath(const QString& root) const
 {
     if (root == QLatin1String("mine"))
@@ -627,7 +658,7 @@ void ResourceLibrary::refresh()
         if (listing.itemsGeneration == m_itemsGeneration)
             setItems(std::move(listing.items));
     });
-    watcher->setFuture(QtConcurrent::run([root, createRoot, folder, items, tree] {
+    watcher->setFuture(QtConcurrent::run(&m_listingPool, [root, createRoot, folder, items, tree] {
         ListingJob listing = listRoot(root, createRoot, folder);
         listing.itemsGeneration = items;
         listing.treeGeneration = tree;
@@ -776,7 +807,7 @@ bool ResourceLibrary::rename(const QString& path, const QString& newName)
     const QString destination = info.dir().filePath(target);
     if (QFileInfo::exists(destination))
         return false;
-    const bool done = withFileReleased(m_pool, [&] {
+    const bool done = withFileReleased({&m_pool, &m_listingPool}, [&] {
         return info.isDir() ? QDir().rename(source, destination) : QFile::rename(source, destination);
     });
     if (done) {
@@ -794,7 +825,7 @@ bool ResourceLibrary::remove(const QString& path, bool permanently)
         !info.exists())
         return false;
     const bool toTrash = usesTrash() && !permanently;
-    const bool done = withFileReleased(m_pool, [&] {
+    const bool done = withFileReleased({&m_pool, &m_listingPool}, [&] {
         if (toTrash)
             return !hooks().trashFails && QFile::moveToTrash(target);
         return info.isDir() ? QDir(target).removeRecursively() : QFile::remove(target);
