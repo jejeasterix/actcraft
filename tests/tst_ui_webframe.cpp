@@ -151,6 +151,16 @@ private slots:
     void heavyWriteFailureShowsAMessage();
     void savingGivesTheResourceBase();
     void savingAsMovesTheResourceBase();
+    void ordinaryHtmlKeepsItsBase();
+    void youTubePlayerGetsTheIdentityInASavedDocument();
+    void playerIsFoundInTheHtml_data();
+    void playerIsFoundInTheHtml();
+    void mediumHtmlWithAPlayerGetsTheIdentity();
+    void youTubeEmbedAddressIsWrappedForTheIdentity();
+    void addressWithoutSchemeGetsAnHttpsPlayer();
+    void otherAddressesStayDirect();
+    void viewBaseIsEmptyGuardsOn();
+    void guardsOffGiveTheIdentityBack();
     void otherLocalFileIsANavigation();
     void refusedRowDropsItsHeavyFile();
     void refusedRedirectDropsTheHeavyFile_data();
@@ -1524,6 +1534,157 @@ void TstUiWebFrame::savingAsMovesTheResourceBase()
     QTRY_COMPARE(
         role(f.frames, 0, ui::WebFrameItems::BaseUrlRole).toUrl(),
         QUrl::fromLocalFile(QFileInfo(second.filePath(QStringLiteral("b.actcraft"))).absolutePath() + u'/'));
+}
+
+// OA92, erreur 153 : le lecteur intégré de YouTube exige un en-tête Referer https qui nomme l'application
+// (règle « Embedded player identification » de YouTube). Une page sans base ou de base file: n'en envoie
+// aucun.
+namespace {
+const QUrl kIdentity(QStringLiteral("https://org.actcraft.actcraft/"));
+const QString kPlayer = QStringLiteral("<iframe src=\"https://www.youtube.com/embed/M7lc1UVf-VE\"></iframe>");
+} // namespace
+
+// Un HTML ordinaire garde sa base (n° 11) : vide dans un document neuf, et la page part sans délai de
+// peinture.
+void TstUiWebFrame::ordinaryHtmlKeepsItsBase()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<p>a</p>"), {}));
+    QVERIFY(f.frames.insertFrame(kPlayer, {}));
+    QTRY_COMPARE(content(f.frames, 1), kPlayer);
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl().isEmpty());
+    QCOMPARE(role(f.frames, 1, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
+    QVERIFY(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl().isEmpty()); // titre : rien à nommer
+    QCOMPARE(role(f.frames, 1, ui::WebFrameItems::TitleRole).toString(), QStringLiteral("Cadre web"));
+}
+
+// Base du dossier gardée pour un HTML ordinaire (n° 11) ; un lecteur YouTube la cède à l'identité.
+void TstUiWebFrame::youTubePlayerGetsTheIdentityInASavedDocument()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(QStringLiteral("<img src=\"photo.png\">"), {}));
+    QVERIFY(f.frames.insertFrame(kPlayer, {}));
+    f.document.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+    QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
+    const QUrl folder =
+        QUrl::fromLocalFile(QFileInfo(dir.filePath(QStringLiteral("a.actcraft"))).absolutePath() + u'/');
+    QTRY_COMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), folder);
+    QCOMPARE(role(f.frames, 1, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
+    QCOMPARE(role(f.frames, 1, ui::WebFrameItems::BaseUrlRole).toUrl(), folder);
+    QCOMPARE(content(f.frames, 1), kPlayer); // rien n'est réécrit
+}
+
+void TstUiWebFrame::playerIsFoundInTheHtml_data()
+{
+    QTest::addColumn<QString>("html");
+    QTest::addColumn<bool>("player");
+    QTest::newRow("intégrer") << kPlayer << true;
+    QTest::newRow("sans cookie, majuscules")
+        << QStringLiteral("<iframe src='//WWW.YouTube-NoCookie.com/embed/x'></iframe>") << true;
+    QTest::newRow("api iframe") << QStringLiteral(
+                                       "<script src=\"https://www.youtube.com/iframe_api\"></script>")
+                                << true;
+    QTest::newRow("json") << QStringLiteral("{\"u\":\"https:\\/\\/www.youtube.com\\/embed\\/x\"}") << true;
+    QTest::newRow("liste") << QStringLiteral("<iframe src=\"https://youtube.com/embed?listType=playlist\">")
+                           << true;
+    QTest::newRow("autre hôte") << QStringLiteral("<iframe src=\"https://notyoutube.com/embed/x\"></iframe>")
+                                << false;
+    QTest::newRow("page de la vidéo")
+        << QStringLiteral("<a href=\"https://www.youtube.com/watch?v=x\">v</a>") << false;
+    QTest::newRow("embedded") << QStringLiteral("<p>youtube.com/embedded</p>") << false;
+}
+
+void TstUiWebFrame::playerIsFoundInTheHtml()
+{
+    QFETCH(QString, html);
+    QFETCH(bool, player);
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame(html, {}));
+    QTRY_COMPARE(content(f.frames, 0), html);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), player ? kIdentity : QUrl());
+}
+
+// Revue d'OA92 : au-delà du seuil du chemin court mais sous la limite de loadHtml, le HTML part à loadHtml
+// sans fichier ; la recherche du lecteur se fait aussi sur ce chemin.
+void TstUiWebFrame::mediumHtmlWithAPlayerGetsTheIdentity()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Fixture f(false);
+    f.document.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+    QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
+    const QString html = QString(300000, u'a') + kPlayer;
+    QVERIFY(f.frames.insertFrame(html, {}));
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool(), 60000);
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty());
+    QCOMPARE(content(f.frames, 0), html);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
+}
+
+// Adresse d'un lecteur : la vue ne pose pas d'en-tête ; une page d'une iframe, de base l'identité, l'envoie.
+void TstUiWebFrame::youTubeEmbedAddressIsWrappedForTheIdentity()
+{
+    const QString address =
+        QStringLiteral("https://www.youtube-nocookie.com/embed/M7lc1UVf-VE?start=3&t=\"x");
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame({}, address));
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::DirectUrlRole).toUrl().isEmpty());
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
+    const QString page = content(f.frames, 0);
+    QVERIFY2(page.contains(QStringLiteral("<iframe src=\"") +
+                           QUrl(address).toString(QUrl::FullyEncoded).toHtmlEscaped() + u'"'),
+             qPrintable(page));
+    QVERIFY(!page.contains(QStringLiteral("t=\"x")));
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ExternalUrlRole).toUrl(), QUrl(address));
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::TitleRole).toString(),
+             QStringLiteral("www.youtube-nocookie.com"));
+    // La vue rapporte l'adresse de l'identité : ni le titre ni « Ouvrir dans le navigateur » ne la montrent.
+    f.frames.reportView(0, kIdentity, false, false, QStringLiteral("org.actcraft.actcraft/"), false);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ExternalUrlRole).toUrl(), QUrl(address));
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::TitleRole).toString(),
+             QStringLiteral("www.youtube-nocookie.com"));
+}
+
+// Saisie sans schéma : fromUserInput donne http ; l'iframe passe en https (contenu mixte bloqué sinon).
+void TstUiWebFrame::addressWithoutSchemeGetsAnHttpsPlayer()
+{
+    Fixture f(false);
+    QVERIFY(f.frames.insertFrame({}, QStringLiteral("youtube.com/embed/M7lc1UVf-VE")));
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
+    QVERIFY2(content(f.frames, 0).contains(QStringLiteral("src=\"https://youtube.com/embed/M7lc1UVf-VE\"")),
+             qPrintable(content(f.frames, 0)));
+}
+
+void TstUiWebFrame::otherAddressesStayDirect()
+{
+    for (const QString& address : {QStringLiteral("https://www.youtube.com/watch?v=M7lc1UVf-VE"),
+                                   QStringLiteral("https://exemple.invalide/embed/x"),
+                                   QStringLiteral("ftp://www.youtube.com/embed/x")}) {
+        Fixture f(false);
+        QVERIFY(f.frames.insertFrame({}, address));
+        QCOMPARE(role(f.frames, 0, ui::WebFrameItems::DirectUrlRole).toUrl(), QUrl(address));
+        QVERIFY(content(f.frames, 0).isEmpty());
+    }
+}
+
+// Gardes allumées : JavaScript coupé, la vue charge sans base (n° 33) ; le modèle n'en donne aucune.
+void TstUiWebFrame::viewBaseIsEmptyGuardsOn()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(kPlayer, {}));
+    QTRY_VERIFY(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool());
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl().isEmpty());
+}
+
+void TstUiWebFrame::guardsOffGiveTheIdentityBack()
+{
+    Fixture f;
+    QVERIFY(f.frames.insertFrame(kPlayer, {}));
+    QTRY_VERIFY(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool());
+    f.frames.setGuardsEnabled(false);
+    QTRY_COMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
 }
 
 namespace {

@@ -127,6 +127,21 @@ private slots:
         QTRY_COMPARE(view->property("_loads").toInt(), 1);
     }
 
+    // OA92, erreur 153 : la vue reçoit la base de loadHtml du modèle (identité de l'application pour un
+    // lecteur YouTube), pas l'adresse du titre.
+    void viewBaseGoesToTheView()
+    {
+        WebFrameHost host;
+        QVERIFY(host.start());
+        host.useFakeView();
+        QVERIFY(host.frames->insertFrame(
+            QStringLiteral("<iframe src=\"https://www.youtube.com/embed/M7lc1UVf-VE\"></iframe>"), {}));
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(host.root.get(), QStringLiteral("webFrameView")), 5000);
+        QQuickItem* view = findItem(host.root.get(), QStringLiteral("webFrameView"));
+        QTRY_COMPARE(view->property("_loads").toInt(), 1);
+        QCOMPARE(view->property("baseUrl").toUrl(), QUrl(QStringLiteral("https://org.actcraft.actcraft/")));
+    }
+
     // OA27 : « Ouvrir dans le navigateur » est grisée sans adresse http(s), puis ouvre l'adresse du cadre
     // visé.
     void openExternalCommandFollowsTheFrameAddress()

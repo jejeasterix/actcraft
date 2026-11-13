@@ -53,6 +53,82 @@ constexpr qsizetype kLoadHtmlLimit = 2000000;
 // compter.
 constexpr qsizetype kSurelyShortHtml = kLoadHtmlLimit / 9;
 
+// OA92, erreur 153 : le lecteur intégré de YouTube veut un en-tête Referer https qui nomme l'application
+// (« Embedded player identification », exigences minimales de YouTube : la base de loadHtml le donne, valeur
+// https:// et identifiant de l'application en minuscules, stable d'une version à l'autre). Une page sans base
+// (about:blank, data:) ou de base file: n'envoie aucun Referer. Identifiant : MACOSX_BUNDLE_GUI_IDENTIFIER.
+// Réservée aux pages du lecteur : une page de base https peint plus tard qu'une page data: (nouveau processus
+// du moteur, mesuré au harnais : non peinte à 300 ms, peinte à 1 500 ms), et ses adresses relatives ne visent
+// plus le dossier du document (n° 11).
+const QUrl kPlayerIdentity(QStringLiteral("https://org.actcraft.actcraft/"));
+
+bool isPlayerIdentity(const QUrl& url)
+{
+    return url.scheme() == QLatin1String("https") && url.host() == kPlayerIdentity.host();
+}
+
+} // namespace
+
+// Adresse que nomment le titre et « Ouvrir dans le navigateur ». L'identité n'est pas une page : la vue qui
+// la rapporte montre le HTML saisi ou la page du lecteur.
+QUrl WebFrameItems::shownUrl(const Row& row) const
+{
+    if (row.blocked)
+        return row.pendingUrl;
+    const QUrl view = isPlayerIdentity(row.viewUrl) ? QUrl() : row.viewUrl;
+    return !m_guardsEnabled && view.isValid() ? view : row.baseUrl;
+}
+
+// Sans <title>, le moteur donne l'adresse pour titre : celle de l'identité ne nomme rien.
+bool WebFrameItems::namesThePlayerIdentity(const Row& row)
+{
+    return isPlayerIdentity(row.viewUrl) &&
+           (row.viewTitle.startsWith(kPlayerIdentity.host()) ||
+            row.viewTitle.startsWith(kPlayerIdentity.toString(QUrl::RemovePath)));
+}
+
+namespace {
+
+bool isYouTubeHost(const QString& host)
+{
+    const QString h = host.toLower();
+    for (const QLatin1String domain : {QLatin1String("youtube.com"), QLatin1String("youtube-nocookie.com")})
+        if (h == domain || h.endsWith(u'.' + domain))
+            return true;
+    return false;
+}
+
+bool isYouTubePlayer(const QUrl& url)
+{
+    const QString scheme = url.scheme().toLower();
+    return (scheme == QLatin1String("http") || scheme == QLatin1String("https")) &&
+           isYouTubeHost(url.host()) && url.path().startsWith(QLatin1String("/embed/"));
+}
+
+// Un HTML saisi qui intègre ce lecteur, rien n'est réécrit : code « Intégrer » (iframe /embed/, /embed?…),
+// API IFrame (iframe_api), adresse échappée en JSON (\/). L'hôte est précédé de « / » ou d'un sous-domaine
+// (« . ») : notyoutube.com ne compte pas. Une simple mention de l'adresse compte (faux positif accepté : la
+// page perd seulement ses adresses relatives au dossier).
+bool embedsYouTubePlayer(const QString& html)
+{
+    static const QRegularExpression player(
+        QStringLiteral(R"((?:^|[/.])youtube(?:-nocookie)?\.com\\?/(?:embed\b|iframe_api))"),
+        QRegularExpression::CaseInsensitiveOption);
+    return html.contains(player);
+}
+
+// Adresse d'un lecteur saisie seule : la vue ne pose pas d'en-tête, une page d'une iframe porte l'identité.
+// L'iframe est en https : une iframe http dans une page https serait bloquée (contenu mixte).
+QString playerPage(QUrl player)
+{
+    player.setScheme(QStringLiteral("https"));
+    return QStringLiteral("<!DOCTYPE html><html><head><style>html,body{margin:0;height:100%;overflow:hidden}"
+                          "iframe{display:block;border:0;width:100%;height:100%}</style></head><body>"
+                          "<iframe src=\"%1\" allow=\"autoplay; encrypted-media; picture-in-picture; "
+                          "fullscreen\" allowfullscreen></iframe></body></html>")
+        .arg(player.toString(QUrl::FullyEncoded).toHtmlEscaped());
+}
+
 // Fil secondaire seulement. Fichier écrit avec sa marque d'ordre : sans déclaration de charset, UTF-8 reste
 // lu comme tel.
 // `failed` : le contenu est lourd mais le fichier n'a pas pu être écrit en entier (disque plein, dossier
@@ -1440,6 +1516,12 @@ void WebFrameItems::showDirect(Row& row)
         releaseContentFile(row);
         row.directUrl = QUrl::fromUserInput(address);
         row.baseUrl = row.directUrl;
+        row.viewBase = QUrl();
+        if (isYouTubePlayer(row.directUrl)) {
+            row.content = playerPage(row.directUrl);
+            row.viewBase = kPlayerIdentity;
+            row.directUrl = QUrl();
+        }
         row.loading = false;
         ++row.serial;
         return;
@@ -1449,6 +1531,7 @@ void WebFrameItems::showDirect(Row& row)
         releaseContentFile(row);
         row.content = row.html;
         row.baseUrl = m_resourceBase;
+        row.viewBase = embedsYouTubePlayer(row.html) ? kPlayerIdentity : m_resourceBase;
         row.loading = false;
         ++row.serial;
         return;
@@ -1460,12 +1543,13 @@ void WebFrameItems::showDirect(Row& row)
     QThreadPool::globalInstance()->start([self, id = row.id, ticket, html = row.html, dir = heavyDir()] {
         bool failed = false;
         const QUrl file = writeHeavyHtml(html, dir, ticket, failed);
+        const bool player = embedsYouTubePlayer(html); // HTML moyen : sans fichier, il part à loadHtml
         if (QCoreApplication* home = QCoreApplication::instance()) {
             QMetaObject::invokeMethod(
                 home,
-                [self, id, ticket, file, failed] {
+                [self, id, ticket, file, failed, player] {
                     if (self)
-                        self->finishDirect(id, ticket, file, failed);
+                        self->finishDirect(id, ticket, file, failed, player);
                     else if (!file.isEmpty())
                         QFile::remove(file.toLocalFile());
                 },
@@ -1474,7 +1558,8 @@ void WebFrameItems::showDirect(Row& row)
     });
 }
 
-void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed)
+void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const QUrl& file, bool failed,
+                                 bool player)
 {
     const int index = rowOf(id);
     if (index < 0 || m_rows[index].preparing != ticket) {
@@ -1488,6 +1573,8 @@ void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const Q
     row.contentFile = file;
     row.content = failed ? messagePage(tr("Page trop lourde : le fichier n'a pas pu être écrit.")) : row.html;
     row.baseUrl = m_resourceBase;
+    // Au-delà de la limite de loadHtml, la vue lit le fichier (file:, sans Referer : limite connue).
+    row.viewBase = player && !failed ? kPlayerIdentity : m_resourceBase;
     row.loading = false;
     ++row.serial;
     rowChanged(index);
@@ -1757,11 +1844,9 @@ QVariant WebFrameItems::data(const QModelIndex& index, int role) const
     case BaseUrlRole:
         return row.baseUrl;
     case TitleRole: {
-        if (!m_guardsEnabled && !row.viewTitle.isEmpty())
+        if (!m_guardsEnabled && !row.viewTitle.isEmpty() && !namesThePlayerIdentity(row))
             return row.viewTitle;
-        const QUrl shown = row.blocked
-                               ? row.pendingUrl
-                               : (!m_guardsEnabled && row.viewUrl.isValid() ? row.viewUrl : row.baseUrl);
+        const QUrl shown = shownUrl(row);
         return shown.host().isEmpty() ? tr("Cadre web") : shown.host();
     }
     case CanGoBackRole:
@@ -1777,6 +1862,8 @@ QVariant WebFrameItems::data(const QModelIndex& index, int role) const
         return row.contentFile;
     case ExternalUrlRole:
         return externalUrlOf(row);
+    case ViewBaseRole:
+        return m_guardsEnabled ? QUrl() : row.viewBase;
     default:
         return {};
     }
@@ -1799,7 +1886,8 @@ QHash<int, QByteArray> WebFrameItems::roleNames() const
             {SerialRole, "serial"},
             {DirectUrlRole, "directUrl"},
             {ContentFileRole, "contentFile"},
-            {ExternalUrlRole, "externalUrl"}};
+            {ExternalUrlRole, "externalUrl"},
+            {ViewBaseRole, "viewBase"}};
 }
 
 namespace {
@@ -1813,8 +1901,7 @@ bool isWebAddress(const QUrl& url)
 
 QUrl WebFrameItems::externalUrlOf(const Row& row) const
 {
-    const QUrl shown = row.blocked ? row.pendingUrl
-                                   : (!m_guardsEnabled && row.viewUrl.isValid() ? row.viewUrl : row.baseUrl);
+    const QUrl shown = shownUrl(row);
     if (isWebAddress(shown))
         return shown.adjusted(QUrl::RemoveUserInfo);
     const QString typed = row.address.trimmed();
