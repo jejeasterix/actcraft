@@ -156,6 +156,7 @@ private slots:
     void playerIsFoundInTheHtml_data();
     void playerIsFoundInTheHtml();
     void mediumHtmlWithAPlayerGetsTheIdentity();
+    void heavyHtmlWithAPlayerKeepsTheWholeContent();
     void youTubeEmbedAddressIsWrappedForTheIdentity();
     void addressWithoutSchemeGetsAnHttpsPlayer();
     void otherAddressesStayDirect();
@@ -1620,6 +1621,24 @@ void TstUiWebFrame::mediumHtmlWithAPlayerGetsTheIdentity()
     QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool(), 60000);
     QVERIFY(role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().isEmpty());
     QCOMPARE(content(f.frames, 0), html);
+    QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
+}
+
+// OB58 : au-delà de la limite de loadHtml, le fichier sert à Qt WebEngine ; la vue Android ne lit que le
+// contenu et la base (WebFrameSystemView.qml, loadHtml vers loadDataWithBaseURL, sans limite de 2 Mo). Le
+// contenu reste donc le HTML entier, et la base l'identité.
+void TstUiWebFrame::heavyHtmlWithAPlayerKeepsTheWholeContent()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    Fixture f(false);
+    f.document.saveToUrl(QUrl::fromLocalFile(dir.filePath(QStringLiteral("a.actcraft"))));
+    QVERIFY(QTest::qWaitFor([&] { return !f.document.isBusy(); }, 10000));
+    const QString html = QString(3 * 1024 * 1024, u'a') + kPlayer;
+    QVERIFY(f.frames.insertFrame(html, {}));
+    QTRY_VERIFY_WITH_TIMEOUT(!role(f.frames, 0, ui::WebFrameItems::LoadingRole).toBool(), 60000);
+    QVERIFY(role(f.frames, 0, ui::WebFrameItems::ContentFileRole).toUrl().isLocalFile());
+    QVERIFY(content(f.frames, 0) == html);
     QCOMPARE(role(f.frames, 0, ui::WebFrameItems::ViewBaseRole).toUrl(), kIdentity);
 }
 
