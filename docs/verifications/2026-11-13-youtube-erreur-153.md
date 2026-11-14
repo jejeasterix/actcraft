@@ -154,7 +154,14 @@ toujours `file:` et `about:` dans le HTML réécrit, sous sa CSP. Gardes coupée
 (`allowFileAccess`), comme le HTML lourd lu en `file:` sur PC et Mac. Le HTML léger et moyen garde `loadData`.
 Avec correctif (run 43561222955, job `android`) : `html lourd : lu 0 200 83 ; 0 200 83 ; 0 200 83 ; pageLoaded : True`,
 puis `ANDROID OK`.
-Non essayé sur l'émulateur : un HTML lourd gardes allumées (`finishContent`).
+Gardes allumées (OB75), constat de lecture : le même correctif couvre `finishContent`. Le modèle écrit le fichier
+du HTML réécrit au-delà de la limite (`prepareContent`, même `writeHeavyHtml`) ; la vue ne donne jamais de base
+gardes allumées, donc `about:blank` ; `followLink` rend `about:blank` à la vue sans navigation. La page de l'essai
+portait son volume dans un commentaire, que la réécriture retire (490 caractères) : elle le porte maintenant dans un
+bloc caché (`tst_app_open`, `heavyHtmlProbePageStaysHeavyUnderGuards` : rouge avant, vert après). Essai sur
+l'émulateur : `debug.actcraft.essai=html-lourd-gardes` allume les gardes de la session seulement (réglage du profil
+non écrit) ; `scripts/essai-android.ps1` joue les deux passages et exige, pour chacun, les trois points verts et
+`pageLoaded`, et « POSE GARDES » au journal pour le second. Résultat : run de la PR, job `android`.
 
 ## Essai réel, dans l'application
 

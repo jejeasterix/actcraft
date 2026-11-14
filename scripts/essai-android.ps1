@@ -1,6 +1,7 @@
 # Essai de l'APK sur un émulateur déjà démarré (scénario S3) : installation, lancement, processus vivant après 10 s,
 # accueil ouvert au démarrage puis fermé d'un toucher, palette visible sur la capture, trait d'un doigt visible sur la
-# capture suivante ; puis relance en mode essai HTML lourd : cadre de HTML de plus de 3 Mo sans base, affiché (OB68).
+# capture suivante ; puis relances en mode essai HTML lourd : cadre de HTML de plus de 3 Mo sans base, affiché, gardes
+# coupées (OB68) puis allumées (OB75).
 # Usage : pwsh -NoProfile -File ./scripts/essai-android.ps1 -Apk <fichier.apk> [-Sortie <dossier>]
 # adb doit être dans le PATH (dev-env-android.ps1, ou l'émulateur de la CI). Captures sous -Sortie (.tmp/android).
 # Émulateur : -gpu host en local ; -gpu lavapipe sur un exécuteur sans GPU (CI) — SwiftShader rend faux (voir
@@ -194,56 +195,65 @@ if (-not $traitVu) { Echec 'trait absent après le glissement' }
 if (-not (Proche $temoin @(255, 255, 255) 12)) { Echec "témoin ($xTemoin, $y) non blanc après le trait (lu $($temoin -join ' ')) : capture noire ?" }
 if ("$(Adb 30 shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus a redémarré ou s''est arrêté' }
 
-# HTML lourd sans base (OB68, docs/verifications/2026-11-13-youtube-erreur-153.md) : relance en mode essai HTML lourd,
-# qui pose au démarrage un cadre de HTML saisi de plus de 3 Mo, sans lecteur, dans un document neuf (base vide),
-# gardes coupées (défaut). Sans base, QtWebView passe à loadData : adresse data: au-delà de la limite de 2 Mo de la
-# WebView, page vide. Repère : la page de l'essai est toute verte (#00c853, app/startup.cpp heavyHtmlProbePage) ;
-# trois points autour du centre de la page (centre du cadre, 640 × 400 points) doivent être verts.
+# HTML lourd sans base (OB68, OB75, docs/verifications/2026-11-13-youtube-erreur-153.md) : relance en mode essai
+# HTML lourd, qui pose au démarrage un cadre de HTML saisi de plus de 3 Mo, sans lecteur, dans un document neuf (base
+# vide). Deux passages : gardes coupées (« html-lourd », défaut), puis gardes allumées (« html-lourd-gardes » : le
+# modèle réécrit le HTML sous sa règle de sécurité, finishContent ; la vue ne donne jamais de base). Sans base,
+# QtWebView passe à loadData : adresse data: au-delà de la limite de 2 Mo de la WebView, page vide. Repère : la page
+# de l'essai est toute verte (#00c853, app/startup.cpp heavyHtmlProbePage) ; trois points autour du centre de la page
+# (centre du cadre, 640 × 400 points) doivent être verts, et la vue doit signaler sa page chargée (pageLoaded).
 # Qt ignore applicationArguments dans un APK non débogable : l'option passe par la propriété debug.actcraft.essai,
 # lue par app/main.cpp sous Android, puis remise à « aucun » sur tous les chemins (finally : exit l'exécute aussi),
 # sinon chaque lancement suivant, jusqu'au redémarrage de l'appareil, poserait le cadre.
-$null = Adb 30 shell am force-stop $paquet
-try {
-$null = Adb 30 shell setprop debug.actcraft.essai html-lourd
-if ($LASTEXITCODE -ne 0) { Echec "setprop debug.actcraft.essai refusé$(Get-ActCraftAdbErreur)" }
-$null = Adb 30 logcat -c
-$null = Adb 60 shell monkey -p $paquet -c android.intent.category.LAUNCHER 1
-if ($LASTEXITCODE -ne 0) { Echec "lancement de l'essai HTML lourd refusé$(Get-ActCraftAdbErreur)" }
-$journalHtml = Join-Path $Sortie 'logcat-html-lourd.txt'
-$limitePose = (Get-Date).AddSeconds(120)
-do {
-    Start-Sleep -Seconds 2
-    $pose = @(Adb 60 logcat -d | Select-String 'ACTCRAFT ESSAI CADRE WEB (POSE|ECHEC)')
-} while ($pose.Count -eq 0 -and (Get-Date) -lt $limitePose)
-if ($pose.Count -eq 0 -or "$($pose[0])" -notmatch 'POSE') {
+function Essai-HtmlLourd([string]$Mode, [bool]$Gardes) {
+    $nom = if ($Gardes) { 'html lourd gardes' } else { 'html lourd' }
+    $null = Adb 30 shell am force-stop $paquet
+    $journalHtml = Join-Path $Sortie "logcat-$Mode.txt"
+    try {
+        $null = Adb 30 shell setprop debug.actcraft.essai $Mode
+        if ($LASTEXITCODE -ne 0) { Echec "setprop debug.actcraft.essai $Mode refusé$(Get-ActCraftAdbErreur)" }
+        $null = Adb 30 logcat -c
+        $null = Adb 60 shell monkey -p $paquet -c android.intent.category.LAUNCHER 1
+        if ($LASTEXITCODE -ne 0) { Echec "lancement de l'essai $nom refusé$(Get-ActCraftAdbErreur)" }
+        $limitePose = (Get-Date).AddSeconds(120)
+        do {
+            Start-Sleep -Seconds 2
+            $pose = @(Adb 60 logcat -d | Select-String 'ACTCRAFT ESSAI CADRE WEB (POSE|ECHEC)')
+        } while ($pose.Count -eq 0 -and (Get-Date) -lt $limitePose)
+        # « POSE GARDES » : le modèle avait ses gardes allumées au moment de la pose ; « POSE » seul : coupées.
+        $attendu = if ($Gardes) { 'POSE GARDES' } else { 'POSE(?! GARDES)' }
+        if ($pose.Count -eq 0 -or "$($pose[0])" -notmatch $attendu) {
+            Adb 60 logcat -d -v threadtime | Set-Content -Path $journalHtml
+            Get-Content $journalHtml | Select-String 'ACTCRAFT|chromium|cr_|WebView|qml' | Select-Object -Last 30 | ForEach-Object { Write-Output "logcat : $_" }
+            Echec "cadre de l'essai $nom non posé ou gardes inattendues ($($pose -join ' | '))"
+        }
+    } finally {
+        try { $null = Adb 30 shell setprop debug.actcraft.essai aucun } catch { Write-Output "setprop debug.actcraft.essai aucun : $($_.Exception.Message)" }
+    }
+    Write-Output "${nom} : cadre posé"
+    # Accueil ouvert au démarrage : fermé du même toucher que plus haut (hors du cadre).
+    Ecarter-Anr
+    $null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
+    $vert = @(0, 200, 83)
+    $pointsHtml = @(@(1151, 811), @(951, 711), @(1351, 911))
+    $limiteHtml = (Get-Date).AddSeconds(90)
+    do {
+        Start-Sleep -Seconds 3
+        $ecranHtml = Capture $Mode
+        $lus = @($pointsHtml | ForEach-Object { , (Pixel $ecranHtml $_[0] $_[1]) })
+        $vu = @($lus | Where-Object { Proche $_ $vert 40 }).Count -eq $pointsHtml.Count
+    } while (-not $vu -and (Get-Date) -lt $limiteHtml)
     Adb 60 logcat -d -v threadtime | Set-Content -Path $journalHtml
-    Get-Content $journalHtml | Select-String 'ACTCRAFT|chromium|cr_|WebView|qml' | Select-Object -Last 30 | ForEach-Object { Write-Output "logcat : $_" }
-    Echec "cadre de l'essai HTML lourd non posé ($($pose -join ' | '))"
+    $charge = [bool](Select-String -Path $journalHtml -Pattern 'ACTCRAFT CADRE WEB CHARGE' -Quiet)
+    Write-Output "${nom} : lu $(($lus | ForEach-Object { $_ -join ' ' }) -join ' ; ') ; pageLoaded : $charge"
+    if (-not $vu -or -not $charge) {
+        Get-Content $journalHtml | Select-String 'ACTCRAFT|chromium|cr_|WebView|qml' | Select-Object -Last 30 | ForEach-Object { Write-Output "logcat : $_" }
+        Echec "HTML lourd sans base, $nom, non affiché (attendu $($vert -join ' ') aux trois points et pageLoaded)"
+    }
+    $null = Adb 30 shell am force-stop $paquet
 }
-} finally {
-    try { $null = Adb 30 shell setprop debug.actcraft.essai aucun } catch { Write-Output "setprop debug.actcraft.essai aucun : $($_.Exception.Message)" }
-}
-Write-Output 'html lourd : cadre posé'
-# Accueil ouvert au démarrage : fermé du même toucher que plus haut (hors du cadre).
-Ecarter-Anr
-$null = Adb 30 shell input tap $($accueil.X) $($accueil.Y)
-$vert = @(0, 200, 83)
-$pointsHtml = @(@(1151, 811), @(951, 711), @(1351, 911))
-$limiteHtml = (Get-Date).AddSeconds(90)
-do {
-    Start-Sleep -Seconds 3
-    $ecranHtml = Capture 'html-lourd'
-    $lus = @($pointsHtml | ForEach-Object { , (Pixel $ecranHtml $_[0] $_[1]) })
-    $vu = @($lus | Where-Object { Proche $_ $vert 40 }).Count -eq $pointsHtml.Count
-} while (-not $vu -and (Get-Date) -lt $limiteHtml)
-Adb 60 logcat -d -v threadtime | Set-Content -Path $journalHtml
-$charge = [bool](Select-String -Path $journalHtml -Pattern 'ACTCRAFT CADRE WEB CHARGE' -Quiet)
-Write-Output "html lourd : lu $(($lus | ForEach-Object { $_ -join ' ' }) -join ' ; ') ; pageLoaded : $charge"
-if (-not $vu) {
-    Get-Content $journalHtml | Select-String 'ACTCRAFT|chromium|cr_|WebView|qml' | Select-Object -Last 30 | ForEach-Object { Write-Output "logcat : $_" }
-    Echec "HTML lourd sans base non affiché (attendu $($vert -join ' ') aux trois points)"
-}
-$null = Adb 30 shell am force-stop $paquet
+Essai-HtmlLourd 'html-lourd' $false
+Essai-HtmlLourd 'html-lourd-gardes' $true
 } catch {
     # Refus du module commun : sa raison telle quelle (mêmes messages qu'avant l'extraction) ; le reste est imprévu,
     # y compris un module introuvable.

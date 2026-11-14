@@ -76,8 +76,9 @@ int main(int argc, char* argv[])
     // L11-T13-PC) : l'essai de l'émulateur passe par une propriété debug.*, que seul adb shell peut poser,
     // effacée au redémarrage de l'appareil ; lue dans tout APK, release compris (OB68).
     char probe[PROP_VALUE_MAX] = {};
-    if (__system_property_get("debug.actcraft.essai", probe) > 0 && std::strcmp(probe, "html-lourd") == 0) {
-        options.heavyHtmlProbe = true;
+    if (__system_property_get("debug.actcraft.essai", probe) > 0) {
+        options.heavyHtmlGuards = std::strcmp(probe, "html-lourd-gardes") == 0; // OB75
+        options.heavyHtmlProbe = options.heavyHtmlGuards || std::strcmp(probe, "html-lourd") == 0;
     }
 #endif
     if (!loadMainWindow(engine, options)) {
