@@ -21,12 +21,16 @@ Item {
 
     // contentFile n'est pas lu. Base non vide : loadHtml passe à loadDataWithBaseURL, sans la limite de 2 Mo des
     // adresses, et un HTML lourd du lecteur YouTube garde l'identité (OB58). Base vide : loadData, adresse data:
-    // limitée (docs/verifications/2026-11-13-youtube-erreur-153.md).
+    // limitée à 2 Mo, page vide au-delà. Un HTML lourd (contentFile écrit : au-delà de la limite de loadHtml) sans
+    // base prend donc « about:blank », la base que la WebView d'Android donne elle-même à loadDataWithBaseURL sans
+    // base : ni identité ni fichier local, gardes comprises (OB68, docs/verifications/2026-11-13-youtube-erreur-153.md).
     function load() {
-        if (directUrl.toString() !== "")
+        if (directUrl.toString() !== "") {
             web.url = directUrl
-        else
-            web.loadHtml(html, guardsEnabled ? "" : baseUrl)
+            return
+        }
+        const base = guardsEnabled ? "" : baseUrl.toString()
+        web.loadHtml(html, base === "" && contentFile.toString() !== "" ? "about:blank" : base)
     }
     function stop() { web.stop() }
     function goBack() { web.goBack() }
