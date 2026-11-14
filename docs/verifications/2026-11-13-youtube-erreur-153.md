@@ -134,13 +134,36 @@ l'émulateur : un HTML saisi de 3 Mo qui intègre `youtube-nocookie.com/embed/M7
 coupées ; la vidéo doit démarrer, sans « Erreur 153 ». Le texte de `loadDataWithBaseURL` lui-même passe par JNI
 en une seule chaîne : coût sur le fil de l'interface non mesuré.
 
-Défaut probable, hors du sujet du `Referer`, antérieur à OB58 : un HTML lourd **sans base**. QtWebView appelle
-alors `loadData` (HTML encodé en adresse `data:`), qui n'a pas l'exception de `loadDataWithBaseURL` : la limite de
-2 Mo s'applique. Sous Android, ce cas est courant : gardes allumées (base vide, n° 33), et gardes coupées pour tout
-HTML lourd sans lecteur, car un document Android est une URI `content://` et `fileChanged` ne donne une base qu'à
-un fichier local. Non essayé. Pistes : essai déterministe sur l'émulateur de la CI (HTML de 3 Mo avec un titre,
-`pageLoaded` attendu) ; si le défaut est confirmé, donner sous Android une base non vide à un HTML lourd, ou lui
-faire lire `contentFile`.
+Défaut confirmé (OB68), hors du sujet du `Referer`, antérieur à OB58 : un HTML lourd **sans base** ne s'affichait
+pas. QtWebView appelle alors `loadData` (HTML encodé en adresse `data:`), qui n'a pas l'exception de
+`loadDataWithBaseURL` : la limite de 2 Mo s'applique. Sous Android, ce cas est courant : gardes allumées (base vide,
+n° 33), et gardes coupées pour tout HTML lourd sans lecteur, car un document Android est une URI `content://` et
+`fileChanged` ne donne une base qu'à un fichier local.
+
+Essai sur l'émulateur de la CI, à la fin de `scripts/essai-android.ps1` : la propriété `debug.actcraft.essai=html-lourd`
+(posée par adb, lue par `app/main.cpp` ; Qt ignore `applicationArguments` hors APK débogable) pose au démarrage un
+cadre de HTML vert de plus de 3 Mo (`heavyHtmlProbePage`), document neuf, gardes coupées ; trois points de la
+capture doivent être verts. Sans correctif (branche `essai/ob68-sans-correctif`, run 43561220933, job `android`) :
+`html lourd : lu 255 255 255 ; 255 255 255 ; 255 255 255 ; pageLoaded : False`, et au logcat
+`chromium: [WARNING:navigation_controller_impl.cc(280)] Refusing to load URL as it exceeds 2097152 characters.`
+
+Correctif : sous Android, un HTML lourd (`contentFile` écrit) sans base prend la base `about:blank`
+(`ui/qml/WebFrameSystemView.qml`). QtWebView passe alors à `loadDataWithBaseURL`, sans limite ; `about:blank` est la
+base que la WebView d'Android donne elle-même à `loadDataWithBaseURL` sans base. Gardes allumées, le modèle rejette
+toujours `file:` et `about:` dans le HTML réécrit, sous sa CSP. Gardes coupées, la page peut charger du `file:`
+(`allowFileAccess`), comme le HTML lourd lu en `file:` sur PC et Mac. Le HTML léger et moyen garde `loadData`.
+Avec correctif (run 43561222955, job `android`) : `html lourd : lu 0 200 83 ; 0 200 83 ; 0 200 83 ; pageLoaded : True`,
+puis `ANDROID OK`.
+Gardes allumées (OB75), constat de lecture : le même correctif couvre `finishContent`. Le modèle écrit le fichier
+du HTML réécrit au-delà de la limite (`prepareContent`, même `writeHeavyHtml`) ; la vue ne donne jamais de base
+gardes allumées, donc `about:blank` ; `followLink` rend `about:blank` à la vue sans navigation. La page de l'essai
+portait son volume dans un commentaire, que la réécriture retire (490 caractères) : elle le porte maintenant dans un
+bloc caché (`tst_app_open`, `heavyHtmlProbePageStaysHeavyUnderGuards` : rouge avant, vert après). Essai sur
+l'émulateur : `debug.actcraft.essai=html-lourd-gardes` allume les gardes de la session seulement (réglage du profil
+non écrit) ; `scripts/essai-android.ps1` joue les deux passages et exige, pour chacun, les trois points verts et
+`pageLoaded`, et pour le second « POSE GARDES » et « CHARGE GARDES » au journal (vue créée gardes allumées). Résultat (run 43570046121, job `android`) : `html lourd gardes : lu 0 200 83 ; 0 200 83 ; 0 200 83 ; pageLoaded :
+True`, puis `ANDROID OK`. Pas de défaut gardes allumées avec le correctif ; passage gardes allumées non vu rouge
+sans lui.
 
 ## Essai réel, dans l'application
 

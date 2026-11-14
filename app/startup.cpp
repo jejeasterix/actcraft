@@ -24,6 +24,8 @@ StartupOptions parseStartupOptions(const QStringList& args)
     if (probe >= 0 && probe + 1 < args.size()) {
         options.webFrameProbe = args.at(probe + 1);
     }
+    options.heavyHtmlGuards = args.contains(QStringLiteral("--essai-html-lourd-gardes"));
+    options.heavyHtmlProbe = options.heavyHtmlGuards || args.contains(QStringLiteral("--essai-html-lourd"));
     return options;
 }
 
@@ -46,6 +48,13 @@ QString openFileArgument(const QStringList& args)
         }
     }
     return QString();
+}
+
+QString heavyHtmlProbePage()
+{
+    return QStringLiteral("<!DOCTYPE html><html><head><title>ACTCRAFT HTML LOURD</title></head>"
+                          "<body style=\"margin:0;background:#00c853\"><div style=\"display:none\">") +
+           QString(3000000, u'x') + QStringLiteral("</div></body></html>");
 }
 
 QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions& options)
@@ -78,9 +87,11 @@ QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions
                                   Q_ARG(QVariant, QVariant(QStringLiteral("file.open"))),
                                   Q_ARG(QVariant, QVariant(options.openUrl)));
     }
-    if (window && !options.webFrameProbe.isEmpty()) {
+    if (window && (!options.webFrameProbe.isEmpty() || options.heavyHtmlProbe)) {
         const QString address = options.webFrameProbe;
-        QTimer::singleShot(1000, window, [window, address] {
+        const QString html = options.heavyHtmlProbe ? heavyHtmlProbePage() : QString();
+        const bool guards = options.heavyHtmlGuards;
+        QTimer::singleShot(1000, window, [window, address, html, guards] {
             const std::function<QQuickItem*(QQuickItem*)> find = [&](QQuickItem* item) -> QQuickItem* {
                 if (item->objectName() == QLatin1String("webFrameLayer"))
                     return item;
@@ -93,11 +104,15 @@ QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions
             QQuickItem* layer = find(window->contentItem());
             QObject* frames = layer ? layer->findChild<QObject*>(QStringLiteral("appWebFrames")) : nullptr;
             bool ok = false;
+            // Gardes allumées pour cette session seulement : le réglage du profil n'est pas écrit (OB75).
+            if (frames && guards)
+                frames->setProperty("guardsEnabled", true);
             if (frames)
-                QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, ok),
-                                          Q_ARG(QString, QString()),
-                                          Q_ARG(QString, QUrl::fromUserInput(address).toString()));
-            qInfo("ACTCRAFT ESSAI CADRE WEB %s", ok ? "POSE" : "ECHEC");
+                QMetaObject::invokeMethod(
+                    frames, "insertFrame", Q_RETURN_ARG(bool, ok), Q_ARG(QString, html),
+                    Q_ARG(QString, address.isEmpty() ? QString() : QUrl::fromUserInput(address).toString()));
+            const bool guarded = frames && frames->property("guardsEnabled").toBool();
+            qInfo("ACTCRAFT ESSAI CADRE WEB %s%s", ok ? "POSE" : "ECHEC", guarded ? " GARDES" : "");
         });
     }
     return window;

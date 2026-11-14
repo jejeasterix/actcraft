@@ -3,8 +3,10 @@
 #include <actcraft/core/document.h>
 #include <actcraft/formats/nativefile.h>
 #include <actcraft/ui/documentcontroller.h>
+#include <actcraft/ui/webframeitem.h>
 
 #include <QFile>
+#include <QFileInfo>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QSettings>
@@ -56,6 +58,55 @@ private slots:
                                  QStringLiteral("/tmp/page.html")});
         QCOMPARE(options.webFrameProbe, QStringLiteral("/tmp/page.html"));
         QVERIFY(parseStartupOptions({QStringLiteral("actcraft")}).webFrameProbe.isEmpty());
+    }
+
+    void parsesHeavyHtmlProbe()
+    {
+        QVERIFY(parseStartupOptions({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")})
+                    .heavyHtmlProbe);
+        QVERIFY(!parseStartupOptions({QStringLiteral("actcraft")}).heavyHtmlProbe);
+        QVERIFY(
+            openFileArgument({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")}).isEmpty());
+        QVERIFY(!parseStartupOptions({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")})
+                     .heavyHtmlGuards);
+        const StartupOptions guarded =
+            parseStartupOptions({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd-gardes")});
+        QVERIFY(guarded.heavyHtmlProbe);
+        QVERIFY(guarded.heavyHtmlGuards);
+        QVERIFY(openFileArgument({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd-gardes")})
+                    .isEmpty());
+    }
+
+    // OB68 : le HTML de l'essai dépasse la limite des adresses data: (2 Mo) même sans encodage, et porte son
+    // repère.
+    void heavyHtmlProbePageExceedsTheAddressLimit()
+    {
+        const QString page = heavyHtmlProbePage();
+        QVERIFY(page.toUtf8().size() > 3000000);
+        QVERIFY(page.contains(QStringLiteral("<title>ACTCRAFT HTML LOURD</title>")));
+        QVERIFY(page.contains(QStringLiteral("background:#00c853")));
+    }
+
+    // OB75 : gardes allumées, la page de l'essai passe par la réécriture du modèle (finishContent) ; elle y
+    // reste au-delà de la limite de loadHtml (fichier écrit, ce qui donne la base about:blank sous Android)
+    // et verte.
+    void heavyHtmlProbePageStaysHeavyUnderGuards()
+    {
+        ui::DocumentController document;
+        ui::WebFrameItems frames;
+        frames.setGuardsEnabled(true);
+        document.newDocument(1024, 768);
+        frames.setDocument(&document);
+        QVERIFY(frames.insertFrame(heavyHtmlProbePage(), {}));
+        const auto role = [&](int r) { return frames.data(frames.index(0, 0), r); };
+        QTRY_VERIFY_WITH_TIMEOUT(!role(ui::WebFrameItems::LoadingRole).toBool() &&
+                                     !role(ui::WebFrameItems::ContentRole).toString().isEmpty(),
+                                 60000);
+        const QString shown = role(ui::WebFrameItems::ContentRole).toString();
+        QVERIFY2(shown.size() > 3000000, qPrintable(QString::number(shown.size())));
+        QVERIFY(shown.contains(QStringLiteral("background:#00c853")));
+        const QUrl file = role(ui::WebFrameItems::ContentFileRole).toUrl();
+        QVERIFY2(file.isLocalFile() && QFileInfo::exists(file.toLocalFile()), qPrintable(file.toString()));
     }
 
     void startupOpensTheFile()

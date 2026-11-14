@@ -28,14 +28,24 @@ struct StartupOptions
     bool logFingerprint = false;
     // `--essai-cadre-web <adresse ou fichier>` (essai de l'image disque, S4) : un cadre posé au démarrage.
     QString webFrameProbe;
+    // `--essai-html-lourd` (essai sur l'émulateur, OB68) : un cadre posé au démarrage avec
+    // heavyHtmlProbePage().
+    bool heavyHtmlProbe = false;
+    // `--essai-html-lourd-gardes` (OB75) : le même cadre, gardes allumées (réécriture du modèle, base vide).
+    bool heavyHtmlGuards = false;
 };
 
-// Lit `--sans-cache` (décision 8), `--ouvrir <fichier>`, `--journal-empreinte` et `--essai-cadre-web <adresse
-// ou fichier>`.
+// Lit `--sans-cache` (décision 8), `--ouvrir <fichier>`, `--journal-empreinte`, `--essai-cadre-web <adresse
+// ou fichier>`, `--essai-html-lourd` et `--essai-html-lourd-gardes`.
 StartupOptions parseStartupOptions(const QStringList& args);
 
 // `--ouvrir <f>`, sinon premier argument qui n'est ni une option ni la valeur d'une option ; vide sinon.
 QString openFileArgument(const QStringList& args);
+
+// HTML saisi de plus de 3 Mo, sans base ni lecteur : titre « ACTCRAFT HTML LOURD », page entière verte
+// (#00c853), repère lu sur la capture de l'émulateur (OB68). Volume dans un bloc caché : gardes allumées, la
+// réécriture du modèle retire les commentaires (OB75).
+QString heavyHtmlProbePage();
 
 // Charge ActCraft.Ui/Main avec ces options ; retourne la fenêtre principale, nullptr en cas d'échec.
 QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions& options);
