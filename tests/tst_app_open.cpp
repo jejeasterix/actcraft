@@ -63,10 +63,12 @@ private slots:
         QVERIFY(parseStartupOptions({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")})
                     .heavyHtmlProbe);
         QVERIFY(!parseStartupOptions({QStringLiteral("actcraft")}).heavyHtmlProbe);
-        QVERIFY(openFileArgument({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")}).isEmpty());
+        QVERIFY(
+            openFileArgument({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")}).isEmpty());
     }
 
-    // OB68 : le HTML de l'essai dépasse la limite des adresses data: (2 Mo) même sans encodage, et porte son repère.
+    // OB68 : le HTML de l'essai dépasse la limite des adresses data: (2 Mo) même sans encodage, et porte son
+    // repère.
     void heavyHtmlProbePageExceedsTheAddressLimit()
     {
         const QString page = heavyHtmlProbePage();

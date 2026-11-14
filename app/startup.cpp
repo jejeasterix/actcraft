@@ -103,10 +103,9 @@ QQuickWindow* loadMainWindow(QQmlApplicationEngine& engine, const StartupOptions
             QObject* frames = layer ? layer->findChild<QObject*>(QStringLiteral("appWebFrames")) : nullptr;
             bool ok = false;
             if (frames)
-                QMetaObject::invokeMethod(frames, "insertFrame", Q_RETURN_ARG(bool, ok),
-                                          Q_ARG(QString, html),
-                                          Q_ARG(QString, address.isEmpty() ? QString()
-                                                                           : QUrl::fromUserInput(address).toString()));
+                QMetaObject::invokeMethod(
+                    frames, "insertFrame", Q_RETURN_ARG(bool, ok), Q_ARG(QString, html),
+                    Q_ARG(QString, address.isEmpty() ? QString() : QUrl::fromUserInput(address).toString()));
             qInfo("ACTCRAFT ESSAI CADRE WEB %s", ok ? "POSE" : "ECHEC");
         });
     }
