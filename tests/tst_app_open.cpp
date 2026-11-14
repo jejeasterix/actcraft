@@ -58,6 +58,25 @@ private slots:
         QVERIFY(parseStartupOptions({QStringLiteral("actcraft")}).webFrameProbe.isEmpty());
     }
 
+    void parsesHeavyHtmlProbe()
+    {
+        QVERIFY(parseStartupOptions({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")})
+                    .heavyHtmlProbe);
+        QVERIFY(!parseStartupOptions({QStringLiteral("actcraft")}).heavyHtmlProbe);
+        QVERIFY(
+            openFileArgument({QStringLiteral("actcraft"), QStringLiteral("--essai-html-lourd")}).isEmpty());
+    }
+
+    // OB68 : le HTML de l'essai dépasse la limite des adresses data: (2 Mo) même sans encodage, et porte son
+    // repère.
+    void heavyHtmlProbePageExceedsTheAddressLimit()
+    {
+        const QString page = heavyHtmlProbePage();
+        QVERIFY(page.toUtf8().size() > 3000000);
+        QVERIFY(page.contains(QStringLiteral("<title>ACTCRAFT HTML LOURD</title>")));
+        QVERIFY(page.contains(QStringLiteral("background:#00c853")));
+    }
+
     void startupOpensTheFile()
     {
         QTemporaryDir dir;

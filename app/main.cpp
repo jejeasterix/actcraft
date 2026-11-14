@@ -15,6 +15,10 @@
 #include <cstdio>
 #include <cstring>
 
+#ifdef Q_OS_ANDROID
+#include <sys/system_properties.h>
+#endif
+
 Q_IMPORT_QML_PLUGIN(ActCraft_UiPlugin)
 
 // Échantillonnage de la fenêtre et du cache (H10-9) : à changer ensemble.
@@ -67,6 +71,15 @@ int main(int argc, char* argv[])
         }
     }
     options.showDashboard = true; // l'application seule ouvre l'accueil au démarrage (L6-T23)
+#ifdef Q_OS_ANDROID
+    // Qt ignore applicationArguments hors débogage (docs/verifications/2026-11-12-lot11-restes-pc.md,
+    // L11-T13-PC) : l'essai de l'émulateur passe par une propriété debug.*, que seul adb shell peut poser,
+    // effacée au redémarrage de l'appareil ; lue dans tout APK, release compris (OB68).
+    char probe[PROP_VALUE_MAX] = {};
+    if (__system_property_get("debug.actcraft.essai", probe) > 0 && std::strcmp(probe, "html-lourd") == 0) {
+        options.heavyHtmlProbe = true;
+    }
+#endif
     if (!loadMainWindow(engine, options)) {
         return 1;
     }
