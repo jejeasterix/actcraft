@@ -161,7 +161,7 @@ portait son volume dans un commentaire, que la réécriture retire (490 caractè
 bloc caché (`tst_app_open`, `heavyHtmlProbePageStaysHeavyUnderGuards` : rouge avant, vert après). Essai sur
 l'émulateur : `debug.actcraft.essai=html-lourd-gardes` allume les gardes de la session seulement (réglage du profil
 non écrit) ; `scripts/essai-android.ps1` joue les deux passages et exige, pour chacun, les trois points verts et
-`pageLoaded`, et « POSE GARDES » au journal pour le second. Résultat : run de la PR, job `android`.
+`pageLoaded`, et pour le second « POSE GARDES » et « CHARGE GARDES » au journal (vue créée gardes allumées). Résultat : run de la PR, job `android`.
 
 ## Essai réel, dans l'application
 

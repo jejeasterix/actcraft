@@ -346,7 +346,8 @@ Item {
                             return
                         viewHost.reported = true
                         frameLayer.loadedViews += 1
-                        console.info("ACTCRAFT CADRE WEB CHARGE")
+                        // « GARDES » : vue créée gardes allumées (essai de l'émulateur, OB75).
+                        console.info("ACTCRAFT CADRE WEB CHARGE" + (viewHost.madeGuards ? " GARDES" : ""))
                     }
                     function onViewReported(pageUrl, canBack, canForward, pageTitle, pageLoading) {
                         appWebFrames.reportView(frame.index, pageUrl, canBack, canForward, pageTitle, pageLoading)

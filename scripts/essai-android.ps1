@@ -201,7 +201,8 @@ if ("$(Adb 30 shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus
 # modèle réécrit le HTML sous sa règle de sécurité, finishContent ; la vue ne donne jamais de base). Sans base,
 # QtWebView passe à loadData : adresse data: au-delà de la limite de 2 Mo de la WebView, page vide. Repère : la page
 # de l'essai est toute verte (#00c853, app/startup.cpp heavyHtmlProbePage) ; trois points autour du centre de la page
-# (centre du cadre, 640 × 400 points) doivent être verts, et la vue doit signaler sa page chargée (pageLoaded).
+# (centre du cadre, 640 × 400 points) doivent être verts, et la vue doit signaler sa page chargée (pageLoaded), créée
+# sous les gardes attendues.
 # Qt ignore applicationArguments dans un APK non débogable : l'option passe par la propriété debug.actcraft.essai,
 # lue par app/main.cpp sous Android, puis remise à « aucun » sur tous les chemins (finally : exit l'exécute aussi),
 # sinon chaque lancement suivant, jusqu'au redémarrage de l'appareil, poserait le cadre.
@@ -244,7 +245,9 @@ function Essai-HtmlLourd([string]$Mode, [bool]$Gardes) {
         $vu = @($lus | Where-Object { Proche $_ $vert 40 }).Count -eq $pointsHtml.Count
     } while (-not $vu -and (Get-Date) -lt $limiteHtml)
     Adb 60 logcat -d -v threadtime | Set-Content -Path $journalHtml
-    $charge = [bool](Select-String -Path $journalHtml -Pattern 'ACTCRAFT CADRE WEB CHARGE' -Quiet)
+    # « CHARGE GARDES » : la vue chargée a été créée gardes allumées ; « CHARGE » seul : coupées.
+    $motifCharge = if ($Gardes) { 'ACTCRAFT CADRE WEB CHARGE GARDES' } else { 'ACTCRAFT CADRE WEB CHARGE(?! GARDES)' }
+    $charge = [bool](Select-String -Path $journalHtml -Pattern $motifCharge -Quiet)
     Write-Output "${nom} : lu $(($lus | ForEach-Object { $_ -join ' ' }) -join ' ; ') ; pageLoaded : $charge"
     if (-not $vu -or -not $charge) {
         Get-Content $journalHtml | Select-String 'ACTCRAFT|chromium|cr_|WebView|qml' | Select-Object -Last 30 | ForEach-Object { Write-Output "logcat : $_" }
