@@ -23,7 +23,9 @@ Item {
     // adresses, et un HTML lourd du lecteur YouTube garde l'identité (OB58). Base vide : loadData, adresse data:
     // limitée à 2 Mo, page vide au-delà. Un HTML lourd (contentFile écrit : au-delà de la limite de loadHtml) sans
     // base prend donc « about:blank », la base que la WebView d'Android donne elle-même à loadDataWithBaseURL sans
-    // base : ni identité ni fichier local, gardes comprises (OB68, docs/verifications/2026-11-13-youtube-erreur-153.md).
+    // base : pas d'identité. Gardes coupées, la page peut alors charger du file: (allowFileAccess), comme le HTML
+    // lourd lu en file: sur PC et Mac ; gardes allumées, le modèle l'interdit (OB68,
+    // docs/verifications/2026-11-13-youtube-erreur-153.md).
     function load() {
         if (directUrl.toString() !== "") {
             web.url = directUrl

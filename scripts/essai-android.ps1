@@ -200,8 +200,10 @@ if ("$(Adb 30 shell pidof $paquet)".Trim() -ne $processus) { Echec 'le processus
 # WebView, page vide. Repère : la page de l'essai est toute verte (#00c853, app/startup.cpp heavyHtmlProbePage) ;
 # trois points autour du centre de la page (centre du cadre, 640 × 400 points) doivent être verts.
 # Qt ignore applicationArguments dans un APK non débogable : l'option passe par la propriété debug.actcraft.essai,
-# lue par app/main.cpp sous Android, puis remise à « aucun ».
+# lue par app/main.cpp sous Android, puis remise à « aucun » sur tous les chemins (finally : exit l'exécute aussi),
+# sinon chaque lancement suivant, jusqu'au redémarrage de l'appareil, poserait le cadre.
 $null = Adb 30 shell am force-stop $paquet
+try {
 $null = Adb 30 shell setprop debug.actcraft.essai html-lourd
 if ($LASTEXITCODE -ne 0) { Echec "setprop debug.actcraft.essai refusé$(Get-ActCraftAdbErreur)" }
 $null = Adb 30 logcat -c
@@ -216,10 +218,11 @@ do {
 if ($pose.Count -eq 0 -or "$($pose[0])" -notmatch 'POSE') {
     Adb 60 logcat -d -v threadtime | Set-Content -Path $journalHtml
     Get-Content $journalHtml | Select-String 'ACTCRAFT|chromium|cr_|WebView|qml' | Select-Object -Last 30 | ForEach-Object { Write-Output "logcat : $_" }
-    $null = Adb 30 shell setprop debug.actcraft.essai aucun
     Echec "cadre de l'essai HTML lourd non posé ($($pose -join ' | '))"
 }
-$null = Adb 30 shell setprop debug.actcraft.essai aucun
+} finally {
+    try { $null = Adb 30 shell setprop debug.actcraft.essai aucun } catch { Write-Output "setprop debug.actcraft.essai aucun : $($_.Exception.Message)" }
+}
 Write-Output 'html lourd : cadre posé'
 # Accueil ouvert au démarrage : fermé du même toucher que plus haut (hors du cadre).
 Ecarter-Anr
