@@ -55,7 +55,8 @@ Limites connues :
 - un HTML qui intègre un lecteur YouTube ne lit plus ses ressources relatives au dossier du document ; une simple
   mention de l'adresse d'un lecteur dans le texte suffit à ce changement ;
 - un fichier local ouvert par son adresse reste sans `Referer` ; un HTML au-delà de la limite de `loadHtml` est
-  corrigé sur PC et Mac (section suivante), pas sous Android ;
+  corrigé sur PC et Mac (section suivante) ; sous Android, un HTML lourd du lecteur n'a pas cette limite (section
+  « Android ») ;
 - toutes les pages du lecteur partagent l'origine `https://org.actcraft.actcraft` dans le profil par défaut (éphémère) ;
 - Android (`WebFrameSystemView.qml`) reçoit la même base, non essayé sur un appareil ; l'identifiant Android est
   `io.github.jejeasterix.actcraft`.
@@ -104,8 +105,42 @@ Part déterministe, dans la CI : `tst_ui_webengine` (`heavyPlayerHtmlKeepsTheIde
 `contentFile`, origine `https://org.actcraft.actcraft`, contenu entier malgré un `location.hash` posé pendant
 l'écriture, paire de substitution à la coupure d'un morceau restée dans un seul nœud, puis même résultat, titre déjà écrit au `pageLoaded` et un seul `pageLoaded` après un rechargement du moteur).
 
-Limites : Android (`WebFrameSystemView.qml`) charge encore le fichier, sans `Referer`. Une page lourde du lecteur ne
-lit pas ses ressources relatives au dossier du document, comme une page moyenne du lecteur.
+Limite : une page lourde du lecteur ne lit pas ses ressources relatives au dossier du document, comme une page
+moyenne du lecteur.
+
+## Android : le HTML lourd ne passe pas par le fichier (OB58)
+
+Constat de lecture, 2026-11-14 : sous Android, la vue (`ui/qml/WebFrameSystemView.qml`) ne lit jamais `contentFile`,
+et ne l'a jamais lu. Sa fonction `load()` appelle `web.loadHtml(html, baseUrl)` avec le HTML entier, quel que soit
+son poids. Pour un HTML lourd du lecteur, le modèle lui donne ce HTML entier (`finishDirect` :
+`row.content = row.html`) et la base de l'identité (`viewBase`). Le fichier temporaire est écrit aussi sous Android,
+mais seule la vue Qt WebEngine le lit. Un échec de son écriture (disque plein) montre pourtant à Android le message
+« Page trop lourde », alors que la vue n'en a pas besoin : cas rare, antérieur à OB58.
+
+QtWebView 6.12.0 pour Android traduit `loadHtml(html, base)`, base non vide et hors `data:`, en
+`WebView.loadDataWithBaseURL(base, html, "text/html;charset=UTF-8", …)` (`src/plugins/android/qandroidwebview.cpp`).
+La WebView d'Android passe ces données hors de la limite de 2 Mo des adresses (Chromium, `data_url_as_string`,
+revue https://codereview.chromium.org/1497743005). Déduit de ces sources, non observé : la page prend la base
+`https://org.actcraft.actcraft/`, et la requête `/embed/` porte le `Referer` de l'identité, comme un HTML léger.
+Rien n'est à porter de l'amorce de `WebFrameEngineView.qml`.
+
+Part déterministe, dans la CI : `tst_ui_webframe` (`heavyHtmlWithAPlayerKeepsTheWholeContent` : HTML de 3 Mo avec
+un lecteur, fichier écrit, contenu entier, base de l'identité). Mutation essayée le 2026-11-14 : retirer l'identité
+quand le fichier est écrit (`file.isEmpty()` ajouté à la condition de `finishDirect`) fait échouer ce test seul. Le
+test ne prouve rien de QtWebView ni de la vue Android.
+
+Non prouvé, faute d'appareil : la lecture réelle sous Android, HTML léger comme lourd. Essai à faire sur
+l'émulateur : un HTML saisi de 3 Mo qui intègre `youtube-nocookie.com/embed/M7lc1UVf-VE?autoplay=1&mute=1`, gardes
+coupées ; la vidéo doit démarrer, sans « Erreur 153 ». Le texte de `loadDataWithBaseURL` lui-même passe par JNI
+en une seule chaîne : coût sur le fil de l'interface non mesuré.
+
+Défaut probable, hors du sujet du `Referer`, antérieur à OB58 : un HTML lourd **sans base**. QtWebView appelle
+alors `loadData` (HTML encodé en adresse `data:`), qui n'a pas l'exception de `loadDataWithBaseURL` : la limite de
+2 Mo s'applique. Sous Android, ce cas est courant : gardes allumées (base vide, n° 33), et gardes coupées pour tout
+HTML lourd sans lecteur, car un document Android est une URI `content://` et `fileChanged` ne donne une base qu'à
+un fichier local. Non essayé. Pistes : essai déterministe sur l'émulateur de la CI (HTML de 3 Mo avec un titre,
+`pageLoaded` attendu) ; si le défaut est confirmé, donner sous Android une base non vide à un HTML lourd, ou lui
+faire lire `contentFile`.
 
 ## Essai réel, dans l'application
 

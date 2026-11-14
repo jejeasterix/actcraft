@@ -1574,7 +1574,8 @@ void WebFrameItems::finishDirect(std::uint64_t id, std::uint64_t ticket, const Q
     row.content = failed ? messagePage(tr("Page trop lourde : le fichier n'a pas pu être écrit.")) : row.html;
     row.baseUrl = m_resourceBase;
     // Au-delà de la limite de loadHtml, la vue lit le fichier (file:, sans Referer) ; avec l'identité, elle
-    // écrit le HTML dans une page de cette base (OB52, WebFrameEngineView.qml).
+    // écrit le HTML dans une page de cette base (OB52, WebFrameEngineView.qml). La vue Android lit le
+    // contenu entier, jamais le fichier ; un échec d'écriture lui montre pourtant le message (OB58).
     row.viewBase = player && !failed ? kPlayerIdentity : m_resourceBase;
     row.loading = false;
     ++row.serial;

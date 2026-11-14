@@ -19,6 +19,9 @@ Item {
     signal navigationTaken(url pageUrl)
     signal pageLoaded()
 
+    // contentFile n'est pas lu. Base non vide : loadHtml passe à loadDataWithBaseURL, sans la limite de 2 Mo des
+    // adresses, et un HTML lourd du lecteur YouTube garde l'identité (OB58). Base vide : loadData, adresse data:
+    // limitée (docs/verifications/2026-11-13-youtube-erreur-153.md).
     function load() {
         if (directUrl.toString() !== "")
             web.url = directUrl
